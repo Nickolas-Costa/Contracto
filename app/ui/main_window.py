@@ -44,6 +44,8 @@ from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil,
     carregar_perfis, obter_perfil, listar_nomes_perfis,
 )
+from PIL import Image
+from ui.date_picker import DatePickerPopup
 
 
 class MainWindow(ctk.CTk):
@@ -77,6 +79,7 @@ class MainWindow(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)  # row 0=toolbar, 1=gradient, 2=conteúdo
 
+        self._load_icons()
         self._construir_toolbar()
         self._construir_gradiente()
         self._construir_stepper()
@@ -111,6 +114,19 @@ class MainWindow(ctk.CTk):
     # ==================================================================
     # TOOLBAR (inspirada no PDFCreator)
     # ==================================================================
+    def _load_icons(self) -> None:
+        try:
+            base = Path(__file__).parent.parent / "assets" / "icons"
+            self.icon_home = ctk.CTkImage(Image.open(base / "home.png"), size=(20, 20))
+            self.icon_profiles = ctk.CTkImage(Image.open(base / "profiles.png"), size=(20, 20))
+            self.icon_settings = ctk.CTkImage(Image.open(base / "settings.png"), size=(20, 20))
+            self.icon_calendar = ctk.CTkImage(Image.open(base / "calendar.png"), size=(20, 20))
+        except Exception:
+            self.icon_home = None
+            self.icon_profiles = None
+            self.icon_settings = None
+            self.icon_calendar = None
+
     def _construir_toolbar(self) -> None:
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
                                      corner_radius=0, height=44)
@@ -132,19 +148,19 @@ class MainWindow(ctk.CTk):
         }
 
         self.btn_inicio = ctk.CTkButton(
-            self.toolbar, text="🏠  Início", width=100,
+            self.toolbar, text=" Início", image=self.icon_home, width=100,
             command=lambda: self._mostrar_tela("inicio"), **btn_style,
         )
         self.btn_inicio.grid(row=0, column=1, padx=2, pady=SPACING_XSMALL)
 
         self.btn_perfis = ctk.CTkButton(
-            self.toolbar, text="📋  Perfis", width=100,
+            self.toolbar, text=" Perfis", image=self.icon_profiles, width=100,
             command=lambda: self._mostrar_tela("perfis"), **btn_style,
         )
         self.btn_perfis.grid(row=0, column=2, padx=2, pady=SPACING_XSMALL)
 
         self.btn_config = ctk.CTkButton(
-            self.toolbar, text="⚙  Configurações", width=130,
+            self.toolbar, text=" Configurações", image=self.icon_settings, width=130,
             command=lambda: self._mostrar_tela("config"), **btn_style,
         )
         self.btn_config.grid(row=0, column=4, padx=(2, SPACING_LARGE), pady=SPACING_XSMALL)
@@ -350,7 +366,7 @@ class MainWindow(ctk.CTk):
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
             command=self._adicionar_participante,
         )
-        botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_SMALL, 0), sticky="w")
+        botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_XLARGE, 0), sticky="w")
 
 
 
@@ -364,20 +380,52 @@ class MainWindow(ctk.CTk):
         titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
                     pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
-        ctk.CTkLabel(secao, text="Pasta de saída:", font=get_font(FONT_SIZE_BODY)).grid(
-            row=1, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
-            pady=(0, SPACING_LARGE), sticky="w")
-        self.entry_pasta_saida = ctk.CTkEntry(secao, placeholder_text="Nenhuma pasta selecionada",
-                                               corner_radius=RADIUS_INPUT)
-        self.entry_pasta_saida.grid(row=1, column=1, padx=SPACING_SMALL,
-                                     pady=(0, SPACING_LARGE), sticky="ew")
+        # Global fields
+        ctk.CTkLabel(secao, text="Data da assinatura", font=get_font(FONT_SIZE_BODY)).grid(
+            row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+            
+        frame_data = ctk.CTkFrame(secao, fg_color="transparent")
+        frame_data.grid(row=1, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+        frame_data.grid_columnconfigure(0, weight=1)
+        
+        self.entry_data = ctk.CTkEntry(frame_data, placeholder_text="DD/MM/AAAA", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        self.entry_data.grid(row=0, column=0, sticky="ew")
+        
+        ctk.CTkButton(frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
+                      fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
+                      command=lambda: DatePickerPopup(self, self.entry_data)).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
+
+        ctk.CTkLabel(secao, text="Local da assinatura", font=get_font(FONT_SIZE_BODY)).grid(
+            row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        self.entry_local = ctk.CTkEntry(secao, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        self.entry_local.grid(row=2, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+        self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
+
+        # Set default directory to Downloads
+        if os.name == "nt":
+            downloads_path = Path(os.environ["USERPROFILE"]) / "Downloads"
+        else:
+            downloads_path = Path.home() / "Downloads"
+        self.pasta_saida = downloads_path
+
+        # Directory Selector
+        ctk.CTkLabel(secao, text="Diretório de saída:", font=get_font(FONT_SIZE_BODY, "bold")).grid(
+            row=3, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM),
+            pady=(SPACING_SMALL, SPACING_LARGE), sticky="w")
+        
+        frame_dir = ctk.CTkFrame(secao, fg_color="transparent")
+        frame_dir.grid(row=3, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+        frame_dir.grid_columnconfigure(0, weight=1)
+
+        self.entry_pasta_saida = ctk.CTkEntry(frame_dir, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_INPUT)
+        self.entry_pasta_saida.grid(row=0, column=0, sticky="ew")
+        self.entry_pasta_saida.insert(0, str(downloads_path))
         self.entry_pasta_saida.configure(state="disabled")
 
-        ctk.CTkButton(secao, text="Selecionar", width=80, corner_radius=RADIUS_BUTTON,
-                      fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
-                      hover_color=COLOR_BORDER, command=self._selecionar_pasta_saida
-                      ).grid(row=1, column=2, padx=(SPACING_SMALL, SPACING_LARGE),
-                             pady=(0, SPACING_LARGE))
+        ctk.CTkButton(frame_dir, text="...", width=40, corner_radius=RADIUS_BUTTON,
+                      fg_color=COLOR_BORDER, text_color=COLOR_TEXT,
+                      hover_color=COLOR_TEXT_DISABLED, command=self._selecionar_pasta_saida
+                      ).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
 
     def _adicionar_participante(self, principal: bool = False) -> None:
         indice = len(self.participant_frames) + 1
@@ -412,6 +460,14 @@ class MainWindow(ctk.CTk):
 
     def _ao_clicar_avancar(self) -> None:
         principal = self.participant_frames[0].obter_participante()
+        
+        principal.data_assinatura = self.entry_data.get().strip()
+        principal.local_assinatura = self.entry_local.get().strip()
+        
+        if not principal.data_assinatura or not principal.local_assinatura:
+            show_toast(self, "Corrija os campos de Data e Local de assinatura.", "error")
+            return
+            
         participantes = [principal]
         for frame in self.participant_frames[1:]:
             p = frame.obter_participante()
@@ -621,10 +677,9 @@ class MainWindow(ctk.CTk):
         if primeiro.entry_endereco:
             primeiro.entry_endereco.delete(0, "end")
             primeiro._validar_campo(primeiro.entry_endereco)
-        if primeiro.entry_data:
-            primeiro.entry_data.delete(0, "end")
-            primeiro._validar_campo(primeiro.entry_data)
-
+            
+        self.entry_data.delete(0, "end")
+        
         self.document_frame.limpar()
 
     @staticmethod

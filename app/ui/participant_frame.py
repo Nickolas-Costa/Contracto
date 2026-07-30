@@ -61,16 +61,9 @@ class ParticipantFrame(ctk.CTkFrame):
         linha += 1
 
         self.entry_endereco: ctk.CTkEntry | None = None
-        self.entry_data: ctk.CTkEntry | None = None
-        self.entry_local: ctk.CTkEntry | None = None
         
         if principal:
             self.entry_endereco = self._criar_campo("Endereço Completo", linha, required=True)
-            linha += 1
-            self.entry_data = self._criar_campo("Data da assinatura (DD/MM/AAAA)", linha, required=True)
-            linha += 1
-            self.entry_local = self._criar_campo("Local da assinatura", linha, required=True)
-            self.entry_local.insert(0, self._local_padrao)
             linha += 1
 
         # Pequeno respiro na última linha do frame
@@ -81,7 +74,7 @@ class ParticipantFrame(ctk.CTkFrame):
 
     def _criar_campo(self, rotulo: str, linha: int, required: bool = False) -> ctk.CTkEntry:
         ctk.CTkLabel(self, text=rotulo, anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT).grid(
-            row=linha, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL, sticky="w"
+            row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
         entry = ctk.CTkEntry(self, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
@@ -105,6 +98,6 @@ class ParticipantFrame(ctk.CTkFrame):
             nome_completo=self.entry_nome.get().strip(),
             cpf=self.entry_cpf.get().strip(),
             endereco=self.entry_endereco.get().strip() if self.entry_endereco else "",
-            data_assinatura=self.entry_data.get().strip() if self.entry_data else "",
-            local_assinatura=self.entry_local.get().strip() if self.entry_local else self._local_padrao,
+            data_assinatura="",
+            local_assinatura="",
         )

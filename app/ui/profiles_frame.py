@@ -267,12 +267,19 @@ class ProfilesFrame(ctk.CTkFrame):
 
     def _editar_formulario(self, form: FormularioModelo, index: int) -> None:
         try:
-            campos = pdf_service.obter_campos_do_formulario(Path(form.caminho))
+            from utils.resource_path import caminho_recurso
+            caminho_real = form.caminho
+            if not caminho_real:
+                if "PPE" in form.nome:
+                    caminho_real = caminho_recurso("assets", "templates", "PPE.pdf")
+                else:
+                    caminho_real = caminho_recurso("assets", "templates", "1 IMOVEL.pdf")
+            campos = pdf_service.obter_campos_do_formulario(Path(caminho_real))
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao ler PDF: {e}")
             return
             
-        self._abrir_modal_mapeamento(form.nome, form.caminho, list(campos), form, index)
+        self._abrir_modal_mapeamento(form.nome, str(form.caminho), list(campos), form, index)
 
     def _remover_formulario(self, index: int) -> None:
         if 0 <= index < len(self._formularios_editando):

@@ -96,7 +96,13 @@ def carregar_perfis() -> list[Perfil]:
 
     # Garantir que o perfil padrão sempre existe
     if not any(p.nome == PERFIL_PADRAO_NOME for p in perfis):
-        perfis.insert(0, Perfil())
+        perfis.insert(0, Perfil(
+            nome=PERFIL_PADRAO_NOME,
+            formularios=[
+                FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
+                FormularioModelo(nome="1º Imóvel", caminho="", geracao="por_participante", mapeamento={})
+            ]
+        ))
 
     return perfis
 

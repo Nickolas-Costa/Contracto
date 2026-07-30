@@ -52,6 +52,7 @@ cd app
     --name "Contracto_v%APP_VERSION%" ^
     --add-data "assets/templates;assets/templates" ^
     --add-data "assets/gs;assets/gs" ^
+    --add-data "assets/icons;assets/icons" ^
     main.py
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar o executavel!
