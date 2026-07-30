@@ -17,54 +17,24 @@ from pathlib import Path
 
 from models.participant import Participant
 from services.pdf_service import preencher_formulario
-from utils.cpf_validator import CpfInvalidoError, formatar_cpf, validar_cpf
+from utils.cpf_validator import formatar_cpf, validar_cpf
 from utils.date_formatter import DataInvalidaError, separar_data_por_extenso, validar_data
 from utils.filename_utils import nome_documento_individual
-
-# ---------------------------------------------------------------------------
-# Mapeamento entre os dados do participante e os nomes dos campos (AcroForm)
-# dentro de cada PDF modelo.
-#
-# Nomes CONFIRMADOS diretamente nos PDFs oficiais fornecidos pela CAIXA
-# (app/assets/templates/PPE.pdf e app/assets/templates/1_IMOVEL.pdf), via
-# `pdf_service.obter_campos_do_formulario`. Caso a CAIXA emita uma nova versão
-# desses formulários com nomes de campo diferentes, ajuste os valores abaixo
-# — nenhuma outra parte do sistema precisa ser alterada.
-# ---------------------------------------------------------------------------
-
-CAMPO_PRIMEIRO_IMOVEL_NOME = "NOME COMPLETO"
-CAMPO_PRIMEIRO_IMOVEL_CPF = "CPF"
-CAMPO_PRIMEIRO_IMOVEL_ENDERECO = "ENDERECO"
-CAMPO_PRIMEIRO_IMOVEL_DATA = "DATA ASSINATURA"
-CAMPO_PRIMEIRO_IMOVEL_LOCAL = "LOCAL ASSINATURA"
-
-CAMPO_PPE_NOME = "NOME COMPLETO"
-CAMPO_PPE_CPF = "CPF"
-CAMPO_PPE_DIA = "DIA"
-CAMPO_PPE_MES = "MES"  # sem acento — confirmado no PDF real da CAIXA (PPE.pdf)
-CAMPO_PPE_ANO = "ANO"
-CAMPO_PPE_LOCAL = "LOCAL ASSINATURA"
+from utils.profile_manager import Perfil
 
 
 @dataclass
 class ResultadoGeracao:
     """Resultado consolidado de uma execução de `gerar_documentos`."""
-
     arquivos_gerados: list[Path] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
 
 
 def validar_antes_de_gerar(
     participantes: list[Participant],
-    caminho_modelo_ppe: Path | None,
-    caminho_modelo_primeiro_imovel: Path | None,
+    perfil: Perfil,
     pasta_saida: Path | None,
 ) -> list[str]:
-    """Valida os dados informados antes de iniciar a geração dos documentos.
-
-    Retorna uma lista de mensagens de erro amigáveis. Lista vazia significa
-    que está tudo certo para prosseguir.
-    """
     erros: list[str] = []
 
     if not participantes:
@@ -93,96 +63,87 @@ def validar_antes_de_gerar(
             "(ex.: 15/07/2026)."
         )
 
-    if not caminho_modelo_ppe:
-        erros.append("Selecione o PDF modelo da Declaração PPE.")
-    if not caminho_modelo_primeiro_imovel:
-        erros.append("Selecione o PDF modelo da Declaração de Primeiro Imóvel.")
+    if not perfil.formularios:
+        erros.append(f"O perfil '{perfil.nome}' não possui nenhum formulário configurado.")
+    else:
+        for f in perfil.formularios:
+            if not f.caminho or not Path(f.caminho).exists():
+                erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente: {f.caminho}")
+
     if not pasta_saida:
         erros.append("Selecione a pasta de saída.")
 
     return erros
 
 
+def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
+    """Resolve uma string de mapeamento (ex: 'participante.nome_completo') para o valor real."""
+    if not mapeamento_str:
+        return ""
+        
+    cpf_formatado = formatar_cpf(participante.cpf)
+    
+    try:
+        dia, mes, ano = separar_data_por_extenso(participante.data_assinatura)
+    except DataInvalidaError:
+        dia, mes, ano = "", "", ""
+
+    # Dicionário de variáveis disponíveis
+    variaveis = {
+        "participante.nome_completo": participante.nome_completo,
+        "participante.cpf": participante.cpf,
+        "participante.cpf_formatado": cpf_formatado,
+        "participante.endereco": participante.endereco,
+        "participante.data_assinatura": participante.data_assinatura,
+        "participante.local_assinatura": participante.local_assinatura,
+        "data.dia": dia,
+        "data.mes": mes,
+        "data.ano": ano,
+    }
+    
+    # Retorna o valor mapeado ou a própria string literal caso não seja uma variável conhecida
+    return variaveis.get(mapeamento_str, mapeamento_str)
+
+
 def gerar_documentos(
     participantes: list[Participant],
-    caminho_modelo_ppe: Path,
-    caminho_modelo_primeiro_imovel: Path,
+    perfil: Perfil,
     pasta_saida: Path,
 ) -> ResultadoGeracao:
-    """Gera os PDFs de Declaração PPE e de Primeiro Imóvel para cada participante.
-
-    Pressupõe que os dados já foram validados com `validar_antes_de_gerar`.
-    """
+    """Gera os PDFs configurados no Perfil dinamicamente."""
     resultado = ResultadoGeracao()
     nomes_de_arquivo_usados: set[str] = set()
-    campos_ausentes_imovel: set[str] = set()
-    campos_ausentes_ppe: set[str] = set()
 
-    for participante in participantes:
-        # Formata o CPF para o padrão NNN.NNN.NNN-NN
-        cpf_formatado = formatar_cpf(participante.cpf)
-
-        # Nome de arquivo padronizado V2 (primeiro nome em maiúsculas)
-        nome_imovel = nome_documento_individual("PRIMEIRO IMOVEL", participante.nome_completo)
-        nome_ppe = nome_documento_individual("PPE", participante.nome_completo)
-
-        # --- Declaração de Primeiro Imóvel ---
-        valores_imovel = {
-            CAMPO_PRIMEIRO_IMOVEL_NOME: participante.nome_completo,
-            CAMPO_PRIMEIRO_IMOVEL_CPF: cpf_formatado,
-            CAMPO_PRIMEIRO_IMOVEL_ENDERECO: participante.endereco,
-            CAMPO_PRIMEIRO_IMOVEL_DATA: participante.data_assinatura,
-            CAMPO_PRIMEIRO_IMOVEL_LOCAL: participante.local_assinatura,
-        }
-        caminho_imovel = _proximo_caminho_disponivel(
-            pasta_saida, nome_imovel, nomes_de_arquivo_usados
-        )
-        ausentes = preencher_formulario(caminho_modelo_primeiro_imovel, valores_imovel, caminho_imovel)
-        campos_ausentes_imovel.update(ausentes)
-        resultado.arquivos_gerados.append(caminho_imovel)
-
-        # --- Declaração PPE ---
-        try:
-            dia, mes, ano = separar_data_por_extenso(participante.data_assinatura)
-        except DataInvalidaError as exc:
+    for formulario in perfil.formularios:
+        campos_ausentes_form: set[str] = set()
+        
+        # Decide se gera 1 para todos ou 1 para cada participante
+        alvos = participantes if formulario.geracao == "por_participante" else [participantes[0]]
+        
+        for participante in alvos:
+            # Constrói o dicionário de valores baseado no mapeamento do formulário
+            valores_pdf = {}
+            for campo_pdf, var_sistema in formulario.mapeamento.items():
+                valores_pdf[campo_pdf] = resolver_variavel(var_sistema, participante)
+                
+            nome_arquivo = nome_documento_individual(formulario.nome, participante.nome_completo if formulario.geracao == "por_participante" else "")
+            caminho_saida = _proximo_caminho_disponivel(pasta_saida, nome_arquivo, nomes_de_arquivo_usados)
+            
+            caminho_modelo = Path(formulario.caminho)
+            ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida)
+            campos_ausentes_form.update(ausentes)
+            resultado.arquivos_gerados.append(caminho_saida)
+            
+        if campos_ausentes_form:
             resultado.avisos.append(
-                f"Não foi possível gerar a Declaração PPE de "
-                f"'{participante.nome_completo}': {exc}"
+                f"Estes campos não foram encontrados no modelo '{formulario.nome}' "
+                f"e ficaram em branco: " + ", ".join(sorted(campos_ausentes_form))
             )
-            continue
-
-        valores_ppe = {
-            CAMPO_PPE_NOME: participante.nome_completo,
-            CAMPO_PPE_CPF: cpf_formatado,
-            CAMPO_PPE_DIA: dia,
-            CAMPO_PPE_MES: mes,
-            CAMPO_PPE_ANO: ano,
-            CAMPO_PPE_LOCAL: participante.local_assinatura,
-        }
-        caminho_ppe = _proximo_caminho_disponivel(
-            pasta_saida, nome_ppe, nomes_de_arquivo_usados
-        )
-        ausentes = preencher_formulario(caminho_modelo_ppe, valores_ppe, caminho_ppe)
-        campos_ausentes_ppe.update(ausentes)
-        resultado.arquivos_gerados.append(caminho_ppe)
-
-    if campos_ausentes_imovel:
-        resultado.avisos.append(
-            "Estes campos não foram encontrados no modelo 'Primeiro Imóvel' "
-            "e ficaram em branco: " + ", ".join(sorted(campos_ausentes_imovel))
-        )
-    if campos_ausentes_ppe:
-        resultado.avisos.append(
-            "Estes campos não foram encontrados no modelo 'PPE' e ficaram "
-            "em branco: " + ", ".join(sorted(campos_ausentes_ppe))
-        )
 
     return resultado
 
 
 def _proximo_caminho_disponivel(pasta: Path, nome_arquivo: str, usados: set[str]) -> Path:
-    """Evita sobrescrever arquivos caso dois participantes gerem o mesmo nome
-    (ex.: dois participantes com o mesmo nome completo)."""
     candidato = nome_arquivo
     contador = 2
     caminho_candidato = Path(nome_arquivo)

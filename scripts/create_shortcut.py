@@ -10,10 +10,14 @@ def main():
 
     # Caminho do desktop
     desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-    path = os.path.join(desktop, 'Gerador Declaracoes.lnk')
+    path = os.path.join(desktop, 'Contracto.lnk')
     
     # Caminho do executável compilado
-    target = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "dist", "GeradorDeclaracoesCaixa.exe"))
+    projeto_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    sys.path.insert(0, os.path.join(projeto_raiz, "app"))
+    import version
+    
+    target = os.path.join(projeto_raiz, "app", "dist", f"Contracto_v{version.__version__}.exe")
     
     if not os.path.exists(target):
         print(f"[ERRO] Executável não encontrado em {target}")

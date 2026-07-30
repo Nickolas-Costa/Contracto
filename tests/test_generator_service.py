@@ -1,12 +1,3 @@
-"""
-Testes para services/generator_service.py e services/pdf_service.py.
-
-Como não temos os PDFs reais da CAIXA neste ambiente, os testes constroem
-PDFs modelo sintéticos (com os mesmos nomes de campo AcroForm descritos na
-especificação) usando reportlab, e depois verificam se o preenchimento via
-pypdf realmente funciona de ponta a ponta.
-"""
-
 import sys
 import tempfile
 import unittest
@@ -25,6 +16,7 @@ from services.generator_service import (
 )
 from services.pdf_service import PdfServiceError, obter_campos_do_formulario
 from utils.filename_utils import _sanitizar_nome_arquivo
+from utils.profile_manager import Perfil, FormularioModelo
 
 
 def _criar_pdf_modelo(caminho: Path, nomes_dos_campos: list[str]) -> None:
@@ -65,14 +57,24 @@ class TestUtilitariosDeArquivo(unittest.TestCase):
 
 
 class TestValidarAntesDeGerar(unittest.TestCase):
+    def setUp(self):
+        self.perfil = Perfil(
+            nome="Teste",
+            formularios=[
+                FormularioModelo(nome="Teste", caminho="teste.pdf", mapeamento={})
+            ]
+        )
+        # Mock file existence for validation
+        self.perfil.formularios[0].caminho = str(Path(__file__).resolve())
+        
     def test_sem_participantes(self):
-        erros = validar_antes_de_gerar([], Path("ppe.pdf"), Path("imovel.pdf"), Path("/saida"))
+        erros = validar_antes_de_gerar([], self.perfil, Path("/saida"))
         self.assertTrue(any("participante" in erro.lower() for erro in erros))
 
     def test_participante_sem_nome_ou_cpf(self):
         participante = Participant(nome_completo="", cpf="", endereco="Rua A", data_assinatura="15/07/2026")
         erros = validar_antes_de_gerar(
-            [participante], Path("ppe.pdf"), Path("imovel.pdf"), Path("/saida")
+            [participante], self.perfil, Path("/saida")
         )
         self.assertTrue(any("Nome Completo" in erro for erro in erros))
         self.assertTrue(any("CPF" in erro for erro in erros))
@@ -82,7 +84,7 @@ class TestValidarAntesDeGerar(unittest.TestCase):
             nome_completo="João", cpf="529.982.247-25", endereco="Rua A", data_assinatura="31/02/2026"
         )
         erros = validar_antes_de_gerar(
-            [participante], Path("ppe.pdf"), Path("imovel.pdf"), Path("/saida")
+            [participante], self.perfil, Path("/saida")
         )
         self.assertTrue(any("inválida" in erro for erro in erros))
 
@@ -90,15 +92,15 @@ class TestValidarAntesDeGerar(unittest.TestCase):
         participante = Participant(
             nome_completo="João", cpf="529.982.247-25", endereco="Rua A", data_assinatura="15/07/2026"
         )
-        erros = validar_antes_de_gerar([participante], None, None, None)
-        self.assertEqual(len(erros), 3)  # ppe, imovel, pasta de saída
+        erros = validar_antes_de_gerar([participante], self.perfil, None)
+        self.assertEqual(len(erros), 1)  # pasta de saída
 
     def test_tudo_certo_nao_gera_erros(self):
         participante = Participant(
             nome_completo="João", cpf="529.982.247-25", endereco="Rua A", data_assinatura="15/07/2026"
         )
         erros = validar_antes_de_gerar(
-            [participante], Path("ppe.pdf"), Path("imovel.pdf"), Path("/saida")
+            [participante], self.perfil, Path("/saida")
         )
         self.assertEqual(erros, [])
 
@@ -118,6 +120,37 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
 
         _criar_pdf_modelo(self.modelo_ppe, ["NOME COMPLETO", "CPF", "DIA", "MES", "ANO", "LOCAL ASSINATURA"])
         _criar_pdf_modelo(self.modelo_imovel, ["NOME COMPLETO", "CPF", "ENDERECO", "DATA ASSINATURA", "LOCAL ASSINATURA"])
+        
+        self.perfil = Perfil(
+            nome="Teste",
+            formularios=[
+                FormularioModelo(
+                    nome="PPE",
+                    caminho=str(self.modelo_ppe),
+                    geracao="por_participante",
+                    mapeamento={
+                        "NOME COMPLETO": "participante.nome_completo",
+                        "CPF": "participante.cpf_formatado",
+                        "DIA": "data.dia",
+                        "MES": "data.mes",
+                        "ANO": "data.ano",
+                        "LOCAL ASSINATURA": "participante.local_assinatura"
+                    }
+                ),
+                FormularioModelo(
+                    nome="PRIMEIRO IMOVEL",
+                    caminho=str(self.modelo_imovel),
+                    geracao="por_participante",
+                    mapeamento={
+                        "NOME COMPLETO": "participante.nome_completo",
+                        "CPF": "participante.cpf_formatado",
+                        "ENDERECO": "participante.endereco",
+                        "DATA ASSINATURA": "participante.data_assinatura",
+                        "LOCAL ASSINATURA": "participante.local_assinatura"
+                    }
+                )
+            ]
+        )
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -131,7 +164,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         )
 
         resultado = gerar_documentos(
-            [participante], self.modelo_ppe, self.modelo_imovel, self.pasta_saida
+            [participante], self.perfil, self.pasta_saida
         )
 
         self.assertEqual(len(resultado.arquivos_gerados), 2)
@@ -169,7 +202,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         terceiro.copiar_dados_compartilhados(principal)
 
         resultado = gerar_documentos(
-            [principal, segundo, terceiro], self.modelo_ppe, self.modelo_imovel, self.pasta_saida
+            [principal, segundo, terceiro], self.perfil, self.pasta_saida
         )
 
         self.assertEqual(len(resultado.arquivos_gerados), 6)  # 3 participantes x 2 documentos
@@ -193,7 +226,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
             nome_completo="Ana", cpf="123.456.789-09", endereco="Rua X", data_assinatura="01/01/2026"
         )
         resultado = gerar_documentos(
-            [participante], self.modelo_ppe, self.modelo_imovel, self.pasta_saida
+            [participante], self.perfil, self.pasta_saida
         )
 
         # Tem que gerar o arquivo mesmo com erro
@@ -205,6 +238,8 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
     def test_modelo_totalmente_incompativel_levanta_erro(self):
         modelo_errado = self.pasta / "modelo_errado.pdf"
         _criar_pdf_modelo(modelo_errado, ["CAMPO_QUE_NAO_EXISTE"])
+        
+        self.perfil.formularios[1].caminho = str(modelo_errado)
 
         participante = Participant(
             nome_completo="Carlos Lima",
@@ -214,7 +249,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         )
 
         with self.assertRaises(PdfServiceError):
-            gerar_documentos([participante], self.modelo_ppe, modelo_errado, self.pasta_saida)
+            gerar_documentos([participante], self.perfil, self.pasta_saida)
 
     def test_obter_campos_do_formulario(self):
         campos = obter_campos_do_formulario(self.modelo_imovel)

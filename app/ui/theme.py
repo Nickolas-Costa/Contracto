@@ -31,34 +31,36 @@ def _cor_primaria_hover() -> str:
 
 
 def _cor_primaria_light() -> str:
-    """Gera um tom mais claro (cyan/teal) da cor primária para gradientes."""
+    """Gera um tom mais claro da cor primária misturando com branco."""
     cor = _cor_primaria()
     try:
         r, g, b = int(cor[1:3], 16), int(cor[3:5], 16), int(cor[5:7], 16)
-        # Mistura com um tom de ciano suave e branco para o gradiente
-        cyan_r, cyan_g, cyan_b = 0, 188, 212
-        fator_cor = 0.3   # 30% da cor original
-        fator_cyan = 0.5  # 50% de ciano
-        fator_white = 0.2 # 20% de branco
+        fator_cor = 0.4   # 40% da cor original
+        fator_white = 0.6 # 60% de branco
         
-        r = int(r * fator_cor + cyan_r * fator_cyan + 255 * fator_white)
-        g = int(g * fator_cor + cyan_g * fator_cyan + 255 * fator_white)
-        b = int(b * fator_cor + cyan_b * fator_cyan + 255 * fator_white)
+        r = int(r * fator_cor + 255 * fator_white)
+        g = int(g * fator_cor + 255 * fator_white)
+        b = int(b * fator_cor + 255 * fator_white)
         return f"#{r:02x}{g:02x}{b:02x}"
     except (ValueError, IndexError):
-        return "#4CB3D4"
+        return "#E8F0FA"
 
 
 def _cor_primaria_dark_gradient() -> str:
-    """Gera um tom escuro da cor primária para gradiente em dark mode."""
+    """Gera um tom da cor primária para gradiente em dark mode (mais saturado/destacado)."""
     cor = _cor_primaria()
     try:
         r, g, b = int(cor[1:3], 16), int(cor[3:5], 16), int(cor[5:7], 16)
-        fator = 0.25
-        r, g, b = int(r * fator), int(g * fator), int(b * fator)
+        # Em vez de escurecer muito, vamos manter a cor num tom médio
+        # misturando levemente com o fundo escuro para não perder a vivacidade
+        fator_cor = 0.6
+        bg = 30 # 0x1E
+        r = int(r * fator_cor + bg * (1 - fator_cor))
+        g = int(g * fator_cor + bg * (1 - fator_cor))
+        b = int(b * fator_cor + bg * (1 - fator_cor))
         return f"#{r:02x}{g:02x}{b:02x}"
     except (ValueError, IndexError):
-        return "#0E1A2B"
+        return "#003A6A"
 
 
 # Propriedades dinâmicas (recalculadas a cada acesso)

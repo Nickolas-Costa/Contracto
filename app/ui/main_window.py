@@ -60,8 +60,6 @@ class MainWindow(ctk.CTk):
         # =============================================================
         # Estado da Aplicação
         # =============================================================
-        self.caminho_modelo_ppe: Path | None = modelo_padrao_ppe()
-        self.caminho_modelo_primeiro_imovel: Path | None = modelo_padrao_primeiro_imovel()
         self.pasta_saida: Path | None = None
         self.participant_frames: list[ParticipantFrame] = []
 
@@ -84,11 +82,12 @@ class MainWindow(ctk.CTk):
         self._construir_stepper()
 
         # Containers das telas
-        self.container_etapa1 = ctk.CTkFrame(self, fg_color="transparent")
+        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 800}
+        self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa1.grid_columnconfigure(0, weight=1)
         self.container_etapa1.grid_rowconfigure(0, weight=1)
 
-        self.container_etapa2 = ctk.CTkFrame(self, fg_color="transparent")
+        self.container_etapa2 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa2.grid_columnconfigure(0, weight=1)
         self.container_etapa2.grid_rowconfigure(2, weight=1)
 
@@ -103,6 +102,11 @@ class MainWindow(ctk.CTk):
 
         # Recarregar gradiente ao redimensionar
         self.bind("<Configure>", self._ao_redimensionar)
+        
+        # Tela de Boas Vindas
+        if config_manager.obter("primeira_execucao"):
+            from ui.welcome_modal import WelcomeModal
+            self.after(500, lambda: WelcomeModal(self))
 
     # ==================================================================
     # TOOLBAR (inspirada no PDFCreator)
@@ -149,13 +153,14 @@ class MainWindow(ctk.CTk):
     # GRADIENTE DE FUNDO
     # ==================================================================
     def _construir_gradiente(self) -> None:
-        self.canvas_gradient = tk.Canvas(self, highlightthickness=0, height=120)
-        self.canvas_gradient.grid(row=1, column=0, sticky="ew")
+        self.canvas_gradient = tk.Canvas(self, highlightthickness=0)
+        self.canvas_gradient.grid(row=1, column=0, rowspan=2, sticky="nsew")
+        self.canvas_gradient.tk.call('lower', self.canvas_gradient._w)
         self._pintar_gradiente()
 
     def _pintar_gradiente(self) -> None:
         largura = max(self.winfo_width(), 920)
-        altura = 120
+        altura = max(self.winfo_height() - 44, 720)
         modo = ctk.get_appearance_mode()
         
         if modo == "Dark":
@@ -165,15 +170,18 @@ class MainWindow(ctk.CTk):
             cor1 = get_color_primary()
             cor2 = get_color_primary_light()
             
-        # Gradiente horizontal (esquerda para direita)
-        aplicar_gradiente(self.canvas_gradient, largura, altura, cor1, cor2, vertical=False)
+        # Gradiente vertical (cima para baixo)
+        aplicar_gradiente(self.canvas_gradient, largura, altura, cor1, cor2, vertical=True)
 
     _ultimo_w = 0
+    _ultimo_h = 0
 
     def _ao_redimensionar(self, event=None) -> None:
         w = self.winfo_width()
-        if w != self._ultimo_w:
+        h = self.winfo_height()
+        if w != self._ultimo_w or h != self._ultimo_h:
             self._ultimo_w = w
+            self._ultimo_h = h
             self._pintar_gradiente()
 
     # ==================================================================
@@ -247,27 +255,31 @@ class MainWindow(ctk.CTk):
         self.btn_config.configure(**normal)
 
         self._tela_atual = tela
+        
+        # Grid settings for floating cards
+        card_grid = {"row": 2, "column": 0, "sticky": "n", "pady": SPACING_XXLARGE}
 
         if tela == "inicio":
             self.btn_inicio.configure(**active)
             self.frame_stepper.grid(row=1, column=0, sticky="ew")
             self.frame_stepper.lift()
-            self.container_etapa1.grid(row=2, column=0, sticky="nsew")
+            self.container_etapa1.grid(**card_grid)
             self._atualizar_stepper(1)
         elif tela == "etapa2":
             self.btn_inicio.configure(**active)
             self.frame_stepper.grid(row=1, column=0, sticky="ew")
             self.frame_stepper.lift()
-            self.container_etapa2.grid(row=2, column=0, sticky="nsew")
+            self.container_etapa2.grid(**card_grid)
             self._atualizar_stepper(2)
         elif tela == "perfis":
             self.btn_perfis.configure(**active)
             self.frame_stepper.grid_forget()
             if not self.container_profiles:
                 self.container_profiles = ProfilesFrame(self, on_voltar=lambda: self._mostrar_tela("inicio"))
+                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=800)
             else:
                 self.container_profiles._carregar_lista()
-            self.container_profiles.grid(row=2, column=0, sticky="nsew", padx=0, pady=0)
+            self.container_profiles.grid(**card_grid)
         elif tela == "config":
             self.btn_config.configure(**active)
             self.frame_stepper.grid_forget()
@@ -278,7 +290,8 @@ class MainWindow(ctk.CTk):
                 on_voltar=lambda: self._mostrar_tela("inicio"),
                 on_aplicar=self._ao_aplicar_config,
             )
-            self.container_settings.grid(row=2, column=0, sticky="nsew", padx=0, pady=0)
+            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=800)
+            self.container_settings.grid(**card_grid)
 
     def _ao_aplicar_config(self) -> None:
         """Callback chamado após salvar configurações."""
@@ -290,25 +303,14 @@ class MainWindow(ctk.CTk):
         show_toast(self, "Configurações salvas com sucesso!", "success")
 
     def _aplicar_perfil_ativo(self) -> None:
-        """Carrega os caminhos de modelo do perfil ativo."""
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
-        if perfil:
-            if perfil.caminho_modelo_ppe:
-                p = Path(perfil.caminho_modelo_ppe)
-                if p.exists():
-                    self.caminho_modelo_ppe = p
-            if perfil.caminho_modelo_imovel:
-                p = Path(perfil.caminho_modelo_imovel)
-                if p.exists():
-                    self.caminho_modelo_primeiro_imovel = p
+        """Os modelos agora são carregados a partir do perfil no momento da geração."""
+        pass
 
     # ------------------------------------------------------------------
     # ETAPA 1: Preenchimento e Geração
     # ------------------------------------------------------------------
     def _construir_etapa1(self) -> None:
         self._construir_secao_participantes()
-        self._construir_secao_modelos()
         self._construir_secao_saida()
 
         self.botao_avancar = ctk.CTkButton(
@@ -350,71 +352,10 @@ class MainWindow(ctk.CTk):
         )
         botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_SMALL, 0), sticky="w")
 
-    def _construir_secao_modelos(self) -> None:
-        secao = ctk.CTkFrame(self.container_etapa1, fg_color=COLOR_SURFACE,
-                             corner_radius=RADIUS_CARD, border_width=1, border_color=COLOR_BORDER)
-        secao.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
-        secao.grid_columnconfigure(1, weight=1)
 
-        titulo = ctk.CTkLabel(secao, text="Modelos Base",
-                              font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT)
-        titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
-                    pady=(SPACING_LARGE, SPACING_XSMALL), sticky="w")
-
-        linha = 1
-        # Info do perfil ativo
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
-
-        if self.caminho_modelo_ppe and self.caminho_modelo_primeiro_imovel:
-            texto_status = f"✓ Modelos carregados — Perfil: {perfil_nome}"
-            aviso = ctk.CTkLabel(
-                secao, text=texto_status,
-                font=get_font(FONT_SIZE_CAPTION),
-                text_color=COLOR_SUCCESS,
-            )
-            aviso.grid(row=linha, column=0, columnspan=3, padx=SPACING_LARGE,
-                       pady=(0, SPACING_SMALL), sticky="w")
-            linha += 1
-
-        ctk.CTkLabel(secao, text="Modelo PPE:", font=get_font(FONT_SIZE_BODY)).grid(
-            row=linha, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
-            pady=SPACING_SMALL, sticky="w")
-        self.entry_modelo_ppe = ctk.CTkEntry(secao, placeholder_text="Nenhum arquivo selecionado",
-                                              corner_radius=RADIUS_INPUT)
-        self.entry_modelo_ppe.grid(row=linha, column=1, padx=SPACING_SMALL,
-                                    pady=SPACING_SMALL, sticky="ew")
-        if self.caminho_modelo_ppe:
-            self.entry_modelo_ppe.insert(0, str(self.caminho_modelo_ppe))
-        self.entry_modelo_ppe.configure(state="disabled")
-
-        ctk.CTkButton(secao, text="Selecionar", width=80, corner_radius=RADIUS_BUTTON,
-                      fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
-                      hover_color=COLOR_BORDER, command=self._selecionar_modelo_ppe
-                      ).grid(row=linha, column=2, padx=(SPACING_SMALL, SPACING_LARGE),
-                             pady=SPACING_SMALL)
-        linha += 1
-
-        ctk.CTkLabel(secao, text="Modelo Primeiro Imóvel:", font=get_font(FONT_SIZE_BODY)).grid(
-            row=linha, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
-            pady=(SPACING_SMALL, SPACING_LARGE), sticky="w")
-        self.entry_modelo_imovel = ctk.CTkEntry(secao, placeholder_text="Nenhum arquivo selecionado",
-                                                  corner_radius=RADIUS_INPUT)
-        self.entry_modelo_imovel.grid(row=linha, column=1, padx=SPACING_SMALL,
-                                       pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
-        if self.caminho_modelo_primeiro_imovel:
-            self.entry_modelo_imovel.insert(0, str(self.caminho_modelo_primeiro_imovel))
-        self.entry_modelo_imovel.configure(state="disabled")
-
-        ctk.CTkButton(secao, text="Selecionar", width=80, corner_radius=RADIUS_BUTTON,
-                      fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
-                      hover_color=COLOR_BORDER, command=self._selecionar_modelo_primeiro_imovel
-                      ).grid(row=linha, column=2, padx=(SPACING_SMALL, SPACING_LARGE),
-                             pady=(SPACING_SMALL, SPACING_LARGE))
 
     def _construir_secao_saida(self) -> None:
-        secao = ctk.CTkFrame(self.container_etapa1, fg_color=COLOR_SURFACE,
-                             corner_radius=RADIUS_CARD, border_width=1, border_color=COLOR_BORDER)
+        secao = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
         secao.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         secao.grid_columnconfigure(1, weight=1)
 
@@ -477,9 +418,11 @@ class MainWindow(ctk.CTk):
             p.copiar_dados_compartilhados(principal)
             participantes.append(p)
 
+        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        perfil = obter_perfil(perfil_nome)
+        
         erros = validar_antes_de_gerar(
-            participantes, self.caminho_modelo_ppe,
-            self.caminho_modelo_primeiro_imovel, self.pasta_saida,
+            participantes, perfil, self.pasta_saida,
         )
 
         if not erros and self.pasta_saida and not self._verificar_permissao_escrita(self.pasta_saida):
@@ -498,9 +441,11 @@ class MainWindow(ctk.CTk):
 
     def _gerar_em_background(self, participantes):
         try:
+            perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+            perfil = obter_perfil(perfil_nome)
+            
             resultado = gerar_documentos(
-                participantes, self.caminho_modelo_ppe,
-                self.caminho_modelo_primeiro_imovel, self.pasta_saida,
+                participantes, perfil, self.pasta_saida,
             )
             self.after(0, lambda: self._ao_concluir_geracao(resultado, participantes))
         except Exception as exc:
@@ -692,17 +637,7 @@ class MainWindow(ctk.CTk):
     # ------------------------------------------------------------------
     # Utilitários de Seleção (Etapa 1)
     # ------------------------------------------------------------------
-    def _selecionar_modelo_ppe(self) -> None:
-        caminho = selecionar_arquivo_pdf("Selecione o modelo PDF da Declaração PPE")
-        if caminho:
-            self.caminho_modelo_ppe = caminho
-            self._atualizar_entry(self.entry_modelo_ppe, str(caminho))
 
-    def _selecionar_modelo_primeiro_imovel(self) -> None:
-        caminho = selecionar_arquivo_pdf("Selecione o modelo PDF da Declaração de Primeiro Imóvel")
-        if caminho:
-            self.caminho_modelo_primeiro_imovel = caminho
-            self._atualizar_entry(self.entry_modelo_imovel, str(caminho))
 
     def _selecionar_pasta_saida(self) -> None:
         caminho = selecionar_pasta("Selecione a pasta de saída")

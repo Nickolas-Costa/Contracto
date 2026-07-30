@@ -17,8 +17,16 @@ from pathlib import Path
 
 def main():
     projeto_raiz = Path(__file__).resolve().parent.parent
-    exe_original = projeto_raiz / "app" / "dist" / "GeradorDeclaracoesCaixa.exe"
-    readme_dist = projeto_raiz / "README_DIST.txt"
+    
+    # Adicionar app ao PYTHONPATH para conseguir importar version.py
+    sys.path.insert(0, str(projeto_raiz / "app"))
+    import version
+    
+    versao = version.__version__
+    exe_name = f"Contracto_v{versao}.exe"
+    zip_name = f"Contracto_v{versao}.zip"
+    
+    exe_original = projeto_raiz / "app" / "dist" / exe_name
     
     if not exe_original.exists():
         print(f"[ERRO] Executável não encontrado em {exe_original}")
@@ -27,24 +35,22 @@ def main():
     
     # Pasta temporária para montar o pacote
     dist_dir = projeto_raiz / "dist"
-    contracto_dir = dist_dir / "Contracto"
+    contracto_dir = dist_dir / f"Contracto_v{versao}"
     
     # Limpar anterior
     if contracto_dir.exists():
         shutil.rmtree(contracto_dir)
-    contracto_dir.mkdir(parents=True)
+    contracto_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Copiar executável com nome novo
-    print("Copiando executável como Contracto.exe...")
-    shutil.copy2(exe_original, contracto_dir / "Contracto.exe")
+    print(f"Copiando executável como {exe_name}...")
+    shutil.copy2(exe_original, contracto_dir / exe_name)
     
     # 2. Copiar README
-    if readme_dist.exists():
-        print("Incluindo README_DIST.txt...")
-        shutil.copy2(readme_dist, contracto_dir / "LEIA-ME.txt")
+    # (Removido, pois agora temos a Tela de Boas-Vindas interativa dentro do app)
     
     # 3. Criar o ZIP
-    zip_path = dist_dir / "Contracto.zip"
+    zip_path = dist_dir / zip_name
     if zip_path.exists():
         zip_path.unlink()
     

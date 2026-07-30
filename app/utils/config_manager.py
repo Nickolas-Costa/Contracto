@@ -15,11 +15,12 @@ _CONFIG_DIR_NAME = "Contracto"
 _CONFIG_FILE_NAME = "contracto_config.json"
 
 _DEFAULTS = {
-    "aparencia": "system",          # "system", "light", "dark"
+    "aparencia": "light",           # "system", "light", "dark"
     "cor_destaque": "#005CA9",      # Azul CAIXA
     "formato_saida": "PDF/A-2b",    # "PDF/A-2b" ou "PDF"
     "perfil_ativo": "Padrão",
     "local_padrao": "CAMOCIM-CE",
+    "primeira_execucao": True,
 }
 
 

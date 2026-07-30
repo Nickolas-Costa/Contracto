@@ -20,16 +20,29 @@ PERFIL_PADRAO_NOME = "Padrão"
 
 
 @dataclass
+class FormularioModelo:
+    """Configuração de um formulário PDF associado ao perfil."""
+    nome: str
+    caminho: str
+    geracao: str = "por_participante"  # "por_participante" ou "unico"
+    mapeamento: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
 class Perfil:
     """Um perfil de configuração de modelos e formato de saída."""
     nome: str = PERFIL_PADRAO_NOME
-    caminho_modelo_ppe: str = ""        # Vazio = usar embutido
-    caminho_modelo_imovel: str = ""     # Vazio = usar embutido
+    formularios: list[FormularioModelo] = field(default_factory=list)
     formato_saida: str = "PDF/A-2b"     # "PDF/A-2b" ou "PDF"
 
     def usa_modelos_embutidos(self) -> bool:
-        """Retorna True se ambos os modelos são os embutidos (caminhos vazios)."""
-        return not self.caminho_modelo_ppe and not self.caminho_modelo_imovel
+        """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
+        if not self.formularios:
+            return True
+        for f in self.formularios:
+            if f.caminho:
+                return False
+        return True
 
 
 def _diretorio_perfis() -> Path:
@@ -56,6 +69,27 @@ def carregar_perfis() -> list[Perfil]:
             with open(caminho, "r", encoding="utf-8") as f:
                 dados = json.load(f)
             for item in dados:
+                # Migração: Se for o formato antigo (com caminho_modelo_ppe)
+                if "caminho_modelo_ppe" in item:
+                    ppe_path = item.pop("caminho_modelo_ppe", "")
+                    imovel_path = item.pop("caminho_modelo_imovel", "")
+                    
+                    # Criação dos formulários dinâmicos com o mapeamento antigo fixo
+                    formularios = []
+                    if ppe_path or imovel_path:
+                        formularios.append(FormularioModelo(
+                            nome="PPE", caminho=ppe_path, geracao="por_participante", 
+                            mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "DIA": "data.dia", "MES": "data.mes", "ANO": "data.ano", "LOCAL ASSINATURA": "participante.local_assinatura"}
+                        ))
+                        formularios.append(FormularioModelo(
+                            nome="1_IMOVEL", caminho=imovel_path, geracao="por_participante",
+                            mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "ENDERECO": "participante.endereco", "DATA ASSINATURA": "participante.data_assinatura", "LOCAL ASSINATURA": "participante.local_assinatura"}
+                        ))
+                    item["formularios"] = formularios
+                else:
+                    # Formato novo: desserializar os dicionários de formulário
+                    item["formularios"] = [FormularioModelo(**f) for f in item.get("formularios", [])]
+                    
                 perfis.append(Perfil(**item))
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []

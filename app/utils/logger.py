@@ -36,12 +36,11 @@ def configurar_logger() -> logging.Logger:
     )
     
     # Handler para arquivo
-    if getattr(sys, "_MEIPASS", None):
-        # Em produção: log ao lado do executável
-        log_dir = Path(sys.executable).parent
-    else:
-        # Em desenvolvimento: log na raiz do projeto
-        log_dir = Path(__file__).resolve().parent.parent
+    from utils import config_manager
+    
+    # Em produção e desenvolvimento, salvar na pasta %APPDATA%/Contracto/logs
+    log_dir = config_manager._diretorio_config() / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
     
     log_path = log_dir / "app.log"
     try:

@@ -41,12 +41,15 @@ if errorlevel 1 (
 )
 echo.
 
-echo [3/5] Gerando executavel com PyInstaller...
+echo [3/5] Lendo versao e gerando executavel com PyInstaller...
+for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'app'); import version; print(version.__version__)"') do set APP_VERSION=%%v
+echo Versao detectada: %APP_VERSION%
+
 cd app
 ..\.venv\Scripts\python.exe -m PyInstaller ^
     --noconsole ^
     --onefile ^
-    --name "GeradorDeclaracoesCaixa" ^
+    --name "Contracto_v%APP_VERSION%" ^
     --add-data "assets/templates;assets/templates" ^
     --add-data "assets/gs;assets/gs" ^
     main.py
@@ -71,7 +74,7 @@ echo  Build concluido com sucesso!
 echo ==========================================
 echo.
 echo Executavel gerado em:
-echo   app\dist\GeradorDeclaracoesCaixa.exe
+echo   app\dist\Contracto_v%APP_VERSION%.exe
 echo.
 echo Pacote de distribuicao:
 echo   dist\Contracto.zip
