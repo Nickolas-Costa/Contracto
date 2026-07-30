@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Arquivos gerados pela própria aplicação (declarações preenchidas)
+saida/
+output/
+
