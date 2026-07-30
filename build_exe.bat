@@ -43,7 +43,7 @@ echo.
 
 echo [3/5] Gerando executavel com PyInstaller...
 cd app
-..\.venv\Scripts\pyinstaller.exe ^
+..\.venv\Scripts\python.exe -m PyInstaller ^
     --noconsole ^
     --onefile ^
     --name "GeradorDeclaracoesCaixa" ^
