@@ -28,16 +28,19 @@ def executar_etapa2(
     participantes: list[Participant],
     arquivos_gerados_etapa1: list[Path],
     documentos_externos: dict[str, Path],
+    formato_saida: str = "PDF/A-2b",
 ) -> ResultadoEtapa2:
     """
     Executa a segunda etapa do processo:
-    1. Verifica disponibilidade do Ghostscript.
+    1. Verifica disponibilidade do Ghostscript (se formato for PDF/A).
     2. Cria a estrutura de pastas (PDF-A/ASSINADOS/REGISTRADOS).
     3. Prepara a lista de conversão com os nomes padronizados.
-    4. Executa a conversão em lote para PDF/A-2b.
+    4. Executa a conversão em lote para PDF/A-2b ou copia os arquivos (modo PDF).
     5. Remove os arquivos originais da Etapa 1 em caso de sucesso (limpeza).
     """
-    if not esta_disponivel():
+    usar_pdfa = formato_saida == "PDF/A-2b"
+
+    if usar_pdfa and not esta_disponivel():
         return {
             "sucesso": False,
             "pasta_pdfa": pasta_base,
@@ -104,8 +107,23 @@ def executar_etapa2(
             "mensagem": "Nenhum arquivo para processar.",
         }
 
-    # 4. Converter tudo para PDF/A
-    resultado_lote = converter_lote(lote_conversao, "PDF/A-2b")
+    # 4. Converter para PDF/A ou copiar (modo PDF)
+    if usar_pdfa:
+        resultado_lote = converter_lote(lote_conversao, "PDF/A-2b")
+    else:
+        # Modo PDF: apenas copiar os arquivos para a pasta de destino
+        import shutil
+        resultado_lote = ResultadoLote()
+        for origem, destino in lote_conversao:
+            try:
+                shutil.copy2(str(origem), str(destino))
+                # Criar um resultado simples de sucesso
+                from services.pdfa_converter import ResultadoConversao
+                resultado_lote.convertidos.append(
+                    ResultadoConversao(caminho_saida=destino, perfil="PDF", validado=True)
+                )
+            except Exception as exc:
+                resultado_lote.erros.append(str(exc))
     
     # Limpar os RTFs convertidos temporariamente
     for tmp_file in arquivos_temporarios_rtf:
@@ -120,10 +138,11 @@ def executar_etapa2(
         _limpar_arquivos_originais_etapa1(arquivos_gerados_etapa1, resultado_lote)
 
     if resultado_lote.erros:
-        mensagem = f"Conversão finalizada com {len(resultado_lote.erros)} erro(s)."
+        mensagem = f"Processo finalizado com {len(resultado_lote.erros)} erro(s)."
         sucesso = False
     else:
-        mensagem = f"{len(resultado_lote.convertidos)} documento(s) convertido(s) para PDF/A-2b com sucesso!"
+        formato_label = "PDF/A-2b" if usar_pdfa else "PDF"
+        mensagem = f"{len(resultado_lote.convertidos)} documento(s) processado(s) em {formato_label} com sucesso!"
         sucesso = True
 
     return {

@@ -15,8 +15,11 @@ class ParticipantFrame(ctk.CTkFrame):
         indice: int,
         principal: bool = False,
         on_remover: Optional[Callable[["ParticipantFrame"], None]] = None,
+        local_padrao: str = "CAMOCIM-CE",
         **kwargs,
     ):
+        # Remove local_padrao from kwargs if passed through
+        kwargs.pop("local_padrao", None)
         super().__init__(
             master, 
             corner_radius=RADIUS_CARD, 
@@ -28,11 +31,12 @@ class ParticipantFrame(ctk.CTkFrame):
 
         self.principal = principal
         self.on_remover = on_remover
+        self._local_padrao = local_padrao
 
         self.grid_columnconfigure(1, weight=1)
 
         self.label_titulo = ctk.CTkLabel(
-            self, text=self._titulo(indice), font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_PRIMARY
+            self, text=self._titulo(indice), font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary()
         )
         self.label_titulo.grid(row=0, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
@@ -66,7 +70,7 @@ class ParticipantFrame(ctk.CTkFrame):
             self.entry_data = self._criar_campo("Data da assinatura (DD/MM/AAAA)", linha, required=True)
             linha += 1
             self.entry_local = self._criar_campo("Local da assinatura", linha, required=True)
-            self.entry_local.insert(0, "CAMOCIM-CE")
+            self.entry_local.insert(0, self._local_padrao)
             linha += 1
 
         # Pequeno respiro na última linha do frame
@@ -102,5 +106,5 @@ class ParticipantFrame(ctk.CTkFrame):
             cpf=self.entry_cpf.get().strip(),
             endereco=self.entry_endereco.get().strip() if self.entry_endereco else "",
             data_assinatura=self.entry_data.get().strip() if self.entry_data else "",
-            local_assinatura=self.entry_local.get().strip() if self.entry_local else "CAMOCIM-CE",
+            local_assinatura=self.entry_local.get().strip() if self.entry_local else self._local_padrao,
         )
