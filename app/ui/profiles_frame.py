@@ -251,7 +251,7 @@ class ProfilesFrame(ctk.CTkFrame):
             widget.destroy()
             
         if len(self._formularios_editando) > 2:
-            self.scroll_forms._scrollbar.configure(button_color=theme.COLOR_SURFACE_VARIANT, button_hover_color=theme.COLOR_BORDER)
+            self.scroll_forms._scrollbar.configure(button_color=COLOR_SURFACE_VARIANT, button_hover_color=COLOR_BORDER)
         else:
             self.scroll_forms._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
             
@@ -282,7 +282,7 @@ class ProfilesFrame(ctk.CTkFrame):
             widget.destroy()
             
         if len(self._documentos_extras_editando) > 2:
-            self.scroll_extras._scrollbar.configure(button_color=theme.COLOR_SURFACE_VARIANT, button_hover_color=theme.COLOR_BORDER)
+            self.scroll_extras._scrollbar.configure(button_color=COLOR_SURFACE_VARIANT, button_hover_color=COLOR_BORDER)
         else:
             self.scroll_extras._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
             

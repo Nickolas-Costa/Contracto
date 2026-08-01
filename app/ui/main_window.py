@@ -209,21 +209,46 @@ class MainWindow(ctk.CTk):
         self._pintar_gradiente()
 
     def _pintar_gradiente(self) -> None:
+        import math
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         largura = max(self.winfo_width(), sw, 1024)
         altura = max(self.winfo_height(), sh, 768)
         modo = ctk.get_appearance_mode()
+        is_dark = (modo == "Dark")
         
-        if modo == "Dark":
-            cor1 = get_color_primary_dark_gradient()
-            cor2 = "#1E1E1E"
-        else:
-            cor1 = get_color_primary()
-            cor2 = get_color_primary_light()
-            
-        # Gradiente vertical (cima para baixo)
-        aplicar_gradiente(self.canvas_gradient, largura, altura, cor1, cor2, vertical=True)
+        bg_main = COLOR_BACKGROUND[1] if is_dark else COLOR_BACKGROUND[0]
+        self.configure(fg_color=bg_main)
+        
+        self.canvas_gradient.delete("all")
+        self.canvas_gradient.configure(bg=bg_main)
+        
+        # Padrão elegante de linhas finas e suaves estilo PDFCreator
+        line_color = "#242730" if is_dark else "#EAEFF5"
+        line_accent = "#2B2E38" if is_dark else "#DFE4EE"
+        
+        destaque_indices = {6, 17, 26}
+        cor_destaque_linha = get_color_primary_light() if is_dark else get_color_primary()
+        
+        num_linhas = 30
+        for i in range(num_linhas):
+            y_offset = (i - 5) * (altura / 18)
+            points = []
+            steps = 50
+            for s in range(steps + 1):
+                x = (s / steps) * largura
+                # Curva senoidal suave na diagonal inspirada no PDFCreator
+                y = y_offset + (x * 0.28) + math.sin(s * 0.14 + i * 0.22) * (altura * 0.05)
+                points.extend([x, y])
+                
+            if i in destaque_indices:
+                cor = cor_destaque_linha
+                largura_linha = 1.2
+            else:
+                cor = line_accent if i % 3 == 0 else line_color
+                largura_linha = 1.0
+                
+            self.canvas_gradient.create_line(points, fill=cor, width=largura_linha, smooth=True)
 
     _ultimo_w = 0
     _ultimo_h = 0
