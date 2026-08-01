@@ -29,10 +29,17 @@ class FormularioModelo:
 
 
 @dataclass
+class DocumentoExtra:
+    rotulo: str
+    nome_padrao: str
+
+
+@dataclass
 class Perfil:
     """Um perfil de configuração de modelos e formato de saída."""
     nome: str = PERFIL_PADRAO_NOME
     formularios: list[FormularioModelo] = field(default_factory=list)
+    documentos_extras: list[DocumentoExtra] = field(default_factory=list)
     formato_saida: str = "PDF/A-2b"     # "PDF/A-2b" ou "PDF"
 
     def usa_modelos_embutidos(self) -> bool:
@@ -90,6 +97,11 @@ def carregar_perfis() -> list[Perfil]:
                     # Formato novo: desserializar os dicionários de formulário
                     item["formularios"] = [FormularioModelo(**f) for f in item.get("formularios", [])]
                     
+                    if "documentos_extras" in item:
+                        item["documentos_extras"] = [DocumentoExtra(**d) for d in item["documentos_extras"]]
+                    else:
+                        item["documentos_extras"] = _documentos_extras_padrao()
+                        
                 perfis.append(Perfil(**item))
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []
@@ -101,10 +113,21 @@ def carregar_perfis() -> list[Perfil]:
             formularios=[
                 FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
                 FormularioModelo(nome="1º Imóvel", caminho="", geracao="por_participante", mapeamento={})
-            ]
+            ],
+            documentos_extras=_documentos_extras_padrao()
         ))
 
     return perfis
+
+def _documentos_extras_padrao() -> list[DocumentoExtra]:
+    """Retorna a lista de documentos extras (Etapa 2) padrão por compatibilidade."""
+    return [
+        DocumentoExtra("Contrato", "CONTRATO"),
+        DocumentoExtra("Planilha de Evolução", "PLANILHA DE EVOLUCAO"),
+        DocumentoExtra("Protocolo da Planilha", "PROTOCOLO DA PLANILHA"),
+        DocumentoExtra("Aviso de Crédito", "AVISO DE CREDITO"),
+        DocumentoExtra("Origem de Recursos", "ORIGEM DE RECURSOS"),
+    ]
 
 
 def salvar_perfis(perfis: list[Perfil]) -> None:
@@ -133,15 +156,15 @@ def adicionar_perfil(perfil: Perfil) -> None:
     salvar_perfis(perfis)
 
 
-def atualizar_perfil(perfil: Perfil) -> None:
-    """Atualiza um perfil existente."""
+def atualizar_perfil(nome_antigo: str, perfil_novo: Perfil) -> None:
+    """Atualiza um perfil existente usando o seu nome antigo."""
     perfis = carregar_perfis()
     for i, p in enumerate(perfis):
-        if p.nome == perfil.nome:
-            perfis[i] = perfil
+        if p.nome == nome_antigo:
+            perfis[i] = perfil_novo
             salvar_perfis(perfis)
             return
-    raise ValueError(f"Perfil '{perfil.nome}' não encontrado.")
+    raise ValueError(f"Perfil '{nome_antigo}' não encontrado.")
 
 
 def excluir_perfil(nome: str) -> None:

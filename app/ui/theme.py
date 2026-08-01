@@ -15,7 +15,7 @@ from utils import config_manager
 # ---------------------------------------------------------------------------
 
 def _cor_primaria() -> str:
-    return config_manager.obter("cor_destaque") or "#005CA9"
+    return config_manager.obter("cor_destaque") or "#1E6FB3"
 
 
 def _cor_primaria_hover() -> str:
@@ -122,7 +122,7 @@ def get_font(size: int, weight: str = "normal") -> tuple:
 SPACING_XSMALL = 4
 SPACING_SMALL = 8
 SPACING_MEDIUM = 12
-SPACING_LARGE = 16
+SPACING_LARGE = 14
 SPACING_XLARGE = 24
 SPACING_XXLARGE = 32
 

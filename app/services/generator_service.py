@@ -23,11 +23,59 @@ from utils.filename_utils import nome_documento_individual
 from utils.profile_manager import Perfil
 
 
+from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+
+
 @dataclass
 class ResultadoGeracao:
     """Resultado consolidado de uma execução de `gerar_documentos`."""
     arquivos_gerados: list[Path] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
+
+
+def resolver_caminho_formulario(f) -> Path | None:
+    """Resolve o caminho de um formulário.
+    
+    Se `f.caminho` estiver preenchido e existir no disco, retorna ele.
+    Se `f.caminho` estiver vazio (Perfil Padrão), resolve para o modelo oficial embutido em assets/templates/.
+    """
+    if f.caminho and Path(f.caminho).exists():
+        return Path(f.caminho)
+
+    nome = f.nome.lower()
+    if "ppe" in nome:
+        return modelo_padrao_ppe()
+    elif "imóvel" in nome or "imovel" in nome or "1" in nome:
+        return modelo_padrao_primeiro_imovel()
+
+    return None
+
+
+def obter_mapeamento_formulario(f) -> dict[str, str]:
+    """Retorna o mapeamento de campos do formulário, ou o mapeamento padrão caso esteja vazio."""
+    if f.mapeamento:
+        return f.mapeamento
+
+    nome = f.nome.lower()
+    if "ppe" in nome:
+        return {
+            "NOME COMPLETO": "participante.nome_completo",
+            "CPF": "participante.cpf_formatado",
+            "DIA": "data.dia",
+            "MES": "data.mes",
+            "ANO": "data.ano",
+            "LOCAL ASSINATURA": "participante.local_assinatura",
+        }
+    elif "imóvel" in nome or "imovel" in nome or "1" in nome:
+        return {
+            "DECLARANTE": "participante.nome_completo",
+            "CPF": "participante.cpf_formatado",
+            "ENDEREÇO": "participante.endereco",
+            "DATA": "participante.data_assinatura",
+            "LOCAL": "participante.local_assinatura",
+        }
+
+    return {}
 
 
 def validar_antes_de_gerar(
@@ -67,8 +115,9 @@ def validar_antes_de_gerar(
         erros.append(f"O perfil '{perfil.nome}' não possui nenhum formulário configurado.")
     else:
         for f in perfil.formularios:
-            if not f.caminho or not Path(f.caminho).exists():
-                erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente: {f.caminho}")
+            caminho_resolvido = resolver_caminho_formulario(f)
+            if not caminho_resolvido or not caminho_resolvido.exists():
+                erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente.")
 
     if not pasta_saida:
         erros.append("Selecione a pasta de saída.")
@@ -116,6 +165,13 @@ def gerar_documentos(
 
     for formulario in perfil.formularios:
         campos_ausentes_form: set[str] = set()
+        caminho_modelo = resolver_caminho_formulario(formulario)
+
+        if not caminho_modelo or not caminho_modelo.exists():
+            resultado.avisos.append(f"Modelo '{formulario.nome}' não foi encontrado e foi ignorado.")
+            continue
+
+        mapeamento = obter_mapeamento_formulario(formulario)
         
         # Decide se gera 1 para todos ou 1 para cada participante
         alvos = participantes if formulario.geracao == "por_participante" else [participantes[0]]
@@ -123,13 +179,12 @@ def gerar_documentos(
         for participante in alvos:
             # Constrói o dicionário de valores baseado no mapeamento do formulário
             valores_pdf = {}
-            for campo_pdf, var_sistema in formulario.mapeamento.items():
+            for campo_pdf, var_sistema in mapeamento.items():
                 valores_pdf[campo_pdf] = resolver_variavel(var_sistema, participante)
                 
             nome_arquivo = nome_documento_individual(formulario.nome, participante.nome_completo if formulario.geracao == "por_participante" else "")
             caminho_saida = _proximo_caminho_disponivel(pasta_saida, nome_arquivo, nomes_de_arquivo_usados)
             
-            caminho_modelo = Path(formulario.caminho)
             ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida)
             campos_ausentes_form.update(ausentes)
             resultado.arquivos_gerados.append(caminho_saida)

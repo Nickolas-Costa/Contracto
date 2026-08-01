@@ -55,10 +55,13 @@ class MainWindow(ctk.CTk):
 
         configure_appearance()
 
-        self.title("Contracto — Preparação de Documentos")
-        self.geometry("1240x880")
-        self.minsize(1080, 720)
+        self.title("Contracto v3.5 — Preparação de Documentos")
+        self.geometry("1020x880")
+        self.minsize(920, 700)
         self.configure(fg_color=COLOR_BACKGROUND)
+
+        # Maximizar aplicativo por padrão ao iniciar
+        self.after(10, lambda: self._maximizar_janela())
 
         # =============================================================
         # Estado da Aplicação
@@ -85,8 +88,8 @@ class MainWindow(ctk.CTk):
         self._construir_gradiente()
         self._construir_stepper()
 
-        # Containers das telas (largura expandida para 1120px)
-        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 1120}
+        # Containers das telas (largura de 1200px conforme Foto 2)
+        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 1200}
         self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa1.grid_columnconfigure(0, weight=1)
         self.container_etapa1.grid_rowconfigure(0, weight=1)
@@ -112,6 +115,13 @@ class MainWindow(ctk.CTk):
             from ui.welcome_modal import WelcomeModal
             self.after(500, lambda: WelcomeModal(self))
 
+    def _maximizar_janela(self) -> None:
+        """Maximiza a janela do aplicativo por padrão no Windows."""
+        try:
+            self.state("zoomed")
+        except Exception:
+            pass
+
     # ==================================================================
     # TOOLBAR (inspirada no PDFCreator)
     # ==================================================================
@@ -122,25 +132,31 @@ class MainWindow(ctk.CTk):
             self.icon_profiles = ctk.CTkImage(Image.open(base / "profiles.png"), size=(20, 20))
             self.icon_settings = ctk.CTkImage(Image.open(base / "settings.png"), size=(20, 20))
             self.icon_calendar = ctk.CTkImage(Image.open(base / "calendar.png"), size=(20, 20))
+            self.icon_help = ctk.CTkImage(Image.open(base / "help.png"), size=(20, 20))
         except Exception:
             self.icon_home = None
             self.icon_profiles = None
             self.icon_settings = None
             self.icon_calendar = None
+            self.icon_help = None
 
     def _construir_toolbar(self) -> None:
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
-                                     corner_radius=0, height=44)
+                                     corner_radius=0, height=48)
         self.toolbar.grid(row=0, column=0, sticky="ew")
-        self.toolbar.grid_columnconfigure(3, weight=1)
+        self.toolbar.grid_columnconfigure(4, weight=1)  # spacer between left and right groups
 
-        # Logo/título
+        # Logo/título com fonte maior
         ctk.CTkLabel(
             self.toolbar, text="  Contracto",
-            font=get_font(FONT_SIZE_H3, "bold"), text_color="#FFFFFF",
-        ).grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_XLARGE), pady=SPACING_SMALL)
+            font=get_font(FONT_SIZE_H2, "bold"), text_color="#FFFFFF",
+        ).grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL)
 
-        # Botões de navegação
+        # Separador vertical entre logo e navegação
+        sep1 = ctk.CTkFrame(self.toolbar, width=1, height=28, fg_color=get_color_primary_hover(), corner_radius=0)
+        sep1.grid(row=0, column=1, padx=(SPACING_SMALL, SPACING_SMALL))
+
+        # Botões de navegação com estilo melhorado
         btn_style = {
             "fg_color": "transparent", "text_color": "#FFFFFF",
             "hover_color": get_color_primary_hover(),
@@ -152,19 +168,36 @@ class MainWindow(ctk.CTk):
             self.toolbar, text=" Início", image=self.icon_home, width=100,
             command=lambda: self._mostrar_tela("inicio"), **btn_style,
         )
-        self.btn_inicio.grid(row=0, column=1, padx=2, pady=SPACING_XSMALL)
+        self.btn_inicio.grid(row=0, column=2, padx=3, pady=SPACING_XSMALL)
 
         self.btn_perfis = ctk.CTkButton(
             self.toolbar, text=" Perfis", image=self.icon_profiles, width=100,
             command=lambda: self._mostrar_tela("perfis"), **btn_style,
         )
-        self.btn_perfis.grid(row=0, column=2, padx=2, pady=SPACING_XSMALL)
+        self.btn_perfis.grid(row=0, column=3, padx=3, pady=SPACING_XSMALL)
+
+        # Spacer (column 4 has weight=1)
+
+        # Separador vertical antes dos botões à direita
+        sep2 = ctk.CTkFrame(self.toolbar, width=1, height=28, fg_color=get_color_primary_hover(), corner_radius=0)
+        sep2.grid(row=0, column=5, padx=(SPACING_SMALL, SPACING_SMALL))
+
+        self.btn_ajuda = ctk.CTkButton(
+            self.toolbar, text=" Ajuda", image=self.icon_help, width=95,
+            command=self._abrir_ajuda, **btn_style,
+        )
+        self.btn_ajuda.grid(row=0, column=6, padx=3, pady=SPACING_XSMALL)
 
         self.btn_config = ctk.CTkButton(
-            self.toolbar, text=" Configurações", image=self.icon_settings, width=130,
+            self.toolbar, text=" Configurações", image=self.icon_settings, width=140,
             command=lambda: self._mostrar_tela("config"), **btn_style,
         )
-        self.btn_config.grid(row=0, column=4, padx=(2, SPACING_LARGE), pady=SPACING_XSMALL)
+        self.btn_config.grid(row=0, column=7, padx=(3, SPACING_LARGE), pady=SPACING_XSMALL)
+
+    def _abrir_ajuda(self) -> None:
+        """Abre o guia interativo de uso do aplicativo."""
+        from ui.welcome_modal import WelcomeModal
+        WelcomeModal(self)
 
     # ==================================================================
     # GRADIENTE DE FUNDO
@@ -176,8 +209,10 @@ class MainWindow(ctk.CTk):
         self._pintar_gradiente()
 
     def _pintar_gradiente(self) -> None:
-        largura = max(self.winfo_width(), 920)
-        altura = max(self.winfo_height() - 44, 720)
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        largura = max(self.winfo_width(), sw, 1024)
+        altura = max(self.winfo_height(), sh, 768)
         modo = ctk.get_appearance_mode()
         
         if modo == "Dark":
@@ -215,9 +250,9 @@ class MainWindow(ctk.CTk):
 
         self.lbl_etapa1 = ctk.CTkLabel(
             self.frame_stepper, text="1. Geração de Documentos",
-            font=get_font(FONT_SIZE_H3, "bold"),
+            font=get_font(FONT_SIZE_H3, "bold"), text_color="#F29200"
         )
-        self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_LARGE)
+        self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
 
         self.lbl_seta = ctk.CTkLabel(
             self.frame_stepper, text="  →  ",
@@ -229,15 +264,47 @@ class MainWindow(ctk.CTk):
             self.frame_stepper, text="2. Conversão e Organização",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT_DISABLED,
         )
-        self.lbl_etapa2.grid(row=0, column=2, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_LARGE)
+        self.lbl_etapa2.grid(row=0, column=2, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
 
-        # Perfil ativo
+        # Perfil ativo - Dropdown selecionável
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        self.lbl_perfil = ctk.CTkLabel(
-            self.frame_stepper, text=f"Perfil: {perfil_nome}",
+        nomes_perfis = listar_nomes_perfis()
+        if not nomes_perfis:
+            nomes_perfis = [PERFIL_PADRAO_NOME]
+
+        frame_perfil_row = ctk.CTkFrame(self.frame_stepper, fg_color="transparent")
+        frame_perfil_row.grid(row=1, column=0, columnspan=3, pady=(0, SPACING_SMALL))
+
+        ctk.CTkLabel(
+            frame_perfil_row, text="Perfil:",
             font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
+        ).pack(side="left", padx=(0, SPACING_XSMALL))
+
+        self.dropdown_perfil = ctk.CTkOptionMenu(
+            frame_perfil_row,
+            values=nomes_perfis,
+            variable=ctk.StringVar(value=perfil_nome),
+            command=self._ao_trocar_perfil,
+            width=160,
+            height=26,
+            corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION),
+            dropdown_font=get_font(FONT_SIZE_CAPTION),
+            fg_color=get_color_primary(),
+            button_color=get_color_primary_hover(),
+            button_hover_color=get_color_primary_hover(),
+            dropdown_fg_color=COLOR_SURFACE,
+            dropdown_hover_color=COLOR_SURFACE_VARIANT,
+            dropdown_text_color=COLOR_TEXT,
+            text_color="#FFFFFF",
         )
-        self.lbl_perfil.grid(row=1, column=0, columnspan=3, pady=(0, SPACING_SMALL))
+        self.dropdown_perfil.pack(side="left")
+
+    def _ao_trocar_perfil(self, nome_perfil: str) -> None:
+        """Callback ao selecionar um perfil no dropdown."""
+        config_manager.definir("perfil_ativo", nome_perfil)
+        self._aplicar_perfil_ativo()
+        show_toast(self, f"Perfil alterado para: {nome_perfil}", "success")
 
     def _atualizar_stepper(self, etapa: int) -> None:
         cor = get_color_primary()
@@ -249,7 +316,11 @@ class MainWindow(ctk.CTk):
             self.lbl_etapa2.configure(text_color=cor)
 
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        self.lbl_perfil.configure(text=f"Perfil: {perfil_nome}")
+        # Atualizar o dropdown de perfil
+        nomes_perfis = listar_nomes_perfis()
+        if nomes_perfis:
+            self.dropdown_perfil.configure(values=nomes_perfis)
+        self.dropdown_perfil.set(perfil_nome)
 
     # ==================================================================
     # NAVEGAÇÃO ENTRE TELAS
@@ -273,8 +344,22 @@ class MainWindow(ctk.CTk):
 
         self._tela_atual = tela
         
+        # Obter o tamanho dos quadros selecionado nas configurações
+        tamanho = config_manager.obter("tamanho_quadros")
+        
+        # A largura dos quadros é controlada pelo 'padx' (margem lateral).
+        # Para alterar manualmente:
+        # - Valores MENORES (ex: 30) = Quadros mais LARGOS (menos margem)
+        # - Valores MAIORES (ex: 120) = Quadros mais ESTREITOS (mais margem)
+        if tamanho == "Pequeno":
+            margem = 400
+        elif tamanho == "Grande":
+            margem = 100
+        else:
+            margem = 250 # Médio (Padrão)
+
         # Grid settings for floating cards
-        card_grid = {"row": 2, "column": 0, "sticky": "n", "pady": SPACING_XXLARGE}
+        card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
 
         if tela == "inicio":
             self.btn_inicio.configure(**active)
@@ -288,12 +373,18 @@ class MainWindow(ctk.CTk):
             self.frame_stepper.lift()
             self.container_etapa2.grid(**card_grid)
             self._atualizar_stepper(2)
+            # Atualizar documentos baseados no perfil ativo
+            p_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+            from utils.profile_manager import obter_perfil
+            p = obter_perfil(p_nome)
+            if p:
+                self.document_frame.carregar_documentos(p.documentos_extras)
         elif tela == "perfis":
             self.btn_perfis.configure(**active)
             self.frame_stepper.grid_forget()
             if not self.container_profiles:
                 self.container_profiles = ProfilesFrame(self, on_voltar=lambda: self._mostrar_tela("inicio"))
-                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1120)
+                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1200)
             else:
                 self.container_profiles._carregar_lista()
             self.container_profiles.grid(**card_grid)
@@ -307,7 +398,7 @@ class MainWindow(ctk.CTk):
                 on_voltar=lambda: self._mostrar_tela("inicio"),
                 on_aplicar=self._ao_aplicar_config,
             )
-            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1120)
+            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1200)
             self.container_settings.grid(**card_grid)
 
     def _ao_aplicar_config(self) -> None:
@@ -317,6 +408,15 @@ class MainWindow(ctk.CTk):
         self.toolbar.configure(fg_color=get_color_primary())
         self._pintar_gradiente()
         self._atualizar_stepper(1)
+        
+        # Atualizar entry de local
+        if hasattr(self, 'entry_local'):
+            self.entry_local.delete(0, 'end')
+            self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
+        
+        # Re-aplicar a tela atual para atualizar o tamanho dos quadros
+        self._mostrar_tela(self._tela_atual)
+        
         show_toast(self, "Configurações salvas com sucesso!", "success")
 
     def _aplicar_perfil_ativo(self) -> None:
@@ -324,7 +424,7 @@ class MainWindow(ctk.CTk):
         pass
 
     # ------------------------------------------------------------------
-    # ETAPA 1: Preenchimento e Geração
+    # ETAPA 1: Preenchimento e Validação
     # ------------------------------------------------------------------
     def _construir_etapa1(self) -> None:
         self._construir_secao_participantes()
@@ -332,7 +432,7 @@ class MainWindow(ctk.CTk):
 
         self.botao_avancar = ctk.CTkButton(
             self.container_etapa1,
-            text="GERAR DOCUMENTOS E AVANÇAR",
+            text="AVANÇAR PARA A ETAPA 2 ➔",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             hover_color=get_color_primary_hover(),
@@ -344,24 +444,29 @@ class MainWindow(ctk.CTk):
                                  pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
 
     def _construir_secao_participantes(self) -> None:
-        secao = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
-        secao.grid(row=0, column=0, padx=SPACING_LARGE,
+        self.secao_participantes = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
+        self.secao_participantes.grid(row=0, column=0, padx=SPACING_LARGE,
                    pady=(SPACING_LARGE, SPACING_SMALL), sticky="nsew")
-        secao.grid_columnconfigure(0, weight=1)
-        secao.grid_rowconfigure(1, weight=1)
+        self.secao_participantes.grid_columnconfigure(0, weight=1)
+        self.secao_participantes.grid_rowconfigure(1, weight=1)
 
-        titulo = ctk.CTkLabel(secao, text="Participantes",
+        titulo = ctk.CTkLabel(self.secao_participantes, text="Participantes",
                               font=get_font(FONT_SIZE_H2, "bold"), text_color=COLOR_TEXT)
         titulo.grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
 
-        self.participantes_scroll = ctk.CTkScrollableFrame(
-            secao, fg_color="transparent", label_text="", height=215
+        # Container simples (sem scroll) — usado quando há apenas 1 participante
+        self.participantes_container = ctk.CTkFrame(
+            self.secao_participantes, fg_color="transparent"
         )
-        self.participantes_scroll.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
-        self.participantes_scroll.grid_columnconfigure(0, weight=1)
+        self.participantes_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
+        self.participantes_container.grid_columnconfigure(0, weight=1)
+
+        # Container com scroll — será criado sob demanda quando houver 2+ participantes
+        self.participantes_scroll = None
+        self._usando_scroll = False
 
         botao_adicionar = ctk.CTkButton(
-            secao, text="+ Adicionar Participante",
+            self.secao_participantes, text="+ Adicionar Participante",
             fg_color=COLOR_SURFACE, text_color=get_color_primary(),
             border_width=1, border_color=get_color_primary(),
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
@@ -423,10 +528,15 @@ class MainWindow(ctk.CTk):
         frame_dir.grid(row=3, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_dir.grid_columnconfigure(0, weight=1)
 
-        self.entry_pasta_saida = ctk.CTkEntry(frame_dir, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_INPUT)
+        self.entry_pasta_saida = ctk.CTkEntry(
+            frame_dir, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_INPUT,
+            border_color=COLOR_BORDER,
+        )
         self.entry_pasta_saida.grid(row=0, column=0, sticky="ew")
         self.entry_pasta_saida.insert(0, str(downloads_path))
-        self.entry_pasta_saida.configure(state="disabled")
+        # Entry editável — permite colar/digitar caminho manualmente
+        self.entry_pasta_saida.bind("<KeyRelease>", lambda e: self._ao_editar_pasta_saida())
+        self.entry_pasta_saida.bind("<FocusOut>", lambda e: self._ao_editar_pasta_saida())
 
         ctk.CTkButton(frame_dir, text="...", width=40, corner_radius=RADIUS_BUTTON,
                       fg_color=COLOR_BORDER, text_color=COLOR_TEXT,
@@ -451,11 +561,122 @@ class MainWindow(ctk.CTk):
             self.entry_local.configure(border_color=COLOR_BORDER)
             return True
 
-    def _adicionar_participante(self, principal: bool = False) -> None:
-        indice = len(self.participant_frames) + 1
+    def _obter_container_participantes(self):
+        """Retorna o container atual onde os participantes são adicionados."""
+        if self._usando_scroll and self.participantes_scroll:
+            return self.participantes_scroll
+        return self.participantes_container
+
+    def _migrar_para_scroll(self) -> None:
+        """Migra os participantes de um frame simples para um scrollable."""
+        if self._usando_scroll:
+            return
+
+        # Criar scrollable frame
+        self.participantes_scroll = ctk.CTkScrollableFrame(
+            self.secao_participantes, fg_color="transparent", label_text="", height=380
+        )
+        self.participantes_scroll.grid_columnconfigure(0, weight=1)
+
+        # Mover todos os frames existentes para o scroll
+        for idx, pf in enumerate(self.participant_frames):
+            pf.grid_forget()
+            pf.pack_forget() if hasattr(pf, 'pack_forget') else None
+            # Reparent: destruir e recriar não é necessário — basta re-griddar
+            # Tkinter não suporta reparent nativo, então recriamos
+        
+        frames_dados = []
+        for pf in self.participant_frames:
+            dados = {
+                "nome": pf.entry_nome.get(),
+                "cpf": pf.entry_cpf.get(),
+                "endereco": pf.entry_endereco.get() if pf.entry_endereco else "",
+                "principal": pf.principal,
+                "indice": pf.indice,
+            }
+            frames_dados.append(dados)
+            pf.destroy()
+        
+        self.participant_frames.clear()
+
+        # Esconder container simples, mostrar scroll
+        self.participantes_container.grid_forget()
+        self.participantes_scroll.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
+        self._usando_scroll = True
+
+        # Recriar participantes no scroll
+        for dados in frames_dados:
+            local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
+            frame = ParticipantFrame(
+                self.participantes_scroll,
+                indice=dados["indice"],
+                principal=dados["principal"],
+                on_remover=None if dados["principal"] else self._remover_participante,
+                local_padrao=local_padrao,
+            )
+            frame.grid(row=dados["indice"] - 1, column=0, padx=SPACING_XSMALL,
+                       pady=SPACING_SMALL, sticky="ew")
+            frame.entry_nome.insert(0, dados["nome"])
+            frame.entry_cpf.insert(0, dados["cpf"])
+            if frame.entry_endereco and dados["endereco"]:
+                frame.entry_endereco.insert(0, dados["endereco"])
+            self.participant_frames.append(frame)
+
+    def _migrar_para_simples(self) -> None:
+        """Migra de volta para um frame simples quando resta apenas 1 participante."""
+        if not self._usando_scroll:
+            return
+
+        # Salvar dados do participante restante
+        pf = self.participant_frames[0]
+        dados = {
+            "nome": pf.entry_nome.get(),
+            "cpf": pf.entry_cpf.get(),
+            "endereco": pf.entry_endereco.get() if pf.entry_endereco else "",
+        }
+        pf.destroy()
+        self.participant_frames.clear()
+
+        # Remover scroll e restaurar container simples
+        self.participantes_scroll.grid_forget()
+        self.participantes_scroll.destroy()
+        self.participantes_scroll = None
+        self._usando_scroll = False
+
+        self.participantes_container = ctk.CTkFrame(
+            self.secao_participantes, fg_color="transparent"
+        )
+        self.participantes_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
+        self.participantes_container.grid_columnconfigure(0, weight=1)
+
+        # Recriar o participante no container simples
         local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
         frame = ParticipantFrame(
-            self.participantes_scroll,
+            self.participantes_container,
+            indice=1,
+            principal=True,
+            on_remover=None,
+            local_padrao=local_padrao,
+        )
+        frame.grid(row=0, column=0, padx=SPACING_XSMALL,
+                   pady=SPACING_SMALL, sticky="ew")
+        frame.entry_nome.insert(0, dados["nome"])
+        frame.entry_cpf.insert(0, dados["cpf"])
+        if frame.entry_endereco and dados["endereco"]:
+            frame.entry_endereco.insert(0, dados["endereco"])
+        self.participant_frames.append(frame)
+
+    def _adicionar_participante(self, principal: bool = False) -> None:
+        indice = len(self.participant_frames) + 1
+
+        # Se vai passar de 1 para 2, migrar para scroll
+        if indice == 2 and not self._usando_scroll:
+            self._migrar_para_scroll()
+
+        container = self._obter_container_participantes()
+        local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
+        frame = ParticipantFrame(
+            container,
             indice=indice,
             principal=principal,
             on_remover=None if principal else self._remover_participante,
@@ -475,18 +696,21 @@ class MainWindow(ctk.CTk):
         self.participant_frames.remove(frame)
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
-        self._atualizar_tamanho_participantes()
+
+        # Se voltou a 1 participante, migrar de volta para simples
+        if len(self.participant_frames) == 1 and self._usando_scroll:
+            self._migrar_para_simples()
+        else:
+            self._atualizar_tamanho_participantes()
 
     def _atualizar_tamanho_participantes(self) -> None:
         qtd = len(self.participant_frames)
-        if qtd <= 1:
-            nova_altura = 215
-        elif qtd == 2:
-            nova_altura = 380
+        if not self._usando_scroll or not self.participantes_scroll:
+            return
+        if qtd == 2:
+            self.participantes_scroll.configure(height=380)
         else:
-            nova_altura = 450
-
-        self.participantes_scroll.configure(height=nova_altura)
+            self.participantes_scroll.configure(height=450)
 
     def _verificar_permissao_escrita(self, pasta: Path) -> bool:
         if not pasta or not pasta.exists():
@@ -525,9 +749,11 @@ class MainWindow(ctk.CTk):
         elif not perfil.formularios:
             erros.append(f"O perfil '{perfil.nome}' não possui nenhum formulário configurado.")
         else:
+            from services.generator_service import resolver_caminho_formulario
             for f in perfil.formularios:
-                if not f.caminho or not Path(f.caminho).exists():
-                    erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente: {f.caminho}")
+                caminho_resolvido = resolver_caminho_formulario(f)
+                if not caminho_resolvido or not caminho_resolvido.exists():
+                    erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente.")
 
         # 4. Validar pasta de saída e permissões
         if not self.pasta_saida:
@@ -535,17 +761,15 @@ class MainWindow(ctk.CTk):
         elif not self._verificar_permissao_escrita(self.pasta_saida):
             erros.append(f"Sem permissão de escrita na pasta de saída: {self.pasta_saida}")
 
-        # Se houver qualquer erro, detalhar ao usuário sem prosseguir
+        # Se houver qualquer erro, detalhar ao usuário com o Modal de Alerta
         if erros:
-            detalhes = "\n".join(f"• {e}" for e in erros)
-            if len(erros) <= 2:
-                show_toast(self, f"Atenção aos seguintes campos:\n{detalhes}", "error")
-            else:
-                messagebox.showwarning(
-                    "Campos Pendentes ou Inválidos",
-                    f"Não foi possível gerar os documentos. Verifique os seguintes itens:\n\n{detalhes}\n\n"
-                    f"Os campos que precisam de atenção foram destacados com borda vermelha."
-                )
+            from ui.alert_modal import AlertModal
+            AlertModal(
+                self,
+                titulo="Campos Pendentes ou Inválidos",
+                subtitulo="Não foi possível avançar. Verifique os seguintes itens:",
+                erros=erros,
+            )
             return
 
         principal = self.participant_frames[0].obter_participante()
@@ -558,46 +782,11 @@ class MainWindow(ctk.CTk):
             p.copiar_dados_compartilhados(principal)
             participantes.append(p)
 
-        self.botao_avancar.configure(state="disabled")
-        self._loading = LoadingModal(self, "Gerando documentos...")
-
-        thread = threading.Thread(target=self._gerar_em_background,
-                                   args=(participantes,), daemon=True)
-        thread.start()
-
-    def _gerar_em_background(self, participantes):
-        try:
-            perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-            perfil = obter_perfil(perfil_nome)
-            
-            resultado = gerar_documentos(
-                participantes, perfil, self.pasta_saida,
-            )
-            self.after(0, lambda: self._ao_concluir_geracao(resultado, participantes))
-        except Exception as exc:
-            self.after(0, lambda: self._ao_erro_geracao(exc))
-
-    def _ao_concluir_geracao(self, resultado, participantes):
-        if hasattr(self, "_loading"):
-            self._loading.dismiss()
-
         self.participantes_etapa1 = participantes
-        self.arquivos_gerados_etapa1 = resultado.arquivos_gerados
+        self.label_pasta_etapa2.configure(text=f"Pasta: {self.pasta_saida}")
 
-        if resultado.avisos:
-            msg = " ".join(resultado.avisos)
-            show_toast(self, f"Gerado com avisos: {msg}", "warning")
-        else:
-            show_toast(self, "Documentos gerados com sucesso!", "success")
-
-        self.botao_avancar.configure(state="normal")
+        # Avança direto para a Etapa 2 (a geração ocorrerá na finalização)
         self._mostrar_tela("etapa2")
-
-    def _ao_erro_geracao(self, exc):
-        if hasattr(self, "_loading"):
-            self._loading.dismiss()
-        self.botao_avancar.configure(state="normal")
-        show_toast(self, f"Erro: {str(exc)}", "error")
 
     # ------------------------------------------------------------------
     # ETAPA 2: Documentos da Gerente e PDF/A
@@ -649,6 +838,8 @@ class MainWindow(ctk.CTk):
 
         self.document_frame = DocumentFrame(frame_docs)
         self.document_frame.grid(row=2, column=0, padx=0, pady=0, sticky="ew")
+        if perfil:
+            self.document_frame.carregar_documentos(perfil.documentos_extras)
 
         frame_botoes = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
         frame_botoes.grid(row=3, column=0, padx=SPACING_LARGE,
@@ -666,7 +857,7 @@ class MainWindow(ctk.CTk):
         self.botao_voltar.grid(row=0, column=0, padx=(0, SPACING_MEDIUM))
 
         self.botao_finalizar = ctk.CTkButton(
-            frame_botoes, text="FINALIZAR PROCESSO",
+            frame_botoes, text="FINALIZAR PROCESSO E GERAR DOCUMENTOS",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             hover_color=get_color_primary_hover(),
@@ -681,6 +872,13 @@ class MainWindow(ctk.CTk):
 
         documentos_externos = self.document_frame.obter_documentos_selecionados()
 
+        if not documentos_externos:
+            if not messagebox.askyesno(
+                "Nenhum Documento Extra",
+                "Você não adicionou nenhum documento extra. Deseja gerar apenas os formulários e finalizar o processo?"
+            ):
+                return
+
         # Obter formato do perfil ativo
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
@@ -689,8 +887,7 @@ class MainWindow(ctk.CTk):
         self.botao_finalizar.configure(state="disabled")
         self.botao_voltar.configure(state="disabled")
 
-        msg_loading = "Convertendo para PDF/A..." if formato_saida == "PDF/A-2b" else "Organizando documentos..."
-        self._loading2 = LoadingModal(self, msg_loading)
+        self._loading2 = LoadingModal(self, "Gerando e organizando documentos...")
 
         thread = threading.Thread(
             target=self._finalizar_em_background,
@@ -700,6 +897,16 @@ class MainWindow(ctk.CTk):
 
     def _finalizar_em_background(self, documentos_externos, formato_saida):
         try:
+            # 1. Gerar os documentos PDF a partir dos dados preenchidos
+            perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+            perfil = obter_perfil(perfil_nome)
+
+            resultado_geracao = gerar_documentos(
+                self.participantes_etapa1, perfil, self.pasta_saida,
+            )
+            self.arquivos_gerados_etapa1 = resultado_geracao.arquivos_gerados
+
+            # 2. Executar a conversão para PDF/A e organização de pastas
             resultado = executar_etapa2(
                 pasta_base=self.pasta_saida,
                 participantes=self.participantes_etapa1,
@@ -770,9 +977,21 @@ class MainWindow(ctk.CTk):
             self.pasta_saida = caminho
             self._atualizar_entry(self.entry_pasta_saida, str(caminho))
 
+    def _ao_editar_pasta_saida(self) -> None:
+        """Sincroniza o caminho digitado/colado no entry com self.pasta_saida."""
+        texto = self.entry_pasta_saida.get().strip()
+        if texto:
+            p = Path(texto)
+            if p.exists() and p.is_dir():
+                self.pasta_saida = p
+                self.entry_pasta_saida.configure(border_color=COLOR_BORDER)
+            else:
+                self.entry_pasta_saida.configure(border_color=COLOR_BORDER_ERROR)
+        else:
+            self.entry_pasta_saida.configure(border_color=COLOR_BORDER_ERROR)
+
     @staticmethod
     def _atualizar_entry(entry: ctk.CTkEntry, texto: str) -> None:
-        entry.configure(state="normal", text_color=COLOR_TEXT)
+        entry.configure(text_color=COLOR_TEXT)
         entry.delete(0, "end")
         entry.insert(0, texto)
-        entry.configure(state="disabled")

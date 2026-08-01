@@ -23,8 +23,8 @@ from utils import config_manager
 
 # Cores pré-definidas para seleção
 CORES_PREDEFINIDAS = [
-    ("#005CA9", "Azul CAIXA"),
-    ("#1565C0", "Azul Royal"),
+    ("#1E6FB3", "Azul CAIXA"),
+    ("#00234E", "Azul Royal"),
     ("#00838F", "Ciano"),
     ("#2E7D32", "Verde"),
     ("#6A1B9A", "Roxo"),
@@ -49,8 +49,8 @@ class SettingsFrame(ctk.CTkFrame):
         self._construir_header()
         self._construir_secao_aparencia()
         self._construir_secao_cor()
-        self._construir_secao_formato()
         self._construir_secao_local()
+        self._construir_secao_quadros()
         self._construir_botoes()
 
     def _construir_header(self) -> None:
@@ -113,7 +113,7 @@ class SettingsFrame(ctk.CTkFrame):
         cores_frame.pack(padx=SPACING_LARGE, pady=SPACING_MEDIUM, fill="x")
 
         self._botoes_cor = []
-        cor_atual = self._config.get("cor_destaque", "#005CA9")
+        cor_atual = self._config.get("cor_destaque", "#1E6FB3")
 
         for i, (cor_hex, nome) in enumerate(CORES_PREDEFINIDAS):
             btn = ctk.CTkButton(
@@ -139,7 +139,7 @@ class SettingsFrame(ctk.CTkFrame):
                      ).pack(side="left")
 
         self.entry_cor = ctk.CTkEntry(frame_custom, width=100, corner_radius=RADIUS_INPUT,
-                                       placeholder_text="#005CA9")
+                                       placeholder_text="#1E6FB3")
         self.entry_cor.pack(side="left", padx=SPACING_SMALL)
         self.entry_cor.insert(0, cor_atual)
 
@@ -176,27 +176,7 @@ class SettingsFrame(ctk.CTkFrame):
             except ValueError:
                 pass
 
-    def _construir_secao_formato(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
-                             border_width=1, border_color=COLOR_BORDER)
-        secao.grid(row=3, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
-        ctk.CTkLabel(secao, text="Formato de Saída", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
-
-        ctk.CTkLabel(secao, text="Formato padrão para os documentos gerados",
-                     font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
-                     ).pack(anchor="w", padx=SPACING_LARGE)
-
-        self.var_formato = ctk.StringVar(value=self._config.get("formato_saida", "PDF/A-2b"))
-        seg_formato = ctk.CTkSegmentedButton(
-            secao,
-            values=["PDF/A-2b", "PDF"],
-            variable=self.var_formato,
-            font=get_font(FONT_SIZE_BODY),
-            corner_radius=RADIUS_BUTTON,
-        )
-        seg_formato.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
 
     def _construir_secao_local(self) -> None:
         secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
@@ -215,9 +195,63 @@ class SettingsFrame(ctk.CTkFrame):
         self.entry_local.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
         self.entry_local.insert(0, self._config.get("local_padrao", "CAMOCIM-CE"))
 
+    def _construir_secao_quadros(self) -> None:
+        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+                             border_width=1, border_color=COLOR_BORDER)
+        secao.grid(row=5, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+
+        ctk.CTkLabel(secao, text="Tamanho dos Quadros", font=get_font(FONT_SIZE_H3, "bold"),
+                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+
+        ctk.CTkLabel(secao, text="Largura horizontal ocupada pelas Etapas 1, 2 e aba de Perfis",
+                     font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
+                     ).pack(anchor="w", padx=SPACING_LARGE)
+
+        self.var_tamanho = ctk.StringVar(value=self._config.get("tamanho_quadros", "Médio"))
+        seg = ctk.CTkSegmentedButton(
+            secao,
+            values=["Pequeno", "Médio", "Grande"],
+            variable=self.var_tamanho,
+            font=get_font(FONT_SIZE_BODY),
+            corner_radius=RADIUS_BUTTON,
+            command=self._ao_mudar_tamanho,
+        )
+        seg.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
+
+    def _ao_mudar_tamanho(self, valor: str) -> None:
+        # Salva a configuração imediatamente
+        config_manager.definir("tamanho_quadros", valor)
+        # Solicita à UI principal que aplique a nova largura
+        if self.on_aplicar:
+            self.on_aplicar()
+
+    def _construir_secao_tutorial(self) -> None:
+        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+                             border_width=1, border_color=COLOR_BORDER)
+        secao.grid(row=6, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+
+        ctk.CTkLabel(secao, text="Guia do Usuário e Ajuda", font=get_font(FONT_SIZE_H3, "bold"),
+                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+
+        ctk.CTkLabel(secao, text="Reveja as instruções de uso e passo a passo do aplicativo a qualquer momento.",
+                     font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
+                     ).pack(anchor="w", padx=SPACING_LARGE)
+
+        ctk.CTkButton(
+            secao, text="📖 Abrir Guia Rápido de Uso",
+            fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON, height=36,
+            command=self._abrir_tutorial,
+        ).pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), anchor="w")
+
+    def _abrir_tutorial(self) -> None:
+        from ui.welcome_modal import WelcomeModal
+        WelcomeModal(self.winfo_toplevel())
+
     def _construir_botoes(self) -> None:
         frame = ctk.CTkFrame(self, fg_color="transparent")
-        frame.grid(row=5, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+        frame.grid(row=7, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame.grid_columnconfigure(1, weight=1)
 
         ctk.CTkButton(
@@ -240,8 +274,8 @@ class SettingsFrame(ctk.CTkFrame):
     def _salvar(self) -> None:
         config_manager.definir("aparencia", self.var_aparencia.get())
         config_manager.definir("cor_destaque", self._cor_selecionada)
-        config_manager.definir("formato_saida", self.var_formato.get())
         config_manager.definir("local_padrao", self.entry_local.get().strip() or "CAMOCIM-CE")
+        config_manager.definir("tamanho_quadros", self.var_tamanho.get())
 
         # Recarregar tema
         reload_theme()
@@ -253,10 +287,10 @@ class SettingsFrame(ctk.CTkFrame):
     def _restaurar_padroes(self) -> None:
         defaults = config_manager.restaurar_padroes()
 
-        self.var_aparencia.set(defaults["aparencia"])
-        self._selecionar_cor(defaults["cor_destaque"])
-        self.var_formato.set(defaults["formato_saida"])
+        self.var_aparencia.set(defaults.get("aparencia", "system"))
+        self._selecionar_cor(defaults.get("cor_destaque", "#1E6FB3"))
         self.entry_local.delete(0, "end")
-        self.entry_local.insert(0, defaults["local_padrao"])
+        self.entry_local.insert(0, defaults.get("local_padrao", "CAMOCIM-CE"))
+        self.var_tamanho.set(defaults.get("tamanho_quadros", "Médio"))
 
         ctk.set_appearance_mode(defaults["aparencia"])

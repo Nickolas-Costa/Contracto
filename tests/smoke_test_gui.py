@@ -112,8 +112,9 @@ def main() -> None:
 
     app.pasta_saida = saida
 
-    # 5) Simular o clique em "GERAR DOCUMENTOS"
+    # 5) Simular o clique em "AVANÇAR PARA A ETAPA 2" e "FINALIZAR PROCESSO E GERAR DOCUMENTOS"
     app._ao_clicar_avancar()
+    app._ao_clicar_finalizar()
     
     # Aguardar thread em background concluir a geração
     import time

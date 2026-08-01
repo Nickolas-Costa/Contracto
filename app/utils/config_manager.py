@@ -20,6 +20,7 @@ _DEFAULTS = {
     "formato_saida": "PDF/A-2b",    # "PDF/A-2b" ou "PDF"
     "perfil_ativo": "Padrão",
     "local_padrao": "CAMOCIM-CE",
+    "tamanho_quadros": "Médio",     # "Pequeno", "Médio", "Grande"
     "primeira_execucao": True,
 }
 

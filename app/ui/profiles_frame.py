@@ -121,13 +121,28 @@ class ProfilesFrame(ctk.CTkFrame):
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_formulario).grid(row=0, column=1, sticky="e")
 
-        self.scroll_forms = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=150)
+        self.scroll_forms = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=100)
         self.scroll_forms.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_forms.grid_columnconfigure(0, weight=1)
 
+        # Documentos Extras (Etapa 2)
+        header_extras = ctk.CTkFrame(self.frame_editor, fg_color="transparent")
+        header_extras.grid(row=5, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        header_extras.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkLabel(header_extras, text="Documentos Extras (Etapa 2):", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(header_extras, text="Adicionar Documento", width=160, corner_radius=RADIUS_BUTTON,
+                      fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
+                      command=self._adicionar_documento_extra).grid(row=0, column=1, sticky="e")
+
+        self.scroll_extras = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=80)
+        self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_extras.grid_columnconfigure(0, weight=1)
+
         # Botões do editor
         frame_btns = ctk.CTkFrame(self.frame_editor, fg_color="transparent")
-        frame_btns.grid(row=5, column=0, columnspan=2, padx=SPACING_LARGE,
+        frame_btns.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE,
                         pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_btns.grid_columnconfigure(1, weight=1)
 
@@ -212,18 +227,19 @@ class ProfilesFrame(ctk.CTkFrame):
         self.edit_nome.configure(state="normal")
 
     def _abrir_editor(self, perfil: Perfil) -> None:
+        from utils.profile_manager import DocumentoExtra
         self._perfil_editando = perfil
         self._formularios_editando = [FormularioModelo(f.nome, f.caminho, f.geracao, f.mapeamento.copy()) for f in perfil.formularios]
+        self._documentos_extras_editando = [DocumentoExtra(d.rotulo, d.nome_padrao) for d in getattr(perfil, 'documentos_extras', [])]
 
         self.edit_nome.configure(state="normal")
         self.edit_nome.delete(0, "end")
         self.edit_nome.insert(0, perfil.nome)
-        if perfil.nome == PERFIL_PADRAO_NOME:
-            self.edit_nome.configure(state="disabled")
 
         self.edit_formato.set(perfil.formato_saida)
         
         self._atualizar_lista_formularios_editando()
+        self._atualizar_lista_documentos_editando()
 
         self.frame_editor.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
@@ -250,6 +266,26 @@ class ProfilesFrame(ctk.CTkFrame):
         self.frame_editor.grid_forget()
         self._perfil_editando = None
         self._formularios_editando = []
+        self._documentos_extras_editando = []
+
+    def _atualizar_lista_documentos_editando(self):
+        for widget in self.scroll_extras.winfo_children():
+            widget.destroy()
+            
+        for i, doc in enumerate(self._documentos_extras_editando):
+            d_frame = ctk.CTkFrame(self.scroll_extras, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)
+            d_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
+            d_frame.grid_columnconfigure(0, weight=1)
+            
+            nome_label = ctk.CTkLabel(d_frame, text=f"{doc.rotulo} -> {doc.nome_padrao}", font=get_font(FONT_SIZE_BODY, "bold"))
+            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_SMALL)
+            
+            ctk.CTkButton(d_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
+                          command=lambda d=doc, idx=i: self._editar_documento_extra(d, idx)).grid(row=0, column=1, padx=SPACING_SMALL)
+                          
+            ctk.CTkButton(d_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
+                          fg_color=COLOR_ERROR, hover_color="#8c1b1b",
+                          command=lambda idx=i: self._remover_documento_extra(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
 
     def _adicionar_formulario(self) -> None:
         caminho = filedialog.askopenfilename(
@@ -285,6 +321,60 @@ class ProfilesFrame(ctk.CTkFrame):
         if 0 <= index < len(self._formularios_editando):
             del self._formularios_editando[index]
             self._atualizar_lista_formularios_editando()
+
+    def _adicionar_documento_extra(self) -> None:
+        self._abrir_modal_documento()
+
+    def _editar_documento_extra(self, doc, index: int) -> None:
+        self._abrir_modal_documento(doc, index)
+
+    def _remover_documento_extra(self, index: int) -> None:
+        if 0 <= index < len(self._documentos_extras_editando):
+            del self._documentos_extras_editando[index]
+            self._atualizar_lista_documentos_editando()
+
+    def _abrir_modal_documento(self, doc_existente=None, index=None) -> None:
+        from utils.profile_manager import DocumentoExtra
+        modal = ctk.CTkToplevel(self)
+        modal.title("Documento Extra")
+        modal.geometry("400x300")
+        modal.transient(self.winfo_toplevel())
+        modal.grab_set()
+        
+        modal.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(modal, text="Rótulo (Exibição):").grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, 5), sticky="w")
+        entry_rotulo = ctk.CTkEntry(modal)
+        entry_rotulo.grid(row=0, column=1, padx=SPACING_LARGE, pady=(SPACING_LARGE, 5), sticky="ew")
+        
+        ctk.CTkLabel(modal, text="Nome Final:").grid(row=1, column=0, padx=SPACING_LARGE, pady=5, sticky="w")
+        entry_nome = ctk.CTkEntry(modal)
+        entry_nome.grid(row=1, column=1, padx=SPACING_LARGE, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(modal, text="Exemplo: Se o Nome Final for 'CONTRATO', o arquivo\ngerado será 'CONTRATO MARIA E JOAO.pdf'", 
+                     text_color=COLOR_TEXT_SECONDARY, font=get_font(FONT_SIZE_CAPTION)).grid(row=2, column=0, columnspan=2, padx=SPACING_LARGE, pady=5)
+                     
+        if doc_existente:
+            entry_rotulo.insert(0, doc_existente.rotulo)
+            entry_nome.insert(0, doc_existente.nome_padrao)
+            
+        def _salvar():
+            rotulo = entry_rotulo.get().strip()
+            nome = entry_nome.get().strip()
+            if not rotulo or not nome:
+                messagebox.showwarning("Aviso", "Ambos os campos são obrigatórios.", parent=modal)
+                return
+                
+            novo_doc = DocumentoExtra(rotulo, nome)
+            if doc_existente and index is not None:
+                self._documentos_extras_editando[index] = novo_doc
+            else:
+                self._documentos_extras_editando.append(novo_doc)
+                
+            self._atualizar_lista_documentos_editando()
+            modal.destroy()
+            
+        ctk.CTkButton(modal, text="Salvar", command=_salvar).grid(row=3, column=0, columnspan=2, pady=SPACING_LARGE)
 
     def _abrir_modal_mapeamento(self, nome, caminho, campos, formulario_existente=None, index=None):
         modal = ctk.CTkToplevel(self)
@@ -368,13 +458,19 @@ class ProfilesFrame(ctk.CTkFrame):
         perfil = Perfil(
             nome=nome,
             formularios=self._formularios_editando.copy(),
+            documentos_extras=self._documentos_extras_editando.copy(),
             formato_saida=self.edit_formato.get(),
         )
 
         try:
             if self._perfil_editando and self._perfil_editando.nome:
                 # Editando existente
-                atualizar_perfil(perfil)
+                nome_antigo = self._perfil_editando.nome
+                atualizar_perfil(nome_antigo, perfil)
+                
+                # Se era o ativo e mudou de nome, atualiza no config
+                if nome_antigo != nome and config_manager.obter("perfil_ativo") == nome_antigo:
+                    config_manager.definir("perfil_ativo", nome)
             else:
                 # Criando novo
                 adicionar_perfil(perfil)

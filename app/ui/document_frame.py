@@ -7,14 +7,8 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from ui.theme import *
+from utils.profile_manager import DocumentoExtra
 
-TIPOS_DOCUMENTOS = [
-    ("Contrato", "CONTRATO"),
-    ("Planilha de Evolução", "PLANILHA DE EVOLUCAO"),
-    ("Protocolo da Planilha", "PROTOCOLO DA PLANILHA"),
-    ("Aviso de Crédito", "AVISO DE CREDITO"),
-    ("Origem de Recursos", "ORIGEM DE RECURSOS"),
-]
 
 class DocumentFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -29,29 +23,38 @@ class DocumentFrame(ctk.CTkFrame):
 
         self.grid_columnconfigure(1, weight=1)
 
-        self._documentos: dict[str, Path | None] = {
-            tipo_padrao: None for _, tipo_padrao in TIPOS_DOCUMENTOS
-        }
+        self._documentos: dict[str, Path | None] = {}
         self._entries: dict[str, ctk.CTkEntry] = {}
         self._icons: dict[str, ctk.CTkLabel] = {}
+        self._widgets_linha = [] # To keep track and destroy old rows
 
-        self._construir_campos()
+    def carregar_documentos(self, lista_extras: list[DocumentoExtra]) -> None:
+        """Limpa a interface e recria os campos baseados na lista de documentos."""
+        # Limpar widgets antigos
+        for w in self._widgets_linha:
+            w.destroy()
+        self._widgets_linha.clear()
+        
+        self._documentos = {doc.nome_padrao: None for doc in lista_extras}
+        self._entries.clear()
+        self._icons.clear()
 
-    def _construir_campos(self) -> None:
-        for linha, (rotulo, tipo_padrao) in enumerate(TIPOS_DOCUMENTOS):
+        for linha, doc in enumerate(lista_extras):
             # Status icon
             icon_label = ctk.CTkLabel(self, text="○", font=get_font(FONT_SIZE_H3), text_color=COLOR_TEXT_DISABLED, width=20)
             icon_label.grid(row=linha, column=0, padx=(SPACING_LARGE, 0), pady=SPACING_SMALL, sticky="e")
-            self._icons[tipo_padrao] = icon_label
+            self._icons[doc.nome_padrao] = icon_label
+            self._widgets_linha.append(icon_label)
 
-            ctk.CTkLabel(self, text=f"{rotulo}:", anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT).grid(
-                row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_SMALL, sticky="w"
-            )
+            lbl = ctk.CTkLabel(self, text=f"{doc.rotulo}:", anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT)
+            lbl.grid(row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
+            self._widgets_linha.append(lbl)
 
             entry = ctk.CTkEntry(self, placeholder_text="Nenhum arquivo selecionado", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
             entry.grid(row=linha, column=2, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
             entry.configure(state="disabled")
-            self._entries[tipo_padrao] = entry
+            self._entries[doc.nome_padrao] = entry
+            self._widgets_linha.append(entry)
 
             btn = ctk.CTkButton(
                 self,
@@ -61,11 +64,14 @@ class DocumentFrame(ctk.CTkFrame):
                 fg_color=COLOR_SURFACE_VARIANT,
                 text_color=COLOR_TEXT,
                 hover_color=COLOR_BORDER,
-                command=lambda tp=tipo_padrao, rt=rotulo: self._selecionar_documento(tp, rt),
+                command=lambda tp=doc.nome_padrao, rt=doc.rotulo: self._selecionar_documento(tp, rt),
             )
             btn.grid(row=linha, column=3, padx=(SPACING_SMALL, SPACING_LARGE), pady=SPACING_SMALL)
+            self._widgets_linha.append(btn)
 
-        ctk.CTkLabel(self, text="", height=2).grid(row=len(TIPOS_DOCUMENTOS), column=0, pady=(0, SPACING_SMALL))
+        padding_lbl = ctk.CTkLabel(self, text="", height=2)
+        padding_lbl.grid(row=len(lista_extras), column=0, pady=(0, SPACING_SMALL))
+        self._widgets_linha.append(padding_lbl)
 
     def _selecionar_documento(self, tipo_padrao: str, rotulo: str) -> None:
         caminho_str = filedialog.askopenfilename(
