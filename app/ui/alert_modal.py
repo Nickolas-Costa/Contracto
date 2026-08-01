@@ -12,13 +12,19 @@ class AlertModal(ctk.CTkFrame):
         super().__init__(
             master,
             corner_radius=16,
-            border_width=2,
-            border_color=theme.COLOR_BORDER_ERROR,
             fg_color=theme.COLOR_SURFACE,
+            bg_color="transparent",
         )
 
         width = 580
         height = min(420 + len(erros) * 24, 620)
+        
+        import tkinter as tk
+        # Fundo sólido preto
+        bg_color = "#000000"
+        self.overlay = tk.Frame(master, bg=bg_color)
+        self.overlay.place(x=0, y=0, relwidth=1, relheight=1)
+        self.overlay.lift()
         
         # Centralizar na janela
         self.place(relx=0.5, rely=0.5, anchor="center")
@@ -92,12 +98,16 @@ class AlertModal(ctk.CTkFrame):
         divider = ctk.CTkFrame(self, height=1, fg_color=theme.COLOR_BORDER)
         divider.grid(row=1, column=0, sticky="ew", padx=24, pady=8)
 
-        # 2. Lista de Erros (Scrollable)
-        self.scroll_erros = ctk.CTkScrollableFrame(
-            self,
-            fg_color="transparent",
-            height=200,
-        )
+        # 2. Lista de Erros (Condicionalmente Scrollable)
+        if len(erros) > 4:
+            self.scroll_erros = ctk.CTkScrollableFrame(
+                self,
+                fg_color="transparent",
+                height=200,
+            )
+        else:
+            self.scroll_erros = ctk.CTkFrame(self, fg_color="transparent")
+        
         self.scroll_erros.grid(row=2, column=0, sticky="nsew", padx=24, pady=(0, 20))
         self.scroll_erros.grid_columnconfigure(0, weight=1)
 
@@ -141,8 +151,8 @@ class AlertModal(ctk.CTkFrame):
         lbl_dica.grid(row=3, column=0, padx=24, pady=(4, 8), sticky="w")
 
         # 3. Rodapé com Ações
-        self.footer_frame = ctk.CTkFrame(self, fg_color=theme.COLOR_SURFACE_VARIANT, corner_radius=0)
-        self.footer_frame.grid(row=4, column=0, sticky="ew", pady=(0, 0))
+        self.footer_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.footer_frame.grid(row=4, column=0, sticky="ew", pady=(0, 24), padx=24)
         self.footer_frame.grid_columnconfigure(0, weight=1)
 
         btn_action = ctk.CTkButton(
@@ -160,3 +170,5 @@ class AlertModal(ctk.CTkFrame):
 
     def _on_close(self) -> None:
         self.destroy()
+        if hasattr(self, 'overlay'):
+            self.overlay.destroy()

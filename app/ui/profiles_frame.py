@@ -139,7 +139,7 @@ class ProfilesFrame(ctk.CTkFrame):
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_documento_extra).grid(row=0, column=1, sticky="e")
 
-        self.scroll_extras = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=80)
+        self.scroll_extras = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=100)
         self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_extras.grid_columnconfigure(0, weight=1)
 
@@ -250,6 +250,11 @@ class ProfilesFrame(ctk.CTkFrame):
         for widget in self.scroll_forms.winfo_children():
             widget.destroy()
             
+        if len(self._formularios_editando) > 2:
+            self.scroll_forms._scrollbar.configure(button_color=theme.COLOR_SURFACE_VARIANT, button_hover_color=theme.COLOR_BORDER)
+        else:
+            self.scroll_forms._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
+            
         for i, form in enumerate(self._formularios_editando):
             f_frame = ctk.CTkFrame(self.scroll_forms, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)
             f_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
@@ -275,6 +280,11 @@ class ProfilesFrame(ctk.CTkFrame):
     def _atualizar_lista_documentos_editando(self):
         for widget in self.scroll_extras.winfo_children():
             widget.destroy()
+            
+        if len(self._documentos_extras_editando) > 2:
+            self.scroll_extras._scrollbar.configure(button_color=theme.COLOR_SURFACE_VARIANT, button_hover_color=theme.COLOR_BORDER)
+        else:
+            self.scroll_extras._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
             
         for i, doc in enumerate(self._documentos_extras_editando):
             d_frame = ctk.CTkFrame(self.scroll_extras, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)

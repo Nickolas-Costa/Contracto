@@ -12,6 +12,13 @@ class LoadingModal(ctk.CTkToplevel):
         
         self.configure(fg_color=COLOR_SURFACE)
         
+        # Fundo sólido preto
+        import tkinter as tk
+        bg_color = "#000000"
+        self.overlay = tk.Frame(master, bg=bg_color)
+        self.overlay.place(x=0, y=0, relwidth=1, relheight=1)
+        self.overlay.lift()
+        
         # Center on parent
         self.update_idletasks()
         
@@ -85,3 +92,5 @@ class LoadingModal(ctk.CTkToplevel):
         self._is_running = False
         self.grab_release()
         self.destroy()
+        if hasattr(self, 'overlay'):
+            self.overlay.destroy()

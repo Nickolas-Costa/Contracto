@@ -23,6 +23,14 @@ class WelcomeModal(ctk.CTkFrame):
         self._modal_height = 560
         self._master_ref = master
 
+        if master:
+            import tkinter as tk
+            # Fundo sólido preto
+            bg_color = "#000000"
+            self.overlay = tk.Frame(master, bg=bg_color)
+            self.overlay.place(x=0, y=0, relwidth=1, relheight=1)
+            self.overlay.lift()
+
         # Centralizar na tela
         self.place(relx=0.5, rely=0.5, anchor="center")
         self.configure(width=self._modal_width, height=self._modal_height)
@@ -81,8 +89,8 @@ class WelcomeModal(ctk.CTkFrame):
         divider.grid(row=1, column=0, sticky="ew", padx=24, pady=8)
 
         # 2. Corpo do Modal (Passo a Passo)
-        self.scroll_recursos = ctk.CTkScrollableFrame(
-            self, fg_color="transparent", label_text=""
+        self.scroll_recursos = ctk.CTkFrame(
+            self, fg_color="transparent"
         )
         self.scroll_recursos.grid(row=2, column=0, sticky="nsew", padx=24, pady=16)
         self.scroll_recursos.grid_columnconfigure(0, weight=1)
@@ -165,11 +173,12 @@ class WelcomeModal(ctk.CTkFrame):
             lbl_rec_desc.pack(anchor="w", pady=(2, 0))
 
             # Tag do Passo
+            is_dica = (item["tag"] == "Dica")
             tag_box = ctk.CTkFrame(
                 row_card,
-                fg_color=theme.COLOR_SURFACE,
+                fg_color=theme.get_color_primary() if is_dica else theme.COLOR_SURFACE,
                 corner_radius=12,
-                border_width=1,
+                border_width=0 if is_dica else 1,
                 border_color=theme.COLOR_BORDER,
             )
             tag_box.grid(row=0, column=2, padx=12, pady=12, sticky="e")
@@ -178,7 +187,7 @@ class WelcomeModal(ctk.CTkFrame):
                 tag_box,
                 text=item["tag"],
                 font=theme.get_font(11, "bold"),
-                text_color=theme.get_color_primary_text(),
+                text_color="#FFFFFF" if is_dica else theme.get_color_primary_text(),
             )
             lbl_tag.pack(padx=10, pady=4)
 
@@ -201,9 +210,11 @@ class WelcomeModal(ctk.CTkFrame):
         btn_action.grid(row=0, column=0, sticky="ew")
 
     def _on_close(self) -> None:
-        config_manager.definir("primeira_execucao", False)
-        try:
-            self.grab_release()
-        except Exception:
-            pass
+        """Limpa o frame e destrói o modal."""
+        if hasattr(self, "_master_ref") and self._master_ref:
+            self._master_ref.unbind("<Escape>")
+
         self.destroy()
+        if hasattr(self, 'overlay'):
+            self.overlay.destroy()
+        config_manager.definir("primeira_execucao", False)

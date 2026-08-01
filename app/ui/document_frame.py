@@ -105,6 +105,9 @@ class DocumentFrame(ctk.CTkFrame):
             if caminho is not None
         }
 
+    def obter_total_documentos(self) -> int:
+        return len(self._documentos)
+
     def tem_documentos(self) -> bool:
         return any(caminho is not None for caminho in self._documentos.values())
 

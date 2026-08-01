@@ -286,7 +286,7 @@ class SettingsFrame(ctk.CTkFrame):
         frame.grid_columnconfigure(1, weight=1)
 
         ctk.CTkButton(
-            frame, text="Restaurar Padrões",
+            frame, text="Restaurar Configurações",
             fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
             border_width=1, border_color=COLOR_BORDER,
             hover_color=COLOR_SURFACE_VARIANT,

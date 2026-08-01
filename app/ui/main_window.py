@@ -280,13 +280,14 @@ class MainWindow(ctk.CTk):
             font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
         ).pack(side="left", padx=(0, SPACING_XSMALL))
 
-        self.dropdown_perfil = ctk.CTkOptionMenu(
+        self.dropdown_perfil = ctk.CTkComboBox(
             frame_perfil_row,
             values=nomes_perfis,
             variable=ctk.StringVar(value=perfil_nome),
             command=self._ao_trocar_perfil,
             width=160,
             height=26,
+            border_width=0,
             corner_radius=RADIUS_BUTTON,
             font=get_font(FONT_SIZE_CAPTION),
             dropdown_font=get_font(FONT_SIZE_CAPTION),
@@ -297,6 +298,7 @@ class MainWindow(ctk.CTk):
             dropdown_hover_color=COLOR_SURFACE_VARIANT,
             dropdown_text_color=COLOR_TEXT,
             text_color="#FFFFFF",
+            state="readonly"
         )
         self.dropdown_perfil.pack(side="left")
 
@@ -384,7 +386,7 @@ class MainWindow(ctk.CTk):
             self.frame_stepper.grid_forget()
             if not self.container_profiles:
                 self.container_profiles = ProfilesFrame(self, on_voltar=lambda: self._mostrar_tela("inicio"))
-                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1200)
+                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
             else:
                 self.container_profiles._carregar_lista()
             self.container_profiles.grid(**card_grid)
@@ -398,7 +400,7 @@ class MainWindow(ctk.CTk):
                 on_voltar=lambda: self._mostrar_tela("inicio"),
                 on_aplicar=self._ao_aplicar_config,
             )
-            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1200)
+            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
             self.container_settings.grid(**card_grid)
 
     def _ao_aplicar_config(self) -> None:
@@ -410,6 +412,9 @@ class MainWindow(ctk.CTk):
                 fg_color=get_color_primary(),
                 button_color=get_color_primary_hover(),
                 button_hover_color=get_color_primary_hover(),
+                dropdown_fg_color=COLOR_SURFACE,
+                dropdown_hover_color=COLOR_SURFACE_VARIANT,
+                dropdown_text_color=COLOR_TEXT,
                 text_color="#FFFFFF",
             )
         if hasattr(self, 'botao_avancar'):
@@ -451,10 +456,30 @@ class MainWindow(ctk.CTk):
             self.entry_local.delete(0, 'end')
             self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
         
-        # Re-aplicar a tela atual para atualizar o tamanho dos quadros
-        self._mostrar_tela(self._tela_atual)
+        # Re-aplicar apenas as margens
+        self._atualizar_tamanho_janela()
         
-        show_toast(self, "Configurações salvas com sucesso!", "success")
+        show_toast(self, "Configurações atualizadas!", "success")
+
+    def _atualizar_tamanho_janela(self) -> None:
+        tamanho = config_manager.obter("tamanho_quadros")
+        if tamanho == "Pequeno":
+            margem = 400
+        elif tamanho == "Grande":
+            margem = 100
+        else:
+            margem = 250
+            
+        if self._tela_atual == "inicio" and hasattr(self, 'container_etapa1'):
+            self.container_etapa1.grid(padx=margem)
+        elif self._tela_atual == "etapa2" and hasattr(self, 'container_etapa2'):
+            self.container_etapa2.grid(padx=margem)
+        elif self._tela_atual == "perfis" and hasattr(self, 'container_profiles'):
+            self.container_profiles.grid(padx=margem)
+        elif self._tela_atual == "config" and hasattr(self, 'container_settings'):
+            self.container_settings.grid(padx=margem)
+        
+        self.update_idletasks()
 
     def _aplicar_perfil_ativo(self) -> None:
         """Os modelos agora são carregados a partir do perfil no momento da geração."""
@@ -469,7 +494,7 @@ class MainWindow(ctk.CTk):
 
         self.botao_avancar = ctk.CTkButton(
             self.container_etapa1,
-            text="AVANÇAR PARA A ETAPA 2 ➔",
+            text="AVANÇAR ETAPA ➔",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             text_color="#FFFFFF",
@@ -914,18 +939,27 @@ class MainWindow(ctk.CTk):
             return
 
         documentos_externos = self.document_frame.obter_documentos_selecionados()
+        total_documentos = self.document_frame.obter_total_documentos()
 
-        if not documentos_externos:
-            if not messagebox.askyesno(
-                "Nenhum Documento Extra",
-                "Você não adicionou nenhum documento extra. Deseja gerar apenas os formulários e finalizar o processo?"
-            ):
-                return
-
+        if total_documentos > 0 and len(documentos_externos) < total_documentos:
+            from ui.confirm_modal import ConfirmModal
+            ConfirmModal(
+                self,
+                titulo="Documentos Incompletos",
+                subtitulo="Você não selecionou todos os documentos extras recomendados. Tem certeza de que deseja gerar apenas os formulários selecionados e finalizar o processo?",
+                on_confirm=self._prosseguir_finalizar,
+            )
+            return
+            
+        self._prosseguir_finalizar()
+        
+    def _prosseguir_finalizar(self) -> None:
         # Obter formato do perfil ativo
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
         formato_saida = perfil.formato_saida if perfil else "PDF/A-2b"
+        
+        documentos_externos = self.document_frame.obter_documentos_selecionados()
 
         self.botao_finalizar.configure(state="disabled")
         self.botao_voltar.configure(state="disabled")
