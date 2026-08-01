@@ -15,7 +15,7 @@ from ui.theme import (
     FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_H2, FONT_SIZE_H3,
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE,
-    get_font, get_color_primary,
+    get_font, get_color_primary, get_color_primary_text, get_color_primary_hover,
 )
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, FormularioModelo,
@@ -65,8 +65,8 @@ class ProfilesFrame(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="+ Novo Perfil", width=120,
-            fg_color=COLOR_SURFACE, text_color=get_color_primary(),
-            border_width=1, border_color=get_color_primary(),
+            fg_color=COLOR_SURFACE, text_color=get_color_primary_text(),
+            border_width=1, border_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT,
             corner_radius=RADIUS_BUTTON,
             command=self._criar_novo,
@@ -105,7 +105,10 @@ class ProfilesFrame(ctk.CTkFrame):
                                                   pady=SPACING_SMALL, sticky="w")
         self.edit_formato = ctk.CTkSegmentedButton(
             self.frame_editor, values=["PDF/A-2b", "PDF"],
-            font=get_font(FONT_SIZE_BODY), corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_BODY),
+            corner_radius=RADIUS_BUTTON,
+            selected_color=get_color_primary(),
+            selected_hover_color=get_color_primary_hover(),
         )
         self.edit_formato.grid(row=2, column=1, padx=(0, SPACING_LARGE),
                                pady=SPACING_SMALL, sticky="ew")
@@ -151,7 +154,7 @@ class ProfilesFrame(ctk.CTkFrame):
                       corner_radius=RADIUS_BUTTON, command=self._fechar_editor
                       ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
 
-        ctk.CTkButton(frame_btns, text="Salvar Perfil", fg_color=get_color_primary(),
+        ctk.CTkButton(frame_btns, text="Salvar Perfil", fg_color=get_color_primary(), text_color="#FFFFFF",
                       hover_color="#004785", corner_radius=RADIUS_BUTTON,
                       command=self._salvar_edicao
                       ).grid(row=0, column=1, sticky="ew")
@@ -169,12 +172,12 @@ class ProfilesFrame(ctk.CTkFrame):
         for i, perfil in enumerate(perfis):
             card = ctk.CTkFrame(self.scroll_perfis, fg_color=COLOR_SURFACE,
                                 corner_radius=RADIUS_CARD, border_width=1,
-                                border_color=get_color_primary() if perfil.nome == perfil_ativo else COLOR_BORDER)
+                                border_color=get_color_primary_text() if perfil.nome == perfil_ativo else COLOR_BORDER)
             card.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
             card.grid_columnconfigure(1, weight=1)
 
             icon_text = "★" if perfil.nome == perfil_ativo else "○"
-            icon_color = get_color_primary() if perfil.nome == perfil_ativo else COLOR_TEXT_SECONDARY
+            icon_color = get_color_primary_text() if perfil.nome == perfil_ativo else COLOR_TEXT_SECONDARY
 
             ctk.CTkLabel(card, text=icon_text, font=get_font(FONT_SIZE_H2),
                          text_color=icon_color).grid(row=0, column=0, rowspan=2,
@@ -198,7 +201,7 @@ class ProfilesFrame(ctk.CTkFrame):
 
             if perfil.nome != perfil_ativo:
                 ctk.CTkButton(frame_acoes, text="Ativar", width=60,
-                              fg_color=get_color_primary(), hover_color="#004785",
+                              fg_color=get_color_primary(), text_color="#FFFFFF", hover_color="#004785",
                               corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_CAPTION),
                               command=lambda n=perfil.nome: self._ativar_perfil(n)
                               ).pack(side="left", padx=2)
@@ -256,6 +259,7 @@ class ProfilesFrame(ctk.CTkFrame):
             nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_SMALL)
             
             ctk.CTkButton(f_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
+                          fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
                           command=lambda f=form, idx=i: self._editar_formulario(f, idx)).grid(row=0, column=1, padx=SPACING_SMALL)
                           
             ctk.CTkButton(f_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
@@ -281,6 +285,7 @@ class ProfilesFrame(ctk.CTkFrame):
             nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_SMALL)
             
             ctk.CTkButton(d_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
+                          fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
                           command=lambda d=doc, idx=i: self._editar_documento_extra(d, idx)).grid(row=0, column=1, padx=SPACING_SMALL)
                           
             ctk.CTkButton(d_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
@@ -491,3 +496,8 @@ class ProfilesFrame(ctk.CTkFrame):
                 self._carregar_lista()
             except ValueError as e:
                 messagebox.showwarning("Aviso", str(e))
+
+    def atualizar_cores(self) -> None:
+        """Atualiza a tela de perfis ao mudar o tema, recarregando a lista."""
+        self._fechar_editor()
+        self._carregar_lista()

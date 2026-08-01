@@ -2,70 +2,40 @@ import customtkinter as ctk
 from ui import theme
 
 
-class AlertModal(ctk.CTkToplevel):
+class AlertModal(ctk.CTkFrame):
     """Modal moderno para exibição de erros e campos pendentes.
 
-    Substitui a caixa de diálogo nativa do SO por um card SaaS elegante,
-    idêntico ao estilo da tela de Boas-Vindas/Ajuda, perfeitamente centralizado.
+    Renderizado como um frame flutuante perfeitamente centralizado na janela principal.
     """
 
     def __init__(self, master, titulo: str, subtitulo: str, erros: list[str]):
-        super().__init__(master)
-
-        self.overrideredirect(True)
-        try:
-            self.attributes("-transparentcolor", "#000001")
-        except Exception:
-            pass
-        self.configure(fg_color="#000001")
-
-        width = 580
-        height = min(420 + len(erros) * 24, 620)
-
-        # Centralizar com base na resolução real da tela (monitor do usuário)
-        sw = self.winfo_screenwidth()
-        sh = self.winfo_screenheight()
-        x = max((sw - width) // 2, 0)
-        y = max((sh - height) // 2, 0)
-        self.geometry(f"{width}x{height}+{x}+{y}")
-
-        if master:
-            top_level = master.winfo_toplevel()
-            self.transient(top_level)
-            
-        # Permitir arrastar o modal
-        self.bind("<ButtonPress-1>", self._iniciar_arrasto)
-        self.bind("<B1-Motion>", self._arrastar)
-        
-        self._drag_x = 0
-        self._drag_y = 0
-
-        self.lift()
-        self.focus_force()
-        self.bind("<Escape>", lambda e: self._on_close())
-
-        # Sombra
-        self.shadow = ctk.CTkFrame(
-            self,
-            corner_radius=16,
-            fg_color="#000000",
-        )
-        self.shadow.place(relx=0.01, rely=0.02, relwidth=0.98, relheight=0.97)
-
-        # Card Principal com borda de destaque
-        self.card = ctk.CTkFrame(
-            self,
+        super().__init__(
+            master,
             corner_radius=16,
             border_width=2,
             border_color=theme.COLOR_BORDER_ERROR,
             fg_color=theme.COLOR_SURFACE,
         )
-        self.card.place(relx=0, rely=0, relwidth=0.98, relheight=0.97)
-        self.card.grid_columnconfigure(0, weight=1)
-        self.card.grid_rowconfigure(2, weight=1)
+
+        width = 580
+        height = min(420 + len(erros) * 24, 620)
+        
+        # Centralizar na janela
+        self.place(relx=0.5, rely=0.5, anchor="center")
+        self.configure(width=width, height=height)
+        self.grid_propagate(False) # Força o tamanho do frame
+
+        self.lift()
+        
+        # Opcional: Permitir fechar com ESC no master (necessita bind no master)
+        master.bind("<Escape>", lambda e: self._on_close(), add="+")
+
+        # Para fechar o modal
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
         # 1. Cabeçalho (Alerta Vermelho/Amarelo + Título)
-        self.header_frame = ctk.CTkFrame(self.card, fg_color="transparent")
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
         self.header_frame.grid_columnconfigure(1, weight=1)
 
@@ -119,19 +89,21 @@ class AlertModal(ctk.CTkToplevel):
         btn_close.grid(row=0, column=2, sticky="e")
 
         # Divisor
-        divider = ctk.CTkFrame(self.card, height=1, fg_color=theme.COLOR_BORDER)
+        divider = ctk.CTkFrame(self, height=1, fg_color=theme.COLOR_BORDER)
         divider.grid(row=1, column=0, sticky="ew", padx=24, pady=8)
 
-        # 2. Corpo / Lista de Erros
-        scroll_erros = ctk.CTkScrollableFrame(
-            self.card, fg_color="transparent", label_text=""
+        # 2. Lista de Erros (Scrollable)
+        self.scroll_erros = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            height=200,
         )
-        scroll_erros.grid(row=2, column=0, sticky="nsew", padx=24, pady=8)
-        scroll_erros.grid_columnconfigure(0, weight=1)
+        self.scroll_erros.grid(row=2, column=0, sticky="nsew", padx=24, pady=(0, 20))
+        self.scroll_erros.grid_columnconfigure(0, weight=1)
 
         for idx, erro in enumerate(erros):
             row_item = ctk.CTkFrame(
-                scroll_erros,
+                self.scroll_erros,
                 fg_color=theme.COLOR_SURFACE_VARIANT,
                 corner_radius=8,
                 border_width=1,
@@ -161,23 +133,24 @@ class AlertModal(ctk.CTkToplevel):
 
         # Dica / Observação no Rodapé
         lbl_dica = ctk.CTkLabel(
-            self.card,
+            self,
             text="Os campos que precisam de atenção foram destacados com borda vermelha.",
             font=theme.get_font(theme.FONT_SIZE_CAPTION, "bold"),
             text_color=theme.COLOR_TEXT_SECONDARY,
         )
         lbl_dica.grid(row=3, column=0, padx=24, pady=(4, 8), sticky="w")
 
-        # 3. Botão de Ação
-        footer_frame = ctk.CTkFrame(self.card, fg_color="transparent")
-        footer_frame.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 20))
-        footer_frame.grid_columnconfigure(0, weight=1)
+        # 3. Rodapé com Ações
+        self.footer_frame = ctk.CTkFrame(self, fg_color=theme.COLOR_SURFACE_VARIANT, corner_radius=0)
+        self.footer_frame.grid(row=4, column=0, sticky="ew", pady=(0, 0))
+        self.footer_frame.grid_columnconfigure(0, weight=1)
 
         btn_action = ctk.CTkButton(
-            footer_frame,
+            self.footer_frame,
             text="ENTENDI, VOU CORRIGIR",
             font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
             fg_color=theme.get_color_primary(),
+            text_color="#FFFFFF",
             hover_color=theme.get_color_primary_hover(),
             height=44,
             corner_radius=theme.RADIUS_BUTTON,
@@ -185,14 +158,5 @@ class AlertModal(ctk.CTkToplevel):
         )
         btn_action.grid(row=0, column=0, sticky="ew")
 
-    def _iniciar_arrasto(self, event):
-        self._drag_x = event.x
-        self._drag_y = event.y
-
-    def _arrastar(self, event):
-        x = self.winfo_x() + (event.x - self._drag_x)
-        y = self.winfo_y() + (event.y - self._drag_y)
-        self.geometry(f"+{x}+{y}")
-
-    def _on_close(self):
+    def _on_close(self) -> None:
         self.destroy()

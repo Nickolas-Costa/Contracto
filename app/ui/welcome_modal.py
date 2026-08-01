@@ -3,7 +3,7 @@ from ui import theme
 from utils import config_manager
 
 
-class WelcomeModal(ctk.CTkToplevel):
+class WelcomeModal(ctk.CTkFrame):
     """Modal de instrução e guia de uso do aplicativo.
 
     Centralizado com precisão na tela/janela principal do usuário.
@@ -11,65 +11,34 @@ class WelcomeModal(ctk.CTkToplevel):
     """
 
     def __init__(self, master=None):
-        super().__init__(master)
-
-        self.overrideredirect(True)
-        # Fix black square corners: make the window background transparent
-        try:
-            self.attributes("-transparentcolor", "#000001")
-        except Exception:
-            pass
-        self.configure(fg_color="#000001")
-
-        self._modal_width = 680
-        self._modal_height = 560
-        self._master_ref = master
-
-        # Posicionar inicialmente fora da tela para evitar flicker
-        self.geometry(f"{self._modal_width}x{self._modal_height}+{-2000}+{-2000}")
-
-        if master:
-            top_level = master.winfo_toplevel()
-            self.transient(top_level)
-
-        # Permitir arrastar o modal
-        self.bind("<ButtonPress-1>", self._iniciar_arrasto)
-        self.bind("<B1-Motion>", self._arrastar)
-        
-        self._drag_x = 0
-        self._drag_y = 0
-
-        # Garantir visibilidade e atalho para fechar (Esc)
-        self.lift()
-        self.focus_force()
-        self.bind("<Escape>", lambda e: self._on_close())
-
-        # Centralizar após a janela estar completamente renderizada
-        self.after(50, self._centralizar_no_pai)
-
-        # Sombra
-        self.shadow = ctk.CTkFrame(
-            self,
-            corner_radius=16,
-            fg_color="#000000",
-        )
-        # Sombra real com luz do canto superior esquerdo (deslocamento apenas para direita e baixo)
-        self.shadow.place(relx=0.01, rely=0.02, relwidth=0.98, relheight=0.97)
-
-        # Frame Principal com visual de Card
-        self.card = ctk.CTkFrame(
-            self,
+        super().__init__(
+            master,
             corner_radius=16,
             border_width=1,
             border_color=theme.COLOR_BORDER,
             fg_color=theme.COLOR_SURFACE,
         )
-        self.card.place(relx=0, rely=0, relwidth=0.98, relheight=0.97)
-        self.card.grid_columnconfigure(0, weight=1)
-        self.card.grid_rowconfigure(2, weight=1)
+
+        self._modal_width = 680
+        self._modal_height = 560
+        self._master_ref = master
+
+        # Centralizar na tela
+        self.place(relx=0.5, rely=0.5, anchor="center")
+        self.configure(width=self._modal_width, height=self._modal_height)
+        self.grid_propagate(False)
+
+        # Garantir visibilidade e atalho para fechar (Esc)
+        self.lift()
+        
+        if master:
+            master.bind("<Escape>", lambda e: self._on_close(), add="+")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
         # 1. Cabeçalho (Header com Título + Subtítulo + Botão Fechar X)
-        self.header_frame = ctk.CTkFrame(self.card, fg_color="transparent")
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 12))
         self.header_frame.grid_columnconfigure(0, weight=1)
 
@@ -107,13 +76,13 @@ class WelcomeModal(ctk.CTkToplevel):
         )
         btn_close.grid(row=0, column=1, sticky="e")
 
-        # Linha Divisória
-        divider = ctk.CTkFrame(self.card, height=1, fg_color=theme.COLOR_BORDER)
-        divider.grid(row=1, column=0, sticky="ew", padx=24, pady=0)
+        # Divisor
+        divider = ctk.CTkFrame(self, height=1, fg_color=theme.COLOR_BORDER)
+        divider.grid(row=1, column=0, sticky="ew", padx=24, pady=8)
 
-        # 2. Lista de Passos / Instruções (Card de Guias Práticos)
+        # 2. Corpo do Modal (Passo a Passo)
         self.scroll_recursos = ctk.CTkScrollableFrame(
-            self.card, fg_color="transparent", label_text=""
+            self, fg_color="transparent", label_text=""
         )
         self.scroll_recursos.grid(row=2, column=0, sticky="nsew", padx=24, pady=16)
         self.scroll_recursos.grid_columnconfigure(0, weight=1)
@@ -209,12 +178,12 @@ class WelcomeModal(ctk.CTkToplevel):
                 tag_box,
                 text=item["tag"],
                 font=theme.get_font(11, "bold"),
-                text_color=theme.get_color_primary(),
+                text_color=theme.get_color_primary_text(),
             )
             lbl_tag.pack(padx=10, pady=4)
 
-        # 3. Rodapé com Botão Principal
-        footer_frame = ctk.CTkFrame(self.card, fg_color="transparent")
+        # 3. Rodapé com Ação
+        footer_frame = ctk.CTkFrame(self, fg_color="transparent")
         footer_frame.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 20))
         footer_frame.grid_columnconfigure(0, weight=1)
 
@@ -223,6 +192,7 @@ class WelcomeModal(ctk.CTkToplevel):
             text="Entendi, Começar!",
             font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
             fg_color=theme.get_color_primary(),
+            text_color="#FFFFFF",
             hover_color=theme.get_color_primary_hover(),
             height=44,
             corner_radius=theme.RADIUS_BUTTON,
@@ -230,53 +200,7 @@ class WelcomeModal(ctk.CTkToplevel):
         )
         btn_action.grid(row=0, column=0, sticky="ew")
 
-    def _centralizar_no_pai(self):
-        """Centraliza o modal sobre a janela principal após renderização completa."""
-        try:
-            w = self._modal_width
-            h = self._modal_height
-
-            if self._master_ref:
-                top = self._master_ref.winfo_toplevel()
-                top.update_idletasks()
-                # Usar winfo_x/y para obter posição da janela (mais confiável com zoomed)
-                px = top.winfo_x()
-                py = top.winfo_y()
-                pw = top.winfo_width()
-                ph = top.winfo_height()
-
-                # Se a janela está maximizada, winfo_x/y pode retornar valores negativos no Windows
-                # Nesse caso, usar coordenadas da tela
-                if px < 0 or py < 0:
-                    sw = self.winfo_screenwidth()
-                    sh = self.winfo_screenheight()
-                    x = max((sw - w) // 2, 0)
-                    y = max((sh - h) // 2, 0)
-                else:
-                    x = px + max((pw - w) // 2, 0)
-                    y = py + max((ph - h) // 2, 0)
-            else:
-                sw = self.winfo_screenwidth()
-                sh = self.winfo_screenheight()
-                x = max((sw - w) // 2, 0)
-                y = max((sh - h) // 2, 0)
-
-            self.geometry(f"{w}x{h}+{x}+{y}")
-            self.lift()
-            self.focus_force()
-        except Exception:
-            pass
-
-    def _iniciar_arrasto(self, event):
-        self._drag_x = event.x
-        self._drag_y = event.y
-
-    def _arrastar(self, event):
-        x = self.winfo_x() + (event.x - self._drag_x)
-        y = self.winfo_y() + (event.y - self._drag_y)
-        self.geometry(f"+{x}+{y}")
-
-    def _on_close(self):
+    def _on_close(self) -> None:
         config_manager.definir("primeira_execucao", False)
         try:
             self.grab_release()

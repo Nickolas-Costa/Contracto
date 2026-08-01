@@ -38,7 +38,7 @@ class ParticipantFrame(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
 
         self.label_titulo = ctk.CTkLabel(
-            self, text=self._titulo(indice), font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary()
+            self, text=self._titulo(indice), font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary_text()
         )
         self.label_titulo.grid(row=0, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
@@ -139,6 +139,10 @@ class ParticipantFrame(ctk.CTkFrame):
     def atualizar_indice(self, indice: int) -> None:
         self.indice = indice
         self.label_titulo.configure(text=self._titulo(indice))
+
+    def atualizar_cores(self) -> None:
+        """Atualiza as cores dinâmicas deste frame."""
+        self.label_titulo.configure(text_color=get_color_primary_text())
 
     def piscar_destaque(self) -> None:
         """Faz o quadro 'piscar' visualmente ao ser adicionado para chamar atenção do usuário."""

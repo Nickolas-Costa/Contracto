@@ -30,7 +30,7 @@ from ui.theme import (
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XXLARGE,
     SPACING_XSMALL,
     get_font, get_color_primary, get_color_primary_hover,
-    get_color_primary_light, get_color_primary_dark_gradient,
+    get_color_primary_light, get_color_primary_dark_gradient, get_color_primary_text,
     aplicar_gradiente, configure_appearance, reload_theme,
 )
 from utils.date_formatter import validar_data
@@ -250,7 +250,7 @@ class MainWindow(ctk.CTk):
 
         self.lbl_etapa1 = ctk.CTkLabel(
             self.frame_stepper, text="1. Geração de Documentos",
-            font=get_font(FONT_SIZE_H3, "bold"), text_color="#F29200"
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary_text()
         )
         self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
 
@@ -309,11 +309,11 @@ class MainWindow(ctk.CTk):
     def _atualizar_stepper(self, etapa: int) -> None:
         cor = get_color_primary()
         if etapa == 1:
-            self.lbl_etapa1.configure(text_color=cor)
+            self.lbl_etapa1.configure(text_color=get_color_primary_text())
             self.lbl_etapa2.configure(text_color=COLOR_TEXT_DISABLED)
         else:
             self.lbl_etapa1.configure(text_color=COLOR_TEXT_DISABLED)
-            self.lbl_etapa2.configure(text_color=cor)
+            self.lbl_etapa2.configure(text_color=get_color_primary_text())
 
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         # Atualizar o dropdown de perfil
@@ -336,8 +336,8 @@ class MainWindow(ctk.CTk):
             self.container_profiles.grid_forget()
 
         # Atualizar toolbar highlight
-        normal = {"fg_color": "transparent"}
-        active = {"fg_color": get_color_primary_hover()}
+        normal = {"fg_color": "transparent", "text_color": "#FFFFFF"}
+        active = {"fg_color": get_color_primary_hover(), "text_color": "#FFFFFF"}
         self.btn_inicio.configure(**normal)
         self.btn_perfis.configure(**normal)
         self.btn_config.configure(**normal)
@@ -404,10 +404,47 @@ class MainWindow(ctk.CTk):
     def _ao_aplicar_config(self) -> None:
         """Callback chamado após salvar configurações."""
         reload_theme()
-        # Atualizar toolbar
         self.toolbar.configure(fg_color=get_color_primary())
+        if hasattr(self, 'dropdown_perfil'):
+            self.dropdown_perfil.configure(
+                fg_color=get_color_primary(),
+                button_color=get_color_primary_hover(),
+                button_hover_color=get_color_primary_hover(),
+                text_color="#FFFFFF",
+            )
+        if hasattr(self, 'botao_avancar'):
+            self.botao_avancar.configure(
+                fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
+                text_color="#FFFFFF"
+            )
+        if hasattr(self, 'btn_voltar'):
+            self.btn_voltar.configure(
+                text_color=get_color_primary_text(), hover_color=COLOR_SURFACE_VARIANT
+            )
+        if hasattr(self, 'botao_finalizar'):
+            self.botao_finalizar.configure(
+                fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
+                text_color="#FFFFFF"
+            )
+        if hasattr(self, 'botao_adicionar'):
+            self.botao_adicionar.configure(
+                text_color=get_color_primary_text(),
+                border_color=get_color_primary()
+            )
+        
+        # Atualizar frames de participantes
+        if hasattr(self, 'participant_frames'):
+            for pf in self.participant_frames:
+                pf.atualizar_cores()
+            
         self._pintar_gradiente()
-        self._atualizar_stepper(1)
+        self._atualizar_stepper(1 if self._tela_atual == "etapa1" else 2 if self._tela_atual == "etapa2" else 1)
+        
+        # Atualizar cores dos frames independentes
+        if hasattr(self, 'container_settings'):
+            self.container_settings.atualizar_cores()
+        if hasattr(self, 'container_profiles'):
+            self.container_profiles.atualizar_cores()
         
         # Atualizar entry de local
         if hasattr(self, 'entry_local'):
@@ -435,6 +472,7 @@ class MainWindow(ctk.CTk):
             text="AVANÇAR PARA A ETAPA 2 ➔",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
+            text_color="#FFFFFF",
             hover_color=get_color_primary_hover(),
             corner_radius=RADIUS_BUTTON,
             height=48,
@@ -442,6 +480,8 @@ class MainWindow(ctk.CTk):
         )
         self.botao_avancar.grid(row=3, column=0, padx=SPACING_LARGE,
                                  pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+
+
 
     def _construir_secao_participantes(self) -> None:
         self.secao_participantes = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
@@ -465,14 +505,14 @@ class MainWindow(ctk.CTk):
         self.participantes_scroll = None
         self._usando_scroll = False
 
-        botao_adicionar = ctk.CTkButton(
+        self.botao_adicionar = ctk.CTkButton(
             self.secao_participantes, text="+ Adicionar Participante",
-            fg_color=COLOR_SURFACE, text_color=get_color_primary(),
-            border_width=1, border_color=get_color_primary(),
+            fg_color=COLOR_SURFACE, text_color=get_color_primary_text(),
+            border_width=1, border_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
             command=self._adicionar_participante,
         )
-        botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_XLARGE, 0), sticky="w")
+        self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_XLARGE, 0), sticky="w")
 
     def _construir_secao_saida(self) -> None:
         secao = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
@@ -857,11 +897,14 @@ class MainWindow(ctk.CTk):
         self.botao_voltar.grid(row=0, column=0, padx=(0, SPACING_MEDIUM))
 
         self.botao_finalizar = ctk.CTkButton(
-            frame_botoes, text="FINALIZAR PROCESSO E GERAR DOCUMENTOS",
+            frame_botoes,
+            text="FINALIZAR PROCESSO",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
+            text_color="#FFFFFF",
             hover_color=get_color_primary_hover(),
-            corner_radius=RADIUS_BUTTON, height=48,
+            corner_radius=RADIUS_BUTTON,
+            height=48,
             command=self._ao_clicar_finalizar,
         )
         self.botao_finalizar.grid(row=0, column=1, sticky="ew")

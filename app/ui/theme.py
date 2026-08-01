@@ -60,7 +60,13 @@ def _cor_primaria_dark_gradient() -> str:
         b = int(b * fator_cor + bg * (1 - fator_cor))
         return f"#{r:02x}{g:02x}{b:02x}"
     except (ValueError, IndexError):
-        return "#003A6A"
+        return "#003A70"
+
+def get_color_primary_text() -> str:
+    """Gera uma cor primária adequada para textos, melhorando o contraste em temas escuros."""
+    if ctk.get_appearance_mode() == "Dark":
+        return _cor_primaria_light()
+    return _cor_primaria()
 
 
 # Propriedades dinâmicas (recalculadas a cada acesso)

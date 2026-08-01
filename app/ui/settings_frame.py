@@ -16,7 +16,7 @@ from ui.theme import (
     FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_H2, FONT_SIZE_H3,
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XXLARGE,
-    get_font, get_color_primary, reload_theme, configure_appearance,
+    get_font, get_color_primary, get_color_primary_hover, reload_theme, configure_appearance,
 )
 from utils import config_manager
 
@@ -81,20 +81,24 @@ class SettingsFrame(ctk.CTkFrame):
         ctk.CTkLabel(secao, text="Tema do aplicativo", font=get_font(FONT_SIZE_BODY),
                      text_color=COLOR_TEXT_SECONDARY).pack(anchor="w", padx=SPACING_LARGE)
 
-        self.var_aparencia = ctk.StringVar(value=self._config.get("aparencia", "system"))
-        seg = ctk.CTkSegmentedButton(
+        self.var_aparencia = ctk.StringVar(value="Padrão do Sistema" if self._config.get("aparencia", "system") == "system" else self._config.get("aparencia", "system").capitalize())
+        self.seg_tema = ctk.CTkSegmentedButton(
             secao,
-            values=["light", "dark", "system"],
+            values=["Light", "Dark", "Padrão do Sistema"],
             variable=self.var_aparencia,
             font=get_font(FONT_SIZE_BODY),
             corner_radius=RADIUS_BUTTON,
+            selected_color=get_color_primary(),
+            selected_hover_color=get_color_primary_hover(),
         )
-        seg.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
-        # Renomear os labels visualmente
-        seg.configure(command=self._ao_mudar_aparencia)
+        self.seg_tema.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
+        self.seg_tema.configure(command=self._ao_mudar_aparencia)
 
     def _ao_mudar_aparencia(self, valor: str) -> None:
-        ctk.set_appearance_mode(valor)
+        if valor == "Padrão do Sistema":
+            ctk.set_appearance_mode("system")
+        else:
+            ctk.set_appearance_mode(valor.lower())
 
     def _construir_secao_cor(self) -> None:
         secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
@@ -116,9 +120,15 @@ class SettingsFrame(ctk.CTkFrame):
         cor_atual = self._config.get("cor_destaque", "#1E6FB3")
 
         for i, (cor_hex, nome) in enumerate(CORES_PREDEFINIDAS):
+            try:
+                r, g, b = int(cor_hex[1:3], 16), int(cor_hex[3:5], 16), int(cor_hex[5:7], 16)
+                hover = f"#{int(r*0.7):02x}{int(g*0.7):02x}{int(b*0.7):02x}"
+            except:
+                hover = cor_hex
+            
             btn = ctk.CTkButton(
                 cores_frame, text="", width=40, height=40,
-                fg_color=cor_hex, hover_color=cor_hex,
+                fg_color=cor_hex, hover_color=hover,
                 corner_radius=RADIUS_BUTTON,
                 border_width=3,
                 border_color=cor_hex if cor_hex != cor_atual else "#FFFFFF",
@@ -127,29 +137,48 @@ class SettingsFrame(ctk.CTkFrame):
             btn.grid(row=0, column=i, padx=SPACING_SMALL, pady=SPACING_SMALL)
             self._botoes_cor.append((btn, cor_hex))
 
+        # Botão para mostrar custom color
+        self.btn_toggle_custom = ctk.CTkButton(
+            cores_frame, text="⚙", width=40, height=40,
+            fg_color=COLOR_SURFACE_VARIANT, hover_color=COLOR_BORDER, text_color=COLOR_TEXT,
+            corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_H3),
+            command=self._toggle_custom_color
+        )
+        self.btn_toggle_custom.grid(row=0, column=len(CORES_PREDEFINIDAS), padx=SPACING_SMALL, pady=SPACING_SMALL)
+
         # Indicar cor selecionada
         self._selecionar_cor_visual(cor_atual)
 
-        # Campo customizado
-        frame_custom = ctk.CTkFrame(secao, fg_color="transparent")
-        frame_custom.pack(padx=SPACING_LARGE, pady=(0, SPACING_LARGE), fill="x")
-
-        ctk.CTkLabel(frame_custom, text="Cor personalizada (hex):",
+        # Campo customizado (escondido por padrão)
+        self.frame_custom = ctk.CTkFrame(secao, fg_color="transparent")
+        
+        ctk.CTkLabel(self.frame_custom, text="Cor personalizada (hex):",
                      font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY
                      ).pack(side="left")
 
-        self.entry_cor = ctk.CTkEntry(frame_custom, width=100, corner_radius=RADIUS_INPUT,
+        self.entry_cor = ctk.CTkEntry(self.frame_custom, width=100, corner_radius=RADIUS_INPUT,
                                        placeholder_text="#1E6FB3")
         self.entry_cor.pack(side="left", padx=SPACING_SMALL)
         self.entry_cor.insert(0, cor_atual)
 
-        self.preview_cor = ctk.CTkLabel(frame_custom, text="  ██  ", font=get_font(FONT_SIZE_H3),
+        self.preview_cor = ctk.CTkLabel(self.frame_custom, text="  ██  ", font=get_font(FONT_SIZE_H3),
                                          text_color=cor_atual)
         self.preview_cor.pack(side="left", padx=SPACING_SMALL)
 
         self.entry_cor.bind("<KeyRelease>", self._ao_digitar_cor)
 
         self._cor_selecionada = cor_atual
+        self._custom_visible = False
+
+    def _toggle_custom_color(self) -> None:
+        if self._custom_visible:
+            self.frame_custom.pack_forget()
+            self._custom_visible = False
+            self.btn_toggle_custom.configure(fg_color=COLOR_SURFACE_VARIANT)
+        else:
+            self.frame_custom.pack(padx=SPACING_LARGE, pady=(0, SPACING_LARGE), fill="x")
+            self._custom_visible = True
+            self.btn_toggle_custom.configure(fg_color=get_color_primary())
 
     def _selecionar_cor(self, cor_hex: str) -> None:
         self._cor_selecionada = cor_hex
@@ -208,15 +237,17 @@ class SettingsFrame(ctk.CTkFrame):
                      ).pack(anchor="w", padx=SPACING_LARGE)
 
         self.var_tamanho = ctk.StringVar(value=self._config.get("tamanho_quadros", "Médio"))
-        seg = ctk.CTkSegmentedButton(
+        self.seg_tamanho = ctk.CTkSegmentedButton(
             secao,
             values=["Pequeno", "Médio", "Grande"],
             variable=self.var_tamanho,
             font=get_font(FONT_SIZE_BODY),
             corner_radius=RADIUS_BUTTON,
+            selected_color=get_color_primary(),
+            selected_hover_color=get_color_primary_hover(),
             command=self._ao_mudar_tamanho,
         )
-        seg.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
+        self.seg_tamanho.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
 
     def _ao_mudar_tamanho(self, valor: str) -> None:
         # Salva a configuração imediatamente
@@ -272,7 +303,13 @@ class SettingsFrame(ctk.CTkFrame):
         ).grid(row=0, column=1, sticky="ew")
 
     def _salvar(self) -> None:
-        config_manager.definir("aparencia", self.var_aparencia.get())
+        val = self.var_aparencia.get()
+        if val == "Padrão do Sistema":
+            val = "system"
+        else:
+            val = val.lower()
+            
+        config_manager.definir("aparencia", val)
         config_manager.definir("cor_destaque", self._cor_selecionada)
         config_manager.definir("local_padrao", self.entry_local.get().strip() or "CAMOCIM-CE")
         config_manager.definir("tamanho_quadros", self.var_tamanho.get())
@@ -284,13 +321,35 @@ class SettingsFrame(ctk.CTkFrame):
         if self.on_aplicar:
             self.on_aplicar()
 
+    def atualizar_cores(self) -> None:
+        """Atualiza dinamicamente as cores dos botões segmentados se o tema mudar."""
+        if hasattr(self, 'seg_tema'):
+            self.seg_tema.configure(
+                selected_color=get_color_primary(),
+                selected_hover_color=get_color_primary_hover()
+            )
+        if hasattr(self, 'seg_tamanho'):
+            self.seg_tamanho.configure(
+                selected_color=get_color_primary(),
+                selected_hover_color=get_color_primary_hover()
+            )
+        if hasattr(self, '_frame_cores_container'):
+            self._desenhar_cores(self._frame_cores_container)
+
     def _restaurar_padroes(self) -> None:
         defaults = config_manager.restaurar_padroes()
 
-        self.var_aparencia.set(defaults.get("aparencia", "system"))
+        ap = defaults.get("aparencia", "system")
+        if ap == "system":
+            self.var_aparencia.set("Padrão do Sistema")
+            ctk.set_appearance_mode("system")
+        else:
+            self.var_aparencia.set(ap.capitalize())
+            ctk.set_appearance_mode(ap.lower())
+            
         self._selecionar_cor(defaults.get("cor_destaque", "#1E6FB3"))
         self.entry_local.delete(0, "end")
         self.entry_local.insert(0, defaults.get("local_padrao", "CAMOCIM-CE"))
         self.var_tamanho.set(defaults.get("tamanho_quadros", "Médio"))
-
-        ctk.set_appearance_mode(defaults["aparencia"])
+        
+        self._salvar()
