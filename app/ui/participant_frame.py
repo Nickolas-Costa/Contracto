@@ -7,6 +7,7 @@ import customtkinter as ctk
 
 from models.participant import Participant
 from ui.theme import *
+from utils.cpf_validator import validar_cpf
 
 class ParticipantFrame(ctk.CTkFrame):
     def __init__(
@@ -29,6 +30,7 @@ class ParticipantFrame(ctk.CTkFrame):
             **kwargs
         )
 
+        self.indice = indice
         self.principal = principal
         self.on_remover = on_remover
         self._local_padrao = local_padrao
@@ -55,15 +57,15 @@ class ParticipantFrame(ctk.CTkFrame):
             botao_remover.grid(row=0, column=2, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, 0), sticky="e")
 
         linha = 1
-        self.entry_nome = self._criar_campo("Nome Completo", linha, required=True)
+        self.entry_nome = self._criar_campo("Nome Completo", linha, tipo="nome")
         linha += 1
-        self.entry_cpf = self._criar_campo("CPF", linha, required=True)
+        self.entry_cpf = self._criar_campo("CPF", linha, tipo="cpf")
         linha += 1
 
         self.entry_endereco: ctk.CTkEntry | None = None
         
         if principal:
-            self.entry_endereco = self._criar_campo("Endereço Completo", linha, required=True)
+            self.entry_endereco = self._criar_campo("Endereço Completo", linha, tipo="endereco")
             linha += 1
 
         # Pequeno respiro na última linha do frame
@@ -72,25 +74,70 @@ class ParticipantFrame(ctk.CTkFrame):
     def _titulo(self, indice: int) -> str:
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")
 
-    def _criar_campo(self, rotulo: str, linha: int, required: bool = False) -> ctk.CTkEntry:
+    def _criar_campo(self, rotulo: str, linha: int, tipo: str) -> ctk.CTkEntry:
         ctk.CTkLabel(self, text=rotulo, anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT).grid(
             row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
         entry = ctk.CTkEntry(self, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         
-        if required:
-            entry.bind("<FocusOut>", lambda e: self._validar_campo(entry))
+        # Real-time binding on edit and focus out
+        entry.bind("<KeyRelease>", lambda e: self._validar_campo_especifico(entry, tipo))
+        entry.bind("<FocusOut>", lambda e: self._validar_campo_especifico(entry, tipo))
             
         return entry
 
-    def _validar_campo(self, entry: ctk.CTkEntry):
-        if not entry.get().strip():
-            entry.configure(border_color=COLOR_BORDER_ERROR)
-        else:
+    def _validar_campo_especifico(self, entry: ctk.CTkEntry, tipo: str) -> bool:
+        val = entry.get().strip()
+        is_valid = True
+
+        if tipo == "nome":
+            is_valid = bool(val)
+        elif tipo == "cpf":
+            is_valid = bool(val) and validar_cpf(val)
+        elif tipo == "endereco":
+            is_valid = bool(val)
+
+        if is_valid:
             entry.configure(border_color=COLOR_BORDER)
+        else:
+            entry.configure(border_color=COLOR_BORDER_ERROR)
+
+        return is_valid
+
+    def validar_campos(self) -> list[str]:
+        """Valida todos os campos deste frame, atualiza as bordas visualmente e retorna lista de erros."""
+        erros = []
+        
+        nome_val = self.entry_nome.get().strip()
+        if not nome_val:
+            self.entry_nome.configure(border_color=COLOR_BORDER_ERROR)
+            erros.append(f"Participante {self.indice}: Nome Completo é obrigatório.")
+        else:
+            self.entry_nome.configure(border_color=COLOR_BORDER)
+
+        cpf_val = self.entry_cpf.get().strip()
+        if not cpf_val:
+            self.entry_cpf.configure(border_color=COLOR_BORDER_ERROR)
+            erros.append(f"Participante {self.indice}: CPF é obrigatório.")
+        elif not validar_cpf(cpf_val):
+            self.entry_cpf.configure(border_color=COLOR_BORDER_ERROR)
+            erros.append(f"Participante {self.indice}: O CPF informado é inválido.")
+        else:
+            self.entry_cpf.configure(border_color=COLOR_BORDER)
+
+        if self.entry_endereco is not None:
+            end_val = self.entry_endereco.get().strip()
+            if not end_val:
+                self.entry_endereco.configure(border_color=COLOR_BORDER_ERROR)
+                erros.append(f"Participante {self.indice} (Principal): Endereço Completo é obrigatório.")
+            else:
+                self.entry_endereco.configure(border_color=COLOR_BORDER)
+
+        return erros
 
     def atualizar_indice(self, indice: int) -> None:
+        self.indice = indice
         self.label_titulo.configure(text=self._titulo(indice))
 
     def obter_participante(self) -> Participant:

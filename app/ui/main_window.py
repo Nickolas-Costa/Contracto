@@ -22,7 +22,7 @@ from services.stage2_service import executar_etapa2
 from ui.document_frame import DocumentFrame
 from ui.participant_frame import ParticipantFrame
 from ui.theme import (
-    COLOR_BACKGROUND, COLOR_BORDER, COLOR_SURFACE, COLOR_SURFACE_VARIANT,
+    COLOR_BACKGROUND, COLOR_BORDER, COLOR_BORDER_ERROR, COLOR_SURFACE, COLOR_SURFACE_VARIANT,
     COLOR_TEXT, COLOR_TEXT_SECONDARY, COLOR_TEXT_DISABLED, COLOR_SUCCESS,
     COLOR_ERROR, COLOR_WARNING,
     FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_H1, FONT_SIZE_H2, FONT_SIZE_H3,
@@ -33,6 +33,7 @@ from ui.theme import (
     get_color_primary_light, get_color_primary_dark_gradient,
     aplicar_gradiente, configure_appearance, reload_theme,
 )
+from utils.date_formatter import validar_data
 from ui.loading_modal import LoadingModal
 from ui.feedback_toast import show_toast
 from ui.settings_frame import SettingsFrame
@@ -390,6 +391,8 @@ class MainWindow(ctk.CTk):
         
         self.entry_data = ctk.CTkEntry(frame_data, placeholder_text="DD/MM/AAAA", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_data.grid(row=0, column=0, sticky="ew")
+        self.entry_data.bind("<KeyRelease>", lambda e: self._validar_data_realtime())
+        self.entry_data.bind("<FocusOut>", lambda e: self._validar_data_realtime())
         
         ctk.CTkButton(frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
                       fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
@@ -400,6 +403,8 @@ class MainWindow(ctk.CTk):
         self.entry_local = ctk.CTkEntry(secao, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_local.grid(row=2, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
+        self.entry_local.bind("<KeyRelease>", lambda e: self._validar_local_realtime())
+        self.entry_local.bind("<FocusOut>", lambda e: self._validar_local_realtime())
 
         # Set default directory to Downloads
         if os.name == "nt":
@@ -426,6 +431,24 @@ class MainWindow(ctk.CTk):
                       fg_color=COLOR_BORDER, text_color=COLOR_TEXT,
                       hover_color=COLOR_TEXT_DISABLED, command=self._selecionar_pasta_saida
                       ).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
+
+    def _validar_data_realtime(self) -> bool:
+        val = self.entry_data.get().strip()
+        if not val or not validar_data(val):
+            self.entry_data.configure(border_color=COLOR_BORDER_ERROR)
+            return False
+        else:
+            self.entry_data.configure(border_color=COLOR_BORDER)
+            return True
+
+    def _validar_local_realtime(self) -> bool:
+        val = self.entry_local.get().strip()
+        if not val:
+            self.entry_local.configure(border_color=COLOR_BORDER_ERROR)
+            return False
+        else:
+            self.entry_local.configure(border_color=COLOR_BORDER)
+            return True
 
     def _adicionar_participante(self, principal: bool = False) -> None:
         indice = len(self.participant_frames) + 1
@@ -459,34 +482,63 @@ class MainWindow(ctk.CTk):
             return False
 
     def _ao_clicar_avancar(self) -> None:
+        erros: list[str] = []
+
+        # 1. Validar campos de todos os participantes (destacando os erros em vermelho)
+        for frame in self.participant_frames:
+            erros.extend(frame.validar_campos())
+
+        # 2. Validar Data e Local da assinatura
+        if not self._validar_data_realtime():
+            val = self.entry_data.get().strip()
+            if not val:
+                erros.append("Data da assinatura é obrigatória.")
+            else:
+                erros.append("Data da assinatura é inválida. Utilize o formato DD/MM/AAAA (ex.: 15/07/2026).")
+
+        if not self._validar_local_realtime():
+            erros.append("Local da assinatura é obrigatório.")
+
+        # 3. Validar perfil e arquivos de modelos
+        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        perfil = obter_perfil(perfil_nome)
+        if not perfil:
+            erros.append(f"O perfil ativo '{perfil_nome}' não foi encontrado.")
+        elif not perfil.formularios:
+            erros.append(f"O perfil '{perfil.nome}' não possui nenhum formulário configurado.")
+        else:
+            for f in perfil.formularios:
+                if not f.caminho or not Path(f.caminho).exists():
+                    erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente: {f.caminho}")
+
+        # 4. Validar pasta de saída e permissões
+        if not self.pasta_saida:
+            erros.append("Selecione a pasta de saída.")
+        elif not self._verificar_permissao_escrita(self.pasta_saida):
+            erros.append(f"Sem permissão de escrita na pasta de saída: {self.pasta_saida}")
+
+        # Se houver qualquer erro, detalhar ao usuário sem prosseguir
+        if erros:
+            detalhes = "\n".join(f"• {e}" for e in erros)
+            if len(erros) <= 2:
+                show_toast(self, f"Atenção aos seguintes campos:\n{detalhes}", "error")
+            else:
+                messagebox.showwarning(
+                    "Campos Pendentes ou Inválidos",
+                    f"Não foi possível gerar os documentos. Verifique os seguintes itens:\n\n{detalhes}\n\n"
+                    f"Os campos que precisam de atenção foram destacados com borda vermelha."
+                )
+            return
+
         principal = self.participant_frames[0].obter_participante()
-        
         principal.data_assinatura = self.entry_data.get().strip()
         principal.local_assinatura = self.entry_local.get().strip()
-        
-        if not principal.data_assinatura or not principal.local_assinatura:
-            show_toast(self, "Corrija os campos de Data e Local de assinatura.", "error")
-            return
-            
+
         participantes = [principal]
         for frame in self.participant_frames[1:]:
             p = frame.obter_participante()
             p.copiar_dados_compartilhados(principal)
             participantes.append(p)
-
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
-        
-        erros = validar_antes_de_gerar(
-            participantes, perfil, self.pasta_saida,
-        )
-
-        if not erros and self.pasta_saida and not self._verificar_permissao_escrita(self.pasta_saida):
-            erros.append("Sem permissão de escrita na pasta de saída.")
-
-        if erros:
-            show_toast(self, "Corrija os campos obrigatórios.", "error")
-            return
 
         self.botao_avancar.configure(state="disabled")
         self._loading = LoadingModal(self, "Gerando documentos...")
