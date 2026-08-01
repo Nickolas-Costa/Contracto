@@ -4,144 +4,212 @@ from utils import config_manager
 
 
 class WelcomeModal(ctk.CTkToplevel):
+    """Modal de boas-vindas redesenhado no estilo do painel de recursos SaaS (Foto 2).
+
+    Exibido como popup sem bordas do sistema (frameless card), centralizado
+    sobre a janela principal com sombra/borda elevada.
+    """
+
     def __init__(self, master=None):
         super().__init__(master)
-        
-        self.title("Bem-vindo(a) ao Contracto")
-        self.geometry("600x450")
-        self.resizable(False, False)
-        
-        # Centralizar a janela em relação ao pai
+
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+        self.configure(fg_color=theme.COLOR_SURFACE)
+
+        width = 620
+        height = 540
+
+        # Centralizar na janela principal
         if master:
-            self.transient(master)
             master.update_idletasks()
-            x = master.winfo_x() + (master.winfo_width() - 600) // 2
-            y = master.winfo_y() + (master.winfo_height() - 450) // 2
-            self.geometry(f"+{x}+{y}")
-        
-        # Bloquear a janela principal
+            px = master.winfo_rootx()
+            py = master.winfo_rooty()
+            pw = master.winfo_width()
+            ph = master.winfo_height()
+            x = px + max((pw - width) // 2, 10)
+            y = py + max((ph - height) // 2, 10)
+            self.geometry(f"{width}x{height}+{x}+{y}")
+        else:
+            self.geometry(f"{width}x{height}")
+
         self.grab_set()
-        
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-        
-        # Configurar grid principal
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
-        
-        # 1. Cabeçalho com degradê
-        self.canvas_header = ctk.CTkCanvas(
-            self, height=80, bg=theme.COLOR_BACKGROUND[0], highlightthickness=0
+
+        # Frame Principal com visual de Card / Sombra
+        self.card = ctk.CTkFrame(
+            self,
+            corner_radius=16,
+            border_width=1,
+            border_color=theme.COLOR_BORDER,
+            fg_color=theme.COLOR_SURFACE,
         )
-        self.canvas_header.grid(row=0, column=0, sticky="ew")
-        
-        self.title_label = ctk.CTkLabel(
-            self, text="Bem-vindo(a) à Versão 2.0!", 
-            font=theme.get_font(20, "bold"), text_color="white", bg_color="transparent"
+        self.card.pack(fill="both", expand=True, padx=2, pady=2)
+        self.card.grid_columnconfigure(0, weight=1)
+        self.card.grid_rowconfigure(2, weight=1)
+
+        # 1. Cabeçalho (Header com Título + Subtítulo + Botão Fechar X)
+        self.header_frame = ctk.CTkFrame(self.card, fg_color="transparent")
+        self.header_frame.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 12))
+        self.header_frame.grid_columnconfigure(0, weight=1)
+
+        info_box = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        info_box.grid(row=0, column=0, sticky="w")
+
+        title_label = ctk.CTkLabel(
+            info_box,
+            text="Recursos e Funcionalidades",
+            font=theme.get_font(theme.FONT_SIZE_H2, "bold"),
+            text_color=theme.COLOR_TEXT,
+            anchor="w",
         )
-        self.title_label.place(relx=0.5, rely=0.5, anchor="center")
-        
-        self.bind("<Configure>", self._on_configure)
-        
-        # 2. Área de Conteúdo
-        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=40, pady=20)
-        self.content_frame.grid_columnconfigure(0, weight=1)
-        
-        # Passos do tutorial
-        self.passos = [
+        title_label.pack(anchor="w")
+
+        subtitle_label = ctk.CTkLabel(
+            info_box,
+            text="Tudo o que você precisa para automatizar seu processo documental",
+            font=theme.get_font(theme.FONT_SIZE_BODY),
+            text_color=theme.COLOR_TEXT_SECONDARY,
+            anchor="w",
+        )
+        subtitle_label.pack(anchor="w", pady=(2, 0))
+
+        btn_close = ctk.CTkButton(
+            self.header_frame,
+            text="✕",
+            width=32,
+            height=32,
+            fg_color="transparent",
+            text_color=theme.COLOR_TEXT_SECONDARY,
+            hover_color=theme.COLOR_SURFACE_VARIANT,
+            font=theme.get_font(16, "bold"),
+            command=self._on_close,
+        )
+        btn_close.grid(row=0, column=1, sticky="e")
+
+        # Linha Divisória
+        divider = ctk.CTkFrame(self.card, height=1, fg_color=theme.COLOR_BORDER)
+        divider.grid(row=1, column=0, sticky="ew", padx=24, pady=0)
+
+        # 2. Lista de Recursos (Cards no formato da Foto 2)
+        self.scroll_recursos = ctk.CTkScrollableFrame(
+            self.card, fg_color="transparent", label_text=""
+        )
+        self.scroll_recursos.grid(row=2, column=0, sticky="nsew", padx=24, pady=16)
+        self.scroll_recursos.grid_columnconfigure(0, weight=1)
+
+        recursos = [
             {
-                "titulo": "✨ Tudo em conformidade",
-                "texto": "Agora o Contracto converte automaticamente todos os formulários e planilhas externas para PDF/A-2b, gerando as pastas ASSINADOS e REGISTRADOS no padrão exigido pelo dossiê digital."
+                "icone": "✨",
+                "titulo": "Tudo em Conformidade (PDF/A-2b)",
+                "descricao": "Converte formulários e planilhas externas para PDF/A-2b no padrão exigido pelo dossiê digital.",
+                "badge": "● Incluído",
             },
             {
-                "titulo": "⚙️ Configurações Salvas",
-                "texto": "Esqueceu de preencher o local da assinatura? Quer mudar a cor do sistema? Acesse o menu de Configurações! Suas preferências são salvas automaticamente e não se perdem ao atualizar o app."
+                "icone": "⚡",
+                "titulo": "Preenchimento Automático Inteligente",
+                "descricao": "Preenche dados de múltiplos participantes com validação matemática de CPF e réplica automática.",
+                "badge": "● Incluído",
             },
             {
-                "titulo": "📋 Sistema de Perfis",
-                "texto": "Crie perfis combinando diferentes modelos PDF. Na aba Perfis, você pode criar uma configuração para 'Imóvel Novo' e outra para 'Usado', agilizando o seu dia a dia."
-            }
+                "icone": "📋",
+                "titulo": "Sistema de Perfis Personalizáveis",
+                "descricao": "Crie e troque rapidamente entre perfis de documentação para Imóveis Novos, Usados e Financiamentos.",
+                "badge": "● Incluído",
+            },
+            {
+                "icone": "📁",
+                "titulo": "Organização do Dossiê Digital",
+                "descricao": "Gera e organiza automaticamente a estrutura das pastas ASSINADOS e REGISTRADOS.",
+                "badge": "● Incluído",
+            },
         ]
-        
-        self.passo_atual = 0
-        
-        self.titulo_passo = ctk.CTkLabel(
-            self.content_frame, text="", font=theme.get_font(18, "bold"), text_color=theme.COLOR_PRIMARY
+
+        for idx, rec in enumerate(recursos):
+            row_card = ctk.CTkFrame(
+                self.scroll_recursos,
+                fg_color=theme.COLOR_SURFACE_VARIANT,
+                corner_radius=10,
+                border_width=1,
+                border_color=theme.COLOR_BORDER,
+            )
+            row_card.grid(row=idx, column=0, sticky="ew", pady=6)
+            row_card.grid_columnconfigure(1, weight=1)
+
+            # Ícone dentro de um pequeno quadrado destacado
+            icon_box = ctk.CTkFrame(
+                row_card,
+                width=42,
+                height=42,
+                corner_radius=8,
+                fg_color=theme.COLOR_SURFACE,
+            )
+            icon_box.grid(row=0, column=0, padx=12, pady=12)
+            icon_box.grid_propagate(False)
+            lbl_icon = ctk.CTkLabel(
+                icon_box, text=rec["icone"], font=theme.get_font(20)
+            )
+            lbl_icon.place(relx=0.5, rely=0.5, anchor="center")
+
+            # Texto (Título + Descrição)
+            text_box = ctk.CTkFrame(row_card, fg_color="transparent")
+            text_box.grid(row=0, column=1, sticky="w", padx=(0, 12), pady=10)
+
+            lbl_rec_title = ctk.CTkLabel(
+                text_box,
+                text=rec["titulo"],
+                font=theme.get_font(theme.FONT_SIZE_BODY, "bold"),
+                text_color=theme.COLOR_TEXT,
+                anchor="w",
+            )
+            lbl_rec_title.pack(anchor="w")
+
+            lbl_rec_desc = ctk.CTkLabel(
+                text_box,
+                text=rec["descricao"],
+                font=theme.get_font(theme.FONT_SIZE_CAPTION),
+                text_color=theme.COLOR_TEXT_SECONDARY,
+                justify="left",
+                wraplength=360,
+                anchor="w",
+            )
+            lbl_rec_desc.pack(anchor="w", pady=(2, 0))
+
+            # Badge na direita (ex: ● Incluído)
+            badge_box = ctk.CTkFrame(
+                row_card,
+                fg_color=theme.COLOR_SURFACE,
+                corner_radius=12,
+                border_width=1,
+                border_color=theme.COLOR_BORDER,
+            )
+            badge_box.grid(row=0, column=2, padx=12, pady=12, sticky="e")
+
+            lbl_badge = ctk.CTkLabel(
+                badge_box,
+                text=rec["badge"],
+                font=theme.get_font(11, "bold"),
+                text_color=theme.COLOR_SUCCESS,
+            )
+            lbl_badge.pack(padx=10, pady=4)
+
+        # 3. Rodapé com Botão Principal
+        footer_frame = ctk.CTkFrame(self.card, fg_color="transparent")
+        footer_frame.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 20))
+        footer_frame.grid_columnconfigure(0, weight=1)
+
+        btn_action = ctk.CTkButton(
+            footer_frame,
+            text="Começar a usar o Contracto",
+            font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
+            fg_color=theme.get_color_primary(),
+            hover_color=theme.get_color_primary_hover(),
+            height=44,
+            corner_radius=theme.RADIUS_BUTTON,
+            command=self._on_close,
         )
-        self.titulo_passo.grid(row=0, column=0, pady=(10, 15), sticky="w")
-        
-        self.texto_passo = ctk.CTkLabel(
-            self.content_frame, text="", font=theme.get_font(14), justify="left", wraplength=500
-        )
-        self.texto_passo.grid(row=1, column=0, sticky="nw")
-        
-        # Indicador de progresso (bolinhas)
-        self.progress_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
-        self.progress_frame.grid(row=2, column=0, pady=(50, 0))
-        self.dots = []
-        for i in range(len(self.passos)):
-            lbl = ctk.CTkLabel(self.progress_frame, text="●", font=theme.get_font(20))
-            lbl.pack(side="left", padx=5)
-            self.dots.append(lbl)
-            
-        # 3. Rodapé com Botões
-        self.footer = ctk.CTkFrame(self, fg_color="transparent")
-        self.footer.grid(row=2, column=0, sticky="ew", padx=40, pady=(0, 20))
-        self.footer.grid_columnconfigure(0, weight=1)
-        
-        self.btn_next = ctk.CTkButton(
-            self.footer, text="Próximo", command=self._proximo_passo,
-            font=theme.get_font(14, "bold"), height=40, corner_radius=theme.RADIUS_BUTTON
-        )
-        self.btn_next.grid(row=0, column=1, sticky="e")
-        
-        self._atualizar_tela()
-
-    def _on_configure(self, event=None) -> None:
-        self.after(50, self._desenhar_gradiente)
-
-    def _desenhar_gradiente(self) -> None:
-        largura = max(self.winfo_width(), 600)
-        altura = 80
-        modo = ctk.get_appearance_mode()
-        
-        if modo == "Dark":
-            cor1 = theme.COLOR_PRIMARY
-            cor2 = theme.get_color_primary_dark_gradient()
-        else:
-            cor1 = theme.COLOR_PRIMARY
-            cor2 = theme.get_color_primary_light()
-            
-        theme.aplicar_gradiente(self.canvas_header, largura, altura, cor1, cor2, vertical=False)
-        self.title_label.tkraise()
-
-    def _atualizar_tela(self):
-        passo = self.passos[self.passo_atual]
-        self.titulo_passo.configure(text=passo["titulo"])
-        self.texto_passo.configure(text=passo["texto"])
-        
-        # Atualizar bolinhas
-        for i, dot in enumerate(self.dots):
-            if i == self.passo_atual:
-                dot.configure(text_color=theme.COLOR_PRIMARY)
-            else:
-                dot.configure(text_color=theme.COLOR_TEXT_DISABLED[0] if ctk.get_appearance_mode() == "Light" else theme.COLOR_TEXT_DISABLED[1])
-                
-        # Atualizar botão
-        if self.passo_atual == len(self.passos) - 1:
-            self.btn_next.configure(text="Começar a Usar!")
-        else:
-            self.btn_next.configure(text="Próximo")
-
-    def _proximo_passo(self):
-        if self.passo_atual < len(self.passos) - 1:
-            self.passo_atual += 1
-            self._atualizar_tela()
-        else:
-            self._on_close()
+        btn_action.grid(row=0, column=0, sticky="ew")
 
     def _on_close(self):
-        # Desabilitar a flag de primeira execução
         config_manager.definir("primeira_execucao", False)
         self.grab_release()
         self.destroy()

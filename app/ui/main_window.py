@@ -56,8 +56,8 @@ class MainWindow(ctk.CTk):
         configure_appearance()
 
         self.title("Contracto — Preparação de Documentos")
-        self.geometry("920x880")
-        self.minsize(820, 720)
+        self.geometry("1240x880")
+        self.minsize(1080, 720)
         self.configure(fg_color=COLOR_BACKGROUND)
 
         # =============================================================
@@ -85,8 +85,8 @@ class MainWindow(ctk.CTk):
         self._construir_gradiente()
         self._construir_stepper()
 
-        # Containers das telas
-        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 800}
+        # Containers das telas (largura expandida para 1120px)
+        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 1120}
         self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa1.grid_columnconfigure(0, weight=1)
         self.container_etapa1.grid_rowconfigure(0, weight=1)
@@ -293,7 +293,7 @@ class MainWindow(ctk.CTk):
             self.frame_stepper.grid_forget()
             if not self.container_profiles:
                 self.container_profiles = ProfilesFrame(self, on_voltar=lambda: self._mostrar_tela("inicio"))
-                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=800)
+                self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1120)
             else:
                 self.container_profiles._carregar_lista()
             self.container_profiles.grid(**card_grid)
@@ -307,7 +307,7 @@ class MainWindow(ctk.CTk):
                 on_voltar=lambda: self._mostrar_tela("inicio"),
                 on_aplicar=self._ao_aplicar_config,
             )
-            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=800)
+            self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, width=1120)
             self.container_settings.grid(**card_grid)
 
     def _ao_aplicar_config(self) -> None:
@@ -355,7 +355,7 @@ class MainWindow(ctk.CTk):
         titulo.grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
 
         self.participantes_scroll = ctk.CTkScrollableFrame(
-            secao, fg_color="transparent", label_text="",
+            secao, fg_color="transparent", label_text="", height=215
         )
         self.participantes_scroll.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
         self.participantes_scroll.grid_columnconfigure(0, weight=1)
@@ -368,8 +368,6 @@ class MainWindow(ctk.CTk):
             command=self._adicionar_participante,
         )
         botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_XLARGE, 0), sticky="w")
-
-
 
     def _construir_secao_saida(self) -> None:
         secao = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
@@ -394,9 +392,12 @@ class MainWindow(ctk.CTk):
         self.entry_data.bind("<KeyRelease>", lambda e: self._validar_data_realtime())
         self.entry_data.bind("<FocusOut>", lambda e: self._validar_data_realtime())
         
-        ctk.CTkButton(frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
-                      fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
-                      command=lambda: DatePickerPopup(self, self.entry_data)).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
+        self.btn_calendar = ctk.CTkButton(
+            frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
+            fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
+            command=lambda: DatePickerPopup(self, self.entry_data, anchor_widget=self.btn_calendar)
+        )
+        self.btn_calendar.grid(row=0, column=1, padx=(SPACING_SMALL, 0))
 
         ctk.CTkLabel(secao, text="Local da assinatura", font=get_font(FONT_SIZE_BODY)).grid(
             row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
@@ -464,11 +465,28 @@ class MainWindow(ctk.CTk):
                    pady=SPACING_SMALL, sticky="ew")
         self.participant_frames.append(frame)
 
+        self._atualizar_tamanho_participantes()
+
+        if not principal:
+            frame.piscar_destaque()
+
     def _remover_participante(self, frame: ParticipantFrame) -> None:
         frame.destroy()
         self.participant_frames.remove(frame)
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
+        self._atualizar_tamanho_participantes()
+
+    def _atualizar_tamanho_participantes(self) -> None:
+        qtd = len(self.participant_frames)
+        if qtd <= 1:
+            nova_altura = 215
+        elif qtd == 2:
+            nova_altura = 380
+        else:
+            nova_altura = 450
+
+        self.participantes_scroll.configure(height=nova_altura)
 
     def _verificar_permissao_escrita(self, pasta: Path) -> bool:
         if not pasta or not pasta.exists():

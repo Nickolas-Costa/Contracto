@@ -140,6 +140,31 @@ class ParticipantFrame(ctk.CTkFrame):
         self.indice = indice
         self.label_titulo.configure(text=self._titulo(indice))
 
+    def piscar_destaque(self) -> None:
+        """Faz o quadro 'piscar' visualmente ao ser adicionado para chamar atenção do usuário."""
+        try:
+            self.configure(
+                border_color=get_color_primary(),
+                border_width=2,
+                fg_color=get_color_primary_light()
+            )
+            def _restaurar_fg():
+                try:
+                    self.configure(fg_color=COLOR_SURFACE)
+                    self.after(250, _restaurar_border)
+                except Exception:
+                    pass
+
+            def _restaurar_border():
+                try:
+                    self.configure(border_color=COLOR_BORDER, border_width=1)
+                except Exception:
+                    pass
+
+            self.after(200, _restaurar_fg)
+        except Exception:
+            pass
+
     def obter_participante(self) -> Participant:
         return Participant(
             nome_completo=self.entry_nome.get().strip(),
