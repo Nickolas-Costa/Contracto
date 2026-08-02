@@ -62,7 +62,9 @@ class MainWindow(ctk.CTk):
         self.minsize(920, 700)
         self.configure(fg_color=COLOR_BACKGROUND)
 
-        # Configurar ícone oficial da janela e barra de tarefas do Windows
+        # Maximizar aplicativo por padrão imediatamente ao iniciar
+        self._maximizar_janela()
+        self.after(10, lambda: self._maximizar_janela())
         try:
             import sys
             from utils.resource_path import caminho_recurso
@@ -148,24 +150,13 @@ class MainWindow(ctk.CTk):
         self._adicionar_participante(principal=True)
         self._mostrar_tela("inicio")
 
-        # Exibir o primeiro loading do aplicativo (reutilizando LoadingModal)
-        self._exibir_loading_inicial()
-
         # Recarregar gradiente ao redimensionar
         self.bind("<Configure>", self._ao_redimensionar)
         
         # Tela de Boas Vindas
         if config_manager.obter("primeira_execucao"):
             from ui.welcome_modal import WelcomeModal
-            self.after(900, lambda: WelcomeModal(self))
-
-    def _exibir_loading_inicial(self) -> None:
-        """Exibe o modal de carregamento inicial ao abrir o aplicativo."""
-        try:
-            loading = LoadingModal(self, "Carregando Contracto e inicializando componentes...")
-            self.after(700, lambda: loading.dismiss())
-        except Exception:
-            pass
+            self.after(500, lambda: WelcomeModal(self))
 
     def _maximizar_janela(self) -> None:
         """Maximiza a janela do aplicativo por padrão no Windows."""
@@ -1139,9 +1130,20 @@ class MainWindow(ctk.CTk):
         self.botao_voltar.configure(state="normal")
 
         if resultado["sucesso"]:
-            msg = f"{resultado['mensagem']}\nEstrutura:\n{resultado['pasta_pdfa']}"
-            if messagebox.askyesno("Concluído", msg + "\n\nDeseja abrir a pasta?"):
+            msg = f"{resultado['mensagem']}\nEstrutura: {resultado['pasta_pdfa']}"
+            from ui.confirm_modal import ConfirmModal
+
+            def _abrir():
                 self._abrir_pasta(resultado["pasta_pdfa"])
+
+            ConfirmModal(
+                self,
+                titulo="Geração Concluída",
+                subtitulo=msg + "\n\nDeseja abrir a pasta com os documentos agora?",
+                on_confirm=_abrir,
+                texto_confirmar="Sim, Abrir Pasta",
+                texto_cancelar="Não",
+            )
             self._resetar_aplicacao()
         else:
             show_toast(self, resultado["mensagem"], "error")
@@ -1161,12 +1163,9 @@ class MainWindow(ctk.CTk):
         primeiro = self.participant_frames[0]
         primeiro.entry_nome.delete(0, "end")
         primeiro.entry_cpf.delete(0, "end")
-        primeiro._validar_campo(primeiro.entry_nome)
-        primeiro._validar_campo(primeiro.entry_cpf)
-
         if primeiro.entry_endereco:
             primeiro.entry_endereco.delete(0, "end")
-            primeiro._validar_campo(primeiro.entry_endereco)
+        primeiro.validar_campos()
             
         self.entry_data.delete(0, "end")
         

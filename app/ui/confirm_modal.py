@@ -2,126 +2,151 @@ import customtkinter as ctk
 from ui import theme
 
 
-class ConfirmModal(ctk.CTkFrame):
-    """Modal de confirmação customizado."""
+class ConfirmModal:
+    """Modal de confirmação moderno com overlay escuro translúcido e cartão alinhado."""
 
-    def __init__(self, master, titulo: str, subtitulo: str, on_confirm=None, on_cancel=None):
-        super().__init__(
-            master,
-            corner_radius=16,
-            fg_color=theme.COLOR_SURFACE,
-            bg_color="transparent",
-        )
+    def __init__(
+        self,
+        master,
+        titulo: str,
+        subtitulo: str,
+        on_confirm=None,
+        on_cancel=None,
+        texto_confirmar="Confirmar",
+        texto_cancelar="Cancelar",
+    ):
+        self.master = master
         self.on_confirm = on_confirm
         self.on_cancel = on_cancel
 
-        width = 480
-        height = 240
-        
-        import tkinter as tk
-        # Fundo sólido preto
-        bg_color = "#000000"
-        self.overlay = tk.Frame(master, bg=bg_color)
-        self.overlay.place(x=0, y=0, relwidth=1, relheight=1)
+        try:
+            master.update_idletasks()
+        except Exception:
+            pass
+
+        sw = master.winfo_screenwidth()
+        sh = master.winfo_screenheight()
+
+        w, h = 540, 250
+
+        offset_x = 110
+        offset_y = 35
+
+        x = (sw - w) // 2 + offset_x
+        y = (sh - h) // 2 + offset_y
+
+        # 1. Overlay escuro translúcido (60% opacidade / vidro escuro)
+        self.overlay = ctk.CTkToplevel(master)
+        self.overlay.withdraw()
+        self.overlay.overrideredirect(True)
+        self.overlay.configure(fg_color="#000000")
+        try:
+            self.overlay.attributes("-alpha", 0.60)
+        except Exception:
+            pass
+        self.overlay.geometry(f"{sw}x{sh}+0+0")
+        self.overlay.deiconify()
         self.overlay.lift()
-        
-        self.place(relx=0.5, rely=0.5, anchor="center")
-        self.configure(width=width, height=height)
-        self.grid_propagate(False)
 
-        self.lift()
-        
-        # Opcional: fechar com ESC no master (necessita bind no master)
-        master.bind("<Escape>", lambda e: self._on_cancel(), add="+")
+        # 2. Cartão de confirmação sólido no topo (alinhado sobre o conteúdo)
+        self.card = ctk.CTkToplevel(master)
+        self.card.withdraw()
+        self.card.overrideredirect(True)
+        self.card.configure(fg_color=theme.COLOR_SURFACE)
+        try:
+            self.card.attributes("-topmost", True)
+        except Exception:
+            pass
+        self.card.geometry(f"{w}x{h}+{x}+{y}")
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.frame = ctk.CTkFrame(
+            self.card,
+            fg_color=theme.COLOR_SURFACE,
+            corner_radius=theme.RADIUS_CARD,
+            border_width=1,
+            border_color=theme.COLOR_BORDER,
+        )
+        self.frame.pack(fill="both", expand=True, padx=2, pady=2)
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(1, weight=1)
 
-        # Cabeçalho
-        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
-        self.header_frame.grid_columnconfigure(1, weight=1)
+        # Header (Ícone + Título)
+        header = ctk.CTkFrame(self.frame, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
+        header.grid_columnconfigure(1, weight=1)
 
-        lbl_icon = ctk.CTkLabel(self.header_frame, text="❓", font=theme.get_font(24))
+        lbl_icon = ctk.CTkLabel(header, text="❓", font=theme.get_font(24))
         lbl_icon.grid(row=0, column=0, padx=(0, 12))
 
         lbl_title = ctk.CTkLabel(
-            self.header_frame,
+            header,
             text=titulo,
             font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
             text_color=theme.COLOR_TEXT,
-            anchor="w",
         )
         lbl_title.grid(row=0, column=1, sticky="w")
 
-        btn_close = ctk.CTkButton(
-            self.header_frame,
-            text="✕",
-            width=32,
-            height=32,
-            fg_color="transparent",
-            text_color=theme.COLOR_TEXT_SECONDARY,
-            hover_color=theme.COLOR_SURFACE_VARIANT,
-            command=self._on_cancel,
-        )
-        btn_close.grid(row=0, column=2, sticky="e")
-
-        # Corpo
+        # Conteúdo
         lbl_sub = ctk.CTkLabel(
-            self,
+            self.frame,
             text=subtitulo,
             font=theme.get_font(theme.FONT_SIZE_BODY),
             text_color=theme.COLOR_TEXT_SECONDARY,
-            wraplength=432,
+            wraplength=480,
             justify="left",
-            anchor="nw"
         )
-        lbl_sub.grid(row=1, column=0, padx=24, pady=(0, 20), sticky="nsew")
+        lbl_sub.grid(row=1, column=0, sticky="nw", padx=24, pady=(0, 10))
 
-        # Rodapé
-        self.footer_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.footer_frame.grid(row=2, column=0, sticky="ew", pady=(0, 24), padx=24)
-        
-        # Distribui igualmente o espaço
-        self.footer_frame.grid_columnconfigure(0, weight=1)
-        self.footer_frame.grid_columnconfigure(1, weight=1)
+        # Botões
+        footer = ctk.CTkFrame(self.frame, fg_color="transparent")
+        footer.grid(row=2, column=0, sticky="ew", padx=24, pady=(10, 20))
+        footer.grid_columnconfigure(1, weight=1)
 
-        btn_cancel = ctk.CTkButton(
-            self.footer_frame,
-            text="CANCELAR",
-            font=theme.get_font(theme.FONT_SIZE_BODY, "bold"),
-            fg_color=theme.COLOR_SURFACE_VARIANT,
+        ctk.CTkButton(
+            footer,
+            text=texto_cancelar,
+            fg_color=theme.COLOR_SURFACE,
             text_color=theme.COLOR_TEXT,
-            hover_color=theme.COLOR_BORDER,
-            height=44,
+            border_width=1,
+            border_color=theme.COLOR_BORDER,
+            hover_color=theme.COLOR_SURFACE_VARIANT,
             corner_radius=theme.RADIUS_BUTTON,
-            command=self._on_cancel,
-        )
-        btn_cancel.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-        
-        btn_action = ctk.CTkButton(
-            self.footer_frame,
-            text="EXECUTAR ASSIM MESMO",
-            font=theme.get_font(theme.FONT_SIZE_BODY, "bold"),
+            height=38,
+            command=self._do_cancel,
+        ).grid(row=0, column=0, padx=(0, 12))
+
+        ctk.CTkButton(
+            footer,
+            text=texto_confirmar,
             fg_color=theme.get_color_primary(),
             text_color="#FFFFFF",
             hover_color=theme.get_color_primary_hover(),
-            height=44,
             corner_radius=theme.RADIUS_BUTTON,
-            command=self._on_confirm_click,
-        )
-        btn_action.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+            height=38,
+            command=self._do_confirm,
+        ).grid(row=0, column=1, sticky="ew")
 
-    def _on_cancel(self) -> None:
-        self.destroy()
-        if hasattr(self, 'overlay'):
-            self.overlay.destroy()
+        self.card.deiconify()
+        self.card.lift()
+
+    def _do_confirm(self):
+        self.dismiss()
+        if self.on_confirm:
+            self.on_confirm()
+
+    def _do_cancel(self):
+        self.dismiss()
         if self.on_cancel:
             self.on_cancel()
 
-    def _on_confirm_click(self) -> None:
-        self.destroy()
-        if hasattr(self, 'overlay'):
-            self.overlay.destroy()
-        if self.on_confirm:
-            self.on_confirm()
+    def dismiss(self):
+        try:
+            if hasattr(self, "card") and self.card.winfo_exists():
+                self.card.destroy()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "overlay") and self.overlay.winfo_exists():
+                self.overlay.destroy()
+        except Exception:
+            pass

@@ -37,13 +37,21 @@ def _tratar_excecao_global(tipo, valor, tb):
     
     # Tentar mostrar uma mensagem para o usuário
     try:
-        from tkinter import messagebox
-        messagebox.showerror(
-            "Erro Inesperado",
-            f"Ocorreu um erro inesperado:\n\n{tipo.__name__}: {valor}\n\n"
-            f"O erro foi registrado no arquivo de log.\n"
-            f"Se o problema persistir, entre em contato com o suporte."
-        )
+        from ui.alert_modal import AlertModal
+        if ctk.CTk._top_level_list:
+            top = ctk.CTk._top_level_list[0]
+            AlertModal(
+                top,
+                "Erro Inesperado",
+                f"{tipo.__name__}: {valor}",
+                ["O erro foi registrado no arquivo de log do sistema."],
+            )
+        else:
+            from tkinter import messagebox
+            messagebox.showerror(
+                "Erro Inesperado",
+                f"Ocorreu um erro inesperado:\n\n{tipo.__name__}: {valor}"
+            )
     except Exception:
         pass
 

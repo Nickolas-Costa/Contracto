@@ -3,201 +3,115 @@ from ui import theme
 from utils import config_manager
 
 
-class WelcomeModal(ctk.CTkFrame):
-    """Modal de instrução e guia de uso do aplicativo.
+class WelcomeModal:
+    """Modal de instrução e guia de uso do aplicativo com overlay escuro translúcido e cartão alinhado."""
 
-    Centralizado com precisão na tela/janela principal do usuário.
-    Possui suporte completo a Alt+Tab sem travar ou congelar a aplicação.
-    """
+    def __init__(self, master):
+        self.master = master
 
-    def __init__(self, master=None):
-        super().__init__(
-            master,
+        try:
+            master.update_idletasks()
+        except Exception:
+            pass
+
+        # Dimensões da tela do monitor
+        sw = master.winfo_screenwidth()
+        sh = master.winfo_screenheight()
+
+        w, h = 680, 560
+        # Ajuste Fino para alinhar sobre a área principal de conteúdo
+        offset_x = 110
+        offset_y = 35
+
+        x = (sw - w) // 2 + offset_x
+        y = (sh - h) // 2 + offset_y
+
+        # 1. Overlay escuro translúcido (60% opacidade / vidro escuro) cobrindo a tela inteira (0,0)
+        self.overlay = ctk.CTkToplevel(master)
+        self.overlay.withdraw()
+        self.overlay.overrideredirect(True)
+        self.overlay.configure(fg_color="#000000")
+        try:
+            self.overlay.attributes("-alpha", 0.60)
+        except Exception:
+            pass
+        self.overlay.geometry(f"{sw}x{sh}+0+0")
+        self.overlay.deiconify()
+        self.overlay.lift()
+
+        # 2. Cartão de instrução sólido no topo (alinhado sobre o conteúdo)
+        self.card = ctk.CTkToplevel(master)
+        self.card.withdraw()
+        self.card.overrideredirect(True)
+        self.card.configure(fg_color=theme.COLOR_SURFACE)
+        try:
+            self.card.attributes("-topmost", True)
+        except Exception:
+            pass
+        self.card.geometry(f"{w}x{h}+{x}+{y}")
+
+        self.frame = ctk.CTkFrame(
+            self.card,
+            fg_color=theme.COLOR_SURFACE,
             corner_radius=16,
             border_width=1,
             border_color=theme.COLOR_BORDER,
-            fg_color=theme.COLOR_SURFACE,
         )
+        self.frame.pack(fill="both", expand=True, padx=2, pady=2)
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(2, weight=1)
 
-        self._modal_width = 680
-        self._modal_height = 560
-        self._master_ref = master
+        # Header
+        header = ctk.CTkFrame(self.frame, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 12))
+        header.grid_columnconfigure(0, weight=1)
 
-        if master:
-            import tkinter as tk
-            # Fundo sólido preto
-            bg_color = "#000000"
-            self.overlay = tk.Frame(master, bg=bg_color)
-            self.overlay.place(x=0, y=0, relwidth=1, relheight=1)
-            self.overlay.lift()
-
-        # Centralizar na tela
-        self.place(relx=0.5, rely=0.5, anchor="center")
-        self.configure(width=self._modal_width, height=self._modal_height)
-        self.grid_propagate(False)
-
-        # Garantir visibilidade e atalho para fechar (Esc)
-        self.lift()
-        
-        if master:
-            master.bind("<Escape>", lambda e: self._on_close(), add="+")
-
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
-
-        # 1. Cabeçalho (Header com Título + Subtítulo + Botão Fechar X)
-        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 12))
-        self.header_frame.grid_columnconfigure(0, weight=1)
-
-        info_box = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        info_box = ctk.CTkFrame(header, fg_color="transparent")
         info_box.grid(row=0, column=0, sticky="w")
 
-        title_label = ctk.CTkLabel(
-            info_box,
-            text="Guia Rápido do Contracto",
-            font=theme.get_font(theme.FONT_SIZE_H2, "bold"),
-            text_color=theme.COLOR_TEXT,
-            anchor="w",
-        )
-        title_label.pack(anchor="w")
+        ctk.CTkLabel(info_box, text="Guia Rápido do Contracto", font=theme.get_font(theme.FONT_SIZE_H2, "bold"), text_color=theme.COLOR_TEXT).pack(anchor="w")
+        ctk.CTkLabel(info_box, text="Aprenda como preencher e gerar seus documentos em poucos passos", font=theme.get_font(theme.FONT_SIZE_BODY), text_color=theme.COLOR_TEXT_SECONDARY).pack(anchor="w", pady=(4, 0))
 
-        subtitle_label = ctk.CTkLabel(
-            info_box,
-            text="Aprenda como preencher e gerar seus documentos em poucos passos",
-            font=theme.get_font(theme.FONT_SIZE_BODY),
-            text_color=theme.COLOR_TEXT_SECONDARY,
-            anchor="w",
-        )
-        subtitle_label.pack(anchor="w", pady=(2, 0))
+        ctk.CTkButton(header, text="✕", width=32, height=32, corner_radius=8, fg_color="transparent", text_color=theme.COLOR_TEXT_SECONDARY, hover_color=theme.COLOR_SURFACE_VARIANT, font=theme.get_font(16, "bold"), command=self.dismiss).grid(row=0, column=1, sticky="e")
 
-        btn_close = ctk.CTkButton(
-            self.header_frame,
-            text="✕",
-            width=32,
-            height=32,
-            fg_color="transparent",
-            text_color=theme.COLOR_TEXT_SECONDARY,
-            hover_color=theme.COLOR_SURFACE_VARIANT,
-            font=theme.get_font(16, "bold"),
-            command=self._on_close,
-        )
-        btn_close.grid(row=0, column=1, sticky="e")
-
-        # Divisor
-        divider = ctk.CTkFrame(self, height=1, fg_color=theme.COLOR_BORDER)
-        divider.grid(row=1, column=0, sticky="ew", padx=24, pady=8)
-
-        # 2. Corpo do Modal (Passo a Passo)
-        self.scroll_recursos = ctk.CTkFrame(
-            self, fg_color="transparent"
-        )
-        self.scroll_recursos.grid(row=2, column=0, sticky="nsew", padx=24, pady=16)
-        self.scroll_recursos.grid_columnconfigure(0, weight=1)
+        # Conteúdo do guia
+        scroll = ctk.CTkScrollableFrame(self.frame, fg_color="transparent", label_text="")
+        scroll.grid(row=2, column=0, sticky="nsew", padx=24, pady=(0, 12))
+        scroll.grid_columnconfigure(0, weight=1)
 
         passos = [
-            {
-                "icone": "👤",
-                "titulo": "1. Preencha os Dados dos Participantes",
-                "descricao": "Informe Nome Completo e CPF. O primeiro participante inclui o endereço. O sistema valida os dígitos do CPF em tempo real.",
-                "tag": "Passo 1",
-            },
-            {
-                "icone": "📅",
-                "titulo": "2. Informe a Data e Local da Assinatura",
-                "descricao": "Selecione a data no calendário ancorado e informe a cidade de assinatura. Todos os formulários usam esse padrão.",
-                "tag": "Passo 2",
-            },
-            {
-                "icone": "⚡",
-                "titulo": "3. Gere os Documentos com Um Clique",
-                "descricao": "Clique em 'GERAR DOCUMENTOS E AVANÇAR'. O aplicativo preenche os formulários PDF e organiza a estrutura de pastas.",
-                "tag": "Passo 3",
-            },
-            {
-                "icone": "⚙️",
-                "titulo": "4. Personalize Cores e Perfis de Modelos",
-                "descricao": "Alterne cores nas Configurações e crie perfis na aba Perfis para ajustar modelos para Imóveis Novos, Usados ou FGTS.",
-                "tag": "Dica",
-            },
+            ("1. Preencha os Dados dos Participantes", "Informe Nome Completo e CPF. O primeiro participante inclui o endereço. O sistema valida os dígitos do CPF em tempo real.", "Passo 1", "👤"),
+            ("2. Informe a Data e Local da Assinatura", "Selecione a data no calendário ancorado e informe a cidade de assinatura. Todos os formulários usam esse padrão.", "Passo 2", "📅"),
+            ("3. Gere os Documentos com Um Clique", "Clique em 'GERAR DOCUMENTOS E AVANÇAR'. O aplicativo preenche os formulários PDF e organiza a estrutura de pastas.", "Passo 3", "⚡"),
+            ("4. Personalize Cores e Perfis de Modelos", "Alterne cores nas Configurações e crie perfis na aba Perfis para ajustar modelos para Imóveis Novos, Usados ou FGTS.", "Dica", "⚙️"),
         ]
 
-        for idx, item in enumerate(passos):
-            row_card = ctk.CTkFrame(
-                self.scroll_recursos,
-                fg_color=theme.COLOR_SURFACE_VARIANT,
-                corner_radius=10,
-                border_width=1,
-                border_color=theme.COLOR_BORDER,
-            )
-            row_card.grid(row=idx, column=0, sticky="ew", pady=6)
-            row_card.grid_columnconfigure(1, weight=1)
+        for i, (titulo_p, desc_p, tag_p, icone_p) in enumerate(passos):
+            card_p = ctk.CTkFrame(scroll, fg_color=theme.COLOR_SURFACE_VARIANT, corner_radius=theme.RADIUS_CARD)
+            card_p.grid(row=i, column=0, sticky="ew", pady=6)
+            card_p.grid_columnconfigure(1, weight=1)
 
-            # Ícone
-            icon_box = ctk.CTkFrame(
-                row_card,
-                width=42,
-                height=42,
-                corner_radius=8,
-                fg_color=theme.COLOR_SURFACE,
-            )
-            icon_box.grid(row=0, column=0, padx=12, pady=12)
-            icon_box.grid_propagate(False)
-            lbl_icon = ctk.CTkLabel(
-                icon_box, text=item["icone"], font=theme.get_font(20)
-            )
-            lbl_icon.place(relx=0.5, rely=0.5, anchor="center")
+            ibox = ctk.CTkFrame(card_p, width=40, height=40, corner_radius=10, fg_color=theme.COLOR_SURFACE)
+            ibox.grid(row=0, column=0, padx=12, pady=12)
+            ibox.grid_propagate(False)
+            ctk.CTkLabel(ibox, text=icone_p, font=theme.get_font(18)).pack(expand=True)
 
-            # Texto (Título + Descrição)
-            text_box = ctk.CTkFrame(row_card, fg_color="transparent")
-            text_box.grid(row=0, column=1, sticky="w", padx=(0, 12), pady=10)
+            tbox = ctk.CTkFrame(card_p, fg_color="transparent")
+            tbox.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=12)
+            ctk.CTkLabel(tbox, text=titulo_p, font=theme.get_font(theme.FONT_SIZE_BODY, "bold"), text_color=theme.COLOR_TEXT).pack(anchor="w")
+            ctk.CTkLabel(tbox, text=desc_p, font=theme.get_font(theme.FONT_SIZE_CAPTION), text_color=theme.COLOR_TEXT_SECONDARY, wraplength=420, justify="left").pack(anchor="w", pady=(2, 0))
 
-            lbl_rec_title = ctk.CTkLabel(
-                text_box,
-                text=item["titulo"],
-                font=theme.get_font(theme.FONT_SIZE_BODY, "bold"),
-                text_color=theme.COLOR_TEXT,
-                anchor="w",
-            )
-            lbl_rec_title.pack(anchor="w")
+            tag_frame = ctk.CTkFrame(card_p, fg_color=theme.COLOR_SURFACE, corner_radius=6)
+            tag_frame.grid(row=0, column=2, padx=12, pady=12)
+            ctk.CTkLabel(tag_frame, text=tag_p, font=theme.get_font(theme.FONT_SIZE_CAPTION, "bold"), text_color=theme.get_color_primary_text()).pack(padx=8, pady=4)
 
-            lbl_rec_desc = ctk.CTkLabel(
-                text_box,
-                text=item["descricao"],
-                font=theme.get_font(theme.FONT_SIZE_CAPTION),
-                text_color=theme.COLOR_TEXT_SECONDARY,
-                justify="left",
-                wraplength=380,
-                anchor="w",
-            )
-            lbl_rec_desc.pack(anchor="w", pady=(2, 0))
+        # Footer
+        footer = ctk.CTkFrame(self.frame, fg_color="transparent")
+        footer.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 20))
+        footer.grid_columnconfigure(0, weight=1)
 
-            # Tag do Passo
-            is_dica = (item["tag"] == "Dica")
-            tag_box = ctk.CTkFrame(
-                row_card,
-                fg_color=theme.get_color_primary() if is_dica else theme.COLOR_SURFACE,
-                corner_radius=12,
-                border_width=0 if is_dica else 1,
-                border_color=theme.COLOR_BORDER,
-            )
-            tag_box.grid(row=0, column=2, padx=12, pady=12, sticky="e")
-
-            lbl_tag = ctk.CTkLabel(
-                tag_box,
-                text=item["tag"],
-                font=theme.get_font(11, "bold"),
-                text_color="#FFFFFF" if is_dica else theme.get_color_primary_text(),
-            )
-            lbl_tag.pack(padx=10, pady=4)
-
-        # 3. Rodapé com Ação
-        footer_frame = ctk.CTkFrame(self, fg_color="transparent")
-        footer_frame.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 20))
-        footer_frame.grid_columnconfigure(0, weight=1)
-
-        btn_action = ctk.CTkButton(
-            footer_frame,
+        ctk.CTkButton(
+            footer,
             text="Entendi, Começar!",
             font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
             fg_color=theme.get_color_primary(),
@@ -205,16 +119,21 @@ class WelcomeModal(ctk.CTkFrame):
             hover_color=theme.get_color_primary_hover(),
             height=44,
             corner_radius=theme.RADIUS_BUTTON,
-            command=self._on_close,
-        )
-        btn_action.grid(row=0, column=0, sticky="ew")
+            command=self.dismiss,
+        ).grid(row=0, column=0, sticky="ew")
 
-    def _on_close(self) -> None:
-        """Limpa o frame e destrói o modal."""
-        if hasattr(self, "_master_ref") and self._master_ref:
-            self._master_ref.unbind("<Escape>")
+        self.card.deiconify()
+        self.card.lift()
 
-        self.destroy()
-        if hasattr(self, 'overlay'):
-            self.overlay.destroy()
+    def dismiss(self):
+        try:
+            if hasattr(self, "card") and self.card.winfo_exists():
+                self.card.destroy()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "overlay") and self.overlay.winfo_exists():
+                self.overlay.destroy()
+        except Exception:
+            pass
         config_manager.definir("primeira_execucao", False)

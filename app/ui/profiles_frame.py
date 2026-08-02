@@ -6,9 +6,11 @@ criar perfis pré-configurados com modelos e formato de saída.
 """
 
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 from pathlib import Path
 
+from ui.alert_modal import AlertModal
+from ui.confirm_modal import ConfirmModal
 from ui.theme import (
     COLOR_BORDER, COLOR_ERROR, COLOR_PRIMARY, COLOR_SURFACE, COLOR_SURFACE_VARIANT,
     COLOR_TEXT, COLOR_TEXT_SECONDARY, COLOR_SUCCESS,
@@ -335,7 +337,7 @@ class ProfilesFrame(ctk.CTkFrame):
             try:
                 campos = pdf_service.obter_campos_do_formulario(Path(caminho))
             except Exception as e:
-                messagebox.showerror("Erro", f"Erro ao ler PDF: {e}")
+                AlertModal(self.winfo_toplevel(), "Erro ao Ler PDF", "Falha ao analisar os campos do formulário.", [str(e)])
                 return
                 
             self._abrir_modal_mapeamento(Path(caminho).name, caminho, list(campos))
@@ -351,7 +353,7 @@ class ProfilesFrame(ctk.CTkFrame):
                     caminho_real = caminho_recurso("assets", "templates", "1 IMOVEL.pdf")
             campos = pdf_service.obter_campos_do_formulario(Path(caminho_real))
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao ler PDF: {e}")
+            AlertModal(self.winfo_toplevel(), "Erro ao Ler PDF", "Falha ao analisar os campos do formulário.", [str(e)])
             return
             
         self._abrir_modal_mapeamento(form.nome, str(form.caminho), list(campos), form, index)
@@ -493,7 +495,7 @@ class ProfilesFrame(ctk.CTkFrame):
     def _salvar_edicao(self) -> None:
         nome = self.edit_nome.get().strip()
         if not nome:
-            messagebox.showwarning("Aviso", "O nome do perfil é obrigatório.")
+            AlertModal(self.winfo_toplevel(), "Nome Obrigatório", "Por favor, informe o nome do perfil.", ["O nome do perfil não pode ficar em branco."])
             return
 
         perfil = Perfil(
@@ -516,14 +518,14 @@ class ProfilesFrame(ctk.CTkFrame):
                 # Criando novo
                 adicionar_perfil(perfil)
         except ValueError as e:
-            messagebox.showwarning("Aviso", str(e))
+            AlertModal(self.winfo_toplevel(), "Aviso", "Não foi possível salvar o perfil.", [str(e)])
             return
 
         self._fechar_editor()
         self._carregar_lista()
 
     def _excluir(self, nome: str) -> None:
-        if messagebox.askyesno("Confirmar", f"Deseja excluir o perfil '{nome}'?"):
+        def _confirmar_exclusao():
             try:
                 excluir_perfil(nome)
                 # Se era o ativo, voltar ao padrão
@@ -531,7 +533,16 @@ class ProfilesFrame(ctk.CTkFrame):
                     config_manager.definir("perfil_ativo", PERFIL_PADRAO_NOME)
                 self._carregar_lista()
             except ValueError as e:
-                messagebox.showwarning("Aviso", str(e))
+                AlertModal(self.winfo_toplevel(), "Erro ao Excluir", "Não foi possível remover o perfil.", [str(e)])
+
+        ConfirmModal(
+            self.winfo_toplevel(),
+            titulo="Excluir Perfil",
+            subtitulo=f"Tem certeza que deseja excluir permanentemente o perfil '{nome}'?",
+            on_confirm=_confirmar_exclusao,
+            texto_confirmar="Excluir Perfil",
+            texto_cancelar="Cancelar",
+        )
 
     def atualizar_cores(self) -> None:
         """Atualiza a tela de perfis ao mudar o tema, recarregando a lista."""
