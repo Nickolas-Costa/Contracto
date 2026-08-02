@@ -141,6 +141,9 @@ class AlertModal(ctk.CTkFrame):
             )
             lbl_text.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="w")
 
+        if isinstance(self.scroll_erros, ctk.CTkScrollableFrame):
+            theme.configurar_autoscroll(self.scroll_erros)
+
         # Dica / Observação no Rodapé
         lbl_dica = ctk.CTkLabel(
             self,

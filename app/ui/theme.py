@@ -196,3 +196,48 @@ def configure_appearance() -> None:
     ctk.set_appearance_mode(aparencia)
     ctk.set_default_color_theme("blue")
     reload_theme()
+
+
+def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
+    """Oculta automaticamente a barra de rolagem do CTkScrollableFrame de forma otimizada (sem loops de eventos)."""
+    timer_attr = "_autoscroll_timer_id"
+
+    def _do_check():
+        try:
+            if not scroll_frame.winfo_exists():
+                return
+            setattr(scroll_frame, timer_attr, None)
+            
+            # Se o próprio scroll_frame estiver oculto (grid_remove), não alterar visibilidade da barra de rolagem
+            if not scroll_frame.winfo_ismapped():
+                return
+
+            bbox = scroll_frame._parent_canvas.bbox("all")
+            if bbox:
+                content_height = bbox[3] - bbox[1]
+                visible_height = scroll_frame._parent_canvas.winfo_height()
+                if content_height > visible_height + 5 and visible_height > 1:
+                    if not scroll_frame._scrollbar.grid_info():
+                        scroll_frame._scrollbar.grid()
+                else:
+                    if scroll_frame._scrollbar.grid_info():
+                        scroll_frame._scrollbar.grid_remove()
+        except Exception:
+            pass
+
+    def _agendar_verificacao(event=None):
+        try:
+            timer_id = getattr(scroll_frame, timer_attr, None)
+            if timer_id is not None:
+                scroll_frame.after_cancel(timer_id)
+            new_timer_id = scroll_frame.after(60, _do_check)
+            setattr(scroll_frame, timer_attr, new_timer_id)
+        except Exception:
+            pass
+
+    try:
+        scroll_frame._parent_canvas.bind("<Configure>", _agendar_verificacao, add="+")
+        scroll_frame._parent_frame.bind("<Configure>", _agendar_verificacao, add="+")
+        _agendar_verificacao()
+    except Exception:
+        pass

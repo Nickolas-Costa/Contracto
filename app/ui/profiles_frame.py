@@ -14,8 +14,9 @@ from ui.theme import (
     COLOR_TEXT, COLOR_TEXT_SECONDARY, COLOR_SUCCESS,
     FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_H2, FONT_SIZE_H3,
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
-    SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE,
+    SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XSMALL,
     get_font, get_color_primary, get_color_primary_text, get_color_primary_hover,
+    configurar_autoscroll,
 )
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, FormularioModelo,
@@ -29,9 +30,10 @@ from services import pdf_service
 class ProfilesFrame(ctk.CTkFrame):
     """Frame da tela de gerenciamento de perfis."""
 
-    def __init__(self, master, on_voltar=None, **kwargs):
+    def __init__(self, master, on_voltar=None, on_expand=None, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.on_voltar = on_voltar
+        self.on_expand = on_expand
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -46,25 +48,25 @@ class ProfilesFrame(ctk.CTkFrame):
         self._carregar_lista()
 
     def _construir_header(self) -> None:
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="ew")
-        header.grid_columnconfigure(0, weight=1)
+        self.header_perfis = ctk.CTkFrame(self, fg_color="transparent")
+        self.header_perfis.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="ew")
+        self.header_perfis.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            header, text="Perfis",
+            self.header_perfis, text="Perfis",
             font=get_font(FONT_SIZE_H2, "bold"),
             text_color=COLOR_TEXT,
         ).grid(row=0, column=0, sticky="w")
 
         ctk.CTkLabel(
-            header,
+            self.header_perfis,
             text="Configure modelos e formato de saída para diferentes cenários.",
             font=get_font(FONT_SIZE_BODY),
             text_color=COLOR_TEXT_SECONDARY,
         ).grid(row=1, column=0, sticky="w", pady=(SPACING_SMALL, 0))
 
         ctk.CTkButton(
-            header, text="+ Novo Perfil", width=120,
+            self.header_perfis, text="+ Novo Perfil", width=120,
             fg_color=COLOR_SURFACE, text_color=get_color_primary_text(),
             border_width=1, border_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT,
@@ -81,30 +83,38 @@ class ProfilesFrame(ctk.CTkFrame):
 
     def _construir_editor(self) -> None:
         """Editor de perfil — aparece quando se clica em Editar."""
-        self.frame_editor = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
-                                          border_width=1, border_color=COLOR_BORDER)
+        self.frame_editor = ctk.CTkFrame(
+            self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+            border_width=1, border_color=COLOR_BORDER
+        )
+        self.frame_editor.grid_columnconfigure(0, weight=1)
+        self.frame_editor.grid_rowconfigure(0, weight=1)
 
-        ctk.CTkLabel(self.frame_editor, text="Editar Perfil",
+        self.scroll_editor = ctk.CTkScrollableFrame(
+            self.frame_editor, fg_color="transparent", label_text=""
+        )
+        self.scroll_editor.grid(row=0, column=0, sticky="nsew", padx=SPACING_SMALL, pady=SPACING_SMALL)
+        self.scroll_editor.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(self.scroll_editor, text="Editar Perfil",
                      font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT
                      ).grid(row=0, column=0, columnspan=2, padx=SPACING_LARGE,
                             pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
-        self.frame_editor.grid_columnconfigure(1, weight=1)
-
         # Nome
-        ctk.CTkLabel(self.frame_editor, text="Nome:", font=get_font(FONT_SIZE_BODY),
+        ctk.CTkLabel(self.scroll_editor, text="Nome:", font=get_font(FONT_SIZE_BODY),
                      text_color=COLOR_TEXT).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
                                                   pady=SPACING_SMALL, sticky="w")
-        self.edit_nome = ctk.CTkEntry(self.frame_editor, corner_radius=RADIUS_INPUT)
+        self.edit_nome = ctk.CTkEntry(self.scroll_editor, corner_radius=RADIUS_INPUT)
         self.edit_nome.grid(row=1, column=1, padx=(0, SPACING_LARGE),
                             pady=SPACING_SMALL, sticky="ew")
 
         # Formato
-        ctk.CTkLabel(self.frame_editor, text="Formato:", font=get_font(FONT_SIZE_BODY),
+        ctk.CTkLabel(self.scroll_editor, text="Formato:", font=get_font(FONT_SIZE_BODY),
                      text_color=COLOR_TEXT).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
                                                   pady=SPACING_SMALL, sticky="w")
         self.edit_formato = ctk.CTkSegmentedButton(
-            self.frame_editor, values=["PDF/A-2b", "PDF"],
+            self.scroll_editor, values=["PDF/A-2b", "PDF"],
             font=get_font(FONT_SIZE_BODY),
             corner_radius=RADIUS_BUTTON,
             selected_color=get_color_primary(),
@@ -114,7 +124,7 @@ class ProfilesFrame(ctk.CTkFrame):
                                pady=SPACING_SMALL, sticky="ew")
 
         # Formulários Dinâmicos
-        header_form = ctk.CTkFrame(self.frame_editor, fg_color="transparent")
+        header_form = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
         header_form.grid(row=3, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         header_form.grid_columnconfigure(0, weight=1)
         
@@ -124,12 +134,12 @@ class ProfilesFrame(ctk.CTkFrame):
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_formulario).grid(row=0, column=1, sticky="e")
 
-        self.scroll_forms = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=100)
-        self.scroll_forms.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_forms = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
+        self.scroll_forms.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_forms.grid_columnconfigure(0, weight=1)
 
         # Documentos Extras (Etapa 2)
-        header_extras = ctk.CTkFrame(self.frame_editor, fg_color="transparent")
+        header_extras = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
         header_extras.grid(row=5, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         header_extras.grid_columnconfigure(0, weight=1)
         
@@ -139,12 +149,12 @@ class ProfilesFrame(ctk.CTkFrame):
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_documento_extra).grid(row=0, column=1, sticky="e")
 
-        self.scroll_extras = ctk.CTkScrollableFrame(self.frame_editor, fg_color="transparent", height=100)
-        self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_extras = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
+        self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_extras.grid_columnconfigure(0, weight=1)
 
         # Botões do editor
-        frame_btns = ctk.CTkFrame(self.frame_editor, fg_color="transparent")
+        frame_btns = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
         frame_btns.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE,
                         pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_btns.grid_columnconfigure(1, weight=1)
@@ -158,6 +168,8 @@ class ProfilesFrame(ctk.CTkFrame):
                       hover_color="#004785", corner_radius=RADIUS_BUTTON,
                       command=self._salvar_edicao
                       ).grid(row=0, column=1, sticky="ew")
+
+        configurar_autoscroll(self.scroll_editor)
 
     def _construir_botoes(self) -> None:
         pass
@@ -220,6 +232,8 @@ class ProfilesFrame(ctk.CTkFrame):
                               command=lambda n=perfil.nome: self._excluir(n)
                               ).pack(side="left", padx=2)
 
+        configurar_autoscroll(self.scroll_perfis)
+
     def _ativar_perfil(self, nome: str) -> None:
         config_manager.definir("perfil_ativo", nome)
         self._carregar_lista()
@@ -233,7 +247,14 @@ class ProfilesFrame(ctk.CTkFrame):
         from utils.profile_manager import DocumentoExtra
         self._perfil_editando = perfil
         self._formularios_editando = [FormularioModelo(f.nome, f.caminho, f.geracao, f.mapeamento.copy()) for f in perfil.formularios]
-        self._documentos_extras_editando = [DocumentoExtra(d.rotulo, d.nome_padrao) for d in getattr(perfil, 'documentos_extras', [])]
+        
+        doc_extras_brutos = getattr(perfil, 'documentos_extras', [])
+        self._documentos_extras_editando = []
+        for d in doc_extras_brutos:
+            if isinstance(d, DocumentoExtra):
+                self._documentos_extras_editando.append(DocumentoExtra(d.rotulo, d.nome_padrao))
+            elif isinstance(d, dict):
+                self._documentos_extras_editando.append(DocumentoExtra(d.get('rotulo', ''), d.get('nome_padrao', '')))
 
         self.edit_nome.configure(state="normal")
         self.edit_nome.delete(0, "end")
@@ -244,24 +265,25 @@ class ProfilesFrame(ctk.CTkFrame):
         self._atualizar_lista_formularios_editando()
         self._atualizar_lista_documentos_editando()
 
-        self.frame_editor.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        self.header_perfis.grid_remove()
+        self.scroll_perfis.grid_remove()
+        self.frame_editor.grid(row=0, column=0, rowspan=2, padx=SPACING_LARGE, pady=SPACING_LARGE, sticky="nsew")
+        self.scroll_editor._parent_canvas.yview_moveto(0)
+        configurar_autoscroll(self.scroll_editor)
+        if self.on_expand:
+            self.on_expand(True)
 
     def _atualizar_lista_formularios_editando(self):
         for widget in self.scroll_forms.winfo_children():
             widget.destroy()
             
-        if len(self._formularios_editando) > 2:
-            self.scroll_forms._scrollbar.configure(button_color=COLOR_SURFACE_VARIANT, button_hover_color=COLOR_BORDER)
-        else:
-            self.scroll_forms._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
-            
         for i, form in enumerate(self._formularios_editando):
             f_frame = ctk.CTkFrame(self.scroll_forms, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)
-            f_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
+            f_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="ew")
             f_frame.grid_columnconfigure(0, weight=1)
             
             nome_label = ctk.CTkLabel(f_frame, text=f"{form.nome} ({form.geracao})", font=get_font(FONT_SIZE_BODY, "bold"))
-            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_SMALL)
+            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_XSMALL)
             
             ctk.CTkButton(f_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
@@ -272,27 +294,29 @@ class ProfilesFrame(ctk.CTkFrame):
                           command=lambda idx=i: self._remover_formulario(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
 
     def _fechar_editor(self) -> None:
-        self.frame_editor.grid_forget()
+        self.frame_editor.grid_remove()
+        self.header_perfis.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="ew")
+        self.scroll_perfis.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_perfis._parent_canvas.yview_moveto(0)
+        configurar_autoscroll(self.scroll_perfis)
+        if self.on_expand:
+            self.on_expand(False)
         self._perfil_editando = None
         self._formularios_editando = []
         self._documentos_extras_editando = []
+        self._carregar_lista()
 
     def _atualizar_lista_documentos_editando(self):
         for widget in self.scroll_extras.winfo_children():
             widget.destroy()
             
-        if len(self._documentos_extras_editando) > 2:
-            self.scroll_extras._scrollbar.configure(button_color=COLOR_SURFACE_VARIANT, button_hover_color=COLOR_BORDER)
-        else:
-            self.scroll_extras._scrollbar.configure(button_color="transparent", button_hover_color="transparent")
-            
         for i, doc in enumerate(self._documentos_extras_editando):
             d_frame = ctk.CTkFrame(self.scroll_extras, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)
-            d_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
+            d_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="ew")
             d_frame.grid_columnconfigure(0, weight=1)
             
             nome_label = ctk.CTkLabel(d_frame, text=f"{doc.rotulo} -> {doc.nome_padrao}", font=get_font(FONT_SIZE_BODY, "bold"))
-            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_SMALL)
+            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_XSMALL)
             
             ctk.CTkButton(d_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
@@ -443,6 +467,8 @@ class ProfilesFrame(ctk.CTkFrame):
             combo.grid(row=i, column=1, sticky="ew", padx=SPACING_SMALL, pady=SPACING_SMALL)
             combo.set(mapeamento_atual.get(campo, ""))
             mapeamento_ui[campo] = combo
+
+        configurar_autoscroll(scroll_map)
             
         def salvar():
             novo_mapeamento = {campo: combo.get() for campo, combo in mapeamento_ui.items() if combo.get()}

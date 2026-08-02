@@ -41,6 +41,8 @@ from ui.profiles_frame import ProfilesFrame
 from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
 from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
 from utils import config_manager
+from utils.logger import configurar_logger
+from version import __version__
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil,
     carregar_perfis, obter_perfil, listar_nomes_perfis,
@@ -55,10 +57,49 @@ class MainWindow(ctk.CTk):
 
         configure_appearance()
 
-        self.title("Contracto v3.5 — Preparação de Documentos")
+        self.title(f"Contracto v{__version__} — Preparação de Documentos")
         self.geometry("1020x880")
         self.minsize(920, 700)
         self.configure(fg_color=COLOR_BACKGROUND)
+
+        # Configurar ícone oficial da janela e barra de tarefas do Windows
+        try:
+            import sys
+            from utils.resource_path import caminho_recurso
+            from PIL import Image, ImageTk
+
+            icon_path = caminho_recurso("assets", "icons", "app_icon.ico")
+            icon_png = caminho_recurso("assets", "icons", "app_icon.png")
+
+            # 1. Definir iconphoto para compatibilidade geral do Tkinter
+            if icon_png.exists():
+                self._app_photo_icon = ImageTk.PhotoImage(Image.open(icon_png))
+                self.iconphoto(True, self._app_photo_icon)
+
+            # 2. Definir iconbitmap nativo
+            if icon_path.exists():
+                self.iconbitmap(str(icon_path.resolve()))
+
+            # 3. Forçar Win32 WM_SETICON para a barra de tarefas do Windows (sobrescrevendo o ícone padrão do CustomTkinter)
+            if sys.platform == "win32" and icon_path.exists():
+                import ctypes
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+                IMAGE_ICON = 1
+                LR_LOADFROMFILE = 0x00000010
+
+                abs_ico = str(icon_path.resolve())
+                h_icon_big = ctypes.windll.user32.LoadImageW(None, abs_ico, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+                h_icon_small = ctypes.windll.user32.LoadImageW(None, abs_ico, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+                hwnd = ctypes.windll.user32.GetParent(self.winfo_id()) or self.winfo_id()
+
+                if h_icon_big:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, h_icon_big)
+                if h_icon_small:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, h_icon_small)
+        except Exception:
+            pass
 
         # Maximizar aplicativo por padrão ao iniciar
         self.after(10, lambda: self._maximizar_janela())
@@ -107,13 +148,24 @@ class MainWindow(ctk.CTk):
         self._adicionar_participante(principal=True)
         self._mostrar_tela("inicio")
 
+        # Exibir o primeiro loading do aplicativo (reutilizando LoadingModal)
+        self._exibir_loading_inicial()
+
         # Recarregar gradiente ao redimensionar
         self.bind("<Configure>", self._ao_redimensionar)
         
         # Tela de Boas Vindas
         if config_manager.obter("primeira_execucao"):
             from ui.welcome_modal import WelcomeModal
-            self.after(500, lambda: WelcomeModal(self))
+            self.after(900, lambda: WelcomeModal(self))
+
+    def _exibir_loading_inicial(self) -> None:
+        """Exibe o modal de carregamento inicial ao abrir o aplicativo."""
+        try:
+            loading = LoadingModal(self, "Carregando Contracto e inicializando componentes...")
+            self.after(700, lambda: loading.dismiss())
+        except Exception:
+            pass
 
     def _maximizar_janela(self) -> None:
         """Maximiza a janela do aplicativo por padrão no Windows."""
@@ -146,9 +198,9 @@ class MainWindow(ctk.CTk):
         self.toolbar.grid(row=0, column=0, sticky="ew")
         self.toolbar.grid_columnconfigure(4, weight=1)  # spacer between left and right groups
 
-        # Logo/título com fonte maior
+        # Nome oficial por extenso na barra superior
         ctk.CTkLabel(
-            self.toolbar, text="  Contracto",
+            self.toolbar, text=" Contracto",
             font=get_font(FONT_SIZE_H2, "bold"), text_color="#FFFFFF",
         ).grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL)
 
@@ -206,10 +258,12 @@ class MainWindow(ctk.CTk):
         self.canvas_gradient = tk.Canvas(self, highlightthickness=0)
         self.canvas_gradient.grid(row=1, column=0, rowspan=2, sticky="nsew")
         self.canvas_gradient.tk.call('lower', self.canvas_gradient._w)
-        self._pintar_gradiente()
+        self.after(20, self._pintar_gradiente)
 
     def _pintar_gradiente(self) -> None:
         import math
+        from PIL import Image, ImageDraw, ImageTk
+        
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         largura = max(self.winfo_width(), sw, 1024)
@@ -223,7 +277,14 @@ class MainWindow(ctk.CTk):
         self.canvas_gradient.delete("all")
         self.canvas_gradient.configure(bg=bg_main)
         
-        # Padrão elegante de linhas finas e suaves estilo PDFCreator
+        # Renderização com Super-Sampling (2x) via PIL para anti-aliasing 100% perfeito
+        scale = 2
+        w_hd = largura * scale
+        h_hd = altura * scale
+        
+        img_hd = Image.new("RGBA", (w_hd, h_hd), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img_hd)
+        
         line_color = "#242730" if is_dark else "#EAEFF5"
         line_accent = "#2B2E38" if is_dark else "#DFE4EE"
         
@@ -232,26 +293,32 @@ class MainWindow(ctk.CTk):
         
         num_linhas = 30
         for i in range(num_linhas):
-            y_offset = (i - 5) * (altura / 18)
+            y_offset = (i - 5) * (h_hd / 18)
             points = []
-            steps = 50
+            steps = 80
             for s in range(steps + 1):
-                x = (s / steps) * largura
-                # Curva senoidal suave na diagonal inspirada no PDFCreator
-                y = y_offset + (x * 0.28) + math.sin(s * 0.14 + i * 0.22) * (altura * 0.05)
-                points.extend([x, y])
+                x = (s / steps) * w_hd
+                y = y_offset + (x * 0.28) + math.sin(s * 0.14 + i * 0.22) * (h_hd * 0.05)
+                points.append((x, y))
                 
             if i in destaque_indices:
                 cor = cor_destaque_linha
-                largura_linha = 1.2
+                w = 3
             else:
                 cor = line_accent if i % 3 == 0 else line_color
-                largura_linha = 1.0
+                w = 2
                 
-            self.canvas_gradient.create_line(points, fill=cor, width=largura_linha, smooth=True)
+            draw.line(points, fill=cor, width=w, joint="curve")
+            
+        # Downsampling com Lanczos (Anti-Aliasing vetorial de máxima fidelidade)
+        img_smooth = img_hd.resize((largura, altura), Image.Resampling.LANCZOS)
+        
+        self._bg_photo = ImageTk.PhotoImage(img_smooth)
+        self.canvas_gradient.create_image(0, 0, image=self._bg_photo, anchor="nw")
 
     _ultimo_w = 0
     _ultimo_h = 0
+    _paint_timer = None
 
     def _ao_redimensionar(self, event=None) -> None:
         w = self.winfo_width()
@@ -259,7 +326,9 @@ class MainWindow(ctk.CTk):
         if w != self._ultimo_w or h != self._ultimo_h:
             self._ultimo_w = w
             self._ultimo_h = h
-            self._pintar_gradiente()
+            if self._paint_timer is not None:
+                self.after_cancel(self._paint_timer)
+            self._paint_timer = self.after(40, self._pintar_gradiente)
 
     # ==================================================================
     # STEPPER (indicador de etapas)
@@ -410,11 +479,15 @@ class MainWindow(ctk.CTk):
             self.btn_perfis.configure(**active)
             self.frame_stepper.grid_forget()
             if not self.container_profiles:
-                self.container_profiles = ProfilesFrame(self, on_voltar=lambda: self._mostrar_tela("inicio"))
+                self.container_profiles = ProfilesFrame(
+                    self,
+                    on_voltar=lambda: self._mostrar_tela("inicio"),
+                    on_expand=self._redimensionar_container_perfis,
+                )
                 self.container_profiles.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
             else:
                 self.container_profiles._carregar_lista()
-            self.container_profiles.grid(**card_grid)
+            self._redimensionar_container_perfis(False)
         elif tela == "config":
             self.btn_config.configure(**active)
             self.frame_stepper.grid_forget()
@@ -428,63 +501,101 @@ class MainWindow(ctk.CTk):
             self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
             self.container_settings.grid(**card_grid)
 
+    def _redimensionar_container_perfis(self, expandir: bool) -> None:
+        """Redimensiona o quadro do container de perfis (expandido na criação/edição, padrão na listagem)."""
+        if not self.container_profiles:
+            return
+
+        tamanho = config_manager.obter("tamanho_quadros")
+        if tamanho == "Pequeno":
+            margem = 400
+        elif tamanho == "Grande":
+            margem = 100
+        else:
+            margem = 250
+
+        if expandir:
+            # Manter a largura estritamente controlada pelas configurações do usuário (padx=margem)
+            # e expandir apenas a altura verticalmente (sticky="nsew")
+            self.container_profiles.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
+        else:
+            # Restaurar layout e margens padrão da listagem de perfis
+            self.container_profiles.grid(row=2, column=0, sticky="ew", padx=margem, pady=SPACING_LARGE)
+
     def _ao_aplicar_config(self) -> None:
-        """Callback chamado após salvar configurações."""
-        reload_theme()
-        self.toolbar.configure(fg_color=get_color_primary())
-        if hasattr(self, 'dropdown_perfil'):
-            self.dropdown_perfil.configure(
-                fg_color=get_color_primary(),
-                button_color=get_color_primary_hover(),
-                button_hover_color=get_color_primary_hover(),
-                dropdown_fg_color=COLOR_SURFACE,
-                dropdown_hover_color=COLOR_SURFACE_VARIANT,
-                dropdown_text_color=COLOR_TEXT,
-                text_color="#FFFFFF",
-            )
-        if hasattr(self, 'botao_avancar'):
-            self.botao_avancar.configure(
-                fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
-                text_color="#FFFFFF"
-            )
-        if hasattr(self, 'btn_voltar'):
-            self.btn_voltar.configure(
-                text_color=get_color_primary_text(), hover_color=COLOR_SURFACE_VARIANT
-            )
-        if hasattr(self, 'botao_finalizar'):
-            self.botao_finalizar.configure(
-                fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
-                text_color="#FFFFFF"
-            )
-        if hasattr(self, 'botao_adicionar'):
-            self.botao_adicionar.configure(
-                text_color=get_color_primary_text(),
-                border_color=get_color_primary()
-            )
-        
-        # Atualizar frames de participantes
-        if hasattr(self, 'participant_frames'):
-            for pf in self.participant_frames:
-                pf.atualizar_cores()
-            
-        self._pintar_gradiente()
-        self._atualizar_stepper(1 if self._tela_atual == "etapa1" else 2 if self._tela_atual == "etapa2" else 1)
-        
-        # Atualizar cores dos frames independentes
-        if hasattr(self, 'container_settings'):
-            self.container_settings.atualizar_cores()
-        if hasattr(self, 'container_profiles'):
-            self.container_profiles.atualizar_cores()
-        
-        # Atualizar entry de local
-        if hasattr(self, 'entry_local'):
-            self.entry_local.delete(0, 'end')
-            self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
-        
-        # Re-aplicar apenas as margens
-        self._atualizar_tamanho_janela()
-        
-        show_toast(self, "Configurações atualizadas!", "success")
+        """Callback chamado após salvar configurações (com modal de carregamento)."""
+        loading = None
+        try:
+            from ui.loading_modal import LoadingModal
+            loading = LoadingModal(self, "Aplicando configurações do sistema...")
+            self.update_idletasks()
+        except Exception:
+            pass
+
+        def _executar_aplicacao():
+            try:
+                reload_theme()
+                configure_appearance()
+
+                self.toolbar.configure(fg_color=get_color_primary())
+                if hasattr(self, 'dropdown_perfil'):
+                    self.dropdown_perfil.configure(
+                        fg_color=get_color_primary(),
+                        button_color=get_color_primary_hover(),
+                        button_hover_color=get_color_primary_hover(),
+                        dropdown_fg_color=COLOR_SURFACE,
+                        dropdown_hover_color=COLOR_SURFACE_VARIANT,
+                        dropdown_text_color=COLOR_TEXT,
+                        text_color="#FFFFFF",
+                    )
+                if hasattr(self, 'botao_avancar'):
+                    self.botao_avancar.configure(
+                        fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
+                        text_color="#FFFFFF"
+                    )
+                if hasattr(self, 'btn_voltar'):
+                    self.btn_voltar.configure(
+                        text_color=get_color_primary_text(), hover_color=COLOR_SURFACE_VARIANT
+                    )
+                if hasattr(self, 'botao_finalizar'):
+                    self.botao_finalizar.configure(
+                        fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
+                        text_color="#FFFFFF"
+                    )
+                if hasattr(self, 'botao_adicionar'):
+                    self.botao_adicionar.configure(
+                        text_color=get_color_primary_text(),
+                        border_color=get_color_primary()
+                    )
+                
+                # Atualizar frames de participantes
+                if hasattr(self, 'participant_frames'):
+                    for pf in self.participant_frames:
+                        pf.atualizar_cores()
+                    
+                self._pintar_gradiente()
+                self._atualizar_stepper(1 if self._tela_atual == "etapa1" else 2 if self._tela_atual == "etapa2" else 1)
+                
+                # Atualizar cores dos frames independentes
+                if getattr(self, 'container_settings', None) is not None:
+                    self.container_settings.atualizar_cores()
+                if getattr(self, 'container_profiles', None) is not None:
+                    self.container_profiles.atualizar_cores()
+                
+                # Atualizar entry de local
+                if hasattr(self, 'entry_local'):
+                    self.entry_local.delete(0, 'end')
+                    self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
+                
+                # Re-aplicar apenas as margens
+                self._atualizar_tamanho_janela()
+                
+                show_toast(self, "Configurações atualizadas!", "success")
+            finally:
+                if loading:
+                    self.after(300, lambda: loading.dismiss())
+
+        self.after(50, _executar_aplicacao)
 
     def _atualizar_tamanho_janela(self) -> None:
         tamanho = config_manager.obter("tamanho_quadros")

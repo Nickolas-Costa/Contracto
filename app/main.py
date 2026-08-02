@@ -9,6 +9,13 @@ Executar com:
 import sys
 import traceback
 
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("contracto.app.v4")
+    except Exception:
+        pass
+
 import customtkinter as ctk
 
 from utils.logger import configurar_logger

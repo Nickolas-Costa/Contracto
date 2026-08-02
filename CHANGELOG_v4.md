@@ -2,15 +2,17 @@
 
 ## 🚀 Novidades e Melhorias
 
-* **Sistema Inteligente de Bordas Arredondadas:** Foi implementada uma técnica de *anti-aliasing dinâmico* que resolve definitivamente o problema dos "pixels fantasmas" ao redor das bordas dos painéis. As bordas voltam a ser suavemente arredondadas e se mesclam perfeitamente sobre o fundo gradiente da aplicação sem falhas.
-* **Layout Dinâmico e Responsivo:** A configuração de "Tamanho dos Quadros" agora reflete instantaneamente sem a necessidade de mudar de abas. Ajuste a margem da janela na hora para telas maiores ou menores.
-* **Overlays Nativos:** Reformulamos os popups (Avisos, Confirmações e Tela de Ajuda) para utilizarem uma camada preta sólida (`#000000`) totalmente nativa do sistema. Resultado: velocidade de exibição instantânea e escurecimento perfeito do fundo.
-* **Scrollbars Inteligentes:** As barras de rolagem nos quadros de "Formulários Dinâmicos", "Documentos Extras" e Popups de Erros receberam uma inteligência visual, ficando invisíveis até que o conteúdo ultrapasse a altura limite, mantendo a tela limpa.
-* **Novo Seletor de Perfil na Toolbar:** O menu de perfis foi promovido para um autêntico componente que respeita o esquema de cores escolhido, livrando-se da antiga borda padrão do Windows.
-* **Legibilidade Elevada:** Melhoramos o contraste das cores. Botões de ação, avisos e a barra superior agora suportam cores personalizadas sem prejudicar a leitura dos textos (calculando automaticamente tons de Hover e Contrastes).
+* **Padrão de Fundo Estilo PDFCreator com Linhas de Destaque:** Fundo elegante com curvas senoidais suaves em tom neutro, onde 3 linhas estratégicas acompanham dinamicamente a cor do tema ativa escolhida pelo usuário.
+* **Sistema de Bordas Arredondadas Sem Artefatos:** Ajuste estrutural no layout e no canvas base que elimina definitivamente qualquer "pixel fantasma" nos cantos dos quadros arredondados.
+* **Layout Dinâmico e Responsivo:** A configuração de "Tamanho dos Quadros" agora reflete instantaneamente ao clicar em salvar, sem necessidade de alternar abas.
+* **Overlays Nativos de Alta Performance:** Popups (Avisos, Confirmações e Tela de Ajuda) com fundo escuro sólido nativo de 0ms de atraso.
+* **Scrollbars Inteligentes:** As barras de rolagem nos quadros de "Formulários Dinâmicos", "Documentos Extras" e Popups de Erros ficam invisíveis automaticamente quando o conteúdo cabe na tela.
+* **Novo Seletor de Perfil na Toolbar:** Componente moderno de seleção de perfis na barra superior que respeita a cor de destaque do tema.
+* **Legibilidade Elevada:** Cálculo automático de contraste e tons de hover para qualquer cor de destaque personalizada.
 
-## 🐛 Correções de Bugs
+## 🐛 Correções de Bugs (Bugfixes)
 
-* Corrigido o seletor da Etapa 2 que congelava quando um popup de erro era acionado simultaneamente.
-* Corrigido o bug onde botões da Etapa 1 e Etapa 2 não acompanhavam a cor de destaque quando ela era alterada nas configurações.
-* Ajustado o recarregamento instantâneo do painel de Configurações ao alterar Tema ou Cor, dispensando a necessidade de reiniciar abas.
+* **Editor de Perfis:** Corrigido erro de escopo interno (`NameError`) que impedia a abertura do painel de edição de perfis ao clicar no botão "Editar".
+* Corrigido o congelamento do seletor da Etapa 2 ao acionar popups simultaneamente.
+* Corrigida a sincronização de cores dos botões da Etapa 1 e 2 ao alterar temas nas configurações.
+* Atualizada a versão exibida na barra de título do aplicativo para **Contracto v4.0**.
