@@ -1,8 +1,8 @@
 """
-Testes que validam o preenchimento diretamente contra os PDFs OFICIAIS reais
-da CAIXA (app/assets/templates/), e não apenas contra PDFs sintéticos.
+Testes que validam o preenchimento diretamente contra os PDFs modelos oficiais reais
+(app/assets/templates/), e não apenas contra PDFs sintéticos.
 
-Isso funciona como uma rede de proteção: se a CAIXA atualizar os modelos e o
+Isso funciona como uma rede de proteção: se os modelos forem atualizados e o
 nome de algum campo mudar, estes testes falham imediatamente, indicando
 exatamente qual campo precisa ser ajustado em generator_service.py.
 """

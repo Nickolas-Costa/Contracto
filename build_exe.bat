@@ -10,7 +10,7 @@ REM
 REM Uso:
 REM   build_exe.bat
 REM
-REM O executavel sera gerado em: app\dist\GeradorDeclaracoesCaixa.exe
+REM O executavel sera gerado em: app\dist\Contracto.exe
 REM O pacote de distribuicao sera gerado em: dist\Contracto.zip
 REM =========================================================================
 

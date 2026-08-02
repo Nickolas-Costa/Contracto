@@ -3,8 +3,7 @@ Serviço responsável exclusivamente pela leitura e preenchimento de PDFs
 com campos de formulário (AcroForm), utilizando pypdf.
 
 Este módulo é intencionalmente "burro" em relação a regras de negócio: ele
-não sabe o que é um "participante", uma "Declaração PPE" ou o que é a
-CAIXA. Ele apenas recebe um PDF modelo e um dicionário
+não sabe o que é um "participante" ou uma "Declaração PPE". Ele apenas recebe um PDF modelo e um dicionário
 {nome_do_campo: valor} e devolve um PDF preenchido. Toda regra de negócio
 (quais campos preencher, com quais dados, para quais documentos) vive em
 `generator_service.py`.
@@ -27,8 +26,8 @@ class PdfServiceError(Exception):
 def obter_campos_do_formulario(caminho_pdf: Path) -> set[str]:
     """Retorna os nomes de todos os campos de formulário (AcroForm) de um PDF.
 
-    Útil para depuração: caso os nomes dos campos no PDF real fornecido pela
-    CAIXA sejam diferentes dos configurados em `generator_service.py`, este
+    Útil para depuração: caso os nomes dos campos no PDF real do modelo
+    sejam diferentes dos configurados em `generator_service.py`, este
     conjunto ajuda a descobrir os nomes corretos.
     """
     reader = _abrir_pdf(caminho_pdf)

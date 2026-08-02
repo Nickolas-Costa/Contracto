@@ -23,7 +23,7 @@ from utils import config_manager
 
 # Cores pré-definidas para seleção
 CORES_PREDEFINIDAS = [
-    ("#1E6FB3", "Azul CAIXA"),
+    ("#1E6FB3", "Azul Institucional"),
     ("#00234E", "Azul Royal"),
     ("#00838F", "Ciano"),
     ("#2E7D32", "Verde"),

@@ -1,7 +1,7 @@
 """
 Serviço de conversão de arquivos RTF para PDF utilizando o Microsoft Word via COM.
 
-A CAIXA costuma emitir documentos contratuais no formato .rtf.
+Algumas instituições financeiras costumam emitir documentos contratuais no formato .rtf.
 Esta funcionalidade permite anexá-los diretamente na Etapa 2.
 """
 
