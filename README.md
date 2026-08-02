@@ -7,7 +7,7 @@ Aplicativo desktop (Windows) em Python para preencher automaticamente os PDFs e 
 
 usados em contratos de financiamento habitacional da Caixa Econômica Federal.
 
-A **Versão 2.0** introduz a estruturação automática de pastas, conversão em lote para **PDF/A-2b** via Ghostscript (garantindo a conformidade digital), e um novo sistema de Perfis e Temas. Os dados dos participantes são digitados manualmente e o sistema gera os PDFs preenchidos e organizados.
+A **Versão 4.1** introduz o preenchimento 100% automatizado de todos os campos AcroForm (incluindo endereços e datas de assinatura), modais visuais modernos com efeito escuro translúcido (`-alpha 0.60`), substituição completa de alertas nativos do Windows por componentes do app, expansão dinâmica do editor de perfis e suporte nativo ao ícone 3D na barra de tarefas.
 
 Os PDFs oficiais da CAIXA (`PPE.pdf` e `1_IMOVEL.pdf`) já vêm embutidos na aplicação como modelos padrão — o usuário não precisa selecioná-los manualmente (ver [Modelos oficiais embutidos](#modelos-oficiais-embutidos)).
 
@@ -15,7 +15,7 @@ Os PDFs oficiais da CAIXA (`PPE.pdf` e `1_IMOVEL.pdf`) já vêm embutidos na apl
 
 ## Sumário
 
-- [Novidades da Versão 2.0](#novidades-da-versão-20)
+- [Novidades da Versão 4.1](#novidades-da-versão-41)
 - [Download e Atualização](#download-e-atualização)
 - [Tecnologias](#tecnologias)
 - [Estrutura do projeto](#estrutura-do-projeto)
@@ -31,12 +31,14 @@ Os PDFs oficiais da CAIXA (`PPE.pdf` e `1_IMOVEL.pdf`) já vêm embutidos na apl
 
 ---
 
-## Novidades da Versão 2.0
+## Novidades da Versão 4.1
 
-- **Conversão PDF/A**: Conversão automatizada de arquivos gerados (e externos, como planilhas e contratos) para PDF/A-2b exigido no dossiê digital.
-- **Organização de Pastas**: O sistema cria automaticamente a estrutura hierárquica `PDF-A/ASSINADOS` e `PDF-A/REGISTRADOS` na pasta selecionada, padronizando os nomes dos arquivos com CPFs.
-- **Perfis**: É possível cadastrar perfis combinando diferentes modelos PDF e formatos de saída (PDF comum ou PDF/A).
-- **Temas e Configurações**: Interface gráfica modernizada (Material Design 3) com gradiente institucional. Preferências como Dark Mode e cores ficam salvas em `%APPDATA%\Contracto`.
+- **Preenchimento Completo de Formulários**: Suporte a 100% dos campos AcroForm nos PDFs da CAIXA (`NOME COMPLETO`, `CPF`, `ENDERECO`, `LOCAL ASSINATURA`, `DATA ASSINATURA`).
+- **Modais Modernos e Fundo Translúcido**: Sistema de overlay translúcido nativo (`-alpha 0.60`) e cartões nítidos de alta visibilidade no topo (`-topmost`) centralizados na tela.
+- **Alertas Próprios e Integrados**: Substituição de mensagens nativas do Windows (`messagebox`) por modais elegantes do Contracto para finalização de etapas, confirmação de abertura de pastas e exclusão de perfis.
+- **Conversão PDF/A**: Conversão automatizada de arquivos gerados e externos para PDF/A-2b exigido no dossiê digital.
+- **Organização de Pastas**: O sistema cria automaticamente a estrutura hierárquica `PDF-A/` na pasta selecionada, padronizando os nomes dos arquivos com CPFs.
+- **Perfis e Temas**: Cadastro de perfis customizados, suporte ao Dark Mode e sincronização dinâmica de cores em `%APPDATA%\Contracto`.
 
 ---
 
@@ -61,11 +63,8 @@ Sempre que houver uma versão nova, basta baixar o `.zip` atualizado e substitui
 - [pypdf](https://pypdf.readthedocs.io/) — leitura e preenchimento dos campos AcroForm
 - [pikepdf](https://pikepdf.readthedocs.io/) — validação avançada
 - [Ghostscript](https://ghostscript.com/) — conversão para PDF/A-2b (embutido no build)
-- `pywin32` — conversão local de RTF para PDF
-- `pathlib` / `tkinter.filedialog` — biblioteca padrão do Python
+- `pywin32` — suporte nativo à barra de tarefas do Windows e conversão local
 - PyInstaller — empacotamento em `.exe`
-
-Nenhuma dependência do Microsoft Word é necessária para o preenchimento (embora o Word seja usado silenciosamente em background caso adicione arquivos `.rtf` na etapa de organização).
 
 ---
 
@@ -74,26 +73,27 @@ Nenhuma dependência do Microsoft Word é necessária para o preenchimento (embo
 ```
 CONTRACTO/
 ├── README.md
-├── Contracto/
-    ├── requirements.txt          # dependências da aplicação
-    ├── requirements-dev.txt      # + dependências usadas apenas pelos testes
-    ├── build_exe.bat             # script de geração do executável
-    ├── app/
-    │   ├── main.py                       # ponto de entrada
-    │   ├── ui/                           # componentes visuais e temas
-    │   ├── models/                       # dataclasses
-    │   ├── services/
-    │   │   ├── pdf_service.py            # leitura/preenchimento genérico de AcroForm
-    │   │   ├── pdfa_converter.py         # orquestração com Ghostscript
-    │   │   ├── rtf_converter.py          # converte rtf via win32com
-    │   │   ├── generator_service.py      # lógica da Etapa 1
-    │   │   ├── stage2_service.py         # lógica da Etapa 2
-    │   │   └── process_folder_service.py # estruturação de diretórios
-    │   ├── utils/                        # formatação, validação e config em %APPDATA%
-    │   └── assets/
-    │       ├── templates/                # PDFs oficiais embutidos
-    │       └── gs/                       # dependências do Ghostscript empacotadas
-    └── tests/                        # 70+ testes unitários e de integração
+├── CHANGELOG_v4.md
+├── requirements.txt          # dependências da aplicação
+├── requirements-dev.txt      # + dependências usadas apenas pelos testes
+├── build_exe.bat             # script de geração do executável
+├── app/
+│   ├── main.py                       # ponto de entrada
+│   ├── version.py                    # versão atual da aplicação (v4.1)
+│   ├── ui/                           # componentes visuais, modais e temas
+│   ├── models/                       # dataclasses
+│   ├── services/
+│   │   ├── pdf_service.py            # leitura/preenchimento genérico de AcroForm
+│   │   ├── pdfa_converter.py         # orquestração com Ghostscript
+│   │   ├── rtf_converter.py          # converte rtf via win32com
+│   │   ├── generator_service.py      # lógica da Etapa 1
+│   │   ├── stage2_service.py         # lógica da Etapa 2
+│   │   └── process_folder_service.py # estruturação de diretórios
+│   ├── utils/                        # formatação, validação e config em %APPDATA%
+│   └── assets/
+│       ├── templates/                # PDFs oficiais embutidos
+│       └── gs/                       # dependências do Ghostscript empacotadas
+└── tests/                        # testes unitários e de integração
 ```
 
 ---
@@ -101,7 +101,6 @@ CONTRACTO/
 ## Instalação (Desenvolvimento)
 
 ```bash
-cd Contracto
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 pip install -r requirements.txt
@@ -130,33 +129,28 @@ A aplicação é dividida em etapas.
 
 ## Modelos oficiais embutidos
 
-Os PDFs reais fornecidos pela CAIXA estão em `app/assets/templates/` e são carregados automaticamente ao abrir a aplicação (`utils/resource_path.py`). Se algum dia a CAIXA emitir uma nova versão desses formulários, basta substituir os arquivos nessa pasta — nenhum código precisa mudar, desde que os nomes dos campos internos continuem os mesmos.
+Os PDFs reais fornecidos pela CAIXA estão em `app/assets/templates/` e são carregados automaticamente ao abrir a aplicação (`utils/resource_path.py`).
 
 ## Mapeamento dos campos do PDF
 
-O preenchimento funciona associando cada dado do participante a um **nome de campo AcroForm** dentro do PDF modelo. Os nomes abaixo foram **confirmados diretamente nos PDFs reais** e estão centralizados em `app/services/generator_service.py`:
+O preenchimento funciona associando cada dado do participante a um **nome de campo AcroForm** dentro do PDF modelo. Os nomes exatos dos campos foram confirmados nos modelos oficiais da CAIXA e estão centralizados em `app/services/generator_service.py`:
 
 ```python
+# 1º Imóvel
 CAMPO_PRIMEIRO_IMOVEL_NOME     = "NOME COMPLETO"
 CAMPO_PRIMEIRO_IMOVEL_CPF      = "CPF"
-CAMPO_PRIMEIRO_IMOVEL_ENDERECO = "ENDEREÇO"
-CAMPO_PRIMEIRO_IMOVEL_DATA     = "DATA"
+CAMPO_PRIMEIRO_IMOVEL_ENDERECO = "ENDERECO"
+CAMPO_PRIMEIRO_IMOVEL_DATA     = "DATA ASSINATURA"
+CAMPO_PRIMEIRO_IMOVEL_LOCAL    = "LOCAL ASSINATURA"
 
-CAMPO_PPE_NOME = "NOME COMPLETO"
-CAMPO_PPE_CPF  = "CPF"
-CAMPO_PPE_DIA  = "DIA"
-CAMPO_PPE_MES  = "MES"   # sem acento
-CAMPO_PPE_ANO  = "ANO"
+# PPE
+CAMPO_PPE_NOME  = "NOME COMPLETO"
+CAMPO_PPE_CPF   = "CPF"
+CAMPO_PPE_DIA   = "DIA"
+CAMPO_PPE_MES   = "MES"
+CAMPO_PPE_ANO   = "ANO"
+CAMPO_PPE_LOCAL = "LOCAL ASSINATURA"
 ```
-
-Para descobrir nomes exatos dos campos de um novo PDF específico, rode:
-
-```bash
-# dentro da pasta app/
-python -c "from services.pdf_service import obter_campos_do_formulario; from pathlib import Path; print(obter_campos_do_formulario(Path('caminho/do/modelo.pdf')))"
-```
-
-Como rede de proteção, o sistema avisa caso o modelo escolhido falte campos.
 
 ## Tratamento de erros
 
@@ -164,11 +158,11 @@ Antes de gerar, o sistema valida:
 - Nome, CPF (cálculo real de DV), Endereço e Data (obrigatórios)
 - Data no formato real e correspondente
 - Permissões de escrita na pasta de saída
-- Disponibilidade do Ghostscript antes de iniciar conversões massivas em lote
+- Disponibilidade do Ghostscript antes de iniciar conversões em lote
 
 ## Testes automatizados
 
-Os testes rodam sem interface gráfica e incluem validação real de geração contra os PDFs nativos. Se a CAIXA atualizar os modelos e algum nome de campo mudar, o `test_modelos_oficiais.py` apontará a falha imediatamente.
+Os testes rodam sem interface gráfica e incluem validação real de geração contra os PDFs nativos.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -177,16 +171,9 @@ python -m unittest discover -s tests -v
 
 ## Gerando o executável (.exe)
 
-Basta rodar o arquivo bat de build na raiz de `Contracto/`:
+Basta rodar o arquivo bat de build na raiz do projeto:
 
 ```cmd
 build_exe.bat
 ```
-O PyInstaller empacotará o Python, a biblioteca CustomTkinter, os PDFs oficiais, e até os binários do Ghostscript para gerar um executável totalmente standalone (portable).
-
-## Arquitetura e decisões de design
-
-- **Baixo acoplamento**: `ui/` só conhece `models/` e chama funções de `services/`.
-- **Preenchimento Genérico**: `pdf_service.py` não sabe o que é "PPE", ele preenche dicionários de campos em AcroForms, o que permite o uso por qualquer outra declaração no futuro.
-- **Configuração Desacoplada**: A V2 desacopla todas as configurações (`settings_frame.py` e `profiles_frame.py`) gravando-as no `%APPDATA%`, o que garante persistência entre updates.
-- **Nomes de arquivo sanitizados** para caracteres inválidos no Windows e lógica de fallback.
+O PyInstaller empacotará o Python, a biblioteca CustomTkinter, os PDFs oficiais, os ícones 3D e os binários do Ghostscript para gerar um executável totalmente standalone (portable).

@@ -53,11 +53,12 @@ def resolver_caminho_formulario(f) -> Path | None:
 
 def obter_mapeamento_formulario(f) -> dict[str, str]:
     """Retorna o mapeamento de campos do formulário, ou o mapeamento padrão caso esteja vazio."""
-    mapeamento_customizado = f.mapeamento.copy() if f.mapeamento else {}
+    if f.mapeamento:
+        return f.mapeamento
 
     nome = f.nome.lower()
     if "ppe" in nome:
-        padrao = {
+        return {
             "NOME COMPLETO": "participante.nome_completo",
             "CPF": "participante.cpf_formatado",
             "DIA": "data.dia",
@@ -66,23 +67,15 @@ def obter_mapeamento_formulario(f) -> dict[str, str]:
             "LOCAL ASSINATURA": "participante.local_assinatura",
         }
     elif "imóvel" in nome or "imovel" in nome or "1" in nome:
-        padrao = {
+        return {
             "NOME COMPLETO": "participante.nome_completo",
-            "DECLARANTE": "participante.nome_completo",
             "CPF": "participante.cpf_formatado",
             "ENDERECO": "participante.endereco",
-            "ENDEREÇO": "participante.endereco",
             "DATA ASSINATURA": "participante.data_assinatura",
-            "DATA": "participante.data_assinatura",
             "LOCAL ASSINATURA": "participante.local_assinatura",
-            "LOCAL": "participante.local_assinatura",
         }
-    else:
-        padrao = {}
 
-    res = padrao.copy()
-    res.update(mapeamento_customizado)
-    return res
+    return {}
 
 
 def validar_antes_de_gerar(
