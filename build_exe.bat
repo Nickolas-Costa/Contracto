@@ -50,6 +50,7 @@ cd app
     --noconsole ^
     --onefile ^
     --name "Contracto_v%APP_VERSION%" ^
+    --icon "assets/icons/app_icon.ico" ^
     --add-data "assets/templates;assets/templates" ^
     --add-data "assets/gs;assets/gs" ^
     --add-data "assets/icons;assets/icons" ^

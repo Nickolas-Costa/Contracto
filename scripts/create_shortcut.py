@@ -37,14 +37,29 @@ def main():
         print(f"[ERRO] Executável não encontrado em {target}")
         sys.exit(1)
         
+    icon_path = os.path.join(projeto_raiz, "app", "assets", "icons", "app_icon.ico")
+    
     try:
         print(f"Criando atalho em {path} apontando para {target}...")
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(path)
         shortcut.Targetpath = target
         shortcut.WorkingDirectory = os.path.dirname(target)
-        shortcut.IconLocation = target
+        if os.path.exists(icon_path):
+            shortcut.IconLocation = f"{icon_path},0"
+        else:
+            shortcut.IconLocation = f"{target},0"
         shortcut.save()
+        
+        # Notificar o Windows para recarregar o cache de ícones da Área de Trabalho
+        try:
+            import ctypes
+            SHCNE_ASSOCCHANGED = 0x08000000
+            SHCNF_IDLIST = 0x0000
+            ctypes.windll.shell32.SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, None, None)
+        except Exception:
+            pass
+
         print("Atalho criado com sucesso na Área de Trabalho!")
     except Exception as e:
         print(f"[AVISO] Não foi possível salvar o atalho na área de trabalho: {e}")
