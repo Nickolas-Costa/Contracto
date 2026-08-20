@@ -17,6 +17,7 @@ from ui.theme import (
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XXLARGE,
     get_font, get_color_primary, get_color_primary_hover, reload_theme, configure_appearance,
+    configurar_autoscroll,
 )
 from utils import config_manager
 
@@ -44,7 +45,8 @@ class SettingsFrame(ctk.CTkFrame):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)  # scrollable area expande
-        self.grid_rowconfigure(1, weight=0)  # footer fixo
+        self.grid_rowconfigure(1, weight=0)  # separador
+        self.grid_rowconfigure(2, weight=0)  # footer fixo
 
         self._config = config_manager.carregar_config()
 
@@ -56,6 +58,7 @@ class SettingsFrame(ctk.CTkFrame):
         )
         self._scroll.grid(row=0, column=0, sticky="nsew")
         self._scroll.grid_columnconfigure(0, weight=1)
+        configurar_autoscroll(self._scroll)
 
         # Referência ao container de conteúdo (seções usam _scroll como parent)
         self._content = self._scroll

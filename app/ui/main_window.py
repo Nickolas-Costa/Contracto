@@ -491,10 +491,10 @@ class MainWindow(ctk.CTk):
                 on_aplicar=self._ao_aplicar_config,
             )
             self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
-            self.container_settings.grid(**card_grid)
+            self.container_settings.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
 
-    def _redimensionar_container_perfis(self, expandir: bool) -> None:
-        """Redimensiona o quadro do container de perfis (expandido na criação/edição, padrão na listagem)."""
+    def _redimensionar_container_perfis(self, expandir: bool = True) -> None:
+        """Redimensiona o quadro do container de perfis (ocupando todo o espaço vertical)."""
         if not self.container_profiles:
             return
 
@@ -506,13 +506,8 @@ class MainWindow(ctk.CTk):
         else:
             margem = 250
 
-        if expandir:
-            # Manter a largura estritamente controlada pelas configurações do usuário (padx=margem)
-            # e expandir apenas a altura verticalmente (sticky="nsew")
-            self.container_profiles.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
-        else:
-            # Restaurar layout e margens padrão da listagem de perfis
-            self.container_profiles.grid(row=2, column=0, sticky="ew", padx=margem, pady=SPACING_LARGE)
+        # Ocupa todo o espaço vertical da tela (sticky="nsew") mantendo a largura configurada (padx=margem)
+        self.container_profiles.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
 
     def _ao_aplicar_config(self) -> None:
         """Callback chamado após salvar configurações (com modal de carregamento)."""
