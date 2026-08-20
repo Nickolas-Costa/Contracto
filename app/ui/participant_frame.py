@@ -136,6 +136,18 @@ class ParticipantFrame(ctk.CTkFrame):
 
         return erros
 
+    def limpar_campos(self) -> None:
+        """Limpa todos os campos deste quadro e redefine as bordas para o estilo padrão neutro."""
+        self.entry_nome.delete(0, "end")
+        self.entry_nome.configure(border_color=COLOR_BORDER)
+
+        self.entry_cpf.delete(0, "end")
+        self.entry_cpf.configure(border_color=COLOR_BORDER)
+
+        if self.entry_endereco is not None:
+            self.entry_endereco.delete(0, "end")
+            self.entry_endereco.configure(border_color=COLOR_BORDER)
+
     def atualizar_indice(self, indice: int) -> None:
         self.indice = indice
         self.label_titulo.configure(text=self._titulo(indice))

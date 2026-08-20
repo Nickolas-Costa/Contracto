@@ -28,8 +28,11 @@ def main():
     
     # Caminho do executável compilado
     projeto_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    sys.path.insert(0, os.path.join(projeto_raiz, "app"))
-    import version
+    import importlib.util
+    version_path = os.path.join(projeto_raiz, "app", "version.py")
+    spec = importlib.util.spec_from_file_location("version", version_path)
+    version = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(version)
     
     target = os.path.join(projeto_raiz, "app", "dist", f"Contracto_v{version.__version__}.exe")
     

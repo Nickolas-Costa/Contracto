@@ -6,11 +6,17 @@ cria a estrutura de pastas padronizada e orquestra a conversão em lote
 para PDF/A-2b, renomeando os arquivos conforme a padronização.
 """
 
+import threading
 from pathlib import Path
-from typing import TypedDict
+from typing import Callable, Optional, TypedDict
 
 from models.participant import Participant
-from services.pdfa_converter import ResultadoLote, converter_lote
+from services.pdfa_converter import (
+    ProcessoCanceladoError,
+    ResultadoConversao,
+    ResultadoLote,
+    converter_lote,
+)
 from utils.ghostscript_setup import esta_disponivel
 from services.process_folder_service import criar_estrutura_pastas
 from utils.filename_utils import nome_documento_processo
@@ -21,6 +27,7 @@ class ResultadoEtapa2(TypedDict):
     pasta_pdfa: Path
     resultado_lote: ResultadoLote
     mensagem: str
+    cancelado: bool
 
 
 def executar_etapa2(
@@ -29,6 +36,8 @@ def executar_etapa2(
     arquivos_gerados_etapa1: list[Path],
     documentos_externos: dict[str, Path],
     formato_saida: str = "PDF/A-2b",
+    cancel_event: Optional[threading.Event] = None,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> ResultadoEtapa2:
     """
     Executa a segunda etapa do processo:
@@ -38,6 +47,15 @@ def executar_etapa2(
     4. Executa a conversão em lote para PDF/A-2b ou copia os arquivos (modo PDF).
     5. Remove os arquivos originais da Etapa 1 em caso de sucesso (limpeza).
     """
+    if cancel_event is not None and cancel_event.is_set():
+        return {
+            "sucesso": False,
+            "pasta_pdfa": pasta_base,
+            "resultado_lote": ResultadoLote(),
+            "mensagem": "Processo cancelado pelo usuário.",
+            "cancelado": True,
+        }
+
     usar_pdfa = formato_saida == "PDF/A-2b"
 
     if usar_pdfa and not esta_disponivel():
@@ -50,6 +68,7 @@ def executar_etapa2(
                 "Para gerar documentos em conformidade com PDF/A, é necessário instalar "
                 "o Ghostscript.\nFaça o download em: https://ghostscript.com/releases/gsdnld.html"
             ),
+            "cancelado": False,
         }
 
     # 1. Criar estrutura de pastas
@@ -61,6 +80,16 @@ def executar_etapa2(
             "pasta_pdfa": pasta_base,
             "resultado_lote": ResultadoLote(),
             "mensagem": f"Erro ao criar estrutura de pastas:\n{exc}",
+            "cancelado": False,
+        }
+
+    if cancel_event is not None and cancel_event.is_set():
+        return {
+            "sucesso": False,
+            "pasta_pdfa": pasta_pdfa,
+            "resultado_lote": ResultadoLote(),
+            "mensagem": "Processo cancelado pelo usuário.",
+            "cancelado": True,
         }
 
     lote_conversao: list[tuple[Path, Path]] = []
@@ -76,62 +105,87 @@ def executar_etapa2(
     
     # 3. Preparar documentos externos selecionados
     arquivos_temporarios_rtf = []
-    for tipo_documento, caminho_origem in documentos_externos.items():
-        if caminho_origem.exists():
-            nome_padronizado = nome_documento_processo(tipo_documento, participantes)
-            caminho_saida = pasta_pdfa / nome_padronizado
-            
-            caminho_para_gs = caminho_origem
-            # Se for RTF, converter primeiro para PDF num local temporário
-            if caminho_origem.suffix.lower() == ".rtf":
-                caminho_tmp = Path(tempfile.gettempdir()) / f"temp_{nome_padronizado}"
+    try:
+        for tipo_documento, caminho_origem in documentos_externos.items():
+            if cancel_event is not None and cancel_event.is_set():
+                raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
+            if caminho_origem.exists():
+                nome_padronizado = nome_documento_processo(tipo_documento, participantes)
+                caminho_saida = pasta_pdfa / nome_padronizado
+                
+                caminho_para_gs = caminho_origem
+                # Se for RTF, converter primeiro para PDF num local temporário
+                if caminho_origem.suffix.lower() == ".rtf":
+                    caminho_tmp = Path(tempfile.gettempdir()) / f"temp_{nome_padronizado}"
+                    try:
+                        converter_rtf_para_pdf(caminho_origem, caminho_tmp)
+                        caminho_para_gs = caminho_tmp
+                        arquivos_temporarios_rtf.append(caminho_tmp)
+                    except Exception as exc:
+                        return {
+                            "sucesso": False,
+                            "pasta_pdfa": pasta_pdfa,
+                            "resultado_lote": ResultadoLote(),
+                            "mensagem": f"Erro ao converter RTF para PDF: {exc}",
+                            "cancelado": False,
+                        }
+
+                lote_conversao.append((caminho_para_gs, caminho_saida))
+
+        if not lote_conversao:
+            return {
+                "sucesso": True,
+                "pasta_pdfa": pasta_pdfa,
+                "resultado_lote": ResultadoLote(),
+                "mensagem": "Nenhum arquivo para processar.",
+                "cancelado": False,
+            }
+
+        # 4. Converter para PDF/A ou copiar (modo PDF)
+        if usar_pdfa:
+            resultado_lote = converter_lote(
+                lote_conversao,
+                "PDF/A-2b",
+                cancel_event=cancel_event,
+                on_file_progress=on_progress,
+            )
+        else:
+            # Modo PDF: apenas copiar os arquivos para a pasta de destino
+            import shutil
+            resultado_lote = ResultadoLote()
+            total_arqs = len(lote_conversao)
+            for idx_arq, (origem, destino) in enumerate(lote_conversao, start=1):
+                if cancel_event is not None and cancel_event.is_set():
+                    raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
+                if on_progress:
+                    on_progress(idx_arq, total_arqs, origem.name)
+
                 try:
-                    converter_rtf_para_pdf(caminho_origem, caminho_tmp)
-                    caminho_para_gs = caminho_tmp
-                    arquivos_temporarios_rtf.append(caminho_tmp)
+                    shutil.copy2(str(origem), str(destino))
+                    resultado_lote.convertidos.append(
+                        ResultadoConversao(caminho_saida=destino, perfil="PDF", validado=True)
+                    )
                 except Exception as exc:
-                    return {
-                        "sucesso": False,
-                        "pasta_pdfa": pasta_pdfa,
-                        "resultado_lote": ResultadoLote(),
-                        "mensagem": f"Erro ao converter RTF para PDF: {exc}",
-                    }
+                    resultado_lote.erros.append(str(exc))
 
-            lote_conversao.append((caminho_para_gs, caminho_saida))
-
-    if not lote_conversao:
+    except ProcessoCanceladoError:
         return {
-            "sucesso": True,
+            "sucesso": False,
             "pasta_pdfa": pasta_pdfa,
             "resultado_lote": ResultadoLote(),
-            "mensagem": "Nenhum arquivo para processar.",
+            "mensagem": "Processo cancelado pelo usuário.",
+            "cancelado": True,
         }
-
-    # 4. Converter para PDF/A ou copiar (modo PDF)
-    if usar_pdfa:
-        resultado_lote = converter_lote(lote_conversao, "PDF/A-2b")
-    else:
-        # Modo PDF: apenas copiar os arquivos para a pasta de destino
-        import shutil
-        resultado_lote = ResultadoLote()
-        for origem, destino in lote_conversao:
-            try:
-                shutil.copy2(str(origem), str(destino))
-                # Criar um resultado simples de sucesso
-                from services.pdfa_converter import ResultadoConversao
-                resultado_lote.convertidos.append(
-                    ResultadoConversao(caminho_saida=destino, perfil="PDF", validado=True)
-                )
-            except Exception as exc:
-                resultado_lote.erros.append(str(exc))
-    
-    # Limpar os RTFs convertidos temporariamente
-    for tmp_file in arquivos_temporarios_rtf:
-        if tmp_file.exists():
-            try:
-                tmp_file.unlink()
-            except OSError:
-                pass
+    finally:
+        # Limpar os RTFs convertidos temporariamente
+        for tmp_file in arquivos_temporarios_rtf:
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except OSError:
+                    pass
 
     # Se teve sucessos, limpar os arquivos da Etapa 1 que foram convertidos
     if resultado_lote.convertidos:
@@ -150,6 +204,7 @@ def executar_etapa2(
         "pasta_pdfa": pasta_pdfa,
         "resultado_lote": resultado_lote,
         "mensagem": mensagem,
+        "cancelado": False,
     }
 
 

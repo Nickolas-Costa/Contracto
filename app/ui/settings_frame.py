@@ -43,18 +43,41 @@ class SettingsFrame(ctk.CTkFrame):
         self.on_aplicar = on_aplicar  # callback para atualizar a UI principal
 
         self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)  # scrollable area expande
+        self.grid_rowconfigure(1, weight=0)  # footer fixo
 
         self._config = config_manager.carregar_config()
+
+        # Container scrollable para todo o conteúdo
+        self._scroll = ctk.CTkScrollableFrame(
+            self, fg_color="transparent",
+            scrollbar_button_color=COLOR_SURFACE_VARIANT,
+            scrollbar_button_hover_color=COLOR_BORDER,
+        )
+        self._scroll.grid(row=0, column=0, sticky="nsew")
+        self._scroll.grid_columnconfigure(0, weight=1)
+
+        # Referência ao container de conteúdo (seções usam _scroll como parent)
+        self._content = self._scroll
 
         self._construir_header()
         self._construir_secao_aparencia()
         self._construir_secao_cor()
         self._construir_secao_local()
         self._construir_secao_quadros()
+        self._construir_secao_diagnostico_reparo()
+        self._construir_secao_tutorial()
+
+        # Separador visual antes do footer
+        sep = ctk.CTkFrame(self, height=1, fg_color=COLOR_BORDER)
+        sep.grid(row=1, column=0, sticky="ew", pady=(SPACING_SMALL, 0))
+
+        # Footer fixo com botões (fora do scroll)
         self._construir_botoes()
 
+
     def _construir_header(self) -> None:
-        header = ctk.CTkFrame(self, fg_color="transparent")
+        header = ctk.CTkFrame(self._content, fg_color="transparent")
         header.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="ew")
 
         ctk.CTkLabel(
@@ -71,7 +94,7 @@ class SettingsFrame(ctk.CTkFrame):
         ).pack(anchor="w", pady=(SPACING_SMALL, 0))
 
     def _construir_secao_aparencia(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
@@ -101,7 +124,7 @@ class SettingsFrame(ctk.CTkFrame):
             ctk.set_appearance_mode(valor.lower())
 
     def _construir_secao_cor(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
@@ -208,7 +231,7 @@ class SettingsFrame(ctk.CTkFrame):
 
 
     def _construir_secao_local(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=4, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
@@ -225,7 +248,7 @@ class SettingsFrame(ctk.CTkFrame):
         self.entry_local.insert(0, self._config.get("local_padrao", "CAMOCIM-CE"))
 
     def _construir_secao_quadros(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=5, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
@@ -256,10 +279,81 @@ class SettingsFrame(ctk.CTkFrame):
         if self.on_aplicar:
             self.on_aplicar()
 
-    def _construir_secao_tutorial(self) -> None:
-        secao = ctk.CTkFrame(self, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+    def _construir_secao_diagnostico_reparo(self) -> None:
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=6, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+
+        ctk.CTkLabel(secao, text="Diagnóstico e Manutenção do Sistema", font=get_font(FONT_SIZE_H3, "bold"),
+                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+
+        ctk.CTkLabel(
+            secao,
+            text="Caso ocorram travamentos, lentidão ou falhas na automação, execute o reparo automático para encerrar processos travados em segundo plano, limpar resíduos temporários e validar os componentes do sistema.",
+            font=get_font(FONT_SIZE_BODY),
+            text_color=COLOR_TEXT_SECONDARY,
+            wraplength=600,
+            justify="left",
+        ).pack(anchor="w", padx=SPACING_LARGE)
+
+        ctk.CTkButton(
+            secao,
+            text="🔧 Diagnosticar e Reparar Sistema",
+            fg_color=COLOR_SURFACE_VARIANT,
+            text_color=COLOR_TEXT,
+            border_width=1,
+            border_color=COLOR_BORDER,
+            hover_color=COLOR_BORDER,
+            corner_radius=RADIUS_BUTTON,
+            height=38,
+            command=self._confirmar_e_reparar_sistema,
+        ).pack(padx=SPACING_LARGE, pady=(SPACING_MEDIUM, SPACING_LARGE), anchor="w")
+
+    def _confirmar_e_reparar_sistema(self) -> None:
+        from ui.confirm_modal import ConfirmModal
+
+        ConfirmModal(
+            self.winfo_toplevel(),
+            titulo="Diagnosticar e Reparar Sistema",
+            subtitulo="Esta ação irá encerrar eventuais processos travados em segundo plano (como Word ou Ghostscript), limpar arquivos temporários e verificar a integridade dos modelos e ferramentas do sistema.\n\nDeseja prosseguir?",
+            on_confirm=self._executar_reparo,
+            texto_confirmar="Sim, Executar Reparo",
+            texto_cancelar="Cancelar",
+        )
+
+    def _executar_reparo(self) -> None:
+        import threading
+        from ui.loading_modal import LoadingModal
+        from ui.alert_modal import AlertModal
+        from services.system_repair_service import executar_diagnostico_e_reparo
+
+        loading = LoadingModal(self.winfo_toplevel(), message="Executando diagnóstico e reparo...")
+
+        def _tarefa():
+            import time
+            time.sleep(0.5)
+            resultado = executar_diagnostico_e_reparo()
+            self.after(0, lambda: _ao_concluir(resultado))
+
+        def _ao_concluir(resultado):
+            loading.dismiss()
+            mensagens = resultado.detalhes.copy()
+            if resultado.alertas:
+                mensagens.extend([f"[ALERTA] {a}" for a in resultado.alertas])
+
+            AlertModal(
+                self.winfo_toplevel(),
+                titulo=resultado.titulo,
+                subtitulo="Relatório de verificação e manutenção do sistema:",
+                erros=mensagens,
+            )
+
+        threading.Thread(target=_tarefa, daemon=True).start()
+
+    def _construir_secao_tutorial(self) -> None:
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+                             border_width=1, border_color=COLOR_BORDER)
+        secao.grid(row=7, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
         ctk.CTkLabel(secao, text="Guia do Usuário e Ajuda", font=get_font(FONT_SIZE_H3, "bold"),
                      text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
@@ -282,7 +376,7 @@ class SettingsFrame(ctk.CTkFrame):
 
     def _construir_botoes(self) -> None:
         frame = ctk.CTkFrame(self, fg_color="transparent")
-        frame.grid(row=7, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+        frame.grid(row=2, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame.grid_columnconfigure(1, weight=1)
 
         ctk.CTkButton(

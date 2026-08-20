@@ -22,11 +22,19 @@ Arquitetura:
 """
 
 import subprocess
+import sys
 import tempfile
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable, Optional
 
 from utils.ghostscript_setup import localizar_ghostscript
+
+
+class ProcessoCanceladoError(Exception):
+    """Exceção levantada quando a operação é cancelada pelo usuário."""
+    pass
 
 
 class PdfAConversionError(Exception):
@@ -149,11 +157,14 @@ def converter_para_pdfa(
             str(caminho_entrada),
         ]
 
+        flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         resultado = subprocess.run(
             comando,
             capture_output=True,
             text=True,
             timeout=120,  # 2 minutos de timeout por arquivo
+            stdin=subprocess.DEVNULL,
+            creationflags=flags,
         )
 
         if resultado.returncode != 0:
@@ -302,19 +313,30 @@ def converter_e_validar(
 def converter_lote(
     arquivos: list[tuple[Path, Path]],
     perfil: str = "PDF/A-2b",
+    cancel_event: Optional[threading.Event] = None,
+    on_file_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> ResultadoLote:
     """Converte múltiplos arquivos PDF para PDF/A.
 
     Args:
         arquivos: lista de tuplas (caminho_entrada, caminho_saida).
         perfil: perfil PDF/A desejado (padrão: "PDF/A-2b").
+        cancel_event: evento opcional para solicitar cancelamento imediato.
+        on_file_progress: callback opcional (índice, total, nome_arquivo).
 
     Returns:
         ResultadoLote com os resultados individuais e erros.
     """
     resultado_lote = ResultadoLote()
+    total = len(arquivos)
 
-    for caminho_entrada, caminho_saida in arquivos:
+    for idx, (caminho_entrada, caminho_saida) in enumerate(arquivos, start=1):
+        if cancel_event is not None and cancel_event.is_set():
+            raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
+        if on_file_progress is not None:
+            on_file_progress(idx, total, caminho_entrada.name)
+
         try:
             resultado = converter_e_validar(caminho_entrada, caminho_saida, perfil)
             resultado_lote.convertidos.append(resultado)

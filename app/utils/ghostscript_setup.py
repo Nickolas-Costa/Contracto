@@ -77,11 +77,15 @@ def obter_versao_ghostscript(caminho_gs: Path | None = None) -> str | None:
         return None
 
     try:
+        import sys
+        flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         resultado = subprocess.run(
             [str(caminho_gs), "--version"],
             capture_output=True,
             text=True,
             timeout=10,
+            stdin=subprocess.DEVNULL,
+            creationflags=flags,
         )
         if resultado.returncode == 0:
             return resultado.stdout.strip()

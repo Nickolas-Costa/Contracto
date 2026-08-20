@@ -17,11 +17,12 @@ class DatePickerPopup(ctk.CTkToplevel):
     o sábado.
     """
 
-    def __init__(self, master, target_entry: ctk.CTkEntry, anchor_widget: ctk.CTkBaseClass | None = None):
+    def __init__(self, master, target_entry: ctk.CTkEntry, anchor_widget: ctk.CTkBaseClass | None = None, on_select=None):
         super().__init__(master)
 
         self.target_entry = target_entry
         self.anchor_widget = anchor_widget or target_entry
+        self.on_select = on_select
         
         self.overrideredirect(True)
         self.attributes("-topmost", True)
@@ -159,5 +160,21 @@ class DatePickerPopup(ctk.CTkToplevel):
         data_str = f"{day:02d}/{self.month:02d}/{self.year}"
         self.target_entry.delete(0, "end")
         self.target_entry.insert(0, data_str)
+        try:
+            self.target_entry.event_generate("<KeyRelease>")
+            self.target_entry.event_generate("<FocusOut>")
+        except Exception:
+            pass
+        if hasattr(self.target_entry, "_entry"):
+            try:
+                self.target_entry._entry.event_generate("<KeyRelease>")
+                self.target_entry._entry.event_generate("<FocusOut>")
+            except Exception:
+                pass
+        if self.on_select:
+            try:
+                self.on_select(data_str)
+            except Exception:
+                pass
         self.grab_release()
         self.destroy()

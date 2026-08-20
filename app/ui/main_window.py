@@ -18,6 +18,7 @@ import customtkinter as ctk
 from models.participant import Participant
 from services.generator_service import gerar_documentos, validar_antes_de_gerar
 from services.pdf_service import PdfServiceError
+from services.pdfa_converter import ProcessoCanceladoError
 from services.stage2_service import executar_etapa2
 from ui.document_frame import DocumentFrame
 from ui.participant_frame import ParticipantFrame
@@ -609,8 +610,17 @@ class MainWindow(ctk.CTk):
         self.update_idletasks()
 
     def _aplicar_perfil_ativo(self) -> None:
-        """Os modelos agora são carregados a partir do perfil no momento da geração."""
-        pass
+        """Atualiza a UI da Etapa 2 para refletir o perfil ativo (documentos extras e formato de saída)."""
+        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        perfil = obter_perfil(perfil_nome)
+
+        # Atualizar documentos extras da Etapa 2 se o frame já existir
+        if hasattr(self, 'document_frame') and perfil:
+            self.document_frame.carregar_documentos(perfil.documentos_extras)
+
+        # Atualizar label de formato de saída se existir
+        if hasattr(self, 'label_formato_etapa2') and perfil:
+            self.label_formato_etapa2.configure(text=f"Formato de saída: {perfil.formato_saida}")
 
     # ------------------------------------------------------------------
     # ETAPA 1: Preenchimento e Validação
@@ -692,7 +702,10 @@ class MainWindow(ctk.CTk):
         self.btn_calendar = ctk.CTkButton(
             frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
             fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
-            command=lambda: DatePickerPopup(self, self.entry_data, anchor_widget=self.btn_calendar)
+            command=lambda: DatePickerPopup(
+                self, self.entry_data, anchor_widget=self.btn_calendar,
+                on_select=lambda d: self._validar_data_realtime()
+            )
         )
         self.btn_calendar.grid(row=0, column=1, padx=(SPACING_SMALL, 0))
 
@@ -1091,13 +1104,27 @@ class MainWindow(ctk.CTk):
         self.botao_finalizar.configure(state="disabled")
         self.botao_voltar.configure(state="disabled")
 
-        self._loading2 = LoadingModal(self, "Gerando e organizando documentos...")
+        self._cancel_event = threading.Event()
+        self._loading2 = LoadingModal(
+            self,
+            message="Processando documentos...",
+            submessage="(Etapa 1/3: Gerando formulários preenchidos)",
+            on_cancel=self._ao_solicitar_cancelamento,
+        )
 
         thread = threading.Thread(
             target=self._finalizar_em_background,
-            args=(documentos_externos, formato_saida), daemon=True,
+            args=(documentos_externos, formato_saida),
+            daemon=True,
         )
         thread.start()
+
+    def _ao_solicitar_cancelamento(self) -> None:
+        """Sinaliza cancelamento seguro para a thread de processamento."""
+        if hasattr(self, "_cancel_event"):
+            self._cancel_event.set()
+        if hasattr(self, "_loading2"):
+            self._loading2.update_message("Interrompendo processo...", "Cancelando tarefas e limpando arquivos...")
 
     def _finalizar_em_background(self, documentos_externos, formato_saida):
         try:
@@ -1105,22 +1132,52 @@ class MainWindow(ctk.CTk):
             perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
             perfil = obter_perfil(perfil_nome)
 
+            def _on_progresso_etapa1(idx, total, nome_doc):
+                if hasattr(self, "_loading2"):
+                    self.after(0, lambda: self._loading2.atualizar_etapa(1, 3, f"Gerando documento {idx}/{total}"))
+
             resultado_geracao = gerar_documentos(
-                self.participantes_etapa1, perfil, self.pasta_saida,
+                self.participantes_etapa1,
+                perfil,
+                self.pasta_saida,
+                cancel_event=self._cancel_event,
+                on_progress=_on_progresso_etapa1,
             )
             self.arquivos_gerados_etapa1 = resultado_geracao.arquivos_gerados
 
             # 2. Executar a conversão para PDF/A e organização de pastas
+            if hasattr(self, "_loading2"):
+                self.after(0, lambda: self._loading2.atualizar_etapa(2, 3, "Convertendo arquivos para PDF/A"))
+
+            def _on_progresso_etapa2(idx, total, nome_doc):
+                if hasattr(self, "_loading2"):
+                    self.after(0, lambda: self._loading2.atualizar_etapa(2, 3, f"Convertendo documento {idx}/{total}"))
+
             resultado = executar_etapa2(
                 pasta_base=self.pasta_saida,
                 participantes=self.participantes_etapa1,
                 arquivos_gerados_etapa1=self.arquivos_gerados_etapa1,
                 documentos_externos=documentos_externos,
                 formato_saida=formato_saida,
+                cancel_event=self._cancel_event,
+                on_progress=_on_progresso_etapa2,
             )
+
+            if hasattr(self, "_loading2"):
+                self.after(0, lambda: self._loading2.atualizar_etapa(3, 3, "Concluindo processo"))
+
             self.after(0, lambda: self._ao_concluir_etapa2(resultado))
+        except ProcessoCanceladoError:
+            self.after(0, lambda: self._ao_cancelado_etapa2())
         except Exception as exc:
             self.after(0, lambda: self._ao_erro_etapa2(exc))
+
+    def _ao_cancelado_etapa2(self):
+        if hasattr(self, "_loading2"):
+            self._loading2.dismiss()
+        self.botao_finalizar.configure(state="normal")
+        self.botao_voltar.configure(state="normal")
+        show_toast(self, "Processo cancelado pelo usuário.", "warning")
 
     def _ao_concluir_etapa2(self, resultado):
         if hasattr(self, "_loading2"):
@@ -1128,6 +1185,10 @@ class MainWindow(ctk.CTk):
 
         self.botao_finalizar.configure(state="normal")
         self.botao_voltar.configure(state="normal")
+
+        if resultado.get("cancelado"):
+            show_toast(self, "Processo cancelado pelo usuário.", "warning")
+            return
 
         if resultado["sucesso"]:
             msg = f"{resultado['mensagem']}\nEstrutura: {resultado['pasta_pdfa']}"
@@ -1153,7 +1214,10 @@ class MainWindow(ctk.CTk):
             self._loading2.dismiss()
         self.botao_finalizar.configure(state="normal")
         self.botao_voltar.configure(state="normal")
-        show_toast(self, f"Erro: {str(exc)}", "error")
+        if isinstance(exc, ProcessoCanceladoError):
+            show_toast(self, "Processo cancelado pelo usuário.", "warning")
+        else:
+            show_toast(self, f"Erro: {str(exc)}", "error")
 
     def _resetar_aplicacao(self) -> None:
         self._mostrar_tela("inicio")
@@ -1161,14 +1225,18 @@ class MainWindow(ctk.CTk):
             self._remover_participante(frame)
 
         primeiro = self.participant_frames[0]
-        primeiro.entry_nome.delete(0, "end")
-        primeiro.entry_cpf.delete(0, "end")
-        if primeiro.entry_endereco:
-            primeiro.entry_endereco.delete(0, "end")
-        primeiro.validar_campos()
+        primeiro.limpar_campos()
             
         self.entry_data.delete(0, "end")
+        self.entry_data.configure(border_color=COLOR_BORDER)
+
+        local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
+        self.entry_local.delete(0, "end")
+        self.entry_local.insert(0, local_padrao)
+        self.entry_local.configure(border_color=COLOR_BORDER)
         
+        self.entry_pasta_saida.configure(border_color=COLOR_BORDER)
+
         self.document_frame.limpar()
 
     @staticmethod

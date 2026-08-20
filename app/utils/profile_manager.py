@@ -16,7 +16,7 @@ from typing import Optional
 
 _PROFILES_FILE_NAME = "contracto_profiles.json"
 
-PERFIL_PADRAO_NOME = "Padrão"
+PERFIL_PADRAO_NOME = "MCMV"
 
 
 @dataclass
@@ -106,27 +106,49 @@ def carregar_perfis() -> list[Perfil]:
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []
 
-    # Garantir que o perfil padrão sempre existe
+    # Migração: renomear perfil "Padrão" para "MCMV" se existir
+    for p in perfis:
+        if p.nome == "Padrão":
+            p.nome = PERFIL_PADRAO_NOME  # "MCMV"
+
+    _formularios_builtin = [
+        FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
+        FormularioModelo(nome="1º Imóvel", caminho="", geracao="por_participante", mapeamento={}),
+    ]
+
+    # Garantir que o perfil MCMV sempre existe
     if not any(p.nome == PERFIL_PADRAO_NOME for p in perfis):
         perfis.insert(0, Perfil(
             nome=PERFIL_PADRAO_NOME,
-            formularios=[
-                FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
-                FormularioModelo(nome="1º Imóvel", caminho="", geracao="por_participante", mapeamento={})
-            ],
-            documentos_extras=_documentos_extras_padrao()
+            formularios=list(_formularios_builtin),
+            documentos_extras=_documentos_extras_padrao(),
+        ))
+
+    # Garantir que o perfil SBPE sempre existe
+    if not any(p.nome == "SBPE" for p in perfis):
+        perfis.append(Perfil(
+            nome="SBPE",
+            formularios=list(_formularios_builtin),
+            documentos_extras=_documentos_extras_sbpe(),
         ))
 
     return perfis
 
 def _documentos_extras_padrao() -> list[DocumentoExtra]:
-    """Retorna a lista de documentos extras (Etapa 2) padrão por compatibilidade."""
+    """Retorna a lista de documentos extras (Etapa 2) padrão para o perfil MCMV."""
     return [
         DocumentoExtra("Contrato", "CONTRATO"),
         DocumentoExtra("Planilha de Evolução", "PLANILHA DE EVOLUCAO"),
         DocumentoExtra("Protocolo da Planilha", "PROTOCOLO DA PLANILHA"),
         DocumentoExtra("Aviso de Crédito", "AVISO DE CREDITO"),
         DocumentoExtra("Origem de Recursos", "ORIGEM DE RECURSOS"),
+    ]
+
+
+def _documentos_extras_sbpe() -> list[DocumentoExtra]:
+    """Retorna a lista de documentos extras para o perfil SBPE (MCMV + Cédula de Crédito)."""
+    return _documentos_extras_padrao() + [
+        DocumentoExtra("Cédula de Crédito", "CEDULA DE CREDITO"),
     ]
 
 

@@ -18,7 +18,7 @@ _DEFAULTS = {
     "aparencia": "light",           # "system", "light", "dark"
     "cor_destaque": "#005CA9",      # Azul Institucional
     "formato_saida": "PDF/A-2b",    # "PDF/A-2b" ou "PDF"
-    "perfil_ativo": "Padrão",
+    "perfil_ativo": "MCMV",
     "local_padrao": "CAMOCIM-CE",
     "tamanho_quadros": "Médio",     # "Pequeno", "Médio", "Grande"
     "primeira_execucao": True,
@@ -52,6 +52,12 @@ def carregar_config() -> dict[str, Any]:
             config.update(salvo)
         except (json.JSONDecodeError, OSError):
             pass
+
+    # Migração: perfil "Padrão" renomeado para "MCMV"
+    if config.get("perfil_ativo") == "Padrão":
+        config["perfil_ativo"] = "MCMV"
+        salvar_config(config)
+
     return config
 
 

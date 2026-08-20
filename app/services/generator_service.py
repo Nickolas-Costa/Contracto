@@ -12,11 +12,14 @@ A manipulação "mecânica" do PDF (abrir, preencher campos, salvar) fica
 inteiramente em `pdf_service.py`. Este arquivo não importa pypdf.
 """
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable, Optional
 
 from models.participant import Participant
 from services.pdf_service import preencher_formulario
+from services.pdfa_converter import ProcessoCanceladoError
 from utils.cpf_validator import formatar_cpf, validar_cpf
 from utils.date_formatter import DataInvalidaError, separar_data_por_extenso, validar_data
 from utils.filename_utils import nome_documento_individual
@@ -158,12 +161,22 @@ def gerar_documentos(
     participantes: list[Participant],
     perfil: Perfil,
     pasta_saida: Path,
+    cancel_event: Optional[threading.Event] = None,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> ResultadoGeracao:
     """Gera os PDFs configurados no Perfil dinamicamente."""
     resultado = ResultadoGeracao()
     nomes_de_arquivo_usados: set[str] = set()
 
-    for formulario in perfil.formularios:
+    total_formularios = len(perfil.formularios)
+
+    for idx, formulario in enumerate(perfil.formularios, start=1):
+        if cancel_event is not None and cancel_event.is_set():
+            raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
+        if on_progress:
+            on_progress(idx, total_formularios, formulario.nome)
+
         campos_ausentes_form: set[str] = set()
         caminho_modelo = resolver_caminho_formulario(formulario)
 
@@ -177,6 +190,9 @@ def gerar_documentos(
         alvos = participantes if formulario.geracao == "por_participante" else [participantes[0]]
         
         for participante in alvos:
+            if cancel_event is not None and cancel_event.is_set():
+                raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
             # Constrói o dicionário de valores baseado no mapeamento do formulário
             valores_pdf = {}
             for campo_pdf, var_sistema in mapeamento.items():
