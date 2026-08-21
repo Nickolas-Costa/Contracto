@@ -104,8 +104,12 @@ class SettingsFrame(ctk.CTkFrame):
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
-        ctk.CTkLabel(secao, text="Aparência", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+        from ui.theme import get_icon
+
+        ctk.CTkLabel(
+            secao, text=" Aparência", image=get_icon("globe", (18, 18)), compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
 
         ctk.CTkLabel(secao, text="Tema do aplicativo", font=get_font(FONT_SIZE_BODY),
                      text_color=COLOR_TEXT_SECONDARY).pack(anchor="w", padx=SPACING_LARGE)
@@ -127,8 +131,12 @@ class SettingsFrame(ctk.CTkFrame):
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
-        ctk.CTkLabel(secao, text="Cor de Destaque", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+        from ui.theme import get_icon
+
+        ctk.CTkLabel(
+            secao, text=" Cor de Destaque", image=get_icon("success", (18, 18)), compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
 
         ctk.CTkLabel(secao, text="Escolha a cor principal do aplicativo",
                      font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
@@ -232,8 +240,12 @@ class SettingsFrame(ctk.CTkFrame):
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=3, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
-        ctk.CTkLabel(secao, text="Local Padrão", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+        from ui.theme import get_icon
+
+        ctk.CTkLabel(
+            secao, text=" Local Padrão", image=get_icon("location", (18, 18)), compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
 
         ctk.CTkLabel(secao, text="Local de assinatura pré-preenchido para novos participantes",
                      font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
@@ -249,8 +261,12 @@ class SettingsFrame(ctk.CTkFrame):
                              border_width=1, border_color=COLOR_BORDER)
         secao.grid(row=4, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
-        ctk.CTkLabel(secao, text="Tamanho dos Quadros", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+        from ui.theme import get_icon
+
+        ctk.CTkLabel(
+            secao, text=" Tamanho dos Quadros", image=get_icon("ratio", (18, 18)), compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
 
         ctk.CTkLabel(secao, text="Largura horizontal ocupada pelas Etapas 1, 2 e aba de Perfis",
                      font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
@@ -285,9 +301,13 @@ class SettingsFrame(ctk.CTkFrame):
             justify="left",
         ).pack(anchor="w", padx=SPACING_LARGE)
 
+        from ui.theme import get_icon
+
         ctk.CTkButton(
             secao,
-            text="↺ Restaurar Padrões de Fábrica",
+            text=" Restaurar Padrões de Fábrica",
+            image=get_icon("back", (16, 16)),
+            compound="left",
             fg_color=COLOR_SURFACE_VARIANT,
             text_color=COLOR_TEXT,
             border_width=1,
@@ -343,9 +363,13 @@ class SettingsFrame(ctk.CTkFrame):
             justify="left",
         ).pack(anchor="w", padx=SPACING_LARGE)
 
+        from ui.theme import get_icon
+
         ctk.CTkButton(
             secao,
-            text="🔧 Diagnosticar e Reparar Sistema",
+            text=" Diagnosticar e Reparar Sistema",
+            image=get_icon("settings", (16, 16)),
+            compound="left",
             fg_color=COLOR_SURFACE_VARIANT,
             text_color=COLOR_TEXT,
             border_width=1,
@@ -402,9 +426,13 @@ class SettingsFrame(ctk.CTkFrame):
         frame.grid(row=2, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame.grid_columnconfigure(0, weight=1)
 
+        from ui.theme import get_icon
+
         self.btn_salvar = ctk.CTkButton(
             frame,
-            text="SALVAR CONFIGURAÇÕES",
+            text=" SALVAR CONFIGURAÇÕES",
+            image=get_icon("save", (18, 18)),
+            compound="left",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             hover_color=get_color_primary_hover(),

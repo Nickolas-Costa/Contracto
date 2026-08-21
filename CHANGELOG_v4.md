@@ -1,5 +1,27 @@
 # Contracto - Release Notes
 
+## 🎨 Renovação Visual, Design System e Loaders Dinâmicos (v4.3)
+
+* **Design System Formal & Catálogo Semântico (`DESIGN_SYSTEM.md`):**
+  * Especificação completa de tokens de cor, tipografia Segoe UI, espaçamentos e raios de borda.
+  * Catálogo de 30 ícones vetoriais em alta resolução (128x128 com canal alfa).
+  * Suporte nativo a temas Claro (`_dark.png`) e Escuro (`_light.png`) via `theme.get_icon(name, size)` com cache em memória.
+* **Sistema de Loaders Animados em Rotação Circular:**
+  * Implementação de player animado nativo de GIF (`AnimatedGifLabel`) em `app/ui/animated_loader.py`.
+  * Rotação dinâmica circular entre 10 modelos de spinners GIF a cada nova ação de carregamento do usuário.
+* **Centralização Unificada de Versão:**
+  * Ponto único de verdade em `app/version.py` (`__version__ = "4.3"`).
+  * Título da aplicação, scripts de compilação PyInstaller (`build_exe.bat`), gerador de pacote zip (`create_dist_package.py`) e criador de atalhos (`create_shortcut.py`) consomem dinamicamente a versão configurada.
+* **Renovação de Ícones em Toda a Interface:**
+  * Toolbar: Início, Perfis, Ajuda, Configurações.
+  * Etapa 1: Calendário, Destino/Pasta, Participantes, Gerar e Avançar.
+  * Etapa 2: Documentos extras com ícones semânticos de contrato, pasta e botão finalizar.
+  * Perfis: Novo Perfil, Ativar, Editar, Duplicar e Excluir.
+  * Configurações: Aparência, Cor de Destaque, Local Padrão, Tamanho dos Quadros, Restauração de Padrões, Diagnóstico/Reparo e Salvar.
+  * Modais: Alerta, Confirmação e Guia Rápido com novos ícones vetoriais.
+
+---
+
 ## 🚀 Novidades e Melhorias (v4.2)
 
 * **Execução Headless do Ghostscript:** Processamento 100% em segundo plano (`CREATE_NO_WINDOW`), eliminando qualquer janela preta do prompt de comando durante conversões PDF/A.

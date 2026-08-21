@@ -1,10 +1,10 @@
-# Contracto (v4.2)
+# Contracto (v4.3)
 
 Aplicativo desktop (Windows) em Python para preenchimento automatizado de declarações habitacionais e conversão de documentos contratuais para o padrão de conformidade **PDF/A-2b**:
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
 - **Declaração de Primeiro Imóvel**
 
-A **Versão 4.2** traz avanços significativos de estabilidade, usabilidade e personalização: execução 100% headless do motor Ghostscript (sem janelas de prompt), novo modal de carregamento em etapas com cancelamento seguro via botão "Parar Processo", ferramenta integrada de diagnóstico e reparo do backend, novos perfis padrão (**MCMV** e **SBPE**) com recurso de duplicação rápida, atualização em tempo real na troca de perfil, paleta de alto contraste para tema escuro e guia rápido otimizado sem rolagem desnecessária.
+A **Versão 4.3** apresenta uma renovação visual completa com Design System formal ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)), novo catálogo com 30 ícones vetoriais de alto contraste com adaptação automática a temas Claro e Escuro, sistema de 10 loaders animados (GIF spinners) em rotação dinâmica, centralização de versão em ponto único e refinamentos em toda a interface gráfica.
 
 ---
 
@@ -23,11 +23,14 @@ O **Contracto** é uma ferramenta independente desenvolvida para auxílio na pre
 
 ---
 
-## 🚀 Novidades da Versão 4.2
+## 🚀 Novidades da Versão 4.3
 
+- **Design System & Catálogo Semântico de Ícones**: Documentação completa e integração de 30 novos ícones vetoriais adaptativos de alto contraste (`_dark` e `_light`).
+- **Loaders Animados Dinâmicos em Rotação**: Sistema com 10 animações GIF de carregamento que variam sequencialmente a cada nova ação do usuário.
+- **Centralização de Versão**: Sistema unificado onde todas as telas, scripts de build, criação de atalhos e pacotes de distribuição consomem automaticamente a versão de `app/version.py`.
 - **Execução Headless do Ghostscript**: Processamento em segundo plano sem abertura de janelas de prompt do CMD na máquina do usuário.
-- **Modal com Etapas e Cancelamento Seguro**: Visualização clara do progresso da geração (`Etapa 1/2: Gerando documento 1/2`) com botão de parada e limpeza automática de arquivos residuais.
-- **Diagnóstico e Reparo do Backend**: Botão dedicado em Configurações para encerrar processos órfãos (`WINWORD.EXE`, `gswin64c.exe`), remover arquivos temporários e validar a integridade dos modelos e ferramentas.
+- **Modal com Etapas e Cancelamento Seguro**: Visualização clara do progresso da geração com botão de parada e limpeza automática de arquivos residuais.
+- **Diagnóstico e Reparo do Backend**: Botão dedicado em Configurações para encerrar processos órfãos, remover arquivos temporários e validar a integridade dos modelos e ferramentas.
 - **Perfis Padrão "MCMV" e "SBPE" com Duplicação**: Seleção direta de perfis específicos para cada linha de crédito e botão "Duplicar" para clonar configurações com 1 clique.
 - **Atualização Dinâmica de Perfil**: Mudança de perfil na Etapa 2 atualiza imediatamente os documentos extras sem necessidade de reabrir a janela.
 - **Aprimoramentos Visuais e Dark Mode**: Ícones adaptativos de alto contraste, eliminação de artefatos de fundo branco e aplicação de configurações visuais apenas ao salvar.
@@ -68,14 +71,16 @@ CONTRACTO/
 ├── LICENSE                             # Licença MIT
 ├── README.md                           # Documentação principal do projeto
 ├── CHANGELOG_v4.md                     # Histórico detalhado de alterações
+├── DESIGN_SYSTEM.md                    # Especificação do Design System e catálogo de ícones
 ├── requirements.txt                    # Dependências de execução
 ├── requirements-dev.txt                # Dependências de desenvolvimento e testes
 ├── build_exe.bat                       # Script de compilação do executável (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão atual do sistema (v4.2)
+│   ├── version.py                      # Versão centralizada do sistema (v4.3)
 │   ├── ui/                             # Componentes visuais, telas, temas e modais
 │   │   ├── alert_modal.py              # Modal de alertas informativos e erros
+│   │   ├── animated_loader.py          # Player animado nativo de GIF e rotação de loaders
 │   │   ├── confirm_modal.py            # Modal de confirmações com resposta binária
 │   │   ├── date_picker.py              # Calendário pop-up ancorado para seleção de datas
 │   │   ├── document_frame.py           # Gerenciamento de documentos extras (Etapa 2)
@@ -85,7 +90,7 @@ CONTRACTO/
 │   │   ├── participant_frame.py        # Quadro de participantes com validação em tempo real
 │   │   ├── profiles_frame.py           # Gestão, criação e duplicação de perfis
 │   │   ├── settings_frame.py           # Configurações visuais e diagnóstico de sistema
-│   │   ├── theme.py                    # Sistema de cores, fontes e estilo dinâmico
+│   │   ├── theme.py                    # Sistema de cores, fontes, ícones adaptativos e estilo dinâmico
 │   │   └── welcome_modal.py            # Guia rápido de instruções
 │   ├── models/                         # Modelos de dados e dataclasses
 │   │   └── participant.py              # Entidade do participante do contrato
@@ -108,12 +113,14 @@ CONTRACTO/
 │   │   ├── profile_manager.py          # Gerenciamento e duplicação de perfis
 │   │   └── resource_path.py            # Resolução de caminhos em ambiente PyInstaller
 │   └── assets/                         # Recursos embutidos
-│       ├── icons/                      # Ícones da aplicação e barra superior
+│       ├── icons/                      # 30 ícones vetoriais em alta resolução (Light/Dark)
+│       ├── loaders/                    # 10 animações GIF de carregamento dinâmico
 │       ├── templates/                  # PDFs modelos oficiais (PPE e 1º Imóvel)
 │       └── gs/                         # Binários do Ghostscript para empacotamento
 ├── scripts/                            # Scripts auxiliares de build e distribuição
 │   ├── create_dist_package.py          # Geração do pacote zip de distribuição
 │   ├── create_shortcut.py              # Criação do atalho na Área de Trabalho
+│   ├── process_assets.py               # Rasterizador vetorial de ícones e organizador de loaders
 │   └── setup_gs.py                     # Preparação do Ghostscript para o PyInstaller
 └── tests/                              # Suíte de testes automatizados (unittest)
     ├── smoke_test_gui.py
@@ -167,4 +174,4 @@ Para gerar o executável autônomo, execute o script de compilação:
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.2.zip`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.3.zip`.

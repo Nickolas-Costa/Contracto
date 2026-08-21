@@ -68,7 +68,9 @@ class ProfilesFrame(ctk.CTkFrame):
         ).grid(row=1, column=0, sticky="w", pady=(SPACING_SMALL, 0))
 
         ctk.CTkButton(
-            self.header_perfis, text="+ Novo Perfil", width=120,
+            self.header_perfis, text=" + Novo Perfil",
+            image=get_icon("save", (16, 16)), compound="left",
+            width=135,
             fg_color=COLOR_SURFACE, text_color=get_color_primary_text(),
             border_width=1, border_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT,
@@ -132,7 +134,8 @@ class ProfilesFrame(ctk.CTkFrame):
         
         ctk.CTkLabel(header_form, text="Formulários Dinâmicos:", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w")
-        ctk.CTkButton(header_form, text="Adicionar Formulário PDF", width=160, corner_radius=RADIUS_BUTTON,
+        ctk.CTkButton(header_form, text=" Adicionar Formulário PDF", image=get_icon("document", (14, 14)),
+                      compound="left", width=190, corner_radius=RADIUS_BUTTON,
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_formulario).grid(row=0, column=1, sticky="e")
 
@@ -147,7 +150,8 @@ class ProfilesFrame(ctk.CTkFrame):
         
         ctk.CTkLabel(header_extras, text="Documentos Extras (Etapa 2):", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w")
-        ctk.CTkButton(header_extras, text="Adicionar Documento", width=160, corner_radius=RADIUS_BUTTON,
+        ctk.CTkButton(header_extras, text=" Adicionar Documento", image=get_icon("contract", (14, 14)),
+                      compound="left", width=175, corner_radius=RADIUS_BUTTON,
                       fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
                       command=self._adicionar_documento_extra).grid(row=0, column=1, sticky="e")
 
@@ -161,12 +165,14 @@ class ProfilesFrame(ctk.CTkFrame):
                         pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_btns.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkButton(frame_btns, text="Cancelar", fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
+        ctk.CTkButton(frame_btns, text=" Cancelar", image=get_icon("back", (14, 14)), compound="left",
+                      fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
                       border_width=1, border_color=COLOR_BORDER, hover_color=COLOR_SURFACE_VARIANT,
                       corner_radius=RADIUS_BUTTON, command=self._fechar_editor
                       ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
 
-        ctk.CTkButton(frame_btns, text="Salvar Perfil", fg_color=get_color_primary(), text_color="#FFFFFF",
+        ctk.CTkButton(frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16)), compound="left",
+                      fg_color=get_color_primary(), text_color="#FFFFFF",
                       hover_color="#004785", corner_radius=RADIUS_BUTTON,
                       command=self._salvar_edicao
                       ).grid(row=0, column=1, sticky="ew")
@@ -190,12 +196,12 @@ class ProfilesFrame(ctk.CTkFrame):
             card.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
             card.grid_columnconfigure(1, weight=1)
 
-            icon_text = "★" if perfil.nome == perfil_ativo else "○"
-            icon_color = get_color_primary_text() if perfil.nome == perfil_ativo else COLOR_TEXT_SECONDARY
-
-            ctk.CTkLabel(card, text=icon_text, font=get_font(FONT_SIZE_H2),
-                         text_color=icon_color).grid(row=0, column=0, rowspan=2,
-                                                      padx=SPACING_LARGE, pady=SPACING_MEDIUM)
+            icone_card = "save" if perfil.nome == perfil_ativo else "bookmark"
+            ctk.CTkLabel(
+                card,
+                text="",
+                image=get_icon(icone_card, (20, 20)),
+            ).grid(row=0, column=0, rowspan=2, padx=SPACING_LARGE, pady=SPACING_MEDIUM)
 
             ctk.CTkLabel(card, text=perfil.nome, font=get_font(FONT_SIZE_H3, "bold"),
                          text_color=COLOR_TEXT).grid(row=0, column=1, sticky="w", pady=(SPACING_MEDIUM, 0))
@@ -214,20 +220,23 @@ class ProfilesFrame(ctk.CTkFrame):
             frame_acoes.grid(row=0, column=2, rowspan=2, padx=SPACING_LARGE, pady=SPACING_MEDIUM)
 
             if perfil.nome != perfil_ativo:
-                ctk.CTkButton(frame_acoes, text="Ativar", width=55,
+                ctk.CTkButton(frame_acoes, text=" Ativar", image=get_icon("success", (13, 13)), compound="left",
+                              width=75,
                               fg_color=get_color_primary(), text_color="#FFFFFF", hover_color="#004785",
                               corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_CAPTION),
                               command=lambda n=perfil.nome: self._ativar_perfil(n)
                               ).pack(side="left", padx=2)
 
-            ctk.CTkButton(frame_acoes, text="Editar", width=55,
+            ctk.CTkButton(frame_acoes, text=" Editar", image=get_icon("form", (13, 13)), compound="left",
+                          width=75,
                           fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
                           hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
                           font=get_font(FONT_SIZE_CAPTION),
                           command=lambda p=perfil: self._abrir_editor(p)
                           ).pack(side="left", padx=2)
 
-            ctk.CTkButton(frame_acoes, text="Duplicar", width=62,
+            ctk.CTkButton(frame_acoes, text=" Duplicar", image=get_icon("grid_array", (13, 13)), compound="left",
+                          width=85,
                           fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
                           hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
                           font=get_font(FONT_SIZE_CAPTION),
@@ -235,7 +244,7 @@ class ProfilesFrame(ctk.CTkFrame):
                           ).pack(side="left", padx=2)
 
             if perfil.nome != PERFIL_PADRAO_NOME:
-                ctk.CTkButton(frame_acoes, text="✕", width=30,
+                ctk.CTkButton(frame_acoes, text="", image=get_icon("trash", (14, 14)), width=30,
                               fg_color="transparent", text_color=COLOR_ERROR,
                               hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
                               command=lambda n=perfil.nome: self._excluir(n)

@@ -54,6 +54,7 @@ cd app
     --add-data "assets/templates;assets/templates" ^
     --add-data "assets/gs;assets/gs" ^
     --add-data "assets/icons;assets/icons" ^
+    --add-data "assets/loaders;assets/loaders" ^
     main.py
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar o executavel!

@@ -46,7 +46,15 @@ class DocumentFrame(ctk.CTkFrame):
             self._icons[doc.nome_padrao] = icon_label
             self._widgets_linha.append(icon_label)
 
-            lbl = ctk.CTkLabel(self, text=f"{doc.rotulo}:", anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT)
+            lbl = ctk.CTkLabel(
+                self,
+                text=f" {doc.rotulo}:",
+                image=get_icon("contract", (16, 16)),
+                compound="left",
+                anchor="w",
+                font=get_font(FONT_SIZE_BODY),
+                text_color=COLOR_TEXT,
+            )
             lbl.grid(row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
             self._widgets_linha.append(lbl)
 
@@ -58,8 +66,10 @@ class DocumentFrame(ctk.CTkFrame):
 
             btn = ctk.CTkButton(
                 self,
-                text="Selecionar",
-                width=80,
+                text=" Selecionar",
+                image=get_icon("folder", (14, 14)),
+                compound="left",
+                width=105,
                 corner_radius=RADIUS_BUTTON,
                 fg_color=COLOR_SURFACE_VARIANT,
                 text_color=COLOR_TEXT,
