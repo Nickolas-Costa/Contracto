@@ -38,20 +38,26 @@ class ParticipantFrame(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
 
         self.label_titulo = ctk.CTkLabel(
-            self, text=self._titulo(indice), font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary_text()
+            self,
+            text=f" {self._titulo(indice)}",
+            image=get_icon("person", (18, 18)),
+            compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"),
+            text_color=get_color_primary_text(),
         )
         self.label_titulo.grid(row=0, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
         if on_remover is not None:
             botao_remover = ctk.CTkButton(
                 self,
-                text="✕",
-                width=24,
-                height=24,
+                text="",
+                image=get_icon("trash", (16, 16)),
+                width=28,
+                height=28,
                 fg_color="transparent",
                 text_color=COLOR_TEXT_SECONDARY,
                 hover_color=COLOR_SURFACE_VARIANT,
-                font=get_font(FONT_SIZE_BODY, "bold"),
+                corner_radius=RADIUS_BUTTON,
                 command=lambda: self.on_remover(self),
             )
             botao_remover.grid(row=0, column=2, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, 0), sticky="e")

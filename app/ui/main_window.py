@@ -167,22 +167,20 @@ class MainWindow(ctk.CTk):
             pass
 
     # ==================================================================
+    # ==================================================================
     # TOOLBAR
     # ==================================================================
     def _load_icons(self) -> None:
-        try:
-            base = Path(__file__).parent.parent / "assets" / "icons"
-            self.icon_home = ctk.CTkImage(Image.open(base / "home.png"), size=(20, 20))
-            self.icon_profiles = ctk.CTkImage(Image.open(base / "profiles.png"), size=(20, 20))
-            self.icon_settings = ctk.CTkImage(Image.open(base / "settings.png"), size=(20, 20))
-            self.icon_calendar = ctk.CTkImage(Image.open(base / "calendar.png"), size=(20, 20))
-            self.icon_help = ctk.CTkImage(Image.open(base / "help.png"), size=(20, 20))
-        except Exception:
-            self.icon_home = None
-            self.icon_profiles = None
-            self.icon_settings = None
-            self.icon_calendar = None
-            self.icon_help = None
+        self.icon_home = get_icon("home", (20, 20))
+        self.icon_profiles = get_icon("profiles", (20, 20))
+        self.icon_settings = get_icon("settings", (20, 20))
+        self.icon_calendar = get_icon("calendar", (18, 18))
+        self.icon_help = get_icon("help", (20, 20))
+        self.icon_advance = get_icon("advance", (20, 20))
+        self.icon_back = get_icon("back", (18, 18))
+        self.icon_success = get_icon("success", (20, 20))
+        self.icon_folder = get_icon("folder", (18, 18))
+        self.icon_add_user = get_icon("participants", (18, 18))
 
     def _construir_toolbar(self) -> None:
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
@@ -626,7 +624,9 @@ class MainWindow(ctk.CTk):
 
         self.botao_avancar = ctk.CTkButton(
             self.container_etapa1,
-            text="AVANÇAR ETAPA ➔",
+            text="GERAR DOCUMENTOS E AVANÇAR ",
+            image=self.icon_advance,
+            compound="right",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             text_color="#FFFFFF",
@@ -663,7 +663,8 @@ class MainWindow(ctk.CTk):
         self._usando_scroll = False
 
         self.botao_adicionar = ctk.CTkButton(
-            self.secao_participantes, text="+ Adicionar Participante",
+            self.secao_participantes, text=" Adicionar Participante",
+            image=self.icon_add_user, compound="left",
             fg_color=COLOR_SURFACE, text_color=get_color_primary_text(),
             border_width=1, border_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
@@ -738,7 +739,7 @@ class MainWindow(ctk.CTk):
         self.entry_pasta_saida.bind("<KeyRelease>", lambda e: self._ao_editar_pasta_saida())
         self.entry_pasta_saida.bind("<FocusOut>", lambda e: self._ao_editar_pasta_saida())
 
-        ctk.CTkButton(frame_dir, text="...", width=40, corner_radius=RADIUS_BUTTON,
+        ctk.CTkButton(frame_dir, text="", image=self.icon_folder, width=40, corner_radius=RADIUS_BUTTON,
                       fg_color=COLOR_BORDER, text_color=COLOR_TEXT,
                       hover_color=COLOR_TEXT_DISABLED, command=self._selecionar_pasta_saida
                       ).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
@@ -1047,7 +1048,8 @@ class MainWindow(ctk.CTk):
         frame_botoes.grid_columnconfigure(1, weight=1)
 
         self.botao_voltar = ctk.CTkButton(
-            frame_botoes, text="Voltar",
+            frame_botoes, text=" Voltar",
+            image=self.icon_back, compound="left",
             fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
             border_width=1, border_color=COLOR_BORDER,
             hover_color=COLOR_SURFACE_VARIANT,
@@ -1058,7 +1060,9 @@ class MainWindow(ctk.CTk):
 
         self.botao_finalizar = ctk.CTkButton(
             frame_botoes,
-            text="FINALIZAR PROCESSO",
+            text=" FINALIZAR PROCESSO",
+            image=self.icon_success,
+            compound="left",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),
             text_color="#FFFFFF",

@@ -88,9 +88,8 @@ class ConfirmModal:
         icon_box.grid_propagate(False)
         ctk.CTkLabel(
             icon_box,
-            text="?",
-            font=theme.get_font(22, "bold"),
-            text_color=("#0284C7", "#38BDF8"),
+            text="",
+            image=theme.get_icon("alert_circle", (24, 24)),
         ).pack(expand=True)
 
         lbl_title = ctk.CTkLabel(

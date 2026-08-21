@@ -110,29 +110,29 @@ class WelcomeModal:
                 "1. Preencha os Dados dos Participantes",
                 "Informe Nome Completo e CPF. O primeiro participante inclui o endereço. O sistema valida os dígitos do CPF em tempo real.",
                 "Passo 1",
-                "👤",
+                "person",
             ),
             (
                 "2. Informe a Data e Local da Assinatura",
                 "Selecione a data no calendário ancorado e informe a cidade de assinatura. Todos os formulários usam esse padrão.",
                 "Passo 2",
-                "📅",
+                "calendar",
             ),
             (
                 "3. Gere os Documentos com Um Clique",
                 "Clique em 'GERAR DOCUMENTOS E AVANÇAR'. O aplicativo preenche os formulários PDF e organiza a estrutura de pastas.",
                 "Passo 3",
-                "⚡",
+                "advance",
             ),
             (
                 "4. Personalize Cores e Perfis de Modelos",
                 "Alterne cores nas Configurações e gerencie ou duplique perfis (MCMV, SBPE ou personalizados) para atender aos seus diferentes tipos de contratos.",
                 "Dica",
-                "⚙️",
+                "settings",
             ),
         ]
 
-        for i, (titulo_p, desc_p, tag_p, icone_p) in enumerate(passos):
+        for i, (titulo_p, desc_p, tag_p, icone_name) in enumerate(passos):
             card_p = ctk.CTkFrame(
                 conteudo,
                 fg_color=theme.COLOR_SURFACE_VARIANT,
@@ -150,7 +150,7 @@ class WelcomeModal:
             )
             ibox.grid(row=0, column=0, padx=12, pady=10)
             ibox.grid_propagate(False)
-            ctk.CTkLabel(ibox, text=icone_p, font=theme.get_font(18)).pack(expand=True)
+            ctk.CTkLabel(ibox, text="", image=theme.get_icon(icone_name, (20, 20))).pack(expand=True)
 
             tbox = ctk.CTkFrame(card_p, fg_color="transparent")
             tbox.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=10)

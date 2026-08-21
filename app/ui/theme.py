@@ -241,3 +241,42 @@ def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
         _agendar_verificacao()
     except Exception:
         pass
+
+
+# ---------------------------------------------------------------------------
+# Ícones Adaptativos (Design System)
+# ---------------------------------------------------------------------------
+
+_ICONS_CACHE = {}
+
+
+def get_icon(name: str, size: tuple[int, int] = (20, 20)) -> ctk.CTkImage:
+    """Retorna um CTkImage com suporte a tema claro e escuro a partir dos ativos de app/assets/icons/.
+    
+    Busca automaticamente por {name}_dark.png (usado em Light mode) e {name}_light.png (usado em Dark mode).
+    """
+    key = (name, size)
+    if key in _ICONS_CACHE:
+        return _ICONS_CACHE[key]
+
+    from PIL import Image
+    from utils.resource_path import caminho_recurso
+
+    dark_path = caminho_recurso("assets", "icons", f"{name}_dark.png")
+    light_path = caminho_recurso("assets", "icons", f"{name}_light.png")
+    standard_path = caminho_recurso("assets", "icons", f"{name}.png")
+
+    if dark_path.exists() and light_path.exists():
+        img_dark = Image.open(dark_path)
+        img_light = Image.open(light_path)
+        ctk_img = ctk.CTkImage(light_image=img_dark, dark_image=img_light, size=size)
+    elif standard_path.exists():
+        img = Image.open(standard_path)
+        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+    else:
+        img = Image.new("RGBA", size, (0, 0, 0, 0))
+        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+
+    _ICONS_CACHE[key] = ctk_img
+    return ctk_img
+

@@ -79,9 +79,8 @@ class AlertModal:
         icon_box.grid_propagate(False)
         ctk.CTkLabel(
             icon_box,
-            text="⚠",
-            font=theme.get_font(22, "bold"),
-            text_color=("#B45309", "#FBBF24"),
+            text="",
+            image=theme.get_icon("warning", (24, 24)),
         ).pack(expand=True)
 
         info = ctk.CTkFrame(header, fg_color="transparent")

@@ -1,11 +1,16 @@
-import math
+"""
+Modal de carregamento dinâmico e profissional da aplicação Contracto.
+Utiliza animações GIF rotativas em alta definição para proporcionar uma experiência fluida.
+"""
+
 from typing import Callable, Optional
 import customtkinter as ctk
 from ui.theme import *
+from ui.animated_loader import AnimatedGifLabel
 
 
 class LoadingModal:
-    """Modal de carregamento reutilizável com overlay escuro translúcido, indicação de etapas e botão de parar opcional."""
+    """Modal de carregamento reutilizável com overlay escuro translúcido, indicação de etapas e loaders animados em rotação."""
 
     def __init__(
         self,
@@ -28,9 +33,9 @@ class LoadingModal:
 
         # Dimensões dinâmicas conforme a presença do botão de parar ou submensagem
         if on_cancel:
-            w, h = 380, 200
+            w, h = 380, 210
         else:
-            w, h = 340, 160
+            w, h = 340, 170
 
         offset_x = 110
         offset_y = 35
@@ -71,16 +76,9 @@ class LoadingModal:
         )
         self.frame.pack(fill="both", expand=True, padx=2, pady=2)
 
-        # Canvas para o spinner
-        self.canvas_size = 36
-        self.canvas = ctk.CTkCanvas(
-            self.frame,
-            width=self.canvas_size,
-            height=self.canvas_size,
-            bg=self.card._apply_appearance_mode(COLOR_SURFACE),
-            highlightthickness=0,
-        )
-        self.canvas.pack(pady=(SPACING_MEDIUM, SPACING_SMALL))
+        # Loader animado com GIF rotativo em alta resolução
+        self.spinner = AnimatedGifLabel(self.frame, size=(46, 46))
+        self.spinner.pack(pady=(SPACING_LARGE, SPACING_SMALL))
 
         self.label = ctk.CTkLabel(
             self.frame,
@@ -124,10 +122,6 @@ class LoadingModal:
         self.card.deiconify()
         self.card.lift()
 
-        self._angle = 0
-        self._is_running = True
-        self._animate()
-
     def _ao_clicar_cancelar(self) -> None:
         if self._cancel_requested:
             return
@@ -137,40 +131,7 @@ class LoadingModal:
         if self.on_cancel:
             self.on_cancel()
 
-    def _animate(self):
-        if not self._is_running:
-            return
-
-        try:
-            self.canvas.delete("all")
-            cx = self.canvas_size / 2
-            cy = self.canvas_size / 2
-            radius = 11
-
-            for i in range(8):
-                angle_rad = math.radians(self._angle + (i * 45))
-                dot_x = cx + radius * math.cos(angle_rad)
-                dot_y = cy + radius * math.sin(angle_rad)
-
-                size = 2 + (i / 8) * 3.5
-                color = COLOR_PRIMARY
-
-                self.canvas.create_oval(
-                    dot_x - size,
-                    dot_y - size,
-                    dot_x + size,
-                    dot_y + size,
-                    fill=color,
-                    outline="",
-                )
-
-            self._angle = (self._angle + 10) % 360
-            if self._is_running and hasattr(self, "card") and self.card.winfo_exists():
-                self.card.after(30, self._animate)
-        except Exception:
-            pass
-
-    def update_message(self, message: str, submessage: str = ""):
+    def update_message(self, message: str, submessage: str = "") -> None:
         try:
             if hasattr(self, "label") and self.label.winfo_exists():
                 self.label.configure(text=message)
@@ -187,13 +148,17 @@ class LoadingModal:
         except Exception:
             pass
 
-    def atualizar_etapa(self, etapa: int, total: int, descricao: str):
+    def atualizar_etapa(self, etapa: int, total: int, descricao: str) -> None:
         """Atualiza a mensagem de progresso com formato amigável em etapas (ex: Etapa 1/4)."""
         sub = f"(Etapa {etapa}/{total}: {descricao})"
         self.update_message("Processando documentos...", sub)
 
-    def dismiss(self):
-        self._is_running = False
+    def dismiss(self) -> None:
+        try:
+            if hasattr(self, "spinner") and self.spinner.winfo_exists():
+                self.spinner.stop_animation()
+        except Exception:
+            pass
         try:
             if hasattr(self, "card") and self.card.winfo_exists():
                 self.card.destroy()
