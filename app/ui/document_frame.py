@@ -43,7 +43,7 @@ class DocumentFrame(ctk.CTkFrame):
         for linha, doc in enumerate(lista_extras):
             # Status icon
             icon_label = ctk.CTkLabel(self, text="○", font=get_font(FONT_SIZE_H3), text_color=COLOR_TEXT_DISABLED, width=20)
-            icon_label.grid(row=linha, column=0, padx=(SPACING_LARGE, 0), pady=SPACING_SMALL, sticky="e")
+            icon_label.grid(row=linha, column=0, padx=(SPACING_LARGE, 0), pady=SPACING_XSMALL, sticky="e")
             self._icons[doc.nome_padrao] = icon_label
             self._widgets_linha.append(icon_label)
 
@@ -56,11 +56,11 @@ class DocumentFrame(ctk.CTkFrame):
                 font=get_font(FONT_SIZE_BODY),
                 text_color=COLOR_TEXT,
             )
-            lbl.grid(row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
+            lbl.grid(row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL, sticky="w")
             self._widgets_linha.append(lbl)
 
-            entry = ctk.CTkEntry(self, width=320, placeholder_text="Nenhum arquivo selecionado", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
-            entry.grid(row=linha, column=2, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
+            entry = ctk.CTkEntry(self, width=280, placeholder_text="Nenhum arquivo selecionado", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+            entry.grid(row=linha, column=2, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="ew")
             entry.configure(state="disabled")
             self._entries[doc.nome_padrao] = entry
             self._widgets_linha.append(entry)
@@ -77,11 +77,11 @@ class DocumentFrame(ctk.CTkFrame):
                 hover_color=COLOR_BORDER,
                 command=lambda tp=doc.nome_padrao, rt=doc.rotulo: self._selecionar_documento(tp, rt),
             )
-            btn.grid(row=linha, column=3, padx=(SPACING_SMALL, SPACING_LARGE), pady=SPACING_SMALL)
+            btn.grid(row=linha, column=3, padx=(SPACING_SMALL, SPACING_LARGE), pady=SPACING_XSMALL)
             self._widgets_linha.append(btn)
 
         padding_lbl = ctk.CTkLabel(self, text="", height=2)
-        padding_lbl.grid(row=len(lista_extras), column=0, pady=(0, SPACING_SMALL))
+        padding_lbl.grid(row=len(lista_extras), column=0, pady=(0, SPACING_XSMALL))
         self._widgets_linha.append(padding_lbl)
 
     def _selecionar_documento(self, tipo_padrao: str, rotulo: str) -> None:

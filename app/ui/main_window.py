@@ -577,10 +577,8 @@ class MainWindow(ctk.CTk):
                 if loading:
                     self.after(600, lambda: loading.dismiss())
 
-        self.after(120, _executar_aplicacao)
-
     def _calcular_margem_responsiva(self) -> int:
-        """Calcula a margem lateral (padx) responsiva e inteligente para os quadros."""
+        """Calcula a margem lateral (padx) responsiva para manter a largura dos quadros 30-50% mais compacta."""
         try:
             largura = self.winfo_width()
         except Exception:
@@ -590,25 +588,16 @@ class MainWindow(ctk.CTk):
             largura = 1200
             
         tamanho = config_manager.obter("tamanho_quadros")
-        
-        # Modo tela estreita (snap lado a lado do Windows ou telas compactas < 960px)
-        if largura < 960:
-            return 16
-        elif largura < 1220:
-            if tamanho == "Pequeno":
-                return 120
-            elif tamanho == "Grande":
-                return 24
-            else:
-                return 60  # Médio
+        if tamanho == "Pequeno":
+            largura_alvo = 560
+        elif tamanho == "Grande":
+            largura_alvo = 880
         else:
-            # Modo tela cheia / alta resolução
-            if tamanho == "Pequeno":
-                return 260
-            elif tamanho == "Grande":
-                return 30
-            else:
-                return 120  # Médio (5% a 10% mais amplo e espaçoso)
+            largura_alvo = 720  # Médio (Padrão: 35-50% mais compacto)
+
+        # Se a tela for menor que a largura alvo + respiro mínimo, ajusta até 16px
+        margem = max(16, (largura - largura_alvo) // 2)
+        return margem
 
     def _atualizar_tamanho_janela(self) -> None:
         margem = self._calcular_margem_responsiva()
@@ -1060,7 +1049,7 @@ class MainWindow(ctk.CTk):
 
         # Área rolável da Etapa 2
         self.scroll_etapa2 = ctk.CTkScrollableFrame(
-            self.container_etapa2, fg_color="transparent", label_text="", height=540
+            self.container_etapa2, fg_color="transparent", label_text="", height=490
         )
         self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_etapa2.grid_columnconfigure(0, weight=1)
@@ -1074,11 +1063,11 @@ class MainWindow(ctk.CTk):
             border_width=1,
             border_color=COLOR_BORDER,
         )
-        self.card_forms_dinamicos.grid(row=0, column=0, padx=SPACING_SMALL, pady=(0, SPACING_MEDIUM), sticky="ew")
+        self.card_forms_dinamicos.grid(row=0, column=0, padx=SPACING_SMALL, pady=(0, SPACING_SMALL), sticky="ew")
         self.card_forms_dinamicos.grid_columnconfigure(0, weight=1)
 
         frame_header_forms = ctk.CTkFrame(self.card_forms_dinamicos, fg_color="transparent")
-        frame_header_forms.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_MEDIUM, 0), sticky="ew")
+        frame_header_forms.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, 0), sticky="ew")
         frame_header_forms.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -1111,10 +1100,10 @@ class MainWindow(ctk.CTk):
             font=get_font(FONT_SIZE_BODY),
             text_color=COLOR_TEXT_SECONDARY,
             justify="left",
-        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_SMALL), sticky="w")
+        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_XSMALL), sticky="w")
 
         self.frame_checkboxes_forms = ctk.CTkFrame(self.card_forms_dinamicos, fg_color="transparent")
-        self.frame_checkboxes_forms.grid(row=2, column=0, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM), sticky="ew")
+        self.frame_checkboxes_forms.grid(row=2, column=0, padx=SPACING_LARGE, pady=(0, SPACING_SMALL), sticky="ew")
         self.frame_checkboxes_forms.grid_columnconfigure(0, weight=1)
         self._vars_forms_dinamicos: dict[str, ctk.BooleanVar] = {}
         self._carregar_formularios_dinamicos_etapa2()
@@ -1134,17 +1123,17 @@ class MainWindow(ctk.CTk):
             self.card_docs_extras, text=" Adicionar documentos extras (opcional)",
             image=get_icon("contract", (18, 18)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
-        ).grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_MEDIUM, SPACING_SMALL), sticky="w")
+        ).grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_XSMALL), sticky="w")
 
         ctk.CTkLabel(
             self.card_docs_extras,
             text="Arquivos selecionados aqui serão renomeados e organizados.",
             text_color=COLOR_TEXT_SECONDARY, justify="left",
             font=get_font(FONT_SIZE_BODY),
-        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM), sticky="w")
+        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_SMALL), sticky="w")
 
         self.document_frame = DocumentFrame(self.card_docs_extras, fg_color="transparent", border_width=0)
-        self.document_frame.grid(row=2, column=0, padx=SPACING_SMALL, pady=(0, SPACING_SMALL), sticky="ew")
+        self.document_frame.grid(row=2, column=0, padx=SPACING_SMALL, pady=(0, SPACING_XSMALL), sticky="ew")
         if perfil:
             self.document_frame.carregar_documentos(perfil.documentos_extras)
 
@@ -1218,7 +1207,7 @@ class MainWindow(ctk.CTk):
                 border_color=COLOR_BORDER,
                 corner_radius=RADIUS_BUTTON,
             )
-            chk.grid(row=idx, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="w")
+            chk.grid(row=idx, column=0, padx=0, pady=SPACING_XSMALL, sticky="w")
 
     def _ao_clicar_finalizar(self) -> None:
         if not self.pasta_saida:
