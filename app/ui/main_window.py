@@ -132,15 +132,19 @@ class MainWindow(ctk.CTk):
         self._construir_gradiente()
         self._construir_stepper()
 
-        # Containers principais das telas
-        card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 1200}
+        # Containers principais das telas com bordas consistentes
+        card_kwargs = {
+            "fg_color": COLOR_SURFACE,
+            "corner_radius": RADIUS_CARD,
+            "border_width": 1,
+            "border_color": COLOR_BORDER,
+            "width": 1200,
+        }
         self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa1.grid_columnconfigure(0, weight=1)
-        self.container_etapa1.grid_rowconfigure(0, weight=1)
 
         self.container_etapa2 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa2.grid_columnconfigure(0, weight=1)
-        self.container_etapa2.grid_rowconfigure(2, weight=1)
 
         self.container_settings = None
         self.container_profiles = None
@@ -444,8 +448,8 @@ class MainWindow(ctk.CTk):
         else:
             margem = 250  # Médio (Padrão)
 
-        # Grid settings for floating cards — ocupa o máximo de espaço vertical (sticky="nsew")
-        card_grid = {"row": 2, "column": 0, "sticky": "nsew", "padx": margem, "pady": (SPACING_SMALL, SPACING_LARGE)}
+        # Grid settings for floating cards
+        card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
 
         if tela == "inicio":
             self.btn_inicio.configure(**active)
@@ -1034,21 +1038,22 @@ class MainWindow(ctk.CTk):
         self.label_formato_etapa2.grid(row=2, column=0, sticky="w")
 
         # Área rolável da Etapa 2
-        self.scroll_etapa2 = ctk.CTkScrollableFrame(self.container_etapa2, fg_color="transparent", label_text="")
-        self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_MEDIUM, sticky="nsew")
+        self.scroll_etapa2 = ctk.CTkScrollableFrame(
+            self.container_etapa2, fg_color="transparent", label_text="", height=440
+        )
+        self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_etapa2.grid_columnconfigure(0, weight=1)
         configurar_autoscroll(self.scroll_etapa2)
-        self.container_etapa2.grid_rowconfigure(1, weight=1)
 
         # 1. Card de Formulários Dinâmicos do Perfil
         self.card_forms_dinamicos = ctk.CTkFrame(
             self.scroll_etapa2,
-            fg_color=COLOR_SURFACE,
+            fg_color=COLOR_SURFACE_VARIANT,
             corner_radius=RADIUS_CARD,
             border_width=1,
             border_color=COLOR_BORDER,
         )
-        self.card_forms_dinamicos.grid(row=0, column=0, padx=0, pady=(0, SPACING_MEDIUM), sticky="ew")
+        self.card_forms_dinamicos.grid(row=0, column=0, padx=SPACING_SMALL, pady=(0, SPACING_MEDIUM), sticky="ew")
         self.card_forms_dinamicos.grid_columnconfigure(0, weight=1)
 
         frame_header_forms = ctk.CTkFrame(self.card_forms_dinamicos, fg_color="transparent")
@@ -1072,7 +1077,7 @@ class MainWindow(ctk.CTk):
             width=140,
             height=30,
             corner_radius=RADIUS_BUTTON,
-            fg_color=COLOR_SURFACE_VARIANT,
+            fg_color=COLOR_SURFACE,
             text_color=COLOR_TEXT,
             hover_color=COLOR_BORDER,
             font=get_font(FONT_SIZE_CAPTION, "bold"),
@@ -1096,12 +1101,12 @@ class MainWindow(ctk.CTk):
         # 2. Card de Documentos Extras
         self.card_docs_extras = ctk.CTkFrame(
             self.scroll_etapa2,
-            fg_color=COLOR_SURFACE,
+            fg_color=COLOR_SURFACE_VARIANT,
             corner_radius=RADIUS_CARD,
             border_width=1,
             border_color=COLOR_BORDER,
         )
-        self.card_docs_extras.grid(row=1, column=0, padx=0, pady=0, sticky="ew")
+        self.card_docs_extras.grid(row=1, column=0, padx=SPACING_SMALL, pady=0, sticky="ew")
         self.card_docs_extras.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -1118,14 +1123,14 @@ class MainWindow(ctk.CTk):
         ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM), sticky="w")
 
         self.document_frame = DocumentFrame(self.card_docs_extras, fg_color="transparent", border_width=0)
-        self.document_frame.grid(row=2, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="ew")
+        self.document_frame.grid(row=2, column=0, padx=SPACING_SMALL, pady=(0, SPACING_SMALL), sticky="ew")
         if perfil:
             self.document_frame.carregar_documentos(perfil.documentos_extras)
 
-        # Botões de ação inferiores sempre visíveis
+        # Botões de ação inferiores sempre visíveis e harmoniosamente espaçados
         frame_botoes = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
         frame_botoes.grid(row=2, column=0, padx=SPACING_LARGE,
-                          pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+                          pady=(SPACING_MEDIUM, SPACING_LARGE), sticky="ew")
         frame_botoes.grid_columnconfigure(1, weight=1)
 
         self.botao_voltar = ctk.CTkButton(
