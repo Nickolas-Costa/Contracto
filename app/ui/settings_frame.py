@@ -20,7 +20,7 @@ from ui.theme import (
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XXLARGE,
     get_font, get_color_primary, get_color_primary_hover, reload_theme, configure_appearance,
-    configurar_autoscroll,
+    configurar_autoscroll, get_icon,
 )
 from utils import config_manager
 

@@ -63,6 +63,25 @@ class TestVisualAssets(unittest.TestCase):
             img = get_icon(nome, (20, 20))
             self.assertIsNotNone(img)
 
+    def test_main_window_initialization(self):
+        """Verifica se MainWindow inicializa e carrega todas as telas e ícones sem exceções."""
+        from ui.main_window import MainWindow
+        win = MainWindow()
+        win.withdraw()
+        try:
+            self.assertIsNotNone(win.icon_home)
+            self.assertIsNotNone(win.icon_profiles)
+            self.assertIsNotNone(win.icon_settings)
+            self.assertIsNotNone(win.icon_calendar)
+            self.assertIsNotNone(win.icon_help)
+
+            # Testar navegação entre telas
+            win._mostrar_tela("perfis")
+            win._mostrar_tela("config")
+            win._mostrar_tela("inicio")
+        finally:
+            win.destroy()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,7 +32,7 @@ from ui.theme import (
     SPACING_XSMALL,
     get_font, get_color_primary, get_color_primary_hover,
     get_color_primary_light, get_color_primary_dark_gradient, get_color_primary_text,
-    aplicar_gradiente, configure_appearance, reload_theme,
+    aplicar_gradiente, configure_appearance, reload_theme, get_icon,
 )
 from utils.date_formatter import validar_data
 from ui.loading_modal import LoadingModal
