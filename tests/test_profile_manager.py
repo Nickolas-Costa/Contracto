@@ -79,6 +79,26 @@ class TestProfileManager(unittest.TestCase):
             cfg = config_manager.carregar_config()
             self.assertEqual(cfg["perfil_ativo"], "MCMV")
 
+    def test_duplicar_perfil(self):
+        """Verifica se duplicar_perfil cria uma cópia independente com nome único."""
+        from app.utils.profile_manager import duplicar_perfil
+
+        with patch("app.utils.profile_manager._caminho_perfis", return_value=self.profiles_path):
+            carregar_perfis()  # Inicializa MCMV e SBPE
+            copia = duplicar_perfil("MCMV")
+            self.assertEqual(copia.nome, "MCMV (Cópia)")
+            self.assertEqual(len(copia.documentos_extras), 5)
+
+            # Duplicar novamente gera sufixo numérico
+            copia2 = duplicar_perfil("MCMV")
+            self.assertEqual(copia2.nome, "MCMV (Cópia 2)")
+
+            # Duplicar com nome customizado
+            copia_custom = duplicar_perfil("SBPE", "Meu Perfil Especial")
+            self.assertEqual(copia_custom.nome, "Meu Perfil Especial")
+            self.assertEqual(len(copia_custom.documentos_extras), 6)
+
 
 if __name__ == "__main__":
     unittest.main()
+

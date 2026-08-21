@@ -201,3 +201,60 @@ def excluir_perfil(nome: str) -> None:
 def listar_nomes_perfis() -> list[str]:
     """Retorna a lista de nomes de todos os perfis."""
     return [p.nome for p in carregar_perfis()]
+
+
+def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
+    """Duplica um perfil existente, criando uma cópia independente com nome único.
+    
+    Args:
+        nome_origem: Nome do perfil a ser duplicado.
+        novo_nome: Nome opcional para o novo perfil. Se não fornecido, gera "Nome (Cópia)".
+
+    Returns:
+        O novo Perfil criado e salvo no disco.
+
+    Raises:
+        ValueError: Se o perfil de origem não for encontrado ou se o novo_nome já existir.
+    """
+    perfis = carregar_perfis()
+    origem = next((p for p in perfis if p.nome == nome_origem), None)
+    if not origem:
+        raise ValueError(f"Perfil de origem '{nome_origem}' não encontrado.")
+
+    nomes_existentes = {p.nome for p in perfis}
+
+    if not novo_nome:
+        candidato = f"{nome_origem} (Cópia)"
+        contador = 2
+        while candidato in nomes_existentes:
+            candidato = f"{nome_origem} (Cópia {contador})"
+            contador += 1
+        novo_nome = candidato
+    elif novo_nome in nomes_existentes:
+        raise ValueError(f"Já existe um perfil com o nome '{novo_nome}'.")
+
+    # Clona formulários e documentos extras de forma independente
+    novos_formularios = [
+        FormularioModelo(
+            nome=f.nome,
+            caminho=f.caminho,
+            geracao=f.geracao,
+            mapeamento=dict(f.mapeamento),
+        )
+        for f in origem.formularios
+    ]
+    novos_extras = [
+        DocumentoExtra(rotulo=d.rotulo, nome_padrao=d.nome_padrao)
+        for d in origem.documentos_extras
+    ]
+
+    novo_perfil = Perfil(
+        nome=novo_nome,
+        formularios=novos_formularios,
+        documentos_extras=novos_extras,
+        formato_saida=origem.formato_saida,
+    )
+    perfis.append(novo_perfil)
+    salvar_perfis(perfis)
+    return novo_perfil
+

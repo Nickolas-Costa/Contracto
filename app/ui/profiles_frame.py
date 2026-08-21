@@ -23,7 +23,7 @@ from ui.theme import (
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, FormularioModelo,
     carregar_perfis, salvar_perfis, adicionar_perfil,
-    atualizar_perfil, excluir_perfil,
+    atualizar_perfil, excluir_perfil, duplicar_perfil,
 )
 from utils import config_manager
 from services import pdf_service
@@ -214,17 +214,24 @@ class ProfilesFrame(ctk.CTkFrame):
             frame_acoes.grid(row=0, column=2, rowspan=2, padx=SPACING_LARGE, pady=SPACING_MEDIUM)
 
             if perfil.nome != perfil_ativo:
-                ctk.CTkButton(frame_acoes, text="Ativar", width=60,
+                ctk.CTkButton(frame_acoes, text="Ativar", width=55,
                               fg_color=get_color_primary(), text_color="#FFFFFF", hover_color="#004785",
                               corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_CAPTION),
                               command=lambda n=perfil.nome: self._ativar_perfil(n)
                               ).pack(side="left", padx=2)
 
-            ctk.CTkButton(frame_acoes, text="Editar", width=60,
+            ctk.CTkButton(frame_acoes, text="Editar", width=55,
                           fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
                           hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
                           font=get_font(FONT_SIZE_CAPTION),
                           command=lambda p=perfil: self._abrir_editor(p)
+                          ).pack(side="left", padx=2)
+
+            ctk.CTkButton(frame_acoes, text="Duplicar", width=62,
+                          fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
+                          hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
+                          font=get_font(FONT_SIZE_CAPTION),
+                          command=lambda n=perfil.nome: self._duplicar(n)
                           ).pack(side="left", padx=2)
 
             if perfil.nome != PERFIL_PADRAO_NOME:
@@ -239,6 +246,14 @@ class ProfilesFrame(ctk.CTkFrame):
     def _ativar_perfil(self, nome: str) -> None:
         config_manager.definir("perfil_ativo", nome)
         self._carregar_lista()
+
+    def _duplicar(self, nome: str) -> None:
+        try:
+            novo = duplicar_perfil(nome)
+            self._carregar_lista()
+            self._abrir_editor(novo)
+        except Exception as e:
+            AlertModal(self.winfo_toplevel(), "Erro ao Duplicar", "Não foi possível duplicar o perfil.", [str(e)])
 
     def _criar_novo(self) -> None:
         self._perfil_editando = None

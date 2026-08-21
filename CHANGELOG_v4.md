@@ -8,10 +8,13 @@
   * Botão **"⏹ Parar Processo"** com cancelamento cooperativo via `threading.Event`, limpando arquivos residuais e devolvendo o controle à interface.
 * **Diagnóstico e Reparo Automático do Backend:**
   * Nova ferramenta integrada em Configurações para encerrar processos órfãos (`WINWORD.EXE`, `gswin64c.exe`), limpar arquivos temporários, validar integridade dos modelos e ferramentas, e restaurar atalhos.
-* **Perfis Padrão "MCMV" e "SBPE":**
+* **Perfis Padrão e Recurso de Duplicação Rápida:**
   * Perfil padrão atualizado para **"MCMV"** (5 documentos extras clássicos).
   * Novo perfil padrão **"SBPE"** (5 documentos clássicos + *Cédula de Crédito*).
+  * Botão **"Duplicar"** integrado em cada cartão de perfil para clonar modelos existentes em 1 clique e abrir a edição imediatamente.
   * Migração automática transparente de perfis legados denominados "Padrão".
+* **Guia Rápido do Usuário Otimizado:**
+  * Layout do modal de ajuda redimensionado e estruturado para exibir perfeitamente os 4 passos sem barras de rolagem desnecessárias.
 * **Atualização Dinâmica na Troca de Perfil (Etapa 2):**
   * Alternar o perfil no menu suspenso atualiza instantaneamente a lista de documentos extras e o formato de saída.
 * **Aprimoramentos Visuais e Dark Mode:**
