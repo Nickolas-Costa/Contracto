@@ -1,6 +1,33 @@
-# Contracto - Release Notes (V4.1)
+# Contracto - Release Notes
 
-## 🚀 Novidades e Melhorias (v4.1)
+## 🚀 Novidades e Melhorias (v4.2)
+
+* **Execução Headless do Ghostscript:** Processamento 100% em segundo plano (`CREATE_NO_WINDOW`), eliminando qualquer janela preta do prompt de comando durante conversões PDF/A.
+* **Modal de Carregamento em Etapas com Cancelamento Seguro:**
+  * Indicador de etapas e contador compacto (`Gerando documento 1/2`, `Convertendo documento 1/5`).
+  * Botão **"⏹ Parar Processo"** com cancelamento cooperativo via `threading.Event`, limpando arquivos residuais e devolvendo o controle à interface.
+* **Diagnóstico e Reparo Automático do Backend:**
+  * Nova ferramenta integrada em Configurações para encerrar processos órfãos (`WINWORD.EXE`, `gswin64c.exe`), limpar arquivos temporários, validar integridade dos modelos e ferramentas, e restaurar atalhos.
+* **Perfis Padrão "MCMV" e "SBPE":**
+  * Perfil padrão atualizado para **"MCMV"** (5 documentos extras clássicos).
+  * Novo perfil padrão **"SBPE"** (5 documentos clássicos + *Cédula de Crédito*).
+  * Migração automática transparente de perfis legados denominados "Padrão".
+* **Atualização Dinâmica na Troca de Perfil (Etapa 2):**
+  * Alternar o perfil no menu suspenso atualiza instantaneamente a lista de documentos extras e o formato de saída.
+* **Aprimoramentos Visuais e Dark Mode:**
+  * Ícones de alerta e confirmação com paleta adaptativa de alto contraste em temas claro e escuro.
+  * Aplicação de configurações visuais e redimensionamento exclusivamente ao clicar em "SALVAR CONFIGURAÇÕES".
+  * Eliminação de artefatos de fundo branco no modo escuro através de superfície consistente no `CTkScrollableFrame`.
+  * Expansão vertical total dos quadros de Perfis e Configurações preservando a margem horizontal configurada.
+  * Validação do calendário pop-up integrada com atualização imediata de bordas.
+  * Reset limpo da aplicação após conclusão sem disparar erros de validação em campos vazios.
+* **Reorganização das Configurações:**
+  * Novo card dedicado para **"Restaurar Configurações Padrão"** com diálogo de confirmação.
+  * Botão de salvamento em destaque ocupando toda a largura do footer.
+
+---
+
+## 📌 Histórico da Versão 4.1
 
 * **Preenchimento Completo do Formulário 1º Imóvel:** Mapeamento exato de todos os campos AcroForm do PDF modelo oficial (`NOME COMPLETO`, `CPF`, `ENDERECO`, `LOCAL ASSINATURA`, `DATA ASSINATURA`), garantindo 100% de preenchimento de todas as informações sem placeholders pendentes.
 * **Novos Modais Modernos com Fundo Translúcido:** Efeito de transparência escura fosca nativa (`-alpha 0.60`) integrado a todos os modais da aplicação (`LoadingModal`, `WelcomeModal`, `AlertModal`, `ConfirmModal`).

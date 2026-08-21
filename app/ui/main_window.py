@@ -132,7 +132,7 @@ class MainWindow(ctk.CTk):
         self._construir_gradiente()
         self._construir_stepper()
 
-        # Containers das telas (largura de 1200px conforme Foto 2)
+        # Containers principais das telas
         card_kwargs = {"fg_color": COLOR_SURFACE, "corner_radius": RADIUS_CARD, "width": 1200}
         self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
         self.container_etapa1.grid_columnconfigure(0, weight=1)
@@ -435,16 +435,13 @@ class MainWindow(ctk.CTk):
         # Obter o tamanho dos quadros selecionado nas configurações
         tamanho = config_manager.obter("tamanho_quadros")
         
-        # A largura dos quadros é controlada pelo 'padx' (margem lateral).
-        # Para alterar manualmente:
-        # - Valores MENORES (ex: 30) = Quadros mais LARGOS (menos margem)
-        # - Valores MAIORES (ex: 120) = Quadros mais ESTREITOS (mais margem)
+        # Define a margem lateral (padx) conforme o tamanho dos quadros configurado
         if tamanho == "Pequeno":
             margem = 400
         elif tamanho == "Grande":
             margem = 100
         else:
-            margem = 250 # Médio (Padrão)
+            margem = 250  # Médio (Padrão)
 
         # Grid settings for floating cards
         card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}

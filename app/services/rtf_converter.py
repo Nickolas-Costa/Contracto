@@ -61,7 +61,13 @@ def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path) -> Path:
         raise RtfConversionError(f"Falha na conversão via MS Word: {exc}") from exc
     finally:
         if doc is not None:
-            # Fechar sem salvar alterações no RTF original
-            doc.Close(SaveChanges=0)
+            try:
+                # Fechar sem salvar alterações no RTF original
+                doc.Close(SaveChanges=0)
+            except Exception:
+                pass
         if word is not None:
-            word.Quit()
+            try:
+                word.Quit()
+            except Exception:
+                pass

@@ -2,15 +2,13 @@
 Serviço responsável exclusivamente pela leitura e preenchimento de PDFs
 com campos de formulário (AcroForm), utilizando pypdf.
 
-Este módulo é intencionalmente "burro" em relação a regras de negócio: ele
-não sabe o que é um "participante" ou uma "Declaração PPE". Ele apenas recebe um PDF modelo e um dicionário
-{nome_do_campo: valor} e devolve um PDF preenchido. Toda regra de negócio
-(quais campos preencher, com quais dados, para quais documentos) vive em
-`generator_service.py`.
+Este módulo opera de forma agnóstica em relação às regras de negócio da aplicação:
+ele não processa lógica de participantes ou documentos específicos. Ele recebe
+um PDF modelo e um dicionário {nome_do_campo: valor} e devolve um PDF preenchido.
+Toda regra de negócio vive em `generator_service.py`.
 
 Isso mantém baixo acoplamento: se no futuro o formato dos PDFs mudar, ou
-se quisermos preencher outros tipos de documento, apenas este arquivo
-(ou o mapeamento em generator_service.py) precisa ser tocado.
+se novos tipos de documentos forem adicionados, apenas o mapeamento precisa ser atualizado.
 """
 
 from pathlib import Path

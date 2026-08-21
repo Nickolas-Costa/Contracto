@@ -1,15 +1,13 @@
 """
 Serviço responsável pelas regras de negócio da geração dos documentos:
 
-- Sabe quais campos de cada PDF (PPE / Primeiro Imóvel) devem receber quais
-  dados do participante (o "mapeamento" abaixo).
-- Sabe que a Declaração PPE precisa da data separada em DIA / MÊS / ANO,
-  enquanto a de Primeiro Imóvel usa a data exatamente como digitada.
-- Sabe como nomear os arquivos de saída.
-- Valida os dados antes de gerar.
+- Gerencia quais campos de cada formulário PDF devem receber os dados dos participantes.
+- Formata datas e campos específicos conforme a especificação de cada modelo.
+- Padroniza a nomenclatura dos arquivos gerados.
+- Valida os dados antes da execução.
 
-A manipulação "mecânica" do PDF (abrir, preencher campos, salvar) fica
-inteiramente em `pdf_service.py`. Este arquivo não importa pypdf.
+A manipulação de baixo nível do PDF (abrir, preencher campos, salvar) fica
+inteiramente em `pdf_service.py`.
 """
 
 import threading
