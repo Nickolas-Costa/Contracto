@@ -573,12 +573,17 @@ class MainWindow(ctk.CTk):
                 self._atualizar_tamanho_janela()
                 
                 show_toast(self, "Configurações atualizadas!", "success")
+            except Exception as e:
+                import logging
+                logging.getLogger("Contracto").error(f"Erro ao aplicar configurações: {e}", exc_info=True)
             finally:
                 if loading:
-                    self.after(600, lambda: loading.dismiss())
+                    self.after(200, lambda: loading.dismiss())
+
+        self.after(60, _executar_aplicacao)
 
     def _calcular_margem_responsiva(self) -> int:
-        """Calcula a margem lateral (padx) responsiva para manter a largura dos quadros 30-50% mais compacta."""
+        """Calcula a margem lateral (padx) proporcional e responsiva para os quadros."""
         try:
             largura = self.winfo_width()
         except Exception:
@@ -588,15 +593,27 @@ class MainWindow(ctk.CTk):
             largura = 1200
             
         tamanho = config_manager.obter("tamanho_quadros")
+        
+        # Margem proporcional com base na largura da janela
         if tamanho == "Pequeno":
-            largura_alvo = 560
+            pct = 0.20  # 20% de margem em cada lado
+            min_m = 24
+            max_m = 360
         elif tamanho == "Grande":
-            largura_alvo = 880
+            pct = 0.06  # 6% de margem em cada lado
+            min_m = 16
+            max_m = 100
         else:
-            largura_alvo = 720  # Médio (Padrão: 35-50% mais compacto)
+            pct = 0.12  # Médio: 12% de margem em cada lado (Padrão equilibrado)
+            min_m = 20
+            max_m = 220
 
-        # Se a tela for menor que a largura alvo + respiro mínimo, ajusta até 16px
-        margem = max(16, (largura - largura_alvo) // 2)
+        # Para janelas estreitas (ex: snap meia tela < 960px), reduz margens para preservar campos
+        if largura < 960:
+            margem = max(16, int(largura * 0.03))
+        else:
+            margem = max(min_m, min(max_m, int(largura * pct)))
+
         return margem
 
     def _atualizar_tamanho_janela(self) -> None:

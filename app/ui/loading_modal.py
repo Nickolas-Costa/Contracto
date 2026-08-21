@@ -12,6 +12,8 @@ from ui.animated_loader import AnimatedGifLabel
 class LoadingModal:
     """Modal de carregamento reutilizável com overlay escuro translúcido, indicação de etapas e loaders animados em rotação."""
 
+    _instancia_ativa = None
+
     def __init__(
         self,
         master,
@@ -19,17 +21,17 @@ class LoadingModal:
         submessage: str = "",
         on_cancel: Optional[Callable[[], None]] = None,
     ):
-        self.master = master
+        if LoadingModal._instancia_ativa is not None:
+            try:
+                LoadingModal._instancia_ativa.dismiss()
+            except Exception:
+                pass
+        LoadingModal._instancia_ativa = self
+
+        root = master.winfo_toplevel()
+        self.master = root
         self.on_cancel = on_cancel
         self._cancel_requested = False
-
-        try:
-            master.update_idletasks()
-        except Exception:
-            pass
-
-        sw = master.winfo_screenwidth()
-        sh = master.winfo_screenheight()
 
         # Dimensões dinâmicas conforme a presença do botão de parar ou submensagem
         if on_cancel:
@@ -37,35 +39,12 @@ class LoadingModal:
         else:
             w, h = 340, 170
 
-        offset_x = 110
-        offset_y = 35
+        # 1. Overlay escuro translúcido
+        self.overlay = ctk.CTkToplevel(root)
+        # 2. Cartão de carregamento sólido
+        self.card = ctk.CTkToplevel(root)
 
-        x = (sw - w) // 2 + offset_x
-        y = (sh - h) // 2 + offset_y
-
-        # 1. Overlay escuro translúcido cobrindo a tela inteira
-        self.overlay = ctk.CTkToplevel(master)
-        self.overlay.withdraw()
-        self.overlay.overrideredirect(True)
-        self.overlay.configure(fg_color="#000000")
-        try:
-            self.overlay.attributes("-alpha", 0.60)
-        except Exception:
-            pass
-        self.overlay.geometry(f"{sw}x{sh}+0+0")
-        self.overlay.deiconify()
-        self.overlay.lift()
-
-        # 2. Cartão de carregamento sólido no topo
-        self.card = ctk.CTkToplevel(master)
-        self.card.withdraw()
-        self.card.overrideredirect(True)
-        self.card.configure(fg_color=COLOR_SURFACE)
-        try:
-            self.card.attributes("-topmost", True)
-        except Exception:
-            pass
-        self.card.geometry(f"{w}x{h}+{x}+{y}")
+        configurar_janela_modal(root, self.card, self.overlay, w, h)
 
         self.frame = ctk.CTkFrame(
             self.card,
@@ -119,14 +98,6 @@ class LoadingModal:
         else:
             self.btn_cancel = None
 
-        self.card.deiconify()
-        self.card.lift()
-        try:
-            self.overlay.update()
-            self.card.update()
-        except Exception:
-            pass
-
     def _ao_clicar_cancelar(self) -> None:
         if self._cancel_requested:
             return
@@ -159,18 +130,24 @@ class LoadingModal:
         self.update_message("Processando documentos...", sub)
 
     def dismiss(self) -> None:
+        if LoadingModal._instancia_ativa is self:
+            LoadingModal._instancia_ativa = None
         try:
-            if hasattr(self, "spinner") and self.spinner.winfo_exists():
+            if hasattr(self, "spinner") and self.spinner and self.spinner.winfo_exists():
                 self.spinner.stop_animation()
         except Exception:
             pass
         try:
-            if hasattr(self, "card") and self.card.winfo_exists():
+            if hasattr(self, "card") and self.card and self.card.winfo_exists():
                 self.card.destroy()
         except Exception:
             pass
         try:
-            if hasattr(self, "overlay") and self.overlay.winfo_exists():
+            if hasattr(self, "overlay") and self.overlay and self.overlay.winfo_exists():
                 self.overlay.destroy()
+        except Exception:
+            pass
+        try:
+            self.master.update_idletasks()
         except Exception:
             pass

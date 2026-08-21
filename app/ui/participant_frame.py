@@ -40,7 +40,7 @@ class ParticipantFrame(ctk.CTkFrame):
         self.label_titulo = ctk.CTkLabel(
             self,
             text=f" {self._titulo(indice)}",
-            image=get_icon("profiles", (18, 18)),
+            image=get_icon("person", (18, 18)),
             compound="left",
             font=get_font(FONT_SIZE_H3, "bold"),
             text_color=get_color_primary_text(),

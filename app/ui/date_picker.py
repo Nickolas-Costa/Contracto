@@ -25,7 +25,7 @@ class DatePickerPopup(ctk.CTkToplevel):
         self.on_select = on_select
         
         self.overrideredirect(True)
-        self.attributes("-topmost", True)
+        self.transient(master.winfo_toplevel())
         self.configure(fg_color=COLOR_SURFACE)
 
         self.current_date = datetime.now()

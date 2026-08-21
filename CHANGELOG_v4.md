@@ -1,5 +1,29 @@
 # Contracto - Release Notes
 
+## 🎯 Centralização de Modais, Responsividade dos Quadros e Otimizações de Interface (v4.5)
+
+* **Centralização Geométrica Perfeita dos Modais com Compensação DPI:**
+  * Implementação da função centralizada `configurar_janela_modal` no `theme.py` que calcula dimensões físicas reais e posição relativa à janela do app.
+  * Eliminação de offsets e descentralizações em monitores com escalonamento de DPI do Windows (125%, 150%, 4K).
+  * O overlay escuro translúcido cobre exatamente os limites da janela da aplicação com fidelidade visual.
+* **Prevenção de Acúmulo e Encerramento Seguro de Popups:**
+  * Controle de instância única ativa (`_instancia_ativa`) em todos os modais (`WelcomeModal`, `AlertModal`, `ConfirmModal`, `LoadingModal` e modais do gerenciador de perfis).
+  * Destruição limpa de popups/overlays anteriores em cliques múltiplos ou aberturas concorrentes.
+  * Suporte a fechamento ao clicar no overlay escuro de fundo ou pressionar a tecla `Escape`.
+  * Liberação imediata de recursos e atualização de ciclo de eventos do Tkinter no método `dismiss()`.
+* **Ajuste de Largura e Responsividade dos Quadros:**
+  * Redução proporcional da largura dos quadros na tela inicial (Etapa 1 e Etapa 2) para garantir visualização harmoniosa em telas compactas e janelas restauradas.
+  * Margem responsiva dinâmica (`_calcular_margem_responsiva`) calculada em tempo real ao redimensionar a janela.
+* **Alinhamento e Otimização na Etapa 2:**
+  * Alinhamento à esquerda dos checkboxes e campos de formulários dinâmicos.
+  * Eliminação de barras de rolagem desnecessárias e transições fluidas.
+* **Diferenciação Visual de Participantes:**
+  * Ícone semântico próprio e destacado para o Participante Principal vs Participantes Adicionais.
+* **Refinamento do Calendário Pop-up:**
+  * Posicionamento ancorado ao botão de calendário com limites de tela preservados.
+
+---
+
 ## 🎨 Renovação Visual, Design System e Loaders Dinâmicos (v4.3)
 
 * **Design System Formal & Catálogo Semântico (`DESIGN_SYSTEM.md`):**

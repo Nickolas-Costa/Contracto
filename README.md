@@ -1,10 +1,10 @@
-# Contracto (v4.3)
+# Contracto (v4.5)
 
 Aplicativo desktop (Windows) em Python para preenchimento automatizado de declarações habitacionais e conversão de documentos contratuais para o padrão de conformidade **PDF/A-2b**:
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
 - **Declaração de Primeiro Imóvel**
 
-A **Versão 4.3** apresenta uma renovação visual completa com Design System formal ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)), novo catálogo com 30 ícones vetoriais de alto contraste com adaptação automática a temas Claro e Escuro, sistema de 10 loaders animados (GIF spinners) em rotação dinâmica, centralização de versão em ponto único e refinamentos em toda a interface gráfica.
+A **Versão 4.5** traz o aperfeiçoamento da experiência visual e de usabilidade: centralização milimétrica de todos os modais com compensação nativa de escala DPI do Windows, controle anti-acúmulo de popups com descarte limpo, responsividade dinâmica e proporção equilibrada dos quadros principais, alinhamento intuitivo na Etapa 2, diferenciação visual para participantes e Design System formal ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)).
 
 ---
 
@@ -23,18 +23,16 @@ O **Contracto** é uma ferramenta independente desenvolvida para auxílio na pre
 
 ---
 
-## 🚀 Novidades da Versão 4.3
+## 🚀 Novidades da Versão 4.5
 
-- **Design System & Catálogo Semântico de Ícones**: Documentação completa e integração de 30 novos ícones vetoriais adaptativos de alto contraste (`_dark` e `_light`).
-- **Loaders Animados Dinâmicos em Rotação**: Sistema com 10 animações GIF de carregamento que variam sequencialmente a cada nova ação do usuário.
-- **Centralização de Versão**: Sistema unificado onde todas as telas, scripts de build, criação de atalhos e pacotes de distribuição consomem automaticamente a versão de `app/version.py`.
-- **Execução Headless do Ghostscript**: Processamento em segundo plano sem abertura de janelas de prompt do CMD na máquina do usuário.
-- **Modal com Etapas e Cancelamento Seguro**: Visualização clara do progresso da geração com botão de parada e limpeza automática de arquivos residuais.
-- **Diagnóstico e Reparo do Backend**: Botão dedicado em Configurações para encerrar processos órfãos, remover arquivos temporários e validar a integridade dos modelos e ferramentas.
-- **Perfis Padrão "MCMV" e "SBPE" com Duplicação**: Seleção direta de perfis específicos para cada linha de crédito e botão "Duplicar" para clonar configurações com 1 clique.
-- **Atualização Dinâmica de Perfil**: Mudança de perfil na Etapa 2 atualiza imediatamente os documentos extras sem necessidade de reabrir a janela.
-- **Aprimoramentos Visuais e Dark Mode**: Ícones adaptativos de alto contraste, eliminação de artefatos de fundo branco e aplicação de configurações visuais apenas ao salvar.
-- **Guia do Usuário Otimizado**: Modal de ajuda redimensionado para exibir todos os 4 passos perfeitamente sem barras de rolagem desnecessárias.
+- **Centralização Precisa de Modais com Compensação de DPI**: Popups (ajuda, alertas, confirmações, carregamento e perfis) perfeitamente centralizados em qualquer resolução e escala (100%, 125%, 150%, 4K).
+- **Ciclo de Vida Limpo de Popups**: Prevenção total de acúmulo de janelas em segundo plano, destruição limpa de overlays e suporte a fechamento por clique externo ou tecla `Escape`.
+- **Quadros Responsivos e Proporcionais**: Largura equilibrada na Etapa 1 e Etapa 2 com margem adaptativa em tempo real.
+- **Alinhamento Natural na Etapa 2**: Checkboxes e opções alinhadas à esquerda sem barras de rolagem desnecessárias.
+- **Design System & Ícones Semânticos**: Catálogo vetorial adaptativo Claro/Escuro com diferenciação visual entre o participante titular e adicionais.
+- **Execução Headless do Ghostscript**: Conversão para PDF/A-2b rápida e 100% silenciosa em segundo plano.
+- **Diagnóstico e Reparo do Backend**: Verificação e manutenção automatizada do ambiente com 1 clique em Configurações.
+- **Perfis Padrão "MCMV" e "SBPE" com Duplicação**: Configuração rápida de regras de preenchimento e exportação.
 
 ---
 
@@ -77,7 +75,7 @@ CONTRACTO/
 ├── build_exe.bat                       # Script de compilação do executável (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.3)
+│   ├── version.py                      # Versão centralizada do sistema (v4.5)
 │   ├── ui/                             # Componentes visuais, telas, temas e modais
 │   │   ├── alert_modal.py              # Modal de alertas informativos e erros
 │   │   ├── animated_loader.py          # Player animado nativo de GIF e rotação de loaders
@@ -174,4 +172,4 @@ Para gerar o executável autônomo, execute o script de compilação:
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.3.zip`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.zip`.

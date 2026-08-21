@@ -1,4 +1,4 @@
-# Design System & Asset Catalog — Contracto (v4.3)
+# Design System & Asset Catalog — Contracto (v4.5)
 
 Este documento estabelece o **Design System**, a identidade visual e o catálogo semântico de ativos do **Contracto**. Todos os componentes da interface devem seguir rigorosamente estes padrões para manter a consistência, a elegância e a experiência de alto nível no Windows.
 

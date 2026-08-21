@@ -5,50 +5,33 @@ from ui import theme
 class AlertModal:
     """Modal moderno de alerta/erro com overlay escuro translúcido e cartão alinhado."""
 
+    _instancia_ativa = None
+
     def __init__(self, master, titulo: str, subtitulo: str, erros: list[str], on_close=None):
-        self.master = master
+        if AlertModal._instancia_ativa is not None:
+            try:
+                AlertModal._instancia_ativa.dismiss()
+            except Exception:
+                pass
+        AlertModal._instancia_ativa = self
+
+        root = master.winfo_toplevel()
+        self.master = root
         self.on_close_cb = on_close
-
-        try:
-            master.update_idletasks()
-        except Exception:
-            pass
-
-        sw = master.winfo_screenwidth()
-        sh = master.winfo_screenheight()
 
         w = 580
         h = min(360 + len(erros) * 32, 600)
 
-        offset_x = 110
-        offset_y = 35
+        # 1. Overlay escuro translúcido
+        self.overlay = ctk.CTkToplevel(root)
+        # 2. Cartão de alerta sólido
+        self.card = ctk.CTkToplevel(root)
 
-        x = (sw - w) // 2 + offset_x
-        y = (sh - h) // 2 + offset_y
+        theme.configurar_janela_modal(root, self.card, self.overlay, w, h)
 
-        # 1. Overlay escuro translúcido (60% opacidade / vidro escuro)
-        self.overlay = ctk.CTkToplevel(master)
-        self.overlay.withdraw()
-        self.overlay.overrideredirect(True)
-        self.overlay.configure(fg_color="#000000")
-        try:
-            self.overlay.attributes("-alpha", 0.60)
-        except Exception:
-            pass
-        self.overlay.geometry(f"{sw}x{sh}+0+0")
-        self.overlay.deiconify()
-        self.overlay.lift()
-
-        # 2. Cartão de alerta sólido no topo (alinhado sobre o conteúdo)
-        self.card = ctk.CTkToplevel(master)
-        self.card.withdraw()
-        self.card.overrideredirect(True)
-        self.card.configure(fg_color=theme.COLOR_SURFACE)
-        try:
-            self.card.attributes("-topmost", True)
-        except Exception:
-            pass
-        self.card.geometry(f"{w}x{h}+{x}+{y}")
+        # Fechar ao clicar no overlay escuro ou pressionar Escape
+        self.overlay.bind("<Button-1>", lambda e: self.dismiss())
+        self.card.bind("<Escape>", lambda e: self.dismiss())
 
         self.frame = ctk.CTkFrame(
             self.card,
@@ -115,18 +98,21 @@ class AlertModal:
             command=self.dismiss,
         ).grid(row=0, column=0, sticky="ew")
 
-        self.card.deiconify()
-        self.card.lift()
-
     def dismiss(self):
+        if AlertModal._instancia_ativa is self:
+            AlertModal._instancia_ativa = None
         try:
-            if hasattr(self, "card") and self.card.winfo_exists():
+            if hasattr(self, "card") and self.card and self.card.winfo_exists():
                 self.card.destroy()
         except Exception:
             pass
         try:
-            if hasattr(self, "overlay") and self.overlay.winfo_exists():
+            if hasattr(self, "overlay") and self.overlay and self.overlay.winfo_exists():
                 self.overlay.destroy()
+        except Exception:
+            pass
+        try:
+            self.master.update_idletasks()
         except Exception:
             pass
         if self.on_close_cb:

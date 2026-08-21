@@ -198,6 +198,64 @@ def configure_appearance() -> None:
     reload_theme()
 
 
+def configurar_janela_modal(
+    master,
+    card: ctk.CTkToplevel,
+    overlay: ctk.CTkToplevel,
+    w: int,
+    h: int,
+) -> None:
+    """Configura e posiciona perfeitamente o overlay escuro e o card do modal.
+    
+    Calcula as dimensões e coordenadas físicas para centralizar no aplicativo
+    com precisão absoluta em qualquer resolução ou escala DPI do Windows.
+    """
+    root = master.winfo_toplevel()
+    try:
+        root.update_idletasks()
+    except Exception:
+        pass
+
+    rx = root.winfo_rootx()
+    ry = root.winfo_rooty()
+    rw = root.winfo_width()
+    rh = root.winfo_height()
+
+    scaling = getattr(root, "_get_window_scaling", lambda: 1.0)()
+
+    # Dimensões físicas que o CustomTkinter gerará para o card
+    pw = int(round(w * scaling))
+    ph = int(round(h * scaling))
+
+    # Posição física na tela para centralização exata na janela do app
+    x = rx + (rw - pw) // 2
+    y = ry + (rh - ph) // 2
+
+    # 1. Configuração do Overlay translúcido
+    if overlay is not None:
+        overlay.withdraw()
+        overlay.overrideredirect(True)
+        overlay.configure(fg_color="#000000")
+        try:
+            overlay.attributes("-alpha", 0.60)
+        except Exception:
+            pass
+        ow = int(round(rw / scaling))
+        oh = int(round(rh / scaling))
+        overlay.geometry(f"{ow}x{oh}+{rx}+{ry}")
+        overlay.deiconify()
+        overlay.lift()
+
+    # 2. Configuração do Cartão do modal
+    if card is not None:
+        card.withdraw()
+        card.overrideredirect(True)
+        card.configure(fg_color=COLOR_SURFACE)
+        card.geometry(f"{w}x{h}+{x}+{y}")
+        card.deiconify()
+        card.lift()
+
+
 def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
     """Oculta automaticamente a barra de rolagem do CTkScrollableFrame de forma otimizada (sem loops de eventos)."""
     timer_attr = "_autoscroll_timer_id"
