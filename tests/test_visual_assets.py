@@ -53,7 +53,7 @@ class TestVisualAssets(unittest.TestCase):
 
     def test_get_icon_loads_valid_ctk_image(self):
         """Verifica se a função get_icon retorna CTkImage com sucesso para ícones padrão."""
-        icon_names = ["home", "profiles", "settings", "help", "calendar", "location", "advance", "back", "success", "folder", "trash"]
+        icon_names = ["home", "profiles", "settings", "help", "question_circle", "calendar", "location", "advance", "back", "success", "folder", "trash"]
         for nome in icon_names:
             dark_file = app_dir / "assets" / "icons" / f"{nome}_dark.png"
             light_file = app_dir / "assets" / "icons" / f"{nome}_light.png"

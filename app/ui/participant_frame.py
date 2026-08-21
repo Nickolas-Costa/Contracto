@@ -82,6 +82,11 @@ class ParticipantFrame(ctk.CTkFrame):
 
     def _criar_campo(self, rotulo: str, linha: int, tipo: str) -> ctk.CTkEntry:
         icone_nome = "person" if tipo == "nome" else ("document" if tipo == "cpf" else "location")
+        placeholder = (
+            "Ex: João da Silva" if tipo == "nome"
+            else ("123.456.789-10" if tipo == "cpf"
+                  else "Ex: Rua das Flores, 123 - Centro, Camocim - CE")
+        )
         ctk.CTkLabel(
             self,
             text=f" {rotulo}",
@@ -93,7 +98,7 @@ class ParticipantFrame(ctk.CTkFrame):
         ).grid(
             row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
-        entry = ctk.CTkEntry(self, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        entry = ctk.CTkEntry(self, placeholder_text=placeholder, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         
         # Real-time binding on edit and focus out

@@ -175,7 +175,7 @@ class MainWindow(ctk.CTk):
         self.icon_profiles = get_icon("profiles", (20, 20), light_only=True)
         self.icon_settings = get_icon("settings", (20, 20), light_only=True)
         self.icon_calendar = get_icon("calendar", (18, 18))
-        self.icon_help = get_icon("help", (20, 20), light_only=True)
+        self.icon_help = get_icon("question_circle", (20, 20), light_only=True)
         self.icon_advance = get_icon("advance", (20, 20), light_only=True)
         self.icon_back = get_icon("back", (18, 18))
         self.icon_success = get_icon("success", (20, 20), light_only=True)
@@ -705,8 +705,8 @@ class MainWindow(ctk.CTk):
         self.entry_data.bind("<FocusOut>", lambda e: self._validar_data_realtime())
         
         self.btn_calendar = ctk.CTkButton(
-            frame_data, text="", image=self.icon_calendar, width=32, corner_radius=RADIUS_BUTTON,
-            fg_color="transparent", text_color=COLOR_TEXT, hover_color=COLOR_SURFACE_VARIANT,
+            frame_data, text="", image=self.icon_calendar, width=40, corner_radius=RADIUS_BUTTON,
+            fg_color=COLOR_BORDER, text_color=COLOR_TEXT, hover_color=COLOR_TEXT_DISABLED,
             command=lambda: DatePickerPopup(
                 self, self.entry_data, anchor_widget=self.btn_calendar,
                 on_select=lambda d: self._validar_data_realtime()
@@ -719,7 +719,7 @@ class MainWindow(ctk.CTk):
             image=get_icon("location", (16, 16)), compound="left",
             font=get_font(FONT_SIZE_BODY)
         ).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
-        self.entry_local = ctk.CTkEntry(secao, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        self.entry_local = ctk.CTkEntry(secao, placeholder_text="Ex: CAMOCIM-CE", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_local.grid(row=2, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
         self.entry_local.bind("<KeyRelease>", lambda e: self._validar_local_realtime())
@@ -744,7 +744,8 @@ class MainWindow(ctk.CTk):
         frame_dir.grid_columnconfigure(0, weight=1)
 
         self.entry_pasta_saida = ctk.CTkEntry(
-            frame_dir, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_INPUT,
+            frame_dir, placeholder_text="Selecione o diretório de destino...",
+            fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_INPUT,
             border_color=COLOR_BORDER,
         )
         self.entry_pasta_saida.grid(row=0, column=0, sticky="ew")

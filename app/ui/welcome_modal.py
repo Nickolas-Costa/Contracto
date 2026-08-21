@@ -141,16 +141,11 @@ class WelcomeModal:
             card_p.grid(row=i, column=0, sticky="ew", pady=4)
             card_p.grid_columnconfigure(1, weight=1)
 
-            ibox = ctk.CTkFrame(
+            ctk.CTkLabel(
                 card_p,
-                width=38,
-                height=38,
-                corner_radius=10,
-                fg_color=theme.COLOR_SURFACE,
-            )
-            ibox.grid(row=0, column=0, padx=12, pady=10)
-            ibox.grid_propagate(False)
-            ctk.CTkLabel(ibox, text="", image=theme.get_icon(icone_name, (20, 20))).pack(expand=True)
+                text="",
+                image=theme.get_icon(icone_name, (22, 22)),
+            ).grid(row=0, column=0, padx=(16, 12), pady=12)
 
             tbox = ctk.CTkFrame(card_p, fg_color="transparent")
             tbox.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=10)
@@ -172,7 +167,7 @@ class WelcomeModal:
             tag_frame = ctk.CTkFrame(
                 card_p,
                 fg_color=theme.COLOR_SURFACE,
-                corner_radius=6,
+                corner_radius=theme.RADIUS_BUTTON,
             )
             tag_frame.grid(row=0, column=2, padx=12, pady=10)
             ctk.CTkLabel(
