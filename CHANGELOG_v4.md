@@ -9,8 +9,8 @@
 * **Diagnóstico e Reparo Automático do Backend:**
   * Nova ferramenta integrada em Configurações para encerrar processos órfãos (`WINWORD.EXE`, `gswin64c.exe`), limpar arquivos temporários, validar integridade dos modelos e ferramentas, e restaurar atalhos.
 * **Perfis Padrão e Recurso de Duplicação Rápida:**
-  * Perfil padrão atualizado para **"MCMV"** (5 documentos extras clássicos).
-  * Novo perfil padrão **"SBPE"** (5 documentos clássicos + *Cédula de Crédito*).
+  * Perfil padrão atualizado para **"MCMV"** (5 documentos padrão).
+  * Novo perfil padrão **"SBPE"** (5 documentos padrão + *Cédula de Crédito*).
   * Botão **"Duplicar"** integrado em cada cartão de perfil para clonar modelos existentes em 1 clique e abrir a edição imediatamente.
   * Migração automática transparente de perfis legados denominados "Padrão".
 * **Guia Rápido do Usuário Otimizado:**
@@ -48,3 +48,4 @@
 * **Layout Dinâmico e Responsivo:** A configuração de "Tamanho dos Quadros" reflete instantaneamente ao salvar.
 * **Scrollbars Inteligentes:** Barras de rolagem ocultadas automaticamente quando o conteúdo cabe na tela.
 * **Seletor de Perfil na Toolbar:** Componente de seleção de perfis integrado à barra superior.
++++++++++++

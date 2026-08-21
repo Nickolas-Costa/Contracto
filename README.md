@@ -5,7 +5,7 @@ Aplicativo desktop (Windows) em Python para preencher automaticamente PDFs de de
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
 - **Declaração de Primeiro Imóvel**
 
-A **Versão 4.1** introduz o preenchimento 100% automatizado de todos os campos AcroForm (incluindo endereços e datas de assinatura), modais visuais modernos com efeito escuro translúcido (`-alpha 0.60`), substituição completa de alertas nativos do Windows por componentes do app, expansão dinâmica do editor de perfis e suporte nativo ao ícone 3D na barra de tarefas.
+A **Versão 4.2** introduz o preenchimento 100% automatizado de todos os campos AcroForm (incluindo endereços e datas de assinatura), modais visuais modernos com efeito escuro translúcido (`-alpha 0.60`), substituição completa de alertas nativos do Windows por componentes do app, expansão dinâmica do editor de perfis e suporte nativo ao ícone 3D na barra de tarefas.
 
 ---
 

@@ -167,7 +167,7 @@ class MainWindow(ctk.CTk):
             pass
 
     # ==================================================================
-    # TOOLBAR (inspirada no PDFCreator)
+    # TOOLBAR
     # ==================================================================
     def _load_icons(self) -> None:
         try:

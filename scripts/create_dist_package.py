@@ -4,8 +4,7 @@ Script para criar o pacote de distribuição Contracto.zip.
 Após o build do executável com PyInstaller, este script:
 1. Cria a pasta Contracto/ com a estrutura esperada
 2. Copia o executável renomeando para Contracto.exe
-3. Inclui o README de distribuição
-4. Gera o arquivo Contracto.zip pronto para envio
+3. Gera o arquivo Contracto.zip pronto para envio
 """
 
 import os
@@ -46,10 +45,7 @@ def main():
     print(f"Copiando executável como {exe_name}...")
     shutil.copy2(exe_original, contracto_dir / exe_name)
     
-    # 2. Copiar README
-    # (Removido, pois agora temos a Tela de Boas-Vindas interativa dentro do app)
-    
-    # 3. Criar o ZIP
+    # 2. Criar o ZIP
     zip_path = dist_dir / zip_name
     if zip_path.exists():
         zip_path.unlink()

@@ -82,8 +82,8 @@ echo Pacote de distribuicao:
 echo   dist\Contracto.zip
 echo.
 echo IMPORTANTE:
-echo   - O funcionario final NAO precisa ter Python instalado.
-echo   - O Ghostscript ja vem embutido no arquivo.
+echo   - O Usuario final Nao necessita ter o Python instalado na maquina.
+echo   - Ghostscript e todas as dependencias estao embutidas no arquivo .exe.
 echo   - Para distribuir, envie o arquivo Contracto.zip.
 echo.
 pause
