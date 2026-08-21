@@ -258,10 +258,10 @@ class MainWindow(ctk.CTk):
         import math
         from PIL import Image, ImageDraw, ImageTk
         
-        sw = self.winfo_screenwidth()
-        sh = self.winfo_screenheight()
-        largura = max(self.winfo_width(), sw, 1024)
-        altura = max(self.winfo_height(), sh, 768)
+        sw = max(self.winfo_screenwidth(), 1920)
+        sh = max(self.winfo_screenheight(), 1080)
+        largura = sw
+        altura = sh
         modo = ctk.get_appearance_mode()
         is_dark = (modo == "Dark")
         
@@ -312,17 +312,21 @@ class MainWindow(ctk.CTk):
 
     _ultimo_w = 0
     _ultimo_h = 0
-    _paint_timer = None
+    _resize_timer = None
 
     def _ao_redimensionar(self, event=None) -> None:
-        w = self.winfo_width()
-        h = self.winfo_height()
-        if w != self._ultimo_w or h != self._ultimo_h:
+        """Garante fluidez máxima e adaptação automática de largura aos snaps de tela."""
+        if event and getattr(event, 'widget', None) != self:
+            return
+        try:
+            w = self.winfo_width()
+        except Exception:
+            return
+        if w != self._ultimo_w:
             self._ultimo_w = w
-            self._ultimo_h = h
-            if self._paint_timer is not None:
-                self.after_cancel(self._paint_timer)
-            self._paint_timer = self.after(40, self._pintar_gradiente)
+            if self._resize_timer is not None:
+                self.after_cancel(self._resize_timer)
+            self._resize_timer = self.after(30, self._atualizar_tamanho_janela)
 
     # ==================================================================
     # STEPPER (indicador de etapas)
@@ -437,16 +441,8 @@ class MainWindow(ctk.CTk):
 
         self._tela_atual = tela
         
-        # Obter o tamanho dos quadros selecionado nas configurações
-        tamanho = config_manager.obter("tamanho_quadros")
-        
-        # Define a margem lateral (padx) conforme o tamanho dos quadros configurado
-        if tamanho == "Pequeno":
-            margem = 320
-        elif tamanho == "Grande":
-            margem = 60
-        else:
-            margem = 180  # Médio (Padrão)
+        # Define a margem lateral (padx) conforme o tamanho dos quadros configurado e a largura da tela
+        margem = self._calcular_margem_responsiva()
 
         # Grid settings for floating cards
         card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
@@ -583,22 +579,47 @@ class MainWindow(ctk.CTk):
 
         self.after(120, _executar_aplicacao)
 
-    def _atualizar_tamanho_janela(self) -> None:
+    def _calcular_margem_responsiva(self) -> int:
+        """Calcula a margem lateral (padx) responsiva e inteligente para os quadros."""
+        try:
+            largura = self.winfo_width()
+        except Exception:
+            largura = 1200
+
+        if largura <= 100:
+            largura = 1200
+            
         tamanho = config_manager.obter("tamanho_quadros")
-        if tamanho == "Pequeno":
-            margem = 320
-        elif tamanho == "Grande":
-            margem = 60
+        
+        # Modo tela estreita (snap lado a lado do Windows ou telas compactas < 960px)
+        if largura < 960:
+            return 16
+        elif largura < 1220:
+            if tamanho == "Pequeno":
+                return 120
+            elif tamanho == "Grande":
+                return 24
+            else:
+                return 60  # Médio
         else:
-            margem = 180
+            # Modo tela cheia / alta resolução
+            if tamanho == "Pequeno":
+                return 260
+            elif tamanho == "Grande":
+                return 30
+            else:
+                return 120  # Médio (5% a 10% mais amplo e espaçoso)
+
+    def _atualizar_tamanho_janela(self) -> None:
+        margem = self._calcular_margem_responsiva()
             
         if self._tela_atual == "inicio" and hasattr(self, 'container_etapa1'):
             self.container_etapa1.grid(padx=margem)
         elif self._tela_atual == "etapa2" and hasattr(self, 'container_etapa2'):
             self.container_etapa2.grid(padx=margem)
-        elif self._tela_atual == "perfis" and hasattr(self, 'container_profiles'):
+        elif self._tela_atual == "perfis" and hasattr(self, 'container_profiles') and self.container_profiles:
             self.container_profiles.grid(padx=margem)
-        elif self._tela_atual == "config" and hasattr(self, 'container_settings'):
+        elif self._tela_atual == "config" and hasattr(self, 'container_settings') and self.container_settings:
             self.container_settings.grid(padx=margem)
         
         self.update_idletasks()

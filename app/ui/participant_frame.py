@@ -40,7 +40,7 @@ class ParticipantFrame(ctk.CTkFrame):
         self.label_titulo = ctk.CTkLabel(
             self,
             text=f" {self._titulo(indice)}",
-            image=get_icon("person", (18, 18)),
+            image=get_icon("profiles", (18, 18)),
             compound="left",
             font=get_font(FONT_SIZE_H3, "bold"),
             text_color=get_color_primary_text(),
@@ -81,7 +81,7 @@ class ParticipantFrame(ctk.CTkFrame):
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")
 
     def _criar_campo(self, rotulo: str, linha: int, tipo: str) -> ctk.CTkEntry:
-        icone_nome = "person" if tipo == "nome" else ("document" if tipo == "cpf" else "location")
+        icone_nome = "attribution" if tipo == "nome" else ("document" if tipo == "cpf" else "location")
         placeholder = (
             "Ex: João da Silva" if tipo == "nome"
             else ("123.456.789-10" if tipo == "cpf"
