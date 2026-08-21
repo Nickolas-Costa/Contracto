@@ -106,17 +106,21 @@ class ProfilesFrame(ctk.CTkFrame):
                             pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
         # Nome
-        ctk.CTkLabel(self.scroll_editor, text="Nome:", font=get_font(FONT_SIZE_BODY),
-                     text_color=COLOR_TEXT).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
-                                                  pady=SPACING_SMALL, sticky="w")
+        ctk.CTkLabel(
+            self.scroll_editor, text=" Nome:",
+            image=get_icon("form", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT
+        ).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
         self.edit_nome = ctk.CTkEntry(self.scroll_editor, corner_radius=RADIUS_INPUT)
         self.edit_nome.grid(row=1, column=1, padx=(0, SPACING_LARGE),
                             pady=SPACING_SMALL, sticky="ew")
 
         # Formato
-        ctk.CTkLabel(self.scroll_editor, text="Formato:", font=get_font(FONT_SIZE_BODY),
-                     text_color=COLOR_TEXT).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_SMALL),
-                                                  pady=SPACING_SMALL, sticky="w")
+        ctk.CTkLabel(
+            self.scroll_editor, text=" Formato:",
+            image=get_icon("ratio", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT
+        ).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
         self.edit_formato = ctk.CTkSegmentedButton(
             self.scroll_editor, values=["PDF/A-2b", "PDF"],
             font=get_font(FONT_SIZE_BODY),
@@ -171,7 +175,7 @@ class ProfilesFrame(ctk.CTkFrame):
                       corner_radius=RADIUS_BUTTON, command=self._fechar_editor
                       ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
 
-        ctk.CTkButton(frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16)), compound="left",
+        ctk.CTkButton(frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16), light_only=True), compound="left",
                       fg_color=get_color_primary(), text_color="#FFFFFF",
                       hover_color="#004785", corner_radius=RADIUS_BUTTON,
                       command=self._salvar_edicao
@@ -220,7 +224,7 @@ class ProfilesFrame(ctk.CTkFrame):
             frame_acoes.grid(row=0, column=2, rowspan=2, padx=SPACING_LARGE, pady=SPACING_MEDIUM)
 
             if perfil.nome != perfil_ativo:
-                ctk.CTkButton(frame_acoes, text=" Ativar", image=get_icon("success", (13, 13)), compound="left",
+                ctk.CTkButton(frame_acoes, text=" Ativar", image=get_icon("success", (13, 13), light_only=True), compound="left",
                               width=75,
                               fg_color=get_color_primary(), text_color="#FFFFFF", hover_color="#004785",
                               corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_CAPTION),

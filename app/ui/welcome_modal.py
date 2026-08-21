@@ -189,7 +189,9 @@ class WelcomeModal:
 
         ctk.CTkButton(
             footer,
-            text="Entendi, Começar!",
+            text=" Entendi, Começar!",
+            image=theme.get_icon("success", (18, 18), light_only=True),
+            compound="left",
             font=theme.get_font(theme.FONT_SIZE_H3, "bold"),
             fg_color=theme.get_color_primary(),
             text_color="#FFFFFF",

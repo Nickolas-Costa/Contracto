@@ -426,12 +426,10 @@ class SettingsFrame(ctk.CTkFrame):
         frame.grid(row=2, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame.grid_columnconfigure(0, weight=1)
 
-        from ui.theme import get_icon
-
         self.btn_salvar = ctk.CTkButton(
             frame,
             text=" SALVAR CONFIGURAÇÕES",
-            image=get_icon("save", (18, 18)),
+            image=get_icon("save", (18, 18), light_only=True),
             compound="left",
             font=get_font(FONT_SIZE_H3, "bold"),
             fg_color=get_color_primary(),

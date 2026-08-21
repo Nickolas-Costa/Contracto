@@ -81,7 +81,16 @@ class ParticipantFrame(ctk.CTkFrame):
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")
 
     def _criar_campo(self, rotulo: str, linha: int, tipo: str) -> ctk.CTkEntry:
-        ctk.CTkLabel(self, text=rotulo, anchor="w", font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT).grid(
+        icone_nome = "person" if tipo == "nome" else ("document" if tipo == "cpf" else "location")
+        ctk.CTkLabel(
+            self,
+            text=f" {rotulo}",
+            image=get_icon(icone_nome, (16, 16)),
+            compound="left",
+            anchor="w",
+            font=get_font(FONT_SIZE_BODY),
+            text_color=COLOR_TEXT,
+        ).grid(
             row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
         entry = ctk.CTkEntry(self, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)

@@ -250,12 +250,14 @@ def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
 _ICONS_CACHE = {}
 
 
-def get_icon(name: str, size: tuple[int, int] = (20, 20)) -> ctk.CTkImage:
+def get_icon(name: str, size: tuple[int, int] = (20, 20), light_only: bool = False, dark_only: bool = False) -> ctk.CTkImage:
     """Retorna um CTkImage com suporte a tema claro e escuro a partir dos ativos de app/assets/icons/.
     
-    Busca automaticamente por {name}_dark.png (usado em Light mode) e {name}_light.png (usado em Dark mode).
+    Se light_only=True, retorna sempre o ícone claro/branco (para botões coloridos/toolbar).
+    Se dark_only=True, retorna sempre o ícone escuro/grafite.
+    Caso contrário, associa {name}_dark.png para Light mode e {name}_light.png para Dark mode.
     """
-    key = (name, size)
+    key = (name, size, light_only, dark_only)
     if key in _ICONS_CACHE:
         return _ICONS_CACHE[key]
 
@@ -266,7 +268,23 @@ def get_icon(name: str, size: tuple[int, int] = (20, 20)) -> ctk.CTkImage:
     light_path = caminho_recurso("assets", "icons", f"{name}_light.png")
     standard_path = caminho_recurso("assets", "icons", f"{name}.png")
 
-    if dark_path.exists() and light_path.exists():
+    if light_only:
+        p = light_path if light_path.exists() else (standard_path if standard_path.exists() else dark_path)
+        if p.exists():
+            img = Image.open(p)
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+        else:
+            img = Image.new("RGBA", size, (0, 0, 0, 0))
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+    elif dark_only:
+        p = dark_path if dark_path.exists() else (standard_path if standard_path.exists() else light_path)
+        if p.exists():
+            img = Image.open(p)
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+        else:
+            img = Image.new("RGBA", size, (0, 0, 0, 0))
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+    elif dark_path.exists() and light_path.exists():
         img_dark = Image.open(dark_path)
         img_light = Image.open(light_path)
         ctk_img = ctk.CTkImage(light_image=img_dark, dark_image=img_light, size=size)
@@ -279,4 +297,5 @@ def get_icon(name: str, size: tuple[int, int] = (20, 20)) -> ctk.CTkImage:
 
     _ICONS_CACHE[key] = ctk_img
     return ctk_img
+
 

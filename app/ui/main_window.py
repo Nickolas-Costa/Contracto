@@ -171,14 +171,14 @@ class MainWindow(ctk.CTk):
     # TOOLBAR
     # ==================================================================
     def _load_icons(self) -> None:
-        self.icon_home = get_icon("home", (20, 20))
-        self.icon_profiles = get_icon("profiles", (20, 20))
-        self.icon_settings = get_icon("settings", (20, 20))
+        self.icon_home = get_icon("home", (20, 20), light_only=True)
+        self.icon_profiles = get_icon("profiles", (20, 20), light_only=True)
+        self.icon_settings = get_icon("settings", (20, 20), light_only=True)
         self.icon_calendar = get_icon("calendar", (18, 18))
-        self.icon_help = get_icon("help", (20, 20))
-        self.icon_advance = get_icon("advance", (20, 20))
+        self.icon_help = get_icon("help", (20, 20), light_only=True)
+        self.icon_advance = get_icon("advance", (20, 20), light_only=True)
         self.icon_back = get_icon("back", (18, 18))
-        self.icon_success = get_icon("success", (20, 20))
+        self.icon_success = get_icon("success", (20, 20), light_only=True)
         self.icon_folder = get_icon("folder", (18, 18))
         self.icon_add_user = get_icon("participants", (18, 18))
 
@@ -333,7 +333,8 @@ class MainWindow(ctk.CTk):
         self.frame_stepper.lift()
 
         self.lbl_etapa1 = ctk.CTkLabel(
-            self.frame_stepper, text="1. Geração de Documentos",
+            self.frame_stepper, text=" 1. Geração de Documentos",
+            image=get_icon("document", (16, 16)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary_text()
         )
         self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
@@ -345,7 +346,8 @@ class MainWindow(ctk.CTk):
         self.lbl_seta.grid(row=0, column=1, pady=SPACING_MEDIUM)
 
         self.lbl_etapa2 = ctk.CTkLabel(
-            self.frame_stepper, text="2. Conversão e Organização",
+            self.frame_stepper, text=" 2. Conversão e Organização",
+            image=get_icon("folder", (16, 16)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT_DISABLED,
         )
         self.lbl_etapa2.grid(row=0, column=2, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
@@ -360,7 +362,8 @@ class MainWindow(ctk.CTk):
         frame_perfil_row.grid(row=1, column=0, columnspan=3, pady=(0, SPACING_SMALL))
 
         ctk.CTkLabel(
-            frame_perfil_row, text="Perfil:",
+            frame_perfil_row, text=" Perfil:",
+            image=get_icon("profiles", (15, 15)), compound="left",
             font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
         ).pack(side="left", padx=(0, SPACING_XSMALL))
 
@@ -677,14 +680,20 @@ class MainWindow(ctk.CTk):
         secao.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         secao.grid_columnconfigure(1, weight=1)
 
-        titulo = ctk.CTkLabel(secao, text="Destino",
-                              font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT)
+        titulo = ctk.CTkLabel(
+            secao, text=" Destino",
+            image=get_icon("briefcase", (18, 18)), compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT
+        )
         titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
                     pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
         # Global fields
-        ctk.CTkLabel(secao, text="Data da assinatura", font=get_font(FONT_SIZE_BODY)).grid(
-            row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        ctk.CTkLabel(
+            secao, text=" Data da assinatura",
+            image=get_icon("calendar", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY)
+        ).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
             
         frame_data = ctk.CTkFrame(secao, fg_color="transparent")
         frame_data.grid(row=1, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
@@ -705,8 +714,11 @@ class MainWindow(ctk.CTk):
         )
         self.btn_calendar.grid(row=0, column=1, padx=(SPACING_SMALL, 0))
 
-        ctk.CTkLabel(secao, text="Local da assinatura", font=get_font(FONT_SIZE_BODY)).grid(
-            row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        ctk.CTkLabel(
+            secao, text=" Local da assinatura",
+            image=get_icon("location", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY)
+        ).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
         self.entry_local = ctk.CTkEntry(secao, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_local.grid(row=2, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
@@ -721,9 +733,11 @@ class MainWindow(ctk.CTk):
         self.pasta_saida = downloads_path
 
         # Directory Selector
-        ctk.CTkLabel(secao, text="Diretório de saída:", font=get_font(FONT_SIZE_BODY, "bold")).grid(
-            row=3, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM),
-            pady=(SPACING_SMALL, SPACING_LARGE), sticky="w")
+        ctk.CTkLabel(
+            secao, text=" Diretório de saída:",
+            image=get_icon("folder", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY, "bold")
+        ).grid(row=3, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=(SPACING_SMALL, SPACING_LARGE), sticky="w")
         
         frame_dir = ctk.CTkFrame(secao, fg_color="transparent")
         frame_dir.grid(row=3, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
@@ -999,7 +1013,8 @@ class MainWindow(ctk.CTk):
         frame_header.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            frame_header, text="Organização de Arquivos",
+            frame_header, text=" Organização de Arquivos",
+            image=get_icon("folder", (20, 20)), compound="left",
             font=get_font(FONT_SIZE_H2, "bold"), text_color=COLOR_TEXT,
         ).grid(row=0, column=0, sticky="w", pady=(0, SPACING_SMALL))
 
@@ -1026,7 +1041,8 @@ class MainWindow(ctk.CTk):
         frame_docs.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            frame_docs, text="Adicionar documentos extras (opcional)",
+            frame_docs, text=" Adicionar documentos extras (opcional)",
+            image=get_icon("contract", (18, 18)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
         ).grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
 

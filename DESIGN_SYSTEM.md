@@ -84,7 +84,10 @@ A aplicação utiliza a família **Segoe UI** nativa do ecossistema Windows:
 
 ## 5. Catálogo de Ícones Vetoriais Adaptativos
 
-Todos os ícones são renderizados em alta definição (128x128 com canal alfa transparente) e contam com variantes de contraste `_dark.png` (para fundos claros) e `_light.png` (para fundos escuros), selecionadas automaticamente via `theme.get_icon(name, size)`:
+Todos os ícones são renderizados em alta definição (128x128 com canal alfa transparente) e contam com variantes de contraste `_dark.png` (para fundos claros) e `_light.png` (para fundos escuros), selecionadas automaticamente via `theme.get_icon(name, size)`.
+
+Para botões com fundo colorido/primário (como a Toolbar superior, "GERAR DOCUMENTOS E AVANÇAR", "FINALIZAR PROCESSO" e "SALVAR CONFIGURAÇÕES"), utiliza-se `theme.get_icon(name, size, light_only=True)` para garantir que o ícone permaneça sempre em branco puro (`#FFFFFF`) com contraste ideal independente do tema do sistema.
+
 
 | Ícone | Nome do Arquivo | Tamanho Padrão | Aplicação na Interface |
 | :--- | :--- | :--- | :--- |
