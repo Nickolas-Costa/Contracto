@@ -75,8 +75,23 @@ class ConfirmModal:
         header.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
         header.grid_columnconfigure(1, weight=1)
 
-        lbl_icon = ctk.CTkLabel(header, text="❓", font=theme.get_font(24))
-        lbl_icon.grid(row=0, column=0, padx=(0, 12))
+        icon_box = ctk.CTkFrame(
+            header,
+            width=42,
+            height=42,
+            corner_radius=10,
+            fg_color=("#E0F2FE", "#082F49"),
+            border_width=1,
+            border_color=("#38BDF8", "#0284C7"),
+        )
+        icon_box.grid(row=0, column=0, padx=(0, 12))
+        icon_box.grid_propagate(False)
+        ctk.CTkLabel(
+            icon_box,
+            text="?",
+            font=theme.get_font(22, "bold"),
+            text_color=("#0284C7", "#38BDF8"),
+        ).pack(expand=True)
 
         lbl_title = ctk.CTkLabel(
             header,

@@ -66,10 +66,23 @@ class AlertModal:
         header.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
         header.grid_columnconfigure(1, weight=1)
 
-        icon_box = ctk.CTkFrame(header, width=42, height=42, corner_radius=10, fg_color="#FFF3CD")
+        icon_box = ctk.CTkFrame(
+            header,
+            width=42,
+            height=42,
+            corner_radius=10,
+            fg_color=("#FEF3C7", "#3B2703"),
+            border_width=1,
+            border_color=("#F59E0B", "#D97706"),
+        )
         icon_box.grid(row=0, column=0, padx=(0, 12))
         icon_box.grid_propagate(False)
-        ctk.CTkLabel(icon_box, text="⚠️", font=theme.get_font(22)).pack(expand=True)
+        ctk.CTkLabel(
+            icon_box,
+            text="⚠",
+            font=theme.get_font(22, "bold"),
+            text_color=("#B45309", "#FBBF24"),
+        ).pack(expand=True)
 
         info = ctk.CTkFrame(header, fg_color="transparent")
         info.grid(row=0, column=1, sticky="w")

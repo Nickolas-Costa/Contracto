@@ -564,8 +564,11 @@ class MainWindow(ctk.CTk):
                 self._atualizar_stepper(1 if self._tela_atual == "etapa1" else 2 if self._tela_atual == "etapa2" else 1)
                 
                 # Atualizar cores dos frames independentes
-                if getattr(self, 'container_settings', None) is not None:
+                if self._tela_atual == "config":
+                    self._mostrar_tela("config")
+                elif getattr(self, 'container_settings', None) is not None:
                     self.container_settings.atualizar_cores()
+                    
                 if getattr(self, 'container_profiles', None) is not None:
                     self.container_profiles.atualizar_cores()
                 

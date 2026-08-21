@@ -6,6 +6,9 @@ Permite ao usuário configurar:
 - Cor de destaque
 - Formato de saída padrão
 - Local padrão de assinatura
+- Tamanho dos quadros
+- Restaurar configurações padrão
+- Diagnóstico e manutenção do sistema
 """
 
 import customtkinter as ctk
@@ -39,7 +42,7 @@ class SettingsFrame(ctk.CTkFrame):
     """Frame da tela de configurações."""
 
     def __init__(self, master, on_voltar=None, on_aplicar=None, **kwargs):
-        super().__init__(master, fg_color="transparent", **kwargs)
+        super().__init__(master, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD, **kwargs)
         self.on_voltar = on_voltar
         self.on_aplicar = on_aplicar  # callback para atualizar a UI principal
 
@@ -50,9 +53,10 @@ class SettingsFrame(ctk.CTkFrame):
 
         self._config = config_manager.carregar_config()
 
-        # Container scrollable para todo o conteúdo
+        # Container scrollable para todo o conteúdo com cor de superfície consistente
         self._scroll = ctk.CTkScrollableFrame(
-            self, fg_color="transparent",
+            self,
+            fg_color=COLOR_SURFACE,
             scrollbar_button_color=COLOR_SURFACE_VARIANT,
             scrollbar_button_hover_color=COLOR_BORDER,
         )
@@ -68,16 +72,15 @@ class SettingsFrame(ctk.CTkFrame):
         self._construir_secao_cor()
         self._construir_secao_local()
         self._construir_secao_quadros()
+        self._construir_secao_restaurar_padroes()
         self._construir_secao_diagnostico_reparo()
-        self._construir_secao_tutorial()
 
         # Separador visual antes do footer
         sep = ctk.CTkFrame(self, height=1, fg_color=COLOR_BORDER)
         sep.grid(row=1, column=0, sticky="ew", pady=(SPACING_SMALL, 0))
 
-        # Footer fixo com botões (fora do scroll)
+        # Footer fixo com botão Salvar (fora do scroll)
         self._construir_botoes()
-
 
     def _construir_header(self) -> None:
         header = ctk.CTkFrame(self._content, fg_color="transparent")
@@ -118,13 +121,6 @@ class SettingsFrame(ctk.CTkFrame):
             selected_hover_color=get_color_primary_hover(),
         )
         self.seg_tema.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
-        self.seg_tema.configure(command=self._ao_mudar_aparencia)
-
-    def _ao_mudar_aparencia(self, valor: str) -> None:
-        if valor == "Padrão do Sistema":
-            ctk.set_appearance_mode("system")
-        else:
-            ctk.set_appearance_mode(valor.lower())
 
     def _construir_secao_cor(self) -> None:
         secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
@@ -231,12 +227,10 @@ class SettingsFrame(ctk.CTkFrame):
             except ValueError:
                 pass
 
-
-
     def _construir_secao_local(self) -> None:
         secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
-        secao.grid(row=4, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        secao.grid(row=3, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
         ctk.CTkLabel(secao, text="Local Padrão", font=get_font(FONT_SIZE_H3, "bold"),
                      text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
@@ -253,7 +247,7 @@ class SettingsFrame(ctk.CTkFrame):
     def _construir_secao_quadros(self) -> None:
         secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
                              border_width=1, border_color=COLOR_BORDER)
-        secao.grid(row=5, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        secao.grid(row=4, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
 
         ctk.CTkLabel(secao, text="Tamanho dos Quadros", font=get_font(FONT_SIZE_H3, "bold"),
                      text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
@@ -271,16 +265,66 @@ class SettingsFrame(ctk.CTkFrame):
             corner_radius=RADIUS_BUTTON,
             selected_color=get_color_primary(),
             selected_hover_color=get_color_primary_hover(),
-            command=self._ao_mudar_tamanho,
         )
         self.seg_tamanho.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
 
-    def _ao_mudar_tamanho(self, valor: str) -> None:
-        # Salva a configuração imediatamente
-        config_manager.definir("tamanho_quadros", valor)
-        # Solicita à UI principal que aplique a nova largura
-        if self.on_aplicar:
-            self.on_aplicar()
+    def _construir_secao_restaurar_padroes(self) -> None:
+        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+                             border_width=1, border_color=COLOR_BORDER)
+        secao.grid(row=5, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+
+        ctk.CTkLabel(secao, text="Restaurar Configurações Padrão", font=get_font(FONT_SIZE_H3, "bold"),
+                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
+
+        ctk.CTkLabel(
+            secao,
+            text="Restaura todas as opções visuais, tema, cor de destaque, tamanho dos quadros e locais de assinatura para as configurações originais de fábrica.",
+            font=get_font(FONT_SIZE_BODY),
+            text_color=COLOR_TEXT_SECONDARY,
+            wraplength=600,
+            justify="left",
+        ).pack(anchor="w", padx=SPACING_LARGE)
+
+        ctk.CTkButton(
+            secao,
+            text="↺ Restaurar Padrões de Fábrica",
+            fg_color=COLOR_SURFACE_VARIANT,
+            text_color=COLOR_TEXT,
+            border_width=1,
+            border_color=COLOR_BORDER,
+            hover_color=COLOR_BORDER,
+            corner_radius=RADIUS_BUTTON,
+            height=38,
+            command=self._confirmar_e_restaurar_padroes,
+        ).pack(padx=SPACING_LARGE, pady=(SPACING_MEDIUM, SPACING_LARGE), anchor="w")
+
+    def _confirmar_e_restaurar_padroes(self) -> None:
+        from ui.confirm_modal import ConfirmModal
+
+        ConfirmModal(
+            self.winfo_toplevel(),
+            titulo="Restaurar Configurações Padrão",
+            subtitulo="Tem certeza de que deseja restaurar todas as configurações visuais, cores e padrões para os valores de fábrica?\n\nEsta ação substituirá suas preferências atuais e não pode ser desfeita. Deseja prosseguir?",
+            on_confirm=self._executar_restauracao_padroes,
+            texto_confirmar="Sim, Restaurar Padrões",
+            texto_cancelar="Cancelar",
+        )
+
+    def _executar_restauracao_padroes(self) -> None:
+        defaults = config_manager.restaurar_padroes()
+
+        ap = defaults.get("aparencia", "system")
+        if ap == "system":
+            self.var_aparencia.set("Padrão do Sistema")
+        else:
+            self.var_aparencia.set(ap.capitalize())
+            
+        self._selecionar_cor(defaults.get("cor_destaque", "#1E6FB3"))
+        self.entry_local.delete(0, "end")
+        self.entry_local.insert(0, defaults.get("local_padrao", "CAMOCIM-CE"))
+        self.var_tamanho.set(defaults.get("tamanho_quadros", "Médio"))
+        
+        self._salvar()
 
     def _construir_secao_diagnostico_reparo(self) -> None:
         secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
@@ -318,7 +362,7 @@ class SettingsFrame(ctk.CTkFrame):
         ConfirmModal(
             self.winfo_toplevel(),
             titulo="Diagnosticar e Reparar Sistema",
-            subtitulo="Esta ação irá encerrar eventuais processos travados em segundo plano (como Word ou Ghostscript), limpar arquivos temporários e verificar a integridade dos modelos e ferramentas do sistema.\n\nDeseja prosseguir?",
+            subtitulo="Esta ação irá encerrar eventuais processos travados em segundo plano (como Word ou Ghostscript), limpar arquivos temporários e verificar a integridade dos modelos e ferramentas do sistema.\n\nEsta ação de manutenção não pode ser desfeita. Deseja prosseguir?",
             on_confirm=self._executar_reparo,
             texto_confirmar="Sim, Executar Reparo",
             texto_cancelar="Cancelar",
@@ -353,51 +397,22 @@ class SettingsFrame(ctk.CTkFrame):
 
         threading.Thread(target=_tarefa, daemon=True).start()
 
-    def _construir_secao_tutorial(self) -> None:
-        secao = ctk.CTkFrame(self._content, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
-                             border_width=1, border_color=COLOR_BORDER)
-        secao.grid(row=7, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
-
-        ctk.CTkLabel(secao, text="Guia do Usuário e Ajuda", font=get_font(FONT_SIZE_H3, "bold"),
-                     text_color=COLOR_TEXT).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_SMALL))
-
-        ctk.CTkLabel(secao, text="Reveja as instruções de uso e passo a passo do aplicativo a qualquer momento.",
-                     font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT_SECONDARY
-                     ).pack(anchor="w", padx=SPACING_LARGE)
-
-        ctk.CTkButton(
-            secao, text="📖 Abrir Guia Rápido de Uso",
-            fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
-            border_width=1, border_color=COLOR_BORDER,
-            hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON, height=36,
-            command=self._abrir_tutorial,
-        ).pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), anchor="w")
-
-    def _abrir_tutorial(self) -> None:
-        from ui.welcome_modal import WelcomeModal
-        WelcomeModal(self.winfo_toplevel())
-
     def _construir_botoes(self) -> None:
         frame = ctk.CTkFrame(self, fg_color="transparent")
         frame.grid(row=2, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
-        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkButton(
-            frame, text="Restaurar Configurações",
-            fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
-            border_width=1, border_color=COLOR_BORDER,
-            hover_color=COLOR_SURFACE_VARIANT,
-            corner_radius=RADIUS_BUTTON, height=42,
-            command=self._restaurar_padroes,
-        ).grid(row=0, column=0, padx=(0, SPACING_MEDIUM))
-
-        ctk.CTkButton(
-            frame, text="SALVAR CONFIGURAÇÕES",
+        self.btn_salvar = ctk.CTkButton(
+            frame,
+            text="SALVAR CONFIGURAÇÕES",
             font=get_font(FONT_SIZE_H3, "bold"),
-            fg_color=get_color_primary(), hover_color="#004785",
-            corner_radius=RADIUS_BUTTON, height=42,
+            fg_color=get_color_primary(),
+            hover_color=get_color_primary_hover(),
+            corner_radius=RADIUS_BUTTON,
+            height=44,
             command=self._salvar,
-        ).grid(row=0, column=1, sticky="ew")
+        )
+        self.btn_salvar.grid(row=0, column=0, sticky="ew")
 
     def _salvar(self) -> None:
         val = self.var_aparencia.get()
@@ -430,23 +445,8 @@ class SettingsFrame(ctk.CTkFrame):
                 selected_color=get_color_primary(),
                 selected_hover_color=get_color_primary_hover()
             )
-        if hasattr(self, '_frame_cores_container'):
-            self._desenhar_cores(self._frame_cores_container)
-
-    def _restaurar_padroes(self) -> None:
-        defaults = config_manager.restaurar_padroes()
-
-        ap = defaults.get("aparencia", "system")
-        if ap == "system":
-            self.var_aparencia.set("Padrão do Sistema")
-            ctk.set_appearance_mode("system")
-        else:
-            self.var_aparencia.set(ap.capitalize())
-            ctk.set_appearance_mode(ap.lower())
-            
-        self._selecionar_cor(defaults.get("cor_destaque", "#1E6FB3"))
-        self.entry_local.delete(0, "end")
-        self.entry_local.insert(0, defaults.get("local_padrao", "CAMOCIM-CE"))
-        self.var_tamanho.set(defaults.get("tamanho_quadros", "Médio"))
-        
-        self._salvar()
+        if hasattr(self, 'btn_salvar'):
+            self.btn_salvar.configure(
+                fg_color=get_color_primary(),
+                hover_color=get_color_primary_hover()
+            )
