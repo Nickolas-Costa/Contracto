@@ -442,11 +442,11 @@ class MainWindow(ctk.CTk):
         
         # Define a margem lateral (padx) conforme o tamanho dos quadros configurado
         if tamanho == "Pequeno":
-            margem = 400
+            margem = 320
         elif tamanho == "Grande":
-            margem = 100
+            margem = 60
         else:
-            margem = 250  # Médio (Padrão)
+            margem = 180  # Médio (Padrão)
 
         # Grid settings for floating cards
         card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
@@ -586,11 +586,11 @@ class MainWindow(ctk.CTk):
     def _atualizar_tamanho_janela(self) -> None:
         tamanho = config_manager.obter("tamanho_quadros")
         if tamanho == "Pequeno":
-            margem = 400
+            margem = 320
         elif tamanho == "Grande":
-            margem = 100
+            margem = 60
         else:
-            margem = 250
+            margem = 180
             
         if self._tela_atual == "inicio" and hasattr(self, 'container_etapa1'):
             self.container_etapa1.grid(padx=margem)
@@ -1039,7 +1039,7 @@ class MainWindow(ctk.CTk):
 
         # Área rolável da Etapa 2
         self.scroll_etapa2 = ctk.CTkScrollableFrame(
-            self.container_etapa2, fg_color="transparent", label_text="", height=440
+            self.container_etapa2, fg_color="transparent", label_text="", height=540
         )
         self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_etapa2.grid_columnconfigure(0, weight=1)
