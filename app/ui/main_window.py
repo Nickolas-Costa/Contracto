@@ -444,8 +444,8 @@ class MainWindow(ctk.CTk):
         else:
             margem = 250  # Médio (Padrão)
 
-        # Grid settings for floating cards
-        card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
+        # Grid settings for floating cards — ocupa o máximo de espaço vertical (sticky="nsew")
+        card_grid = {"row": 2, "column": 0, "sticky": "nsew", "padx": margem, "pady": (SPACING_SMALL, SPACING_LARGE)}
 
         if tela == "inicio":
             self.btn_inicio.configure(**active)
@@ -459,12 +459,7 @@ class MainWindow(ctk.CTk):
             self.frame_stepper.lift()
             self.container_etapa2.grid(**card_grid)
             self._atualizar_stepper(2)
-            # Atualizar documentos baseados no perfil ativo
-            p_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-            from utils.profile_manager import obter_perfil
-            p = obter_perfil(p_nome)
-            if p:
-                self.document_frame.carregar_documentos(p.documentos_extras)
+            self._aplicar_perfil_ativo()
         elif tela == "perfis":
             self.btn_perfis.configure(**active)
             self.frame_stepper.grid_forget()
