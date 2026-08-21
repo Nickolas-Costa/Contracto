@@ -406,32 +406,51 @@ class ProfilesFrame(ctk.CTkFrame):
         from utils.profile_manager import DocumentoExtra
         modal = ctk.CTkToplevel(self)
         modal.title("Documento Extra")
-        modal.geometry("400x300")
+        modal.geometry("460x340")
         modal.transient(self.winfo_toplevel())
         modal.grab_set()
         
         modal.grid_columnconfigure(1, weight=1)
         
-        ctk.CTkLabel(modal, text="Rótulo (Exibição):").grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_LARGE, 5), sticky="w")
-        entry_rotulo = ctk.CTkEntry(modal)
-        entry_rotulo.grid(row=0, column=1, padx=SPACING_LARGE, pady=(SPACING_LARGE, 5), sticky="ew")
+        # Header
+        ctk.CTkLabel(
+            modal, text=" Configurar Documento Extra",
+            image=get_icon("contract", (20, 20)), compound="left",
+            font=get_font(FONT_SIZE_H2, "bold"), text_color=COLOR_TEXT
+        ).grid(row=0, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_LARGE, SPACING_MEDIUM), sticky="w")
+
+        ctk.CTkLabel(
+            modal, text=" Rótulo (Exibição):",
+            image=get_icon("contract", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT
+        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="w")
         
-        ctk.CTkLabel(modal, text="Nome Final:").grid(row=1, column=0, padx=SPACING_LARGE, pady=5, sticky="w")
-        entry_nome = ctk.CTkEntry(modal)
-        entry_nome.grid(row=1, column=1, padx=SPACING_LARGE, pady=5, sticky="ew")
+        entry_rotulo = ctk.CTkEntry(modal, placeholder_text="Ex: Cédula de Crédito", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        entry_rotulo.grid(row=1, column=1, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         
-        ctk.CTkLabel(modal, text="Exemplo: Se o Nome Final for 'CONTRATO', o arquivo\ngerado será 'CONTRATO MARIA E JOAO.pdf'", 
-                     text_color=COLOR_TEXT_SECONDARY, font=get_font(FONT_SIZE_CAPTION)).grid(row=2, column=0, columnspan=2, padx=SPACING_LARGE, pady=5)
+        ctk.CTkLabel(
+            modal, text=" Nome Final:",
+            image=get_icon("document", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT
+        ).grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="w")
+        
+        entry_nome = ctk.CTkEntry(modal, placeholder_text="Ex: CEDULA DE CREDITO", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        entry_nome.grid(row=2, column=1, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        
+        ctk.CTkLabel(
+            modal, text="Exemplo: Se o Nome Final for 'CONTRATO', o arquivo\ngerado será 'CONTRATO MARIA E JOAO.pdf'", 
+            text_color=COLOR_TEXT_SECONDARY, font=get_font(FONT_SIZE_CAPTION), justify="left"
+        ).grid(row=3, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_MEDIUM), sticky="w")
                      
         if doc_existente:
             entry_rotulo.insert(0, doc_existente.rotulo)
             entry_nome.insert(0, doc_existente.nome_padrao)
             
-        def _salvar():
+        def _salvar(event=None):
             rotulo = entry_rotulo.get().strip()
             nome = entry_nome.get().strip()
             if not rotulo or not nome:
-                messagebox.showwarning("Aviso", "Ambos os campos são obrigatórios.", parent=modal)
+                AlertModal(modal, "Campos Obrigatórios", "Por favor, preencha o Rótulo e o Nome Final.", [])
                 return
                 
             novo_doc = DocumentoExtra(rotulo, nome)
@@ -443,7 +462,20 @@ class ProfilesFrame(ctk.CTkFrame):
             self._atualizar_lista_documentos_editando()
             modal.destroy()
             
-        ctk.CTkButton(modal, text="Salvar", command=_salvar).grid(row=3, column=0, columnspan=2, pady=SPACING_LARGE)
+        btn_salvar = ctk.CTkButton(
+            modal, text=" Salvar Documento",
+            image=get_icon("save", (16, 16), light_only=True), compound="left",
+            font=get_font(FONT_SIZE_BODY, "bold"),
+            fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
+            corner_radius=RADIUS_BUTTON, height=38,
+            command=_salvar
+        )
+        btn_salvar.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
+
+        # Keyboard navigation
+        entry_rotulo.bind("<Return>", lambda e: entry_nome.focus_set())
+        entry_nome.bind("<Return>", lambda e: _salvar())
+        entry_rotulo.focus_set()
 
     def _abrir_modal_mapeamento(self, nome, caminho, campos, formulario_existente=None, index=None):
         modal = ctk.CTkToplevel(self)

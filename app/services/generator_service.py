@@ -159,6 +159,7 @@ def gerar_documentos(
     participantes: list[Participant],
     perfil: Perfil,
     pasta_saida: Path,
+    formularios_ativos: Optional[list[str] | set[str]] = None,
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> ResultadoGeracao:
@@ -166,9 +167,14 @@ def gerar_documentos(
     resultado = ResultadoGeracao()
     nomes_de_arquivo_usados: set[str] = set()
 
-    total_formularios = len(perfil.formularios)
+    formularios_para_gerar = [
+        f for f in perfil.formularios 
+        if formularios_ativos is None or f.nome in formularios_ativos
+    ]
 
-    for idx, formulario in enumerate(perfil.formularios, start=1):
+    total_formularios = len(formularios_para_gerar)
+
+    for idx, formulario in enumerate(formularios_para_gerar, start=1):
         if cancel_event is not None and cancel_event.is_set():
             raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
 

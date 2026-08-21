@@ -32,7 +32,7 @@ from ui.theme import (
     SPACING_XSMALL,
     get_font, get_color_primary, get_color_primary_hover,
     get_color_primary_light, get_color_primary_dark_gradient, get_color_primary_text,
-    aplicar_gradiente, configure_appearance, reload_theme, get_icon,
+    aplicar_gradiente, configure_appearance, reload_theme, get_icon, configurar_autoscroll,
 )
 from utils.date_formatter import validar_data
 from ui.loading_modal import LoadingModal
@@ -605,9 +605,12 @@ class MainWindow(ctk.CTk):
         self.update_idletasks()
 
     def _aplicar_perfil_ativo(self) -> None:
-        """Atualiza a UI da Etapa 2 para refletir o perfil ativo (documentos extras e formato de saída)."""
+        """Atualiza a UI da Etapa 2 para refletir o perfil ativo (formulários dinâmicos, documentos extras e formato de saída)."""
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
+
+        # Atualizar checklist de formulários dinâmicos da Etapa 2
+        self._carregar_formularios_dinamicos_etapa2()
 
         # Atualizar documentos extras da Etapa 2 se o frame já existir
         if hasattr(self, 'document_frame') and perfil:
@@ -1035,32 +1038,99 @@ class MainWindow(ctk.CTk):
         )
         self.label_formato_etapa2.grid(row=2, column=0, sticky="w")
 
-        frame_docs = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
-        frame_docs.grid(row=1, column=0, padx=SPACING_LARGE,
-                        pady=SPACING_LARGE, sticky="nsew")
-        frame_docs.grid_columnconfigure(0, weight=1)
+        # Área rolável da Etapa 2
+        self.scroll_etapa2 = ctk.CTkScrollableFrame(self.container_etapa2, fg_color="transparent", label_text="")
+        self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_LARGE, pady=SPACING_MEDIUM, sticky="nsew")
+        self.scroll_etapa2.grid_columnconfigure(0, weight=1)
+        configurar_autoscroll(self.scroll_etapa2)
+        self.container_etapa2.grid_rowconfigure(1, weight=1)
+
+        # 1. Card de Formulários Dinâmicos do Perfil
+        self.card_forms_dinamicos = ctk.CTkFrame(
+            self.scroll_etapa2,
+            fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD,
+            border_width=1,
+            border_color=COLOR_BORDER,
+        )
+        self.card_forms_dinamicos.grid(row=0, column=0, padx=0, pady=(0, SPACING_MEDIUM), sticky="ew")
+        self.card_forms_dinamicos.grid_columnconfigure(0, weight=1)
+
+        frame_header_forms = ctk.CTkFrame(self.card_forms_dinamicos, fg_color="transparent")
+        frame_header_forms.grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_MEDIUM, 0), sticky="ew")
+        frame_header_forms.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            frame_docs, text=" Adicionar documentos extras (opcional)",
+            frame_header_forms,
+            text=" Formulários Dinâmicos Gerados",
+            image=get_icon("form", (18, 18)),
+            compound="left",
+            font=get_font(FONT_SIZE_H3, "bold"),
+            text_color=COLOR_TEXT,
+        ).grid(row=0, column=0, sticky="w")
+
+        ctk.CTkButton(
+            frame_header_forms,
+            text=" Gerenciar Perfis",
+            image=get_icon("settings", (14, 14)),
+            compound="left",
+            width=140,
+            height=30,
+            corner_radius=RADIUS_BUTTON,
+            fg_color=COLOR_SURFACE_VARIANT,
+            text_color=COLOR_TEXT,
+            hover_color=COLOR_BORDER,
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            command=lambda: self._mostrar_tela("perfis"),
+        ).grid(row=0, column=1, sticky="e")
+
+        ctk.CTkLabel(
+            self.card_forms_dinamicos,
+            text="Selecione quais formulários preenchidos serão gerados e convertidos para o pacote final:",
+            font=get_font(FONT_SIZE_BODY),
+            text_color=COLOR_TEXT_SECONDARY,
+            justify="left",
+        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_SMALL), sticky="w")
+
+        self.frame_checkboxes_forms = ctk.CTkFrame(self.card_forms_dinamicos, fg_color="transparent")
+        self.frame_checkboxes_forms.grid(row=2, column=0, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM), sticky="ew")
+        self.frame_checkboxes_forms.grid_columnconfigure(0, weight=1)
+        self._vars_forms_dinamicos: dict[str, ctk.BooleanVar] = {}
+        self._carregar_formularios_dinamicos_etapa2()
+
+        # 2. Card de Documentos Extras
+        self.card_docs_extras = ctk.CTkFrame(
+            self.scroll_etapa2,
+            fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD,
+            border_width=1,
+            border_color=COLOR_BORDER,
+        )
+        self.card_docs_extras.grid(row=1, column=0, padx=0, pady=0, sticky="ew")
+        self.card_docs_extras.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            self.card_docs_extras, text=" Adicionar documentos extras (opcional)",
             image=get_icon("contract", (18, 18)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT,
-        ).grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
+        ).grid(row=0, column=0, padx=SPACING_LARGE, pady=(SPACING_MEDIUM, SPACING_SMALL), sticky="w")
 
         ctk.CTkLabel(
-            frame_docs,
+            self.card_docs_extras,
             text="Arquivos selecionados aqui serão renomeados e organizados.",
             text_color=COLOR_TEXT_SECONDARY, justify="left",
             font=get_font(FONT_SIZE_BODY),
-        ).grid(row=1, column=0, padx=0, pady=(0, SPACING_LARGE), sticky="w")
+        ).grid(row=1, column=0, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM), sticky="w")
 
-        self.document_frame = DocumentFrame(frame_docs)
-        self.document_frame.grid(row=2, column=0, padx=0, pady=0, sticky="ew")
+        self.document_frame = DocumentFrame(self.card_docs_extras, fg_color="transparent", border_width=0)
+        self.document_frame.grid(row=2, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="ew")
         if perfil:
             self.document_frame.carregar_documentos(perfil.documentos_extras)
 
+        # Botões de ação inferiores sempre visíveis
         frame_botoes = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
-        frame_botoes.grid(row=3, column=0, padx=SPACING_LARGE,
-                          pady=(0, SPACING_LARGE), sticky="ew")
+        frame_botoes.grid(row=2, column=0, padx=SPACING_LARGE,
+                          pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_botoes.grid_columnconfigure(1, weight=1)
 
         self.botao_voltar = ctk.CTkButton(
@@ -1089,19 +1159,73 @@ class MainWindow(ctk.CTk):
         )
         self.botao_finalizar.grid(row=0, column=1, sticky="ew")
 
+    def _carregar_formularios_dinamicos_etapa2(self) -> None:
+        """Recarrega a checklist de formulários dinâmicos baseando-se no perfil ativo."""
+        if not hasattr(self, "frame_checkboxes_forms"):
+            return
+
+        for w in self.frame_checkboxes_forms.winfo_children():
+            w.destroy()
+
+        self._vars_forms_dinamicos = {}
+
+        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        perfil = obter_perfil(perfil_nome)
+        if not perfil or not perfil.formularios:
+            lbl = ctk.CTkLabel(
+                self.frame_checkboxes_forms,
+                text="Nenhum formulário dinâmico configurado neste perfil.",
+                font=get_font(FONT_SIZE_BODY),
+                text_color=COLOR_TEXT_SECONDARY,
+            )
+            lbl.grid(row=0, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="w")
+            return
+
+        for idx, form in enumerate(perfil.formularios):
+            var = ctk.BooleanVar(value=True)
+            self._vars_forms_dinamicos[form.nome] = var
+
+            tipo_desc = "Por participante" if form.geracao == "por_participante" else "Documento único"
+            chk = ctk.CTkCheckBox(
+                self.frame_checkboxes_forms,
+                text=f" {form.nome}  ({tipo_desc})",
+                variable=var,
+                font=get_font(FONT_SIZE_BODY),
+                text_color=COLOR_TEXT,
+                fg_color=get_color_primary(),
+                hover_color=get_color_primary_hover(),
+                border_color=COLOR_BORDER,
+                corner_radius=RADIUS_BUTTON,
+            )
+            chk.grid(row=idx, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="w")
+
     def _ao_clicar_finalizar(self) -> None:
         if not self.pasta_saida:
             return
 
+        forms_selecionados = [
+            nome for nome, var in getattr(self, "_vars_forms_dinamicos", {}).items()
+            if var.get()
+        ]
         documentos_externos = self.document_frame.obter_documentos_selecionados()
         total_documentos = self.document_frame.obter_total_documentos()
+
+        if not forms_selecionados and not documentos_externos:
+            from ui.alert_modal import AlertModal
+            AlertModal(
+                self,
+                titulo="Nenhum Documento Selecionado",
+                subtitulo="Selecione ao menos um formulário dinâmico ou documento extra para finalizar.",
+                erros=["Marque ao menos um formulário dinâmico ou anexe um arquivo na lista de documentos extras."],
+            )
+            return
 
         if total_documentos > 0 and len(documentos_externos) < total_documentos:
             from ui.confirm_modal import ConfirmModal
             ConfirmModal(
                 self,
                 titulo="Documentos Incompletos",
-                subtitulo="Você não selecionou todos os documentos extras recomendados. Tem certeza de que deseja gerar apenas os formulários selecionados e finalizar o processo?",
+                subtitulo="Você não selecionou todos os documentos extras recomendados. Tem certeza de que deseja gerar apenas os documentos selecionados e finalizar o processo?",
                 on_confirm=self._prosseguir_finalizar,
             )
             return
@@ -1115,6 +1239,10 @@ class MainWindow(ctk.CTk):
         formato_saida = perfil.formato_saida if perfil else "PDF/A-2b"
         
         documentos_externos = self.document_frame.obter_documentos_selecionados()
+        forms_selecionados = [
+            nome for nome, var in getattr(self, "_vars_forms_dinamicos", {}).items()
+            if var.get()
+        ]
 
         self.botao_finalizar.configure(state="disabled")
         self.botao_voltar.configure(state="disabled")
@@ -1129,7 +1257,7 @@ class MainWindow(ctk.CTk):
 
         thread = threading.Thread(
             target=self._finalizar_em_background,
-            args=(documentos_externos, formato_saida),
+            args=(documentos_externos, formato_saida, forms_selecionados),
             daemon=True,
         )
         thread.start()
@@ -1141,7 +1269,7 @@ class MainWindow(ctk.CTk):
         if hasattr(self, "_loading2"):
             self._loading2.update_message("Interrompendo processo...", "Cancelando tarefas e limpando arquivos...")
 
-    def _finalizar_em_background(self, documentos_externos, formato_saida):
+    def _finalizar_em_background(self, documentos_externos, formato_saida, forms_selecionados=None):
         try:
             # 1. Gerar os documentos PDF a partir dos dados preenchidos
             perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
@@ -1155,6 +1283,7 @@ class MainWindow(ctk.CTk):
                 self.participantes_etapa1,
                 perfil,
                 self.pasta_saida,
+                formularios_ativos=forms_selecionados,
                 cancel_event=self._cancel_event,
                 on_progress=_on_progresso_etapa1,
             )
@@ -1186,6 +1315,7 @@ class MainWindow(ctk.CTk):
             self.after(0, lambda: self._ao_cancelado_etapa2())
         except Exception as exc:
             self.after(0, lambda: self._ao_erro_etapa2(exc))
+
 
     def _ao_cancelado_etapa2(self):
         if hasattr(self, "_loading2"):

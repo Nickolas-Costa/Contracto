@@ -255,6 +255,25 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         campos = obter_campos_do_formulario(self.modelo_imovel)
         self.assertEqual(campos, {"NOME COMPLETO", "CPF", "ENDERECO", "DATA ASSINATURA", "LOCAL ASSINATURA"})
 
+    def test_gerar_documentos_com_filtro_de_formularios_ativos(self):
+        """Verifica se gerar_documentos gera apenas os formulários selecionados na Etapa 2."""
+        participante = Participant(
+            nome_completo="Maria Silva",
+            cpf="123.456.789-09",
+            endereco="Rua das Flores, 123",
+            data_assinatura="15/07/2026",
+            local_assinatura="CAMOCIM-CE",
+        )
+        # Gerar apenas o formulário PPE
+        resultado = gerar_documentos(
+            [participante],
+            self.perfil,
+            self.pasta_saida,
+            formularios_ativos=["PPE"],
+        )
+        self.assertEqual(len(resultado.arquivos_gerados), 1)
+        self.assertTrue(any("PPE" in f.name for f in resultado.arquivos_gerados))
+
 
 if __name__ == "__main__":
     unittest.main()

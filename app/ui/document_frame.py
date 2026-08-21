@@ -12,14 +12,14 @@ from utils.profile_manager import DocumentoExtra
 
 class DocumentFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
-        super().__init__(
-            master, 
-            corner_radius=RADIUS_CARD, 
-            fg_color=COLOR_SURFACE, 
-            border_width=1, 
-            border_color=COLOR_BORDER,
-            **kwargs
-        )
+        defaults = {
+            "corner_radius": RADIUS_CARD,
+            "fg_color": COLOR_SURFACE,
+            "border_width": 1,
+            "border_color": COLOR_BORDER,
+        }
+        defaults.update(kwargs)
+        super().__init__(master, **defaults)
 
         self.grid_columnconfigure(1, weight=0)
         self.grid_columnconfigure(2, weight=1)
