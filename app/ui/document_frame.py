@@ -21,7 +21,8 @@ class DocumentFrame(ctk.CTkFrame):
             **kwargs
         )
 
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=1)
 
         self._documentos: dict[str, Path | None] = {}
         self._entries: dict[str, ctk.CTkEntry] = {}
@@ -58,7 +59,7 @@ class DocumentFrame(ctk.CTkFrame):
             lbl.grid(row=linha, column=1, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
             self._widgets_linha.append(lbl)
 
-            entry = ctk.CTkEntry(self, placeholder_text="Nenhum arquivo selecionado", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+            entry = ctk.CTkEntry(self, width=320, placeholder_text="Nenhum arquivo selecionado", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
             entry.grid(row=linha, column=2, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="ew")
             entry.configure(state="disabled")
             self._entries[doc.nome_padrao] = entry

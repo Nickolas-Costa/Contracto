@@ -224,14 +224,14 @@ class ProfilesFrame(ctk.CTkFrame):
             frame_acoes.grid(row=0, column=2, rowspan=2, padx=SPACING_LARGE, pady=SPACING_MEDIUM)
 
             if perfil.nome != perfil_ativo:
-                ctk.CTkButton(frame_acoes, text=" Ativar", image=get_icon("success", (13, 13), light_only=True), compound="left",
+                ctk.CTkButton(frame_acoes, text=" Ativar", image=get_icon("check", (13, 13), light_only=True), compound="left",
                               width=75,
                               fg_color=get_color_primary(), text_color="#FFFFFF", hover_color="#004785",
                               corner_radius=RADIUS_BUTTON, font=get_font(FONT_SIZE_CAPTION),
                               command=lambda n=perfil.nome: self._ativar_perfil(n)
                               ).pack(side="left", padx=2)
 
-            ctk.CTkButton(frame_acoes, text=" Editar", image=get_icon("form", (13, 13)), compound="left",
+            ctk.CTkButton(frame_acoes, text=" Editar", image=get_icon("edit", (13, 13)), compound="left",
                           width=75,
                           fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
                           hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
@@ -239,7 +239,7 @@ class ProfilesFrame(ctk.CTkFrame):
                           command=lambda p=perfil: self._abrir_editor(p)
                           ).pack(side="left", padx=2)
 
-            ctk.CTkButton(frame_acoes, text=" Duplicar", image=get_icon("grid_array", (13, 13)), compound="left",
+            ctk.CTkButton(frame_acoes, text=" Duplicar", image=get_icon("copy", (13, 13)), compound="left",
                           width=85,
                           fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
                           hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,

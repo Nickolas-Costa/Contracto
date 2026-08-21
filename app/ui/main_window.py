@@ -178,9 +178,9 @@ class MainWindow(ctk.CTk):
         self.icon_help = get_icon("question_circle", (20, 20), light_only=True)
         self.icon_advance = get_icon("advance", (20, 20), light_only=True)
         self.icon_back = get_icon("back", (18, 18))
-        self.icon_success = get_icon("success", (20, 20), light_only=True)
+        self.icon_success = get_icon("finish", (20, 20), light_only=True)
         self.icon_folder = get_icon("folder", (18, 18))
-        self.icon_add_user = get_icon("participants", (18, 18))
+        self.icon_add_user = get_icon("user_add", (18, 18))
 
     def _construir_toolbar(self) -> None:
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
@@ -513,7 +513,6 @@ class MainWindow(ctk.CTk):
         try:
             from ui.loading_modal import LoadingModal
             loading = LoadingModal(self, "Aplicando configurações do sistema...")
-            self.update_idletasks()
         except Exception:
             pass
 
@@ -581,9 +580,9 @@ class MainWindow(ctk.CTk):
                 show_toast(self, "Configurações atualizadas!", "success")
             finally:
                 if loading:
-                    self.after(300, lambda: loading.dismiss())
+                    self.after(600, lambda: loading.dismiss())
 
-        self.after(50, _executar_aplicacao)
+        self.after(120, _executar_aplicacao)
 
     def _atualizar_tamanho_janela(self) -> None:
         tamanho = config_manager.obter("tamanho_quadros")

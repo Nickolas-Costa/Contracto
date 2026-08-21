@@ -44,6 +44,9 @@ def reset_loader_cycle() -> None:
     _CURRENT_LOADER_INDEX = 0
 
 
+_LOADER_FRAMES_CACHE = {}
+
+
 class AnimatedGifLabel(ctk.CTkLabel):
     """Widget de Label animado para exibição fluida de frames de GIF em tempo real."""
 
@@ -72,6 +75,14 @@ class AnimatedGifLabel(ctk.CTkLabel):
         try:
             if not self.gif_path or not self.gif_path.exists():
                 return
+
+            cache_key = (str(self.gif_path), self.size)
+            if cache_key in _LOADER_FRAMES_CACHE:
+                cached_frames, cached_delays = _LOADER_FRAMES_CACHE[cache_key]
+                self._frames = list(cached_frames)
+                self._delays = list(cached_delays)
+                return
+
             im = Image.open(self.gif_path)
             for frame in ImageSequence.Iterator(im):
                 f_resized = frame.copy().convert("RGBA").resize(self.size, Image.Resampling.LANCZOS)
@@ -81,6 +92,8 @@ class AnimatedGifLabel(ctk.CTkLabel):
                 if delay < 20:
                     delay = 50
                 self._delays.append(delay)
+
+            _LOADER_FRAMES_CACHE[cache_key] = (list(self._frames), list(self._delays))
         except Exception:
             pass
 

@@ -121,6 +121,11 @@ class LoadingModal:
 
         self.card.deiconify()
         self.card.lift()
+        try:
+            self.overlay.update()
+            self.card.update()
+        except Exception:
+            pass
 
     def _ao_clicar_cancelar(self) -> None:
         if self._cancel_requested:

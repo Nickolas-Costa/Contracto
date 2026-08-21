@@ -452,10 +452,6 @@ class SettingsFrame(ctk.CTkFrame):
         config_manager.definir("local_padrao", self.entry_local.get().strip() or "CAMOCIM-CE")
         config_manager.definir("tamanho_quadros", self.var_tamanho.get())
 
-        # Recarregar tema
-        reload_theme()
-        configure_appearance()
-
         if self.on_aplicar:
             self.on_aplicar()
 
