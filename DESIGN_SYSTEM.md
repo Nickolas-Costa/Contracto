@@ -125,15 +125,4 @@ Para botões com fundo colorido/primário (como a Toolbar superior, "GERAR DOCUM
 As telas de carregamento utilizam um player animado nativo de alto desempenho ([animated_loader.py](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/app/ui/animated_loader.py)) que renderiza frames de GIF com temporização nativa.
 
 ### 6.1. Ciclo de Rotação Circular
-A cada nova ação de carregamento (geração de documentos, conversão de PDF/A, reparo de backend, etc.), o sistema seleciona o próximo loader da fila e recomeça a lista circularmente:
-
-1. `spinner_expand.gif` — Círculo pontilhado expansivo
-2. `spinner_dots_spin.gif` — Três pontos giratórios orbitais
-3. `spinner_snake.gif` — Serpente circular contínua
-4. `spinner_dots_juggle.gif` — Três pontos em malabarismo vertical
-5. `spinner_spiral.gif` — Espiral contínua de alta rotação
-6. `spinner_turbine.gif` — Turbina radial com aceleração suave
-7. `spinner_dots_queue.gif` — Fila de pontos em fluxo contínuo
-8. `spinner_half_circles.gif` — Semi-círculos concêntricos pulsantes
-9. `spinner_transparency.gif` — Círculo pontilhado com fade de opacidade
-10. `spinner_dots_line.gif` — Três pontos oscilantes em linha horizontal
+A cada nova ação de carregamento (geração de documentos, conversão de PDF/A, reparo de backend, etc.), o sistema seleciona o próximo loader da fila e recomeça a lista circularmente.
