@@ -4,22 +4,7 @@ Aplicativo desktop (Windows) em Python para preenchimento automatizado de declar
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
 - **Declaração de Primeiro Imóvel**
 
-A **Versão 4.5** traz o aperfeiçoamento da experiência visual e de usabilidade: centralização milimétrica de todos os modais com compensação nativa de escala DPI do Windows, controle anti-acúmulo de popups com descarte limpo, responsividade dinâmica e proporção equilibrada dos quadros principais, alinhamento intuitivo na Etapa 2, diferenciação visual para participantes e Design System formal ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)).
-
----
-
-## ⚖️ Termos de Uso e Avisos Legais
-
-### 1. Finalidade do Aplicativo
-O **Contracto** é uma ferramenta de produtividade desenvolvida exclusivamente para automatizar o preenchimento de campos em formulários PDF (AcroForm), organizar arquivos em pastas e converter documentos para o padrão PDF/A-2b. O aplicativo não altera o conteúdo legal ou as cláusulas das declarações, atuando apenas como preenchedor técnico de campos com base nos dados fornecidos pelo usuário.
-
-### 2. Isenção de Vínculo Institucional
-O **Contracto** é uma ferramenta independente desenvolvida para auxílio na preparação de documentos e automação de declarações habitacionais. Este aplicativo **NÃO possui qualquer vínculo oficial, associação, patrocínio ou homologação** com nenhuma instituição financeira, governamental ou bancária pública/privada.
-
-### 3. Isenção de Responsabilidade sobre os Dados e Documentos
-- O usuário é o **único responsável** pela exatidão, veracidade e legalidade das informações digitadas e dos documentos gerados.
-- O software é fornecido **"NO ESTADO EM QUE SE ENCONTRA" ("AS IS")**, sem garantias expressas ou implícitas de qualquer tipo, incluindo, mas não se limitando a, garantias de comercialização, adequação a um propósito específico ou ausência de erros.
-- Os desenvolvedores e mantenedores deste projeto **não se responsabilizam** por eventuais recusas de dossiês, erros de preenchimento, divergências de datas/valores ou quaisquer danos diretos, indiretos ou incidentais decorrentes do uso desta ferramenta.
+A **Versão 4.5** traz o aperfeiçoamento da experiência visual e de usabilidade: centralização milimétrica de todos os modais com compensação nativa de escala DPI do Windows, controle anti-acúmulo de popups com descarte limpo, responsividade dinâmica e proporção equilibrada dos quadros principais, alinhamento intuitivo na Etapa 2, diferenciação visual para participantes e Design System formal e moderno ([DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)).
 
 ---
 
@@ -42,7 +27,7 @@ O **Contracto** é uma ferramenta independente desenvolvida para auxílio na pre
 
 1. Baixe a versão mais recente (`Contracto.zip`) na página de **Releases** do repositório.
 2. Extraia o conteúdo em um local da sua preferência.
-3. Execute `Contracto.exe`. O Ghostscript e os modelos já vêm integrados!
+3. Execute `Contracto.exe`. Todas as dependências e os modelos já vêm integrados!
 
 ### Como Atualizar
 
@@ -173,3 +158,20 @@ build_exe.bat
 ```
 
 O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.zip`.
+
+---
+
+## ⚖️ Termos de Uso e Avisos Legais
+
+### 1. Finalidade do Aplicativo
+O **Contracto** é uma ferramenta de produtividade desenvolvida exclusivamente para automatizar o preenchimento de campos em formulários PDF (AcroForm), organizar arquivos em pastas e converter documentos para o padrão PDF/A-2b. O aplicativo não altera o conteúdo legal ou as cláusulas das declarações, atuando apenas como preenchedor técnico de campos com base nos dados fornecidos pelo usuário.
+
+### 2. Isenção de Vínculo Institucional
+O **Contracto** é uma ferramenta independente desenvolvida para auxílio na preparação de documentos e automação de declarações habitacionais. Este aplicativo **NÃO possui qualquer vínculo oficial, associação, patrocínio ou homologação** com nenhuma instituição financeira, governamental ou bancária pública/privada.
+
+### 3. Isenção de Responsabilidade sobre os Dados e Documentos
+- O usuário é o **único responsável** pela exatidão, veracidade e legalidade das informações digitadas e dos documentos gerados.
+- O software é fornecido **"NO ESTADO EM QUE SE ENCONTRA" ("AS IS")**, sem garantias expressas ou implícitas de qualquer tipo, incluindo, mas não se limitando a, garantias de comercialização, adequação a um propósito específico ou ausência de erros.
+- Os desenvolvedores e mantenedores deste projeto **não se responsabilizam** por eventuais recusas de dossiês, erros de preenchimento, divergências de datas/valores ou quaisquer danos diretos, indiretos ou incidentais decorrentes do uso desta ferramenta.
+
+---
