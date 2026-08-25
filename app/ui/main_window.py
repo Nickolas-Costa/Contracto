@@ -2,54 +2,57 @@
 Janela principal da aplicação Contracto.
 
 Implementa a navegação entre telas (Início, Perfis, Configurações),
-o gradiente de fundo inspirado no PDFCreator, e a integração com
-o sistema de perfis e configurações.
+o gradiente de fundo inspirado no PDFCreator, a fila de processamento
+em segundo plano (com suporte a minimizar para a toolbar), e a integração
+com o sistema de perfis e configurações.
 """
 
 import os
-import threading
+import queue
 import subprocess
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox
+from typing import Optional
 
 import customtkinter as ctk
+from PIL import Image
 
 from models.participant import Participant
 from services.generator_service import gerar_documentos, validar_antes_de_gerar
 from services.pdf_service import PdfServiceError
 from services.pdfa_converter import ProcessoCanceladoError
-from services.stage2_service import executar_etapa2
+from services.queue_manager import ProcessJob, QueueManager
+from services.stage2_service import ResultadoEtapa2, executar_etapa2
+from ui.date_picker import DatePickerPopup
 from ui.document_frame import DocumentFrame
+from ui.feedback_toast import show_toast
+from ui.loading_modal import LoadingModal
 from ui.participant_frame import ParticipantFrame
+from ui.profiles_frame import ProfilesFrame
+from ui.settings_frame import SettingsFrame
 from ui.theme import (
-    COLOR_BACKGROUND, COLOR_BORDER, COLOR_BORDER_ERROR, COLOR_SURFACE, COLOR_SURFACE_VARIANT,
-    COLOR_TEXT, COLOR_TEXT_SECONDARY, COLOR_TEXT_DISABLED, COLOR_SUCCESS,
-    COLOR_ERROR, COLOR_WARNING,
+    COLOR_BACKGROUND, COLOR_BORDER, COLOR_BORDER_ERROR, COLOR_ERROR, COLOR_SUCCESS,
+    COLOR_SURFACE, COLOR_SURFACE_VARIANT, COLOR_TEXT, COLOR_TEXT_DISABLED,
+    COLOR_TEXT_SECONDARY, COLOR_WARNING,
     FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_H1, FONT_SIZE_H2, FONT_SIZE_H3,
     RADIUS_BUTTON, RADIUS_CARD, RADIUS_INPUT,
     SPACING_LARGE, SPACING_MEDIUM, SPACING_SMALL, SPACING_XLARGE, SPACING_XXLARGE,
     SPACING_XSMALL,
-    get_font, get_color_primary, get_color_primary_hover,
-    get_color_primary_light, get_color_primary_dark_gradient, get_color_primary_text,
-    aplicar_gradiente, configure_appearance, reload_theme, get_icon, configurar_autoscroll,
+    aplicar_gradiente, configurar_autoscroll, configure_appearance, get_color_primary,
+    get_color_primary_dark_gradient, get_color_primary_hover, get_color_primary_light,
+    get_color_primary_text, get_font, get_icon, reload_theme,
 )
-from utils.date_formatter import validar_data
-from ui.loading_modal import LoadingModal
-from ui.feedback_toast import show_toast
-from ui.settings_frame import SettingsFrame
-from ui.profiles_frame import ProfilesFrame
-from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
-from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
 from utils import config_manager
+from utils.date_formatter import validar_data
+from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
 from utils.logger import configurar_logger
-from version import __version__
 from utils.profile_manager import (
-    PERFIL_PADRAO_NOME, Perfil,
-    carregar_perfis, obter_perfil, listar_nomes_perfis,
+    PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis, obter_perfil,
 )
-from PIL import Image
-from ui.date_picker import DatePickerPopup
+from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+from version import __version__
 
 
 class MainWindow(ctk.CTk):
@@ -60,7 +63,7 @@ class MainWindow(ctk.CTk):
 
         self.title(f"Contracto v{__version__} — Preparação de Documentos")
         self.geometry("1020x880")
-        self.minsize(920, 700)
+        self.minsize(920, 680)
         self.configure(fg_color=COLOR_BACKGROUND)
 
         # Maximizar aplicativo por padrão imediatamente ao iniciar
@@ -83,7 +86,7 @@ class MainWindow(ctk.CTk):
             if icon_path.exists():
                 self.iconbitmap(str(icon_path.resolve()))
 
-            # 3. Forçar Win32 WM_SETICON para a barra de tarefas do Windows (sobrescrevendo o ícone padrão do CustomTkinter)
+            # 3. Forçar Win32 WM_SETICON para a barra de tarefas do Windows
             if sys.platform == "win32" and icon_path.exists():
                 import ctypes
                 WM_SETICON = 0x0080
@@ -106,6 +109,22 @@ class MainWindow(ctk.CTk):
 
         # Maximizar aplicativo por padrão ao iniciar
         self.after(10, lambda: self._maximizar_janela())
+
+        # =============================================================
+        # Gerenciador de Fila em Segundo Plano & Canal Thread-Safe
+        # =============================================================
+        self._ui_event_queue = queue.Queue()
+        self._iniciar_loop_eventos_ui()
+
+        self.queue_manager = QueueManager()
+        self.queue_manager.on_job_started = self._ao_iniciar_job_fila
+        self.queue_manager.on_job_progress = self._ao_progresso_job_fila
+        self.queue_manager.on_job_completed = self._ao_concluir_job_fila
+        self.queue_manager.on_job_failed = self._ao_erro_job_fila
+        self.queue_manager.on_job_cancelled = self._ao_cancelado_job_fila
+        self.queue_manager.on_queue_changed = self._ao_mudar_fila
+
+        self._modal_fila_ativo: Optional[LoadingModal] = None
 
         # =============================================================
         # Estado da Aplicação
@@ -133,18 +152,28 @@ class MainWindow(ctk.CTk):
         self._construir_stepper()
 
         # Containers principais das telas com bordas consistentes
-        card_kwargs = {
-            "fg_color": COLOR_SURFACE,
-            "corner_radius": RADIUS_CARD,
-            "border_width": 1,
-            "border_color": COLOR_BORDER,
-            "width": 1200,
-        }
-        self.container_etapa1 = ctk.CTkFrame(self, **card_kwargs)
+        # Etapa 1: container estruturado responsivo com botões fixos e rolagem interna
+        self.container_etapa1 = ctk.CTkFrame(
+            self,
+            fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD,
+            border_width=1,
+            border_color=COLOR_BORDER,
+        )
         self.container_etapa1.grid_columnconfigure(0, weight=1)
+        self.container_etapa1.grid_rowconfigure(0, weight=1)
+        self.container_etapa1.grid_rowconfigure(1, weight=0)
 
-        self.container_etapa2 = ctk.CTkFrame(self, **card_kwargs)
+        # Etapa 2: container estruturado responsivo com botões fixos
+        self.container_etapa2 = ctk.CTkFrame(
+            self,
+            fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD,
+            border_width=1,
+            border_color=COLOR_BORDER,
+        )
         self.container_etapa2.grid_columnconfigure(0, weight=1)
+        self.container_etapa2.grid_rowconfigure(1, weight=1)
 
         self.container_settings = None
         self.container_profiles = None
@@ -171,8 +200,7 @@ class MainWindow(ctk.CTk):
             pass
 
     # ==================================================================
-    # ==================================================================
-    # TOOLBAR
+    # TOOLBAR & STATUS DE FILA
     # ==================================================================
     def _load_icons(self) -> None:
         self.icon_home = get_icon("home", (20, 20), light_only=True)
@@ -185,6 +213,7 @@ class MainWindow(ctk.CTk):
         self.icon_success = get_icon("finish", (20, 20), light_only=True)
         self.icon_folder = get_icon("folder", (18, 18))
         self.icon_add_user = get_icon("user_add", (18, 18))
+        self.icon_queue = get_icon("finish", (16, 16), light_only=True)
 
     def _construir_toolbar(self) -> None:
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
@@ -202,7 +231,7 @@ class MainWindow(ctk.CTk):
         sep1 = ctk.CTkFrame(self.toolbar, width=1, height=28, fg_color=get_color_primary_hover(), corner_radius=0)
         sep1.grid(row=0, column=1, padx=(SPACING_SMALL, SPACING_SMALL))
 
-        # Botões de navegação com estilo melhorado
+        # Botões de navegação com estilo consistente
         btn_style = {
             "fg_color": "transparent", "text_color": "#FFFFFF",
             "hover_color": get_color_primary_hover(),
@@ -222,23 +251,41 @@ class MainWindow(ctk.CTk):
         )
         self.btn_perfis.grid(row=0, column=3, padx=3, pady=SPACING_XSMALL)
 
-        # Spacer (column 4 has weight=1)
+        # Spacer (coluna 4)
 
-        # Separador vertical antes dos botões à direita
+        # Botão de Status da Fila em Segundo Plano (à esquerda do botão Ajuda)
+        self.btn_fila_status = ctk.CTkButton(
+            self.toolbar,
+            text=" FILA: Ociosa",
+            image=self.icon_queue,
+            compound="left",
+            width=150,
+            height=32,
+            fg_color=get_color_primary_hover(),
+            hover_color=get_color_primary_hover(),
+            corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            text_color="#FFFFFF",
+            command=self._abrir_modal_fila,
+        )
+        self.btn_fila_status.grid(row=0, column=5, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL)
+        self.btn_fila_status.grid_remove()  # Oculto por padrão
+
+        # Separador vertical antes dos botões de ajuda e config
         sep2 = ctk.CTkFrame(self.toolbar, width=1, height=28, fg_color=get_color_primary_hover(), corner_radius=0)
-        sep2.grid(row=0, column=5, padx=(SPACING_SMALL, SPACING_SMALL))
+        sep2.grid(row=0, column=6, padx=(SPACING_SMALL, SPACING_SMALL))
 
         self.btn_ajuda = ctk.CTkButton(
             self.toolbar, text=" Ajuda", image=self.icon_help, width=95,
             command=self._abrir_ajuda, **btn_style,
         )
-        self.btn_ajuda.grid(row=0, column=6, padx=3, pady=SPACING_XSMALL)
+        self.btn_ajuda.grid(row=0, column=7, padx=3, pady=SPACING_XSMALL)
 
         self.btn_config = ctk.CTkButton(
             self.toolbar, text=" Configurações", image=self.icon_settings, width=140,
             command=lambda: self._mostrar_tela("config"), **btn_style,
         )
-        self.btn_config.grid(row=0, column=7, padx=(3, SPACING_LARGE), pady=SPACING_XSMALL)
+        self.btn_config.grid(row=0, column=8, padx=(3, SPACING_LARGE), pady=SPACING_XSMALL)
 
     def _abrir_ajuda(self) -> None:
         """Abre o guia interativo de uso do aplicativo."""
@@ -304,9 +351,7 @@ class MainWindow(ctk.CTk):
                 
             draw.line(points, fill=cor, width=w, joint="curve")
             
-        # Downsampling com Lanczos (Anti-Aliasing vetorial de máxima fidelidade)
         img_smooth = img_hd.resize((largura, altura), Image.Resampling.LANCZOS)
-        
         self._bg_photo = ImageTk.PhotoImage(img_smooth)
         self.canvas_gradient.create_image(0, 0, image=self._bg_photo, anchor="nw")
 
@@ -334,7 +379,6 @@ class MainWindow(ctk.CTk):
     def _construir_stepper(self) -> None:
         self.frame_stepper = ctk.CTkFrame(self, fg_color="transparent",
                                            corner_radius=0, height=36)
-        # Posicionado sobre o gradiente
         self.frame_stepper.grid(row=1, column=0, sticky="ew")
         self.frame_stepper.grid_columnconfigure(0, weight=1)
         self.frame_stepper.grid_columnconfigure(2, weight=1)
@@ -404,7 +448,6 @@ class MainWindow(ctk.CTk):
         show_toast(self, f"Perfil alterado para: {nome_perfil}", "success")
 
     def _atualizar_stepper(self, etapa: int) -> None:
-        cor = get_color_primary()
         if etapa == 1:
             self.lbl_etapa1.configure(text_color=get_color_primary_text())
             self.lbl_etapa2.configure(text_color=COLOR_TEXT_DISABLED)
@@ -413,7 +456,6 @@ class MainWindow(ctk.CTk):
             self.lbl_etapa2.configure(text_color=get_color_primary_text())
 
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        # Atualizar o dropdown de perfil
         nomes_perfis = listar_nomes_perfis()
         if nomes_perfis:
             self.dropdown_perfil.configure(values=nomes_perfis)
@@ -424,7 +466,6 @@ class MainWindow(ctk.CTk):
     # ==================================================================
     def _mostrar_tela(self, tela: str) -> None:
         """Alterna entre as telas: inicio, perfis, config."""
-        # Esconder todas
         self.container_etapa1.grid_forget()
         self.container_etapa2.grid_forget()
         if self.container_settings:
@@ -432,7 +473,6 @@ class MainWindow(ctk.CTk):
         if self.container_profiles:
             self.container_profiles.grid_forget()
 
-        # Atualizar toolbar highlight
         normal = {"fg_color": "transparent", "text_color": "#FFFFFF"}
         active = {"fg_color": get_color_primary_hover(), "text_color": "#FFFFFF"}
         self.btn_inicio.configure(**normal)
@@ -440,12 +480,10 @@ class MainWindow(ctk.CTk):
         self.btn_config.configure(**normal)
 
         self._tela_atual = tela
-        
-        # Define a margem lateral (padx) conforme o tamanho dos quadros configurado e a largura da tela
-        margem = self._calcular_margem_responsiva()
+        margem_h = self._calcular_margem_responsiva()
+        margem_v = self._calcular_padding_vertical_responsivo()
 
-        # Grid settings for floating cards
-        card_grid = {"row": 2, "column": 0, "sticky": "ew", "padx": margem, "pady": SPACING_LARGE}
+        card_grid = {"row": 2, "column": 0, "sticky": "nsew", "padx": margem_h, "pady": (0, margem_v)}
 
         if tela == "inicio":
             self.btn_inicio.configure(**active)
@@ -484,7 +522,7 @@ class MainWindow(ctk.CTk):
                 on_aplicar=self._ao_aplicar_config,
             )
             self.container_settings.configure(fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD)
-            self.container_settings.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
+            self.container_settings.grid(**card_grid)
 
     def _redimensionar_container_perfis(self, expandir: bool = True) -> None:
         """Redimensiona o quadro do container de perfis (ocupando todo o espaço vertical)."""
@@ -499,14 +537,12 @@ class MainWindow(ctk.CTk):
         else:
             margem = 250
 
-        # Ocupa todo o espaço vertical da tela (sticky="nsew") mantendo a largura configurada (padx=margem)
         self.container_profiles.grid(row=2, column=0, sticky="nsew", padx=margem, pady=SPACING_MEDIUM)
 
     def _ao_aplicar_config(self) -> None:
         """Callback chamado após salvar configurações (com modal de carregamento)."""
         loading = None
         try:
-            from ui.loading_modal import LoadingModal
             loading = LoadingModal(self, "Aplicando configurações do sistema...")
         except Exception:
             pass
@@ -532,8 +568,8 @@ class MainWindow(ctk.CTk):
                         fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
                         text_color="#FFFFFF"
                     )
-                if hasattr(self, 'btn_voltar'):
-                    self.btn_voltar.configure(
+                if hasattr(self, 'botao_voltar'):
+                    self.botao_voltar.configure(
                         text_color=get_color_primary_text(), hover_color=COLOR_SURFACE_VARIANT
                     )
                 if hasattr(self, 'botao_finalizar'):
@@ -553,9 +589,8 @@ class MainWindow(ctk.CTk):
                         pf.atualizar_cores()
                     
                 self._pintar_gradiente()
-                self._atualizar_stepper(1 if self._tela_atual == "etapa1" else 2 if self._tela_atual == "etapa2" else 1)
+                self._atualizar_stepper(1 if self._tela_atual == "inicio" else 2 if self._tela_atual == "etapa2" else 1)
                 
-                # Atualizar cores dos frames independentes
                 if self._tela_atual == "config":
                     self._mostrar_tela("config")
                 elif getattr(self, 'container_settings', None) is not None:
@@ -564,14 +599,11 @@ class MainWindow(ctk.CTk):
                 if getattr(self, 'container_profiles', None) is not None:
                     self.container_profiles.atualizar_cores()
                 
-                # Atualizar entry de local
                 if hasattr(self, 'entry_local'):
                     self.entry_local.delete(0, 'end')
                     self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
                 
-                # Re-aplicar apenas as margens
                 self._atualizar_tamanho_janela()
-                
                 show_toast(self, "Configurações atualizadas!", "success")
             except Exception as e:
                 import logging
@@ -594,39 +626,63 @@ class MainWindow(ctk.CTk):
             
         tamanho = config_manager.obter("tamanho_quadros")
         
-        # Margem proporcional com base na largura da janela
+        # Percentuais e limites de acordo com a preferência do usuário
         if tamanho == "Pequeno":
-            pct = 0.20  # 20% de margem em cada lado
+            pct = 0.18
             min_m = 24
-            max_m = 360
+            max_m = 320
         elif tamanho == "Grande":
-            pct = 0.06  # 6% de margem em cada lado
+            pct = 0.05
             min_m = 16
-            max_m = 100
+            max_m = 90
         else:
-            pct = 0.12  # Médio: 12% de margem em cada lado (Padrão equilibrado)
+            pct = 0.10
             min_m = 20
-            max_m = 220
+            max_m = 200
 
-        # Para janelas estreitas (ex: snap meia tela < 960px), reduz margens para preservar campos
+        # Valores de base por faixa de resolução:
         if largura < 960:
+            # Telas pequenas / compactas (< 960px): foco em aproveitamento máximo
             margem = max(16, int(largura * 0.03))
-        else:
+        elif largura <= 1366:
+            # Telas médias (notebooks padrão 1366x768 / 1080p escalados a 125%/150%)
             margem = max(min_m, min(max_m, int(largura * pct)))
+        elif largura <= 1920:
+            # Telas grandes (Full HD 1080p sem escala)
+            margem = max(min_m, min(max_m + 40, int(largura * pct)))
+        else:
+            # Telas ultrawide / 2K / 4K (> 1920px): trava em largura confortável (1150px)
+            largura_card_alvo = 1150
+            margem = max(min_m, int((largura - largura_card_alvo) / 2))
 
         return margem
 
+    def _calcular_padding_vertical_responsivo(self) -> int:
+        """Calcula o padding vertical do cartão baseado na altura da janela."""
+        try:
+            altura = self.winfo_height()
+        except Exception:
+            altura = 800
+
+        if altura < 720:
+            return SPACING_SMALL
+        elif altura < 900:
+            return SPACING_MEDIUM
+        else:
+            return SPACING_LARGE
+
     def _atualizar_tamanho_janela(self) -> None:
-        margem = self._calcular_margem_responsiva()
+        margem_h = self._calcular_margem_responsiva()
+        margem_v = self._calcular_padding_vertical_responsivo()
             
         if self._tela_atual == "inicio" and hasattr(self, 'container_etapa1'):
-            self.container_etapa1.grid(padx=margem)
+            self.container_etapa1.grid(padx=margem_h, pady=(0, margem_v), sticky="nsew")
         elif self._tela_atual == "etapa2" and hasattr(self, 'container_etapa2'):
-            self.container_etapa2.grid(padx=margem)
+            self.container_etapa2.grid(padx=margem_h, pady=(0, margem_v), sticky="nsew")
         elif self._tela_atual == "perfis" and hasattr(self, 'container_profiles') and self.container_profiles:
-            self.container_profiles.grid(padx=margem)
+            self.container_profiles.grid(padx=margem_h, pady=(0, margem_v), sticky="nsew")
         elif self._tela_atual == "config" and hasattr(self, 'container_settings') and self.container_settings:
-            self.container_settings.grid(padx=margem)
+            self.container_settings.grid(padx=margem_h, pady=(0, margem_v), sticky="nsew")
         
         self.update_idletasks()
 
@@ -635,26 +691,37 @@ class MainWindow(ctk.CTk):
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
 
-        # Atualizar checklist de formulários dinâmicos da Etapa 2
         self._carregar_formularios_dinamicos_etapa2()
 
-        # Atualizar documentos extras da Etapa 2 se o frame já existir
         if hasattr(self, 'document_frame') and perfil:
             self.document_frame.carregar_documentos(perfil.documentos_extras)
 
-        # Atualizar label de formato de saída se existir
         if hasattr(self, 'label_formato_etapa2') and perfil:
             self.label_formato_etapa2.configure(text=f"Formato de saída: {perfil.formato_saida}")
 
     # ------------------------------------------------------------------
-    # ETAPA 1: Preenchimento e Validação
+    # ETAPA 1: Preenchimento e Validação (Estrutura Responsiva e Flexível)
     # ------------------------------------------------------------------
     def _construir_etapa1(self) -> None:
+        # Área rolável da Etapa 1 (row 0 com weight=1)
+        self.scroll_etapa1 = ctk.CTkScrollableFrame(
+            self.container_etapa1, fg_color="transparent", label_text=""
+        )
+        self.scroll_etapa1.grid(row=0, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_etapa1.grid_columnconfigure(0, weight=1)
+        configurar_autoscroll(self.scroll_etapa1)
+
         self._construir_secao_participantes()
         self._construir_secao_saida()
 
+        # Botão de ação inferior SEMPRE fixado na base do card (row 1)
+        frame_botoes = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
+        frame_botoes.grid(row=1, column=0, padx=SPACING_LARGE,
+                          pady=(SPACING_MEDIUM, SPACING_LARGE), sticky="ew")
+        frame_botoes.grid_columnconfigure(0, weight=1)
+
         self.botao_avancar = ctk.CTkButton(
-            self.container_etapa1,
+            frame_botoes,
             text="GERAR DOCUMENTOS E AVANÇAR ",
             image=self.icon_advance,
             compound="right",
@@ -666,32 +733,24 @@ class MainWindow(ctk.CTk):
             height=48,
             command=self._ao_clicar_avancar,
         )
-        self.botao_avancar.grid(row=3, column=0, padx=SPACING_LARGE,
-                                 pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
-
-
+        self.botao_avancar.grid(row=0, column=0, sticky="ew")
 
     def _construir_secao_participantes(self) -> None:
-        self.secao_participantes = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
-        self.secao_participantes.grid(row=0, column=0, padx=SPACING_LARGE,
-                   pady=(SPACING_LARGE, SPACING_SMALL), sticky="nsew")
+        self.secao_participantes = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
+        self.secao_participantes.grid(row=0, column=0, padx=SPACING_MEDIUM,
+                   pady=(SPACING_MEDIUM, SPACING_SMALL), sticky="nsew")
         self.secao_participantes.grid_columnconfigure(0, weight=1)
-        self.secao_participantes.grid_rowconfigure(1, weight=1)
 
         titulo = ctk.CTkLabel(self.secao_participantes, text="Participantes",
                               font=get_font(FONT_SIZE_H2, "bold"), text_color=COLOR_TEXT)
         titulo.grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
 
-        # Container simples (sem scroll) — usado quando há apenas 1 participante
+        # Container onde os ParticipantFrames serão empilhados de forma limpa
         self.participantes_container = ctk.CTkFrame(
             self.secao_participantes, fg_color="transparent"
         )
         self.participantes_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
         self.participantes_container.grid_columnconfigure(0, weight=1)
-
-        # Container com scroll — será criado sob demanda quando houver 2+ participantes
-        self.participantes_scroll = None
-        self._usando_scroll = False
 
         self.botao_adicionar = ctk.CTkButton(
             self.secao_participantes, text=" Adicionar Participante",
@@ -701,11 +760,11 @@ class MainWindow(ctk.CTk):
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
             command=self._adicionar_participante,
         )
-        self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_XLARGE, 0), sticky="w")
+        self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
 
     def _construir_secao_saida(self) -> None:
-        secao = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
-        secao.grid(row=2, column=0, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        secao = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
+        secao.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, SPACING_MEDIUM), sticky="ew")
         secao.grid_columnconfigure(1, weight=1)
 
         titulo = ctk.CTkLabel(
@@ -716,7 +775,7 @@ class MainWindow(ctk.CTk):
         titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
                     pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
-        # Global fields
+        # Campos Globais
         ctk.CTkLabel(
             secao, text=" Data da assinatura",
             image=get_icon("calendar", (16, 16)), compound="left",
@@ -753,14 +812,14 @@ class MainWindow(ctk.CTk):
         self.entry_local.bind("<KeyRelease>", lambda e: self._validar_local_realtime())
         self.entry_local.bind("<FocusOut>", lambda e: self._validar_local_realtime())
 
-        # Set default directory to Downloads
+        # Pasta padrão Downloads
         if os.name == "nt":
             downloads_path = Path(os.environ["USERPROFILE"]) / "Downloads"
         else:
             downloads_path = Path.home() / "Downloads"
         self.pasta_saida = downloads_path
 
-        # Directory Selector
+        # Seletor de diretório
         ctk.CTkLabel(
             secao, text=" Diretório de saída:",
             image=get_icon("folder", (16, 16)), compound="left",
@@ -778,7 +837,6 @@ class MainWindow(ctk.CTk):
         )
         self.entry_pasta_saida.grid(row=0, column=0, sticky="ew")
         self.entry_pasta_saida.insert(0, str(downloads_path))
-        # Entry editável — permite colar/digitar caminho manualmente
         self.entry_pasta_saida.bind("<KeyRelease>", lambda e: self._ao_editar_pasta_saida())
         self.entry_pasta_saida.bind("<FocusOut>", lambda e: self._ao_editar_pasta_saida())
 
@@ -805,122 +863,11 @@ class MainWindow(ctk.CTk):
             self.entry_local.configure(border_color=COLOR_BORDER)
             return True
 
-    def _obter_container_participantes(self):
-        """Retorna o container atual onde os participantes são adicionados."""
-        if self._usando_scroll and self.participantes_scroll:
-            return self.participantes_scroll
-        return self.participantes_container
-
-    def _migrar_para_scroll(self) -> None:
-        """Migra os participantes de um frame simples para um scrollable."""
-        if self._usando_scroll:
-            return
-
-        # Criar scrollable frame
-        self.participantes_scroll = ctk.CTkScrollableFrame(
-            self.secao_participantes, fg_color="transparent", label_text="", height=380
-        )
-        self.participantes_scroll.grid_columnconfigure(0, weight=1)
-
-        # Mover todos os frames existentes para o scroll
-        for idx, pf in enumerate(self.participant_frames):
-            pf.grid_forget()
-            pf.pack_forget() if hasattr(pf, 'pack_forget') else None
-            # Reparent: destruir e recriar não é necessário — basta re-griddar
-            # Tkinter não suporta reparent nativo, então recriamos
-        
-        frames_dados = []
-        for pf in self.participant_frames:
-            dados = {
-                "nome": pf.entry_nome.get(),
-                "cpf": pf.entry_cpf.get(),
-                "endereco": pf.entry_endereco.get() if pf.entry_endereco else "",
-                "principal": pf.principal,
-                "indice": pf.indice,
-            }
-            frames_dados.append(dados)
-            pf.destroy()
-        
-        self.participant_frames.clear()
-
-        # Esconder container simples, mostrar scroll
-        self.participantes_container.grid_forget()
-        self.participantes_scroll.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
-        self._usando_scroll = True
-
-        # Recriar participantes no scroll
-        for dados in frames_dados:
-            local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
-            frame = ParticipantFrame(
-                self.participantes_scroll,
-                indice=dados["indice"],
-                principal=dados["principal"],
-                on_remover=None if dados["principal"] else self._remover_participante,
-                local_padrao=local_padrao,
-            )
-            frame.grid(row=dados["indice"] - 1, column=0, padx=SPACING_XSMALL,
-                       pady=SPACING_SMALL, sticky="ew")
-            frame.entry_nome.insert(0, dados["nome"])
-            frame.entry_cpf.insert(0, dados["cpf"])
-            if frame.entry_endereco and dados["endereco"]:
-                frame.entry_endereco.insert(0, dados["endereco"])
-            self.participant_frames.append(frame)
-
-    def _migrar_para_simples(self) -> None:
-        """Migra de volta para um frame simples quando resta apenas 1 participante."""
-        if not self._usando_scroll:
-            return
-
-        # Salvar dados do participante restante
-        pf = self.participant_frames[0]
-        dados = {
-            "nome": pf.entry_nome.get(),
-            "cpf": pf.entry_cpf.get(),
-            "endereco": pf.entry_endereco.get() if pf.entry_endereco else "",
-        }
-        pf.destroy()
-        self.participant_frames.clear()
-
-        # Remover scroll e restaurar container simples
-        self.participantes_scroll.grid_forget()
-        self.participantes_scroll.destroy()
-        self.participantes_scroll = None
-        self._usando_scroll = False
-
-        self.participantes_container = ctk.CTkFrame(
-            self.secao_participantes, fg_color="transparent"
-        )
-        self.participantes_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
-        self.participantes_container.grid_columnconfigure(0, weight=1)
-
-        # Recriar o participante no container simples
+    def _adicionar_participante(self, principal: bool = False) -> None:
+        indice = len(self.participant_frames) + 1
         local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
         frame = ParticipantFrame(
             self.participantes_container,
-            indice=1,
-            principal=True,
-            on_remover=None,
-            local_padrao=local_padrao,
-        )
-        frame.grid(row=0, column=0, padx=SPACING_XSMALL,
-                   pady=SPACING_SMALL, sticky="ew")
-        frame.entry_nome.insert(0, dados["nome"])
-        frame.entry_cpf.insert(0, dados["cpf"])
-        if frame.entry_endereco and dados["endereco"]:
-            frame.entry_endereco.insert(0, dados["endereco"])
-        self.participant_frames.append(frame)
-
-    def _adicionar_participante(self, principal: bool = False) -> None:
-        indice = len(self.participant_frames) + 1
-
-        # Se vai passar de 1 para 2, migrar para scroll
-        if indice == 2 and not self._usando_scroll:
-            self._migrar_para_scroll()
-
-        container = self._obter_container_participantes()
-        local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
-        frame = ParticipantFrame(
-            container,
             indice=indice,
             principal=principal,
             on_remover=None if principal else self._remover_participante,
@@ -930,8 +877,6 @@ class MainWindow(ctk.CTk):
                    pady=SPACING_SMALL, sticky="ew")
         self.participant_frames.append(frame)
 
-        self._atualizar_tamanho_participantes()
-
         if not principal:
             frame.piscar_destaque()
 
@@ -940,21 +885,6 @@ class MainWindow(ctk.CTk):
         self.participant_frames.remove(frame)
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
-
-        # Se voltou a 1 participante, migrar de volta para simples
-        if len(self.participant_frames) == 1 and self._usando_scroll:
-            self._migrar_para_simples()
-        else:
-            self._atualizar_tamanho_participantes()
-
-    def _atualizar_tamanho_participantes(self) -> None:
-        qtd = len(self.participant_frames)
-        if not self._usando_scroll or not self.participantes_scroll:
-            return
-        if qtd == 2:
-            self.participantes_scroll.configure(height=380)
-        else:
-            self.participantes_scroll.configure(height=450)
 
     def _verificar_permissao_escrita(self, pasta: Path) -> bool:
         if not pasta or not pasta.exists():
@@ -970,11 +900,11 @@ class MainWindow(ctk.CTk):
     def _ao_clicar_avancar(self) -> None:
         erros: list[str] = []
 
-        # 1. Validar campos de todos os participantes (destacando os erros em vermelho)
+        # 1. Validar campos de todos os participantes
         for frame in self.participant_frames:
             erros.extend(frame.validar_campos())
 
-        # 2. Validar Data e Local da assinatura
+        # 2. Validar Data e Local
         if not self._validar_data_realtime():
             val = self.entry_data.get().strip()
             if not val:
@@ -985,7 +915,7 @@ class MainWindow(ctk.CTk):
         if not self._validar_local_realtime():
             erros.append("Local da assinatura é obrigatório.")
 
-        # 3. Validar perfil e arquivos de modelos
+        # 3. Validar perfil e modelos
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
         if not perfil:
@@ -999,13 +929,12 @@ class MainWindow(ctk.CTk):
                 if not caminho_resolvido or not caminho_resolvido.exists():
                     erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente.")
 
-        # 4. Validar pasta de saída e permissões
+        # 4. Validar pasta de saída
         if not self.pasta_saida:
             erros.append("Selecione a pasta de saída.")
         elif not self._verificar_permissao_escrita(self.pasta_saida):
             erros.append(f"Sem permissão de escrita na pasta de saída: {self.pasta_saida}")
 
-        # Se houver qualquer erro, detalhar ao usuário com o Modal de Alerta
         if erros:
             from ui.alert_modal import AlertModal
             AlertModal(
@@ -1029,11 +958,10 @@ class MainWindow(ctk.CTk):
         self.participantes_etapa1 = participantes
         self.label_pasta_etapa2.configure(text=f"Pasta: {self.pasta_saida}")
 
-        # Avança direto para a Etapa 2 (a geração ocorrerá na finalização)
         self._mostrar_tela("etapa2")
 
     # ------------------------------------------------------------------
-    # ETAPA 2: Documentos da Gerente e PDF/A
+    # ETAPA 2: Documentos da Gerente e PDF/A (Layout Responsivo)
     # ------------------------------------------------------------------
     def _construir_etapa2(self) -> None:
         frame_header = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
@@ -1053,7 +981,6 @@ class MainWindow(ctk.CTk):
         )
         self.label_pasta_etapa2.grid(row=1, column=0, sticky="w")
 
-        # Mostrar formato de saída do perfil
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
         formato = perfil.formato_saida if perfil else "PDF/A-2b"
@@ -1064,9 +991,9 @@ class MainWindow(ctk.CTk):
         )
         self.label_formato_etapa2.grid(row=2, column=0, sticky="w")
 
-        # Área rolável da Etapa 2
+        # Área rolável da Etapa 2 (com row 1 weight=1 no container principal)
         self.scroll_etapa2 = ctk.CTkScrollableFrame(
-            self.container_etapa2, fg_color="transparent", label_text="", height=490
+            self.container_etapa2, fg_color="transparent", label_text=""
         )
         self.scroll_etapa2.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_etapa2.grid_columnconfigure(0, weight=1)
@@ -1154,7 +1081,7 @@ class MainWindow(ctk.CTk):
         if perfil:
             self.document_frame.carregar_documentos(perfil.documentos_extras)
 
-        # Botões de ação inferiores sempre visíveis e harmoniosamente espaçados
+        # Botões de ação inferiores SEMPRE visíveis e ancorados na parte inferior
         frame_botoes = ctk.CTkFrame(self.container_etapa2, fg_color="transparent")
         frame_botoes.grid(row=2, column=0, padx=SPACING_LARGE,
                           pady=(SPACING_MEDIUM, SPACING_LARGE), sticky="ew")
@@ -1260,7 +1187,6 @@ class MainWindow(ctk.CTk):
         self._prosseguir_finalizar()
         
     def _prosseguir_finalizar(self) -> None:
-        # Obter formato do perfil ativo
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
         formato_saida = perfil.formato_saida if perfil else "PDF/A-2b"
@@ -1271,133 +1197,197 @@ class MainWindow(ctk.CTk):
             if var.get()
         ]
 
-        self.botao_finalizar.configure(state="disabled")
-        self.botao_voltar.configure(state="disabled")
+        # Enfileira o job no QueueManager
+        job = self.queue_manager.adicionar_job(
+            participantes=list(self.participantes_etapa1),
+            pasta_saida=self.pasta_saida,
+            documentos_externos=documentos_externos,
+            forms_selecionados=forms_selecionados,
+            formato_saida=formato_saida,
+            perfil=perfil,
+        )
 
-        self._cancel_event = threading.Event()
-        self._loading2 = LoadingModal(
+        # Exibir modal de carregamento inicial com opções de Parar e Minimizar
+        self._modal_fila_ativo = LoadingModal(
             self,
             message="Processando documentos...",
-            submessage="(Etapa 1/3: Gerando formulários preenchidos)",
-            on_cancel=self._ao_solicitar_cancelamento,
+            submessage=f"(Etapa 1/3: {job.titulo})",
+            on_cancel=lambda: self.queue_manager.cancelar_job(job.id),
+            on_minimize=self._ao_minimizar_modal_fila,
         )
 
-        thread = threading.Thread(
-            target=self._finalizar_em_background,
-            args=(documentos_externos, formato_saida, forms_selecionados),
-            daemon=True,
-        )
-        thread.start()
+    def _ao_minimizar_modal_fila(self) -> None:
+        """Minimiza o modal de progresso, retorna à tela inicial limpa e atualiza o status na toolbar."""
+        self._modal_fila_ativo = None
+        self._resetar_aplicacao()
+        self._atualizar_botao_fila_status()
+        show_toast(self, "Processo minimizado. Executando em segundo plano.", "info")
 
-    def _ao_solicitar_cancelamento(self) -> None:
-        """Sinaliza cancelamento seguro para a thread de processamento."""
-        if hasattr(self, "_cancel_event"):
-            self._cancel_event.set()
-        if hasattr(self, "_loading2"):
-            self._loading2.update_message("Interrompendo processo...", "Cancelando tarefas e limpando arquivos...")
-
-    def _finalizar_em_background(self, documentos_externos, formato_saida, forms_selecionados=None):
-        try:
-            # 1. Gerar os documentos PDF a partir dos dados preenchidos
-            perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-            perfil = obter_perfil(perfil_nome)
-
-            def _on_progresso_etapa1(idx, total, nome_doc):
-                if hasattr(self, "_loading2"):
-                    self.after(0, lambda: self._loading2.atualizar_etapa(1, 3, f"Gerando documento {idx}/{total}"))
-
-            resultado_geracao = gerar_documentos(
-                self.participantes_etapa1,
-                perfil,
-                self.pasta_saida,
-                formularios_ativos=forms_selecionados,
-                cancel_event=self._cancel_event,
-                on_progress=_on_progresso_etapa1,
-            )
-            self.arquivos_gerados_etapa1 = resultado_geracao.arquivos_gerados
-
-            # 2. Executar a conversão para PDF/A e organização de pastas
-            if hasattr(self, "_loading2"):
-                self.after(0, lambda: self._loading2.atualizar_etapa(2, 3, "Convertendo arquivos para PDF/A"))
-
-            def _on_progresso_etapa2(idx, total, nome_doc):
-                if hasattr(self, "_loading2"):
-                    self.after(0, lambda: self._loading2.atualizar_etapa(2, 3, f"Convertendo documento {idx}/{total}"))
-
-            resultado = executar_etapa2(
-                pasta_base=self.pasta_saida,
-                participantes=self.participantes_etapa1,
-                arquivos_gerados_etapa1=self.arquivos_gerados_etapa1,
-                documentos_externos=documentos_externos,
-                formato_saida=formato_saida,
-                cancel_event=self._cancel_event,
-                on_progress=_on_progresso_etapa2,
-            )
-
-            if hasattr(self, "_loading2"):
-                self.after(0, lambda: self._loading2.atualizar_etapa(3, 3, "Concluindo processo"))
-
-            self.after(0, lambda: self._ao_concluir_etapa2(resultado))
-        except ProcessoCanceladoError:
-            self.after(0, lambda: self._ao_cancelado_etapa2())
-        except Exception as exc:
-            self.after(0, lambda: self._ao_erro_etapa2(exc))
-
-
-    def _ao_cancelado_etapa2(self):
-        if hasattr(self, "_loading2"):
-            self._loading2.dismiss()
-        self.botao_finalizar.configure(state="normal")
-        self.botao_voltar.configure(state="normal")
-        show_toast(self, "Processo cancelado pelo usuário.", "warning")
-
-    def _ao_concluir_etapa2(self, resultado):
-        if hasattr(self, "_loading2"):
-            self._loading2.dismiss()
-
-        self.botao_finalizar.configure(state="normal")
-        self.botao_voltar.configure(state="normal")
-
-        if resultado.get("cancelado"):
-            show_toast(self, "Processo cancelado pelo usuário.", "warning")
+    def _abrir_modal_fila(self) -> None:
+        """Reabre o modal de acompanhamento do processo ativo na fila."""
+        job_ativo = self.queue_manager.obter_job_ativo()
+        if job_ativo is None:
+            show_toast(self, "Nenhum processo em execução no momento.", "info")
             return
 
-        if resultado["sucesso"]:
-            msg = f"{resultado['mensagem']}\nEstrutura: {resultado['pasta_pdfa']}"
-            from ui.confirm_modal import ConfirmModal
+        self._modal_fila_ativo = LoadingModal(
+            self,
+            message=job_ativo.mensagem or "Processando documentos...",
+            submessage=job_ativo.submensagem or f"(Etapa {job_ativo.etapa_atual}/{job_ativo.etapa_total})",
+            on_cancel=lambda: self.queue_manager.cancelar_job(job_ativo.id),
+            on_minimize=self._ao_minimizar_modal_fila,
+        )
 
-            def _abrir():
-                self._abrir_pasta(resultado["pasta_pdfa"])
+    # ------------------------------------------------------------------
+    # Callbacks da Fila de Background
+    # ------------------------------------------------------------------
+    # Callbacks da Fila de Background (Thread-Safe via Queue)
+    # ------------------------------------------------------------------
+    def _iniciar_loop_eventos_ui(self) -> None:
+        """Processa eventos enviados pela thread de background no loop principal do Tkinter."""
+        def _poll():
+            try:
+                while hasattr(self, "_ui_event_queue") and not self._ui_event_queue.empty():
+                    fn, args = self._ui_event_queue.get_nowait()
+                    fn(*args)
+            except Exception:
+                pass
+            try:
+                if self.winfo_exists():
+                    self.after(40, _poll)
+            except Exception:
+                pass
 
-            ConfirmModal(
-                self,
-                titulo="Geração Concluída",
-                subtitulo=msg + "\n\nDeseja abrir a pasta com os documentos agora?",
-                on_confirm=_abrir,
-                texto_confirmar="Sim, Abrir Pasta",
-                texto_cancelar="Não",
+        self.after(40, _poll)
+
+    def _ao_iniciar_job_fila(self, job: ProcessJob) -> None:
+        self._ui_event_queue.put((self._ui_job_iniciado, (job,)))
+
+    def _ui_job_iniciado(self, job: ProcessJob) -> None:
+        self._atualizar_botao_fila_status()
+        if self._modal_fila_ativo:
+            self._modal_fila_ativo.update_message(
+                "Processando documentos...",
+                job.submensagem or f"(Etapa {job.etapa_atual}/{job.etapa_total})"
             )
+
+    def _ao_progresso_job_fila(self, job: ProcessJob, etapa: int, total: int, submsg: str) -> None:
+        self._ui_event_queue.put((self._ui_job_progresso, (job, etapa, total, submsg)))
+
+    def _ui_job_progresso(self, job: ProcessJob, etapa: int, total: int, submsg: str) -> None:
+        self._atualizar_botao_fila_status()
+        if self._modal_fila_ativo:
+            self._modal_fila_ativo.atualizar_etapa(etapa, total, submsg)
+
+    def _ao_concluir_job_fila(self, job: ProcessJob, resultado: ResultadoEtapa2) -> None:
+        self._ui_event_queue.put((self._ui_job_concluido, (job, resultado)))
+
+    def _ui_job_concluido(self, job: ProcessJob, resultado: ResultadoEtapa2) -> None:
+        modal_estava_aberto = (self._modal_fila_ativo is not None)
+        if self._modal_fila_ativo:
+            self._modal_fila_ativo.dismiss()
+            self._modal_fila_ativo = None
+
+        # Alerta sonoro amigável do Windows
+        try:
+            import winsound
+            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+        except Exception:
+            pass
+
+        # Exibir modal de confirmação para o usuário saber que finalizou e poder abrir a pasta
+        msg = f"{resultado['mensagem']}\n\nPasta de saída:\n{resultado['pasta_pdfa']}"
+        from ui.confirm_modal import ConfirmModal
+
+        def _abrir():
+            self._abrir_pasta(resultado["pasta_pdfa"])
+
+        ConfirmModal(
+            self,
+            titulo="Geração Concluída ✓",
+            subtitulo=f"Processo '{job.titulo}' finalizado com sucesso!\n\n" + msg + "\n\nDeseja abrir a pasta com os documentos agora?",
+            on_confirm=_abrir,
+            texto_confirmar="Sim, Abrir Pasta",
+            texto_cancelar="Fechar",
+        )
+
+        if modal_estava_aberto:
             self._resetar_aplicacao()
         else:
-            show_toast(self, resultado["mensagem"], "error")
+            show_toast(self, f"Sucesso: {job.titulo} finalizado!", "success")
 
-    def _ao_erro_etapa2(self, exc):
-        if hasattr(self, "_loading2"):
-            self._loading2.dismiss()
-        self.botao_finalizar.configure(state="normal")
-        self.botao_voltar.configure(state="normal")
-        if isinstance(exc, ProcessoCanceladoError):
-            show_toast(self, "Processo cancelado pelo usuário.", "warning")
+        self._exibir_status_concluido_temporario(job, resultado)
+
+    def _exibir_status_concluido_temporario(self, job: ProcessJob, resultado: ResultadoEtapa2) -> None:
+        if not hasattr(self, "btn_fila_status"):
+            return
+
+        self._status_concluido_ativo = True
+        self.btn_fila_status.configure(
+            text=" FILA: Concluído ✓",
+            fg_color=COLOR_SUCCESS,
+            hover_color=COLOR_SUCCESS,
+            command=lambda: self._abrir_pasta(resultado["pasta_pdfa"]),
+        )
+        self.btn_fila_status.grid()
+
+        def _expirar():
+            self._status_concluido_ativo = False
+            self._atualizar_botao_fila_status()
+
+        self.after(8000, _expirar)
+
+    def _ao_erro_job_fila(self, job: ProcessJob, erro: str) -> None:
+        self._ui_event_queue.put((self._ui_job_erro, (job, erro)))
+
+    def _ui_job_erro(self, job: ProcessJob, erro: str) -> None:
+        if self._modal_fila_ativo:
+            self._modal_fila_ativo.dismiss()
+            self._modal_fila_ativo = None
+        show_toast(self, f"Erro: {erro}", "error")
+        self._atualizar_botao_fila_status()
+
+    def _ao_cancelado_job_fila(self, job: ProcessJob) -> None:
+        self._ui_event_queue.put((self._ui_job_cancelado, (job,)))
+
+    def _ui_job_cancelado(self, job: ProcessJob) -> None:
+        if self._modal_fila_ativo:
+            self._modal_fila_ativo.dismiss()
+            self._modal_fila_ativo = None
+        show_toast(self, f"Processo cancelado: {job.titulo}", "warning")
+        self._atualizar_botao_fila_status()
+
+    def _ao_mudar_fila(self) -> None:
+        self._ui_event_queue.put((self._atualizar_botao_fila_status, ()))
+
+    def _atualizar_botao_fila_status(self) -> None:
+        if not hasattr(self, "btn_fila_status"):
+            return
+
+        if getattr(self, "_status_concluido_ativo", False):
+            # Mantém exibindo o status de sucesso pelo período definido
+            return
+
+        if self.queue_manager.tem_trabalho_ativo():
+            resumo = self.queue_manager.obter_status_resumo()
+            self.btn_fila_status.configure(
+                text=f" {resumo}",
+                fg_color=get_color_primary_hover(),
+                hover_color=get_color_primary_hover(),
+                command=self._abrir_modal_fila,
+            )
+            self.btn_fila_status.grid()
         else:
-            show_toast(self, f"Erro: {str(exc)}", "error")
+            self.btn_fila_status.grid_remove()
 
     def _resetar_aplicacao(self) -> None:
         self._mostrar_tela("inicio")
         for frame in list(self.participant_frames[1:]):
             self._remover_participante(frame)
 
-        primeiro = self.participant_frames[0]
-        primeiro.limpar_campos()
+        if self.participant_frames:
+            primeiro = self.participant_frames[0]
+            primeiro.limpar_campos()
             
         self.entry_data.delete(0, "end")
         self.entry_data.configure(border_color=COLOR_BORDER)
@@ -1408,7 +1398,6 @@ class MainWindow(ctk.CTk):
         self.entry_local.configure(border_color=COLOR_BORDER)
         
         self.entry_pasta_saida.configure(border_color=COLOR_BORDER)
-
         self.document_frame.limpar()
 
     @staticmethod
@@ -1421,8 +1410,6 @@ class MainWindow(ctk.CTk):
     # ------------------------------------------------------------------
     # Utilitários de Seleção (Etapa 1)
     # ------------------------------------------------------------------
-
-
     def _selecionar_pasta_saida(self) -> None:
         caminho = selecionar_pasta("Selecione a pasta de saída")
         if caminho:

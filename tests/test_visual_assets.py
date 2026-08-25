@@ -26,9 +26,9 @@ class TestVisualAssets(unittest.TestCase):
     def setUp(self):
         reset_loader_cycle()
 
-    def test_version_is_v4_5(self):
-        """Verifica se a versão centralizada está definida como 4.5."""
-        self.assertEqual(version.__version__, "4.5")
+    def test_version_is_v4_5_2(self):
+        """Verifica se a versão centralizada está definida como 4.5.2."""
+        self.assertEqual(version.__version__, "4.5.2")
 
     def test_all_10_loaders_exist(self):
         """Verifica se todos os 10 arquivos GIF de spinner existem fisicamente."""

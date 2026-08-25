@@ -17,6 +17,7 @@ não deve rodar em ambientes de CI sem GUI. Executar manualmente com:
 
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
@@ -108,25 +109,25 @@ def main() -> None:
     if perfil and len(perfil.formularios) >= 2:
         perfil.formularios[0].caminho = str(modelo_ppe)
         perfil.formularios[1].caminho = str(modelo_imovel)
-        atualizar_perfil(perfil)
+        atualizar_perfil(perfil.nome, perfil)
 
     app.pasta_saida = saida
 
     # 5) Simular o clique em "AVANÇAR PARA A ETAPA 2" e "FINALIZAR PROCESSO E GERAR DOCUMENTOS"
     app._ao_clicar_avancar()
-    app._ao_clicar_finalizar()
+    app._prosseguir_finalizar()
     
-    # Aguardar thread em background concluir a geração
-    import time
-    for _ in range(50):
+    pasta_pdfa = saida / "PDF-A"
+    for _ in range(80):
         app.update()
         time.sleep(0.05)
-        if len(list(saida.glob("*.pdf"))) >= 4:
+        if pasta_pdfa.exists() and len(list(pasta_pdfa.glob("*.pdf"))) >= 4:
             break
 
-    arquivos = sorted(f.name for f in saida.glob("*.pdf"))
+    alvo = pasta_pdfa if pasta_pdfa.exists() else saida
+    arquivos = sorted(f.name for f in alvo.glob("*.pdf"))
     print("Mensagens capturadas:", mensagens_capturadas)
-    print("Arquivos gerados:", arquivos)
+    print("Arquivos gerados na pasta final:", arquivos)
 
     assert len(arquivos) == 4, f"esperado 4 arquivos (2 participantes x 2 docs), obteve {len(arquivos)}"
 
