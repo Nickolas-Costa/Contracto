@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from models.participant import Participant
-from services.pdf_service import preencher_formulario
+from services.pdf_service import carregar_template_reader, preencher_formulario
 from services.pdfa_converter import ProcessoCanceladoError
 from utils.cpf_validator import formatar_cpf, validar_cpf
 from utils.date_formatter import DataInvalidaError, separar_data_por_extenso, validar_data
@@ -34,22 +34,27 @@ class ResultadoGeracao:
     avisos: list[str] = field(default_factory=list)
 
 
+_caminho_modelo_cache: dict[tuple[str, str], Path | None] = {}
+
+
 def resolver_caminho_formulario(f) -> Path | None:
-    """Resolve o caminho de um formulário.
-    
-    Se `f.caminho` estiver preenchido e existir no disco, retorna ele.
-    Se `f.caminho` estiver vazio (Perfil Padrão), resolve para o modelo oficial embutido em assets/templates/.
-    """
+    """Resolve o caminho de um formulário com cache em memória."""
+    key = (getattr(f, "nome", ""), getattr(f, "caminho", ""))
+    if key in _caminho_modelo_cache:
+        return _caminho_modelo_cache[key]
+
+    caminho_resolvido: Path | None = None
     if f.caminho and Path(f.caminho).exists():
-        return Path(f.caminho)
+        caminho_resolvido = Path(f.caminho)
+    else:
+        nome = f.nome.lower()
+        if "ppe" in nome:
+            caminho_resolvido = modelo_padrao_ppe()
+        elif "imóvel" in nome or "imovel" in nome or "1" in nome:
+            caminho_resolvido = modelo_padrao_primeiro_imovel()
 
-    nome = f.nome.lower()
-    if "ppe" in nome:
-        return modelo_padrao_ppe()
-    elif "imóvel" in nome or "imovel" in nome or "1" in nome:
-        return modelo_padrao_primeiro_imovel()
-
-    return None
+    _caminho_modelo_cache[key] = caminho_resolvido
+    return caminho_resolvido
 
 
 def obter_mapeamento_formulario(f) -> dict[str, str]:
@@ -133,14 +138,17 @@ def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
         
     cpf_formatado = formatar_cpf(participante.cpf)
     
+    # Extração de data de assinatura se disponível
+    data_raw = participante.data_assinatura or str(participante.campos_dinamicos.get("data_assinatura", ""))
     try:
-        dia, mes, ano = separar_data_por_extenso(participante.data_assinatura)
+        dia, mes, ano = separar_data_por_extenso(data_raw)
     except DataInvalidaError:
         dia, mes, ano = "", "", ""
 
-    # Dicionário de variáveis disponíveis
+    # Dicionário base de variáveis padrão
     variaveis = {
         "participante.nome_completo": participante.nome_completo,
+        "participante.nome": participante.nome_completo,
         "participante.cpf": participante.cpf,
         "participante.cpf_formatado": cpf_formatado,
         "participante.endereco": participante.endereco,
@@ -150,6 +158,23 @@ def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
         "data.mes": mes,
         "data.ano": ano,
     }
+
+    # Inclusão dinâmica de todos os campos personalizados
+    for campo_id, valor in participante.campos_dinamicos.items():
+        str_val = str(valor)
+        variaveis[f"participante.{campo_id}"] = str_val
+        variaveis[f"global.{campo_id}"] = str_val
+        variaveis[campo_id] = str_val
+
+        # Se for campo de data, tentar desmembrar dia/mês/ano
+        if "/" in str_val and len(str_val) == 10:
+            try:
+                d_dia, d_mes, d_ano = separar_data_por_extenso(str_val)
+                variaveis[f"{campo_id}.dia"] = d_dia
+                variaveis[f"{campo_id}.mes"] = d_mes
+                variaveis[f"{campo_id}.ano"] = d_ano
+            except Exception:
+                pass
     
     # Retorna o valor mapeado ou a própria string literal caso não seja uma variável conhecida
     return variaveis.get(mapeamento_str, mapeamento_str)
@@ -193,6 +218,11 @@ def gerar_documentos(
         # Decide se gera 1 para todos ou 1 para cada participante
         alvos = participantes if formulario.geracao == "por_participante" else [participantes[0]]
         
+        try:
+            reader_modelo = carregar_template_reader(caminho_modelo)
+        except Exception:
+            reader_modelo = None
+
         for participante in alvos:
             if cancel_event is not None and cancel_event.is_set():
                 raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
@@ -205,7 +235,7 @@ def gerar_documentos(
             nome_arquivo = nome_documento_individual(formulario.nome, participante.nome_completo if formulario.geracao == "por_participante" else "")
             caminho_saida = _proximo_caminho_disponivel(pasta_saida, nome_arquivo, nomes_de_arquivo_usados)
             
-            ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida)
+            ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida, reader=reader_modelo)
             campos_ausentes_form.update(ausentes)
             resultado.arquivos_gerados.append(caminho_saida)
             

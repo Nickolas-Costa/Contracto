@@ -11,27 +11,43 @@ import customtkinter as ctk
 from utils import config_manager
 
 # ---------------------------------------------------------------------------
-# Cores — Carregadas dinamicamente do config_manager
+# Cores — Carregadas dinamicamente do config_manager com cache em memória
 # ---------------------------------------------------------------------------
 
+_cor_primaria_cache: str | None = None
+_cor_hover_cache: str | None = None
+_cor_light_cache: str | None = None
+_cor_dark_grad_cache: str | None = None
+
+
 def _cor_primaria() -> str:
-    return config_manager.obter("cor_destaque") or "#1E6FB3"
+    global _cor_primaria_cache
+    if _cor_primaria_cache is None:
+        _cor_primaria_cache = config_manager.obter("cor_destaque") or "#1E6FB3"
+    return _cor_primaria_cache
 
 
 def _cor_primaria_hover() -> str:
     """Gera um tom mais escuro da cor primária."""
+    global _cor_hover_cache
+    if _cor_hover_cache is not None:
+        return _cor_hover_cache
     cor = _cor_primaria()
     try:
         r, g, b = int(cor[1:3], 16), int(cor[3:5], 16), int(cor[5:7], 16)
         fator = 0.78
         r, g, b = int(r * fator), int(g * fator), int(b * fator)
-        return f"#{r:02x}{g:02x}{b:02x}"
+        _cor_hover_cache = f"#{r:02x}{g:02x}{b:02x}"
+        return _cor_hover_cache
     except (ValueError, IndexError):
         return "#004785"
 
 
 def _cor_primaria_light() -> str:
     """Gera um tom mais claro da cor primária misturando com branco."""
+    global _cor_light_cache
+    if _cor_light_cache is not None:
+        return _cor_light_cache
     cor = _cor_primaria()
     try:
         r, g, b = int(cor[1:3], 16), int(cor[3:5], 16), int(cor[5:7], 16)
@@ -41,26 +57,30 @@ def _cor_primaria_light() -> str:
         r = int(r * fator_cor + 255 * fator_white)
         g = int(g * fator_cor + 255 * fator_white)
         b = int(b * fator_cor + 255 * fator_white)
-        return f"#{r:02x}{g:02x}{b:02x}"
+        _cor_light_cache = f"#{r:02x}{g:02x}{b:02x}"
+        return _cor_light_cache
     except (ValueError, IndexError):
         return "#E8F0FA"
 
 
 def _cor_primaria_dark_gradient() -> str:
     """Gera um tom da cor primária para gradiente em dark mode (mais saturado/destacado)."""
+    global _cor_dark_grad_cache
+    if _cor_dark_grad_cache is not None:
+        return _cor_dark_grad_cache
     cor = _cor_primaria()
     try:
         r, g, b = int(cor[1:3], 16), int(cor[3:5], 16), int(cor[5:7], 16)
-        # Em vez de escurecer muito, vamos manter a cor num tom médio
-        # misturando levemente com o fundo escuro para não perder a vivacidade
         fator_cor = 0.6
         bg = 30 # 0x1E
         r = int(r * fator_cor + bg * (1 - fator_cor))
         g = int(g * fator_cor + bg * (1 - fator_cor))
         b = int(b * fator_cor + bg * (1 - fator_cor))
-        return f"#{r:02x}{g:02x}{b:02x}"
+        _cor_dark_grad_cache = f"#{r:02x}{g:02x}{b:02x}"
+        return _cor_dark_grad_cache
     except (ValueError, IndexError):
         return "#003A70"
+
 
 def get_color_primary_text() -> str:
     """Gera uma cor primária adequada para textos, melhorando o contraste em temas escuros."""
@@ -73,18 +93,23 @@ def get_color_primary_text() -> str:
 COLOR_PRIMARY = property(lambda self: _cor_primaria())
 COLOR_PRIMARY_HOVER = property(lambda self: _cor_primaria_hover())
 
+
 # Exportar como funções para uso fora de classes
 def get_color_primary() -> str:
     return _cor_primaria()
 
+
 def get_color_primary_hover() -> str:
     return _cor_primaria_hover()
+
 
 def get_color_primary_light() -> str:
     return _cor_primaria_light()
 
+
 def get_color_primary_dark_gradient() -> str:
     return _cor_primaria_dark_gradient()
+
 
 # Cores estáticas (não mudam com config)
 COLOR_SUCCESS = "#2E7D32"
@@ -184,7 +209,14 @@ def reload_theme() -> None:
     
     Deve ser chamado após alterar a cor de destaque no config_manager.
     """
+    global _cor_primaria_cache, _cor_hover_cache, _cor_light_cache, _cor_dark_grad_cache
     global COLOR_PRIMARY, COLOR_PRIMARY_HOVER, COLOR_BORDER_FOCUS
+
+    _cor_primaria_cache = None
+    _cor_hover_cache = None
+    _cor_light_cache = None
+    _cor_dark_grad_cache = None
+
     COLOR_PRIMARY = get_color_primary()
     COLOR_PRIMARY_HOVER = get_color_primary_hover()
     COLOR_BORDER_FOCUS = COLOR_PRIMARY

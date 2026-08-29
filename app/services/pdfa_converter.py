@@ -96,6 +96,7 @@ def converter_para_pdfa(
     caminho_entrada: Path,
     caminho_saida: Path,
     perfil: str = "PDF/A-2b",
+    ps_path: Optional[Path] = None,
 ) -> ResultadoConversao:
     """Converte um PDF para o formato PDF/A utilizando Ghostscript.
 
@@ -104,6 +105,7 @@ def converter_para_pdfa(
         caminho_saida: caminho onde o PDF/A será salvo.
         perfil: perfil PDF/A desejado (padrão: "PDF/A-2b").
                 Suporta: "PDF/A-1b", "PDF/A-2b", "PDF/A-3b".
+        ps_path: caminho opcional de arquivo .ps auxiliar pré-gerado para reutilização.
 
     Returns:
         ResultadoConversao com informações sobre a operação.
@@ -129,17 +131,18 @@ def converter_para_pdfa(
     # Criar pasta de saída se não existir
     caminho_saida.parent.mkdir(parents=True, exist_ok=True)
 
-    # Criar um arquivo PostScript auxiliar para definir o perfil PDF/A
+    # Criar arquivo PostScript auxiliar apenas se não fornecido
+    criou_ps_proprio = False
+    ps_efetivo: Path | None = ps_path
 
-    # Criar arquivo PostScript auxiliar com as definições de conformidade PDF/A.
-    # O Ghostscript precisa dessas definições para gerar PDF/A correto.
-    ps_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".ps", delete=False, encoding="utf-8"
-        ) as ps_file:
-            ps_file.write(_gerar_pdfa_def(nivel_pdfa))
-            ps_path = Path(ps_file.name)
+        if ps_efetivo is None or not ps_efetivo.exists():
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".ps", delete=False, encoding="utf-8"
+            ) as ps_file:
+                ps_file.write(_gerar_pdfa_def(nivel_pdfa))
+                ps_efetivo = Path(ps_file.name)
+                criou_ps_proprio = True
 
         comando = [
             str(caminho_gs),
@@ -153,7 +156,7 @@ def converter_para_pdfa(
             "-dPDFACompatibilityPolicy=1",
             "-dCompatibilityLevel=1.7" if nivel_pdfa == "2" else "-dCompatibilityLevel=1.4",
             f"-sOutputFile={caminho_saida}",
-            str(ps_path),
+            str(ps_efetivo),
             str(caminho_entrada),
         ]
 
@@ -197,9 +200,9 @@ def converter_para_pdfa(
             f"Erro ao executar Ghostscript: {exc}"
         ) from exc
     finally:
-        if ps_path is not None:
+        if criou_ps_proprio and ps_efetivo is not None:
             try:
-                ps_path.unlink(missing_ok=True)
+                ps_efetivo.unlink(missing_ok=True)
             except OSError:
                 pass
 
@@ -207,63 +210,45 @@ def converter_para_pdfa(
 def validar_pdfa(caminho_pdf: Path) -> bool:
     """Verifica se um PDF possui metadados indicando conformidade PDF/A.
 
-    Esta é uma validação básica que verifica os metadados XMP do documento.
-    Para validação completa, considere usar VeraPDF (futuro).
-
-    Verifica:
-    1. Se o arquivo existe e não está vazio
-    2. Se os metadados XMP contêm as marcações de PDF/A (pdfa:part e pdfa:conformance)
-
-    Args:
-        caminho_pdf: caminho do arquivo PDF a validar.
-
-    Returns:
-        True se os metadados indicam conformidade PDF/A, False caso contrário.
+    Executa validação rápida em nível binário e, caso inconclusivo, recorre
+    à inspeção de metadados XMP detalhada via pikepdf.
     """
     if not caminho_pdf.exists() or caminho_pdf.stat().st_size == 0:
         return False
 
+    # 1. Validação rápida de alta performance (varredura de marcadores binários XMP)
+    if _validar_basica(caminho_pdf):
+        return True
+
+    # 2. Validação detalhada via pikepdf caso a rápida não encontre marcação direta
     try:
-        # Tentar usar pikepdf para validação de metadados XMP (mais precisa)
         return _validar_via_pikepdf(caminho_pdf)
-    except ImportError:
-        # Se pikepdf não estiver disponível, fazer validação básica
-        return _validar_basica(caminho_pdf)
+    except Exception:
+        return False
 
 
 def _validar_via_pikepdf(caminho_pdf: Path) -> bool:
     """Validação via pikepdf — verifica metadados XMP de conformidade PDF/A."""
-    import pikepdf
-
     try:
+        import pikepdf
         with pikepdf.open(caminho_pdf) as pdf:
-            # Verificar metadados XMP
             with pdf.open_metadata() as meta:
-                # Verificar se existe a marcação pdfaid:part (indica PDF/A)
                 ns_pdfaid = "http://www.aiim.org/pdfa/ns/id/"
                 part = meta.get(f"{{{ns_pdfaid}}}part")
                 if part is not None:
                     return True
-
-                # Verificar via string raw do XMP
                 xmp_str = str(meta)
                 if "pdfaid:part" in xmp_str or "pdfa:part" in xmp_str:
                     return True
-
         return False
     except Exception:
         return False
 
 
 def _validar_basica(caminho_pdf: Path) -> bool:
-    """Validação básica sem pikepdf — busca marcações PDF/A nos bytes do arquivo.
-
-    Esta é uma verificação superficial que procura strings de metadados XMP
-    no conteúdo do PDF. Menos precisa que a validação via pikepdf.
-    """
+    """Validação básica sem pikepdf — busca marcações PDF/A nos bytes do arquivo."""
     try:
         conteudo = caminho_pdf.read_bytes()
-        # Buscar marcações comuns de PDF/A nos metadados XMP
         marcadores = [b"pdfaid:part", b"pdfa:part", b"PDF/A"]
         return any(marcador in conteudo for marcador in marcadores)
     except OSError:
@@ -274,26 +259,10 @@ def converter_e_validar(
     caminho_entrada: Path,
     caminho_saida: Path,
     perfil: str = "PDF/A-2b",
+    ps_path: Optional[Path] = None,
 ) -> ResultadoConversao:
-    """Converte um PDF para PDF/A e valida o resultado.
-
-    Este é o fluxo completo recomendado:
-    1. Converter via Ghostscript
-    2. Validar conformidade do resultado
-
-    Args:
-        caminho_entrada: caminho do PDF original.
-        caminho_saida: caminho onde o PDF/A será salvo.
-        perfil: perfil PDF/A desejado (padrão: "PDF/A-2b").
-
-    Returns:
-        ResultadoConversao com informação de validação.
-
-    Raises:
-        PdfAConversionError: se a conversão falhar.
-        GhostscriptNaoEncontradoError: se o Ghostscript não estiver instalado.
-    """
-    resultado = converter_para_pdfa(caminho_entrada, caminho_saida, perfil)
+    """Converte um PDF para PDF/A e valida o resultado."""
+    resultado = converter_para_pdfa(caminho_entrada, caminho_saida, perfil, ps_path=ps_path)
 
     # Validar o resultado
     if validar_pdfa(caminho_saida):
@@ -316,34 +285,43 @@ def converter_lote(
     cancel_event: Optional[threading.Event] = None,
     on_file_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> ResultadoLote:
-    """Converte múltiplos arquivos PDF para PDF/A.
-
-    Args:
-        arquivos: lista de tuplas (caminho_entrada, caminho_saida).
-        perfil: perfil PDF/A desejado (padrão: "PDF/A-2b").
-        cancel_event: evento opcional para solicitar cancelamento imediato.
-        on_file_progress: callback opcional (índice, total, nome_arquivo).
-
-    Returns:
-        ResultadoLote com os resultados individuais e erros.
-    """
+    """Converte múltiplos arquivos PDF para PDF/A reutilizando definições de lote."""
     resultado_lote = ResultadoLote()
     total = len(arquivos)
+    if not arquivos:
+        return resultado_lote
 
-    for idx, (caminho_entrada, caminho_saida) in enumerate(arquivos, start=1):
-        if cancel_event is not None and cancel_event.is_set():
-            raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+    nivel_pdfa = _PERFIS_PDFA.get(perfil, "2")
+    ps_lote: Path | None = None
 
-        if on_file_progress is not None:
-            on_file_progress(idx, total, caminho_entrada.name)
+    try:
+        # Gera o arquivo .ps auxiliar uma única vez para todo o lote
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ps", delete=False, encoding="utf-8"
+        ) as ps_file:
+            ps_file.write(_gerar_pdfa_def(nivel_pdfa))
+            ps_lote = Path(ps_file.name)
 
-        try:
-            resultado = converter_e_validar(caminho_entrada, caminho_saida, perfil)
-            resultado_lote.convertidos.append(resultado)
-        except PdfAConversionError as exc:
-            resultado_lote.erros.append(
-                f"Erro ao converter '{caminho_entrada.name}': {exc}"
-            )
+        for idx, (caminho_entrada, caminho_saida) in enumerate(arquivos, start=1):
+            if cancel_event is not None and cancel_event.is_set():
+                raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
+
+            if on_file_progress is not None:
+                on_file_progress(idx, total, caminho_entrada.name)
+
+            try:
+                resultado = converter_e_validar(caminho_entrada, caminho_saida, perfil, ps_path=ps_lote)
+                resultado_lote.convertidos.append(resultado)
+            except PdfAConversionError as exc:
+                resultado_lote.erros.append(
+                    f"Erro ao converter '{caminho_entrada.name}': {exc}"
+                )
+    finally:
+        if ps_lote is not None:
+            try:
+                ps_lote.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     return resultado_lote
 

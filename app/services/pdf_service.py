@@ -33,10 +33,16 @@ def obter_campos_do_formulario(caminho_pdf: Path) -> set[str]:
     return set(campos.keys()) if campos else set()
 
 
+def carregar_template_reader(caminho_pdf: Path) -> PdfReader:
+    """Abre e retorna uma instância do PdfReader para reutilização em preenchimento múltiplo."""
+    return _abrir_pdf(caminho_pdf)
+
+
 def preencher_formulario(
     caminho_template: Path,
     valores: dict[str, str],
     caminho_saida: Path,
+    reader: Optional[PdfReader] = None,
 ) -> list[str]:
     """Preenche os campos de formulário (AcroForm) de um PDF modelo e salva o
     resultado em `caminho_saida`.
@@ -45,19 +51,17 @@ def preencher_formulario(
         caminho_template: caminho do PDF modelo (com campos de formulário).
         valores: dicionário {nome_do_campo_no_pdf: valor_a_preencher}.
         caminho_saida: caminho completo do PDF final a ser gerado.
+        reader: instância opcional do PdfReader para evitar re-leitura do arquivo.
 
     Returns:
         Lista com os nomes de campos em `valores` que não foram encontrados
-        no PDF modelo. Uma lista não vazia não impede a geração do arquivo,
-        mas serve de aviso para a camada de negócio/interface.
+        no PDF modelo.
 
     Raises:
-        PdfServiceError: se o arquivo não puder ser aberto/lido/escrito, ou
-            se NENHUM dos campos esperados existir no PDF modelo (nesse
-            caso, é muito provável que o modelo selecionado esteja errado
-            ou que os nomes dos campos precisem ser ajustados).
+        PdfServiceError: se o arquivo não puder ser lido/escrito ou campos estiverem inválidos.
     """
-    reader = _abrir_pdf(caminho_template)
+    if reader is None:
+        reader = _abrir_pdf(caminho_template)
 
     campos_existentes = reader.get_fields() or {}
     campos_ausentes = [nome for nome in valores if nome not in campos_existentes]

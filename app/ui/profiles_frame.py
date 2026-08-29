@@ -163,9 +163,25 @@ class ProfilesFrame(ctk.CTkFrame):
         self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_extras.grid_columnconfigure(0, weight=1)
 
+        # Campos de Entrada (Etapa 1)
+        header_campos = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
+        header_campos.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        header_campos.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(header_campos, text="Campos de Entrada (Etapa 1):", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(header_campos, text=" Adicionar Campo", image=get_icon("form", (14, 14)),
+                      compound="left", width=160, corner_radius=RADIUS_BUTTON,
+                      fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT, hover_color=COLOR_BORDER,
+                      command=self._adicionar_campo_entrada).grid(row=0, column=1, sticky="e")
+
+        self.scroll_campos = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
+        self.scroll_campos.grid(row=8, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        self.scroll_campos.grid_columnconfigure(0, weight=1)
+
         # Botões do editor
         frame_btns = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        frame_btns.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE,
+        frame_btns.grid(row=9, column=0, columnspan=2, padx=SPACING_LARGE,
                         pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_btns.grid_columnconfigure(1, weight=1)
 
@@ -177,7 +193,7 @@ class ProfilesFrame(ctk.CTkFrame):
 
         ctk.CTkButton(frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16), light_only=True), compound="left",
                       fg_color=get_color_primary(), text_color="#FFFFFF",
-                      hover_color="#004785", corner_radius=RADIUS_BUTTON,
+                      hover_color=get_color_primary_hover(), corner_radius=RADIUS_BUTTON,
                       command=self._salvar_edicao
                       ).grid(row=0, column=1, sticky="ew")
 
@@ -274,7 +290,7 @@ class ProfilesFrame(ctk.CTkFrame):
         self.edit_nome.configure(state="normal")
 
     def _abrir_editor(self, perfil: Perfil) -> None:
-        from utils.profile_manager import DocumentoExtra
+        from utils.profile_manager import DocumentoExtra, CampoEntrada, _campos_entrada_padrao
         self._perfil_editando = perfil
         self._formularios_editando = [FormularioModelo(f.nome, f.caminho, f.geracao, f.mapeamento.copy()) for f in perfil.formularios]
         
@@ -286,6 +302,16 @@ class ProfilesFrame(ctk.CTkFrame):
             elif isinstance(d, dict):
                 self._documentos_extras_editando.append(DocumentoExtra(d.get('rotulo', ''), d.get('nome_padrao', '')))
 
+        campos_brutos = getattr(perfil, 'campos_entrada', [])
+        self._campos_entrada_editando = []
+        for c in (campos_brutos if campos_brutos else _campos_entrada_padrao()):
+            if isinstance(c, CampoEntrada):
+                self._campos_entrada_editando.append(
+                    CampoEntrada(c.id, c.rotulo, c.tipo, c.obrigatorio, c.placeholder, c.escopo, list(c.opcoes), c.valor_padrao, c.icone, c.aba)
+                )
+            elif isinstance(c, dict):
+                self._campos_entrada_editando.append(CampoEntrada(**c))
+
         self.edit_nome.configure(state="normal")
         self.edit_nome.delete(0, "end")
         self.edit_nome.insert(0, perfil.nome)
@@ -294,6 +320,7 @@ class ProfilesFrame(ctk.CTkFrame):
         
         self._atualizar_lista_formularios_editando()
         self._atualizar_lista_documentos_editando()
+        self._atualizar_lista_campos_editando()
 
         self.header_perfis.grid_remove()
         self.scroll_perfis.grid_remove()
@@ -334,6 +361,7 @@ class ProfilesFrame(ctk.CTkFrame):
         self._perfil_editando = None
         self._formularios_editando = []
         self._documentos_extras_editando = []
+        self._campos_entrada_editando = []
         self._carregar_lista()
 
     def _atualizar_lista_documentos_editando(self):
@@ -355,6 +383,222 @@ class ProfilesFrame(ctk.CTkFrame):
             ctk.CTkButton(d_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=COLOR_ERROR, hover_color="#8c1b1b",
                           command=lambda idx=i: self._remover_documento_extra(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
+
+    def _atualizar_lista_campos_editando(self):
+        for widget in self.scroll_campos.winfo_children():
+            widget.destroy()
+            
+        for i, campo in enumerate(self._campos_entrada_editando):
+            c_frame = ctk.CTkFrame(self.scroll_campos, fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_CARD)
+            c_frame.grid(row=i, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="ew")
+            c_frame.grid_columnconfigure(0, weight=1)
+            
+            obrig_str = " (Obrigatório)" if campo.obrigatorio else ""
+            desc = f"{campo.rotulo} [{campo.tipo}] — Escopo: {campo.escopo}{obrig_str}"
+            nome_label = ctk.CTkLabel(c_frame, text=desc, font=get_font(FONT_SIZE_BODY, "bold"))
+            nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_XSMALL)
+            
+            ctk.CTkButton(c_frame, text="Editar", width=60, corner_radius=RADIUS_BUTTON,
+                          fg_color=get_color_primary(), text_color="#FFFFFF", hover_color=get_color_primary_hover(),
+                          command=lambda c=campo, idx=i: self._editar_campo_entrada(c, idx)).grid(row=0, column=1, padx=SPACING_SMALL)
+                          
+            ctk.CTkButton(c_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
+                          fg_color=COLOR_ERROR, hover_color="#8c1b1b",
+                          command=lambda idx=i: self._remover_campo_entrada(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
+    def _adicionar_campo_entrada(self) -> None:
+        self._abrir_modal_campo_entrada()
+
+    def _editar_campo_entrada(self, campo, index: int) -> None:
+        self._abrir_modal_campo_entrada(campo, index)
+
+    def _remover_campo_entrada(self, index: int) -> None:
+        if 0 <= index < len(self._campos_entrada_editando):
+            del self._campos_entrada_editando[index]
+            self._atualizar_lista_campos_editando()
+
+    def _abrir_modal_campo_entrada(self, campo_existente=None, index=None) -> None:
+        from utils.profile_manager import CampoEntrada
+        if hasattr(self, "_modal_campo_fechar") and self._modal_campo_fechar:
+            try:
+                self._modal_campo_fechar()
+            except Exception:
+                pass
+
+        root = self.winfo_toplevel()
+        w, h = 520, 560
+
+        overlay = ctk.CTkToplevel(root)
+        modal = ctk.CTkToplevel(root)
+
+        configurar_janela_modal(root, modal, overlay, w, h)
+
+        frame = ctk.CTkFrame(
+            modal,
+            fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD,
+            border_width=1,
+            border_color=COLOR_BORDER,
+        )
+        frame.pack(fill="both", expand=True, padx=2, pady=2)
+        frame.grid_columnconfigure(0, weight=1)
+
+        # Header do Modal
+        titulo = "Editar Campo de Entrada" if campo_existente else "Novo Campo de Entrada"
+        ctk.CTkLabel(
+            frame,
+            text=titulo,
+            font=get_font(FONT_SIZE_H3, "bold"),
+            text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, 2))
+
+        ctk.CTkLabel(
+            frame,
+            text="Configure o campo que será solicitado na Etapa 1 para este perfil.",
+            font=get_font(FONT_SIZE_CAPTION),
+            text_color=COLOR_TEXT_SECONDARY,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
+
+        # Conteúdo do formulário
+        f_campos = ctk.CTkFrame(frame, fg_color="transparent")
+        f_campos.pack(fill="x", padx=SPACING_LARGE)
+        f_campos.grid_columnconfigure(1, weight=1)
+
+        # 1. Rótulo
+        ctk.CTkLabel(f_campos, text="Rótulo:", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w", pady=4)
+        entry_rotulo = ctk.CTkEntry(f_campos, placeholder_text="Ex: Valor da Avaliação")
+        entry_rotulo.grid(row=0, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+        if campo_existente:
+            entry_rotulo.insert(0, campo_existente.rotulo)
+
+        # 2. ID da Variável
+        ctk.CTkLabel(f_campos, text="ID da Variável:", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=1, column=0, sticky="w", pady=4)
+        entry_id = ctk.CTkEntry(f_campos, placeholder_text="Ex: valor_avaliacao")
+        entry_id.grid(row=1, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+        if campo_existente:
+            entry_id.insert(0, campo_existente.id)
+
+        # Auto-gerar ID a partir do rótulo se estiver criando novo
+        if not campo_existente:
+            def _ao_digitar_rotulo(event=None):
+                txt = entry_rotulo.get().strip().lower()
+                import re
+                txt = re.sub(r"[^\w\s]", "", txt)
+                txt = re.sub(r"\s+", "_", txt)
+                entry_id.delete(0, "end")
+                entry_id.insert(0, txt)
+            entry_rotulo.bind("<KeyRelease>", _ao_digitar_rotulo)
+
+        # 3. Tipo
+        ctk.CTkLabel(f_campos, text="Tipo de Dado:", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=2, column=0, sticky="w", pady=4)
+        tipos_disponiveis = ["texto", "cpf", "data", "moeda", "selecao", "checkbox"]
+        tipo_var = ctk.StringVar(value=campo_existente.tipo if campo_existente else "texto")
+        dropdown_tipo = ctk.CTkComboBox(f_campos, values=tipos_disponiveis, variable=tipo_var, state="readonly")
+        dropdown_tipo.grid(row=2, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+
+        # 4. Escopo
+        ctk.CTkLabel(f_campos, text="Escopo:", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=3, column=0, sticky="w", pady=4)
+        escopo_var = ctk.StringVar(value=campo_existente.escopo if campo_existente else "participante")
+        dropdown_escopo = ctk.CTkComboBox(f_campos, values=["participante", "global"], variable=escopo_var, state="readonly")
+        dropdown_escopo.grid(row=3, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+
+        # 5. Aba / Seção
+        ctk.CTkLabel(f_campos, text="Aba / Seção:", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=4, column=0, sticky="w", pady=4)
+        entry_aba = ctk.CTkEntry(f_campos, placeholder_text="Ex: Geral, Dados do Imóvel, etc.")
+        entry_aba.grid(row=4, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+        entry_aba.insert(0, campo_existente.aba if (campo_existente and campo_existente.aba) else "Geral")
+
+        # 6. Placeholder
+        ctk.CTkLabel(f_campos, text="Dica (Placeholder):", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=5, column=0, sticky="w", pady=4)
+        entry_placeholder = ctk.CTkEntry(f_campos, placeholder_text="Ex: Digite o valor...")
+        entry_placeholder.grid(row=5, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+        if campo_existente and campo_existente.placeholder:
+            entry_placeholder.insert(0, campo_existente.placeholder)
+
+        # 7. Opções (para tipo selecao)
+        ctk.CTkLabel(f_campos, text="Opções (Seleção):", font=get_font(FONT_SIZE_BODY, "bold"),
+                     text_color=COLOR_TEXT).grid(row=6, column=0, sticky="w", pady=4)
+        entry_opcoes = ctk.CTkEntry(f_campos, placeholder_text="Opção 1, Opção 2, Opção 3 (separadas por vírgula)")
+        entry_opcoes.grid(row=6, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
+        if campo_existente and campo_existente.opcoes:
+            entry_opcoes.insert(0, ", ".join(campo_existente.opcoes))
+
+        # 8. Obrigatório
+        obrigatorio_var = ctk.BooleanVar(value=campo_existente.obrigatorio if campo_existente else True)
+        check_obrig = ctk.CTkCheckBox(f_campos, text="Preenchimento Obrigatório", variable=obrigatorio_var)
+        check_obrig.grid(row=7, column=0, columnspan=2, sticky="w", pady=(SPACING_SMALL, SPACING_SMALL))
+
+        def _fechar():
+            try:
+                modal.destroy()
+            except Exception:
+                pass
+            try:
+                overlay.destroy()
+            except Exception:
+                pass
+            self._modal_campo_fechar = None
+
+        self._modal_campo_fechar = _fechar
+
+        def _salvar_campo():
+            rotulo = entry_rotulo.get().strip()
+            cid = entry_id.get().strip()
+            tipo = tipo_var.get()
+            escopo = escopo_var.get()
+            aba = entry_aba.get().strip() or "Geral"
+            placeholder = entry_placeholder.get().strip()
+            obrig = obrigatorio_var.get()
+
+            if not rotulo:
+                AlertModal(modal, "Campo Inválido", "O rótulo do campo é obrigatório.")
+                return
+            if not cid:
+                AlertModal(modal, "Campo Inválido", "O ID da variável é obrigatório.")
+                return
+
+            opcoes_lista = []
+            if tipo == "selecao":
+                opcoes_lista = [op.strip() for op in entry_opcoes.get().split(",") if op.strip()]
+
+            novo_campo = CampoEntrada(
+                id=cid,
+                rotulo=rotulo,
+                tipo=tipo,
+                obrigatorio=obrig,
+                placeholder=placeholder,
+                escopo=escopo,
+                opcoes=opcoes_lista,
+                aba=aba,
+            )
+
+            if index is not None and 0 <= index < len(self._campos_entrada_editando):
+                self._campos_entrada_editando[index] = novo_campo
+            else:
+                self._campos_entrada_editando.append(novo_campo)
+
+            self._atualizar_lista_campos_editando()
+            _fechar()
+
+        # Botões de Ação
+        botoes = ctk.CTkFrame(frame, fg_color="transparent")
+        botoes.pack(fill="x", padx=SPACING_LARGE, pady=(SPACING_MEDIUM, SPACING_LARGE), side="bottom")
+        botoes.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkButton(
+            botoes, text="Cancelar", fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
+            hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON, command=_fechar
+        ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
+
+        ctk.CTkButton(
+            botoes, text="Salvar Campo", fg_color=get_color_primary(), text_color="#FFFFFF",
+            hover_color=get_color_primary_hover(), corner_radius=RADIUS_BUTTON, command=_salvar_campo
+        ).grid(row=0, column=1, sticky="ew")
 
     def _adicionar_formulario(self) -> None:
         caminho = filedialog.askopenfilename(
@@ -665,6 +909,7 @@ class ProfilesFrame(ctk.CTkFrame):
             nome=nome,
             formularios=self._formularios_editando.copy(),
             documentos_extras=self._documentos_extras_editando.copy(),
+            campos_entrada=self._campos_entrada_editando.copy(),
             formato_saida=self.edit_formato.get(),
         )
 

@@ -24,6 +24,9 @@ _DEFAULTS = {
     "primeira_execucao": True,
 }
 
+# Cache em memória para evitar I/O repetitivo a cada leitura
+_config_cache: dict[str, Any] | None = None
+
 
 def _diretorio_config() -> Path:
     """Retorna o diretório de configuração (%APPDATA%/Contracto/)."""
@@ -41,8 +44,19 @@ def _caminho_config() -> Path:
     return _diretorio_config() / _CONFIG_FILE_NAME
 
 
-def carregar_config() -> dict[str, Any]:
-    """Carrega as configurações do disco, retornando os defaults se não existir."""
+def invalidar_cache() -> None:
+    """Invalida o cache em memória forçando releitura na próxima chamada."""
+    global _config_cache
+    _config_cache = None
+
+
+def carregar_config(forcar_disco: bool = False) -> dict[str, Any]:
+    """Carrega as configurações do disco (ou do cache), retornando os defaults se não existir."""
+    global _config_cache
+
+    if _config_cache is not None and not forcar_disco:
+        return dict(_config_cache)
+
     caminho = _caminho_config()
     config = dict(_DEFAULTS)
     if caminho.exists():
@@ -57,21 +71,29 @@ def carregar_config() -> dict[str, Any]:
     if config.get("perfil_ativo") == "Padrão":
         config["perfil_ativo"] = "MCMV"
         salvar_config(config)
+        return config
 
+    _config_cache = dict(config)
     return config
 
 
 def salvar_config(config: dict[str, Any]) -> None:
-    """Salva as configurações no disco."""
+    """Salva as configurações no disco e atualiza o cache imediatamente."""
+    global _config_cache
+
     caminho = _caminho_config()
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
+    _config_cache = dict(config)
+
 
 def obter(chave: str) -> Any:
-    """Retorna o valor de uma configuração específica."""
-    config = carregar_config()
-    return config.get(chave, _DEFAULTS.get(chave))
+    """Retorna o valor de uma configuração específica com acesso instantâneo da memória."""
+    global _config_cache
+    if _config_cache is None:
+        carregar_config()
+    return _config_cache.get(chave, _DEFAULTS.get(chave))
 
 
 def definir(chave: str, valor: Any) -> None:
@@ -91,3 +113,4 @@ def restaurar_padroes() -> dict[str, Any]:
 def obter_defaults() -> dict[str, Any]:
     """Retorna uma cópia dos valores padrão."""
     return dict(_DEFAULTS)
+

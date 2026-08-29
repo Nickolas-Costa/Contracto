@@ -7,12 +7,12 @@ com suporte a cancelamento de processo e minimização para execução em segund
 from typing import Callable, Optional
 import customtkinter as ctk
 from ui.theme import *
-from ui.animated_loader import AnimatedGifLabel
+from ui.animated_loader import CanvasSpinner
 
 
 class LoadingModal:
     """Modal de carregamento reutilizável com overlay escuro translúcido, indicação de etapas,
-    loaders animados em rotação e botões de controle (Parar / Minimizar para fila)."""
+    spinner circular vetorial nativo e botões de controle (Parar / Minimizar para fila)."""
 
     _instancia_ativa = None
 
@@ -38,7 +38,7 @@ class LoadingModal:
         self._cancel_requested = False
         self._is_dismissed = False
 
-        # Dimensões dinâmicas conforme a presença de botões
+        # Dimensões limpas e compactas
         if on_cancel and on_minimize:
             w, h = 420, 225
         elif on_cancel or on_minimize:
@@ -62,8 +62,8 @@ class LoadingModal:
         )
         self.frame.pack(fill="both", expand=True, padx=2, pady=2)
 
-        # Loader animado com GIF rotativo em alta resolução
-        self.spinner = AnimatedGifLabel(self.frame, size=(46, 46))
+        # Spinner circular vetorial 100% nativo em Canvas
+        self.spinner = CanvasSpinner(self.frame, size=38, line_width=3)
         self.spinner.pack(pady=(SPACING_LARGE, SPACING_SMALL))
 
         self.label = ctk.CTkLabel(
@@ -85,10 +85,22 @@ class LoadingModal:
         else:
             self.sublabel.pack_forget()
 
+        # Barra de progresso nativa, ultraleve e responsiva (zero overhead de imagem)
+        self.progress_bar = ctk.CTkProgressBar(
+            self.frame,
+            height=6,
+            corner_radius=3,
+            fg_color=COLOR_SURFACE_VARIANT,
+            progress_color=get_color_primary(),
+            mode="indeterminate",
+        )
+        self.progress_bar.pack(fill="x", padx=SPACING_XLARGE, pady=(SPACING_XSMALL, SPACING_SMALL))
+        self.progress_bar.start()
+
         # Frame para botões de controle (Parar / Minimizar)
         if on_cancel is not None or on_minimize is not None:
             self.frame_botoes = ctk.CTkFrame(self.frame, fg_color="transparent")
-            self.frame_botoes.pack(pady=(SPACING_SMALL, SPACING_MEDIUM))
+            self.frame_botoes.pack(pady=(SPACING_XSMALL, SPACING_MEDIUM))
 
             if on_cancel is not None:
                 self.btn_cancel = ctk.CTkButton(
@@ -157,8 +169,8 @@ class LoadingModal:
                 if submessage:
                     self.sublabel.configure(text=submessage)
                     if not self.sublabel.winfo_ismapped():
-                        if self.frame_botoes and self.frame_botoes.winfo_ismapped():
-                            self.sublabel.pack(before=self.frame_botoes, padx=SPACING_LARGE, pady=(0, SPACING_SMALL))
+                        if hasattr(self, "progress_bar") and self.progress_bar.winfo_ismapped():
+                            self.sublabel.pack(before=self.progress_bar, padx=SPACING_LARGE, pady=(0, SPACING_SMALL))
                         else:
                             self.sublabel.pack(padx=SPACING_LARGE, pady=(0, SPACING_SMALL))
                 else:
@@ -167,17 +179,30 @@ class LoadingModal:
             pass
 
     def atualizar_etapa(self, etapa: int, total: int, descricao: str) -> None:
-        """Atualiza a mensagem de progresso com formato amigável em etapas (ex: Etapa 1/4)."""
+        """Atualiza a mensagem de progresso e ajusta a barra de progresso nativa."""
         sub = f"(Etapa {etapa}/{total}: {descricao})"
         self.update_message("Processando documentos...", sub)
+        try:
+            if hasattr(self, "progress_bar") and self.progress_bar.winfo_exists():
+                if total > 0:
+                    frac = min(1.0, max(0.0, etapa / total))
+                    self.progress_bar.configure(mode="determinate")
+                    self.progress_bar.set(frac)
+        except Exception:
+            pass
 
     def dismiss(self) -> None:
         self._is_dismissed = True
         if LoadingModal._instancia_ativa is self:
             LoadingModal._instancia_ativa = None
         try:
-            if hasattr(self, "spinner") and self.spinner and self.spinner.winfo_exists():
+            if hasattr(self, "spinner") and self.spinner:
                 self.spinner.stop_animation()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "progress_bar") and self.progress_bar and self.progress_bar.winfo_exists():
+                self.progress_bar.stop()
         except Exception:
             pass
         try:

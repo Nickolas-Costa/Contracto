@@ -18,6 +18,9 @@ _PROFILES_FILE_NAME = "contracto_profiles.json"
 
 PERFIL_PADRAO_NOME = "MCMV"
 
+# Cache em memória de perfis para eliminar I/O em disco
+_perfis_cache: list[Perfil] | None = None
+
 
 @dataclass
 class FormularioModelo:
@@ -35,11 +38,27 @@ class DocumentoExtra:
 
 
 @dataclass
+class CampoEntrada:
+    """Definição de um campo de entrada da Etapa 1 configurável por perfil."""
+    id: str
+    rotulo: str
+    tipo: str = "texto"           # "texto", "cpf", "data", "moeda", "selecao", "checkbox"
+    obrigatorio: bool = True
+    placeholder: str = ""
+    escopo: str = "participante"  # "participante" ou "global"
+    opcoes: list[str] = field(default_factory=list)  # Para tipo "selecao"
+    valor_padrao: str = ""
+    icone: str = "form"
+    aba: str = "Geral"           # Para sub-seções/paginação
+
+
+@dataclass
 class Perfil:
-    """Um perfil de configuração de modelos e formato de saída."""
+    """Um perfil de configuração de modelos, campos de entrada e formato de saída."""
     nome: str = PERFIL_PADRAO_NOME
     formularios: list[FormularioModelo] = field(default_factory=list)
     documentos_extras: list[DocumentoExtra] = field(default_factory=list)
+    campos_entrada: list[CampoEntrada] = field(default_factory=list)
     formato_saida: str = "PDF/A-2b"     # "PDF/A-2b" ou "PDF"
 
     def usa_modelos_embutidos(self) -> bool:
@@ -50,6 +69,22 @@ class Perfil:
             if f.caminho:
                 return False
         return True
+
+    def obter_campos_participante(self) -> list[CampoEntrada]:
+        """Retorna os campos configurados no escopo de cada participante."""
+        return [c for c in self.campos_entrada if c.escopo == "participante"]
+
+    def obter_campos_globais(self) -> list[CampoEntrada]:
+        """Retorna os campos configurados no escopo global (compartilhado)."""
+        return [c for c in self.campos_entrada if c.escopo == "global"]
+
+    def obter_abas_disponiveis(self) -> list[str]:
+        """Retorna a lista ordenada de abas/páginas definidas para este perfil."""
+        abas = []
+        for c in self.campos_entrada:
+            if c.aba and c.aba not in abas:
+                abas.append(c.aba)
+        return abas if abas else ["Geral"]
 
 
 def _diretorio_perfis() -> Path:
@@ -66,8 +101,35 @@ def _caminho_perfis() -> Path:
     return _diretorio_perfis() / _PROFILES_FILE_NAME
 
 
-def carregar_perfis() -> list[Perfil]:
-    """Carrega todos os perfis do disco. Sempre inclui o perfil Padrão."""
+def invalidar_cache() -> None:
+    """Invalida o cache em memória de perfis."""
+    global _perfis_cache
+    _perfis_cache = None
+
+
+def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
+    """Carrega todos os perfis do disco (ou do cache em memória). Sempre inclui o perfil Padrão."""
+    global _perfis_cache
+
+    if _perfis_cache is not None and not forcar_disco:
+        return [
+            Perfil(
+                nome=p.nome,
+                formularios=[FormularioModelo(f.nome, f.caminho, f.geracao, dict(f.mapeamento)) for f in p.formularios],
+                documentos_extras=[DocumentoExtra(d.rotulo, d.nome_padrao) for d in p.documentos_extras],
+                campos_entrada=[
+                    CampoEntrada(
+                        id=c.id, rotulo=c.rotulo, tipo=c.tipo, obrigatorio=c.obrigatorio,
+                        placeholder=c.placeholder, escopo=c.escopo, opcoes=list(c.opcoes),
+                        valor_padrao=c.valor_padrao, icone=c.icone, aba=c.aba
+                    )
+                    for c in p.campos_entrada
+                ],
+                formato_saida=p.formato_saida,
+            )
+            for p in _perfis_cache
+        ]
+
     caminho = _caminho_perfis()
     perfis: list[Perfil] = []
 
@@ -101,15 +163,23 @@ def carregar_perfis() -> list[Perfil]:
                         item["documentos_extras"] = [DocumentoExtra(**d) for d in item["documentos_extras"]]
                     else:
                         item["documentos_extras"] = _documentos_extras_padrao()
+
+                if "campos_entrada" in item:
+                    item["campos_entrada"] = [CampoEntrada(**c) for c in item["campos_entrada"]]
+                else:
+                    item["campos_entrada"] = _campos_entrada_padrao()
                         
                 perfis.append(Perfil(**item))
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []
 
-    # Migração: renomear perfil "Padrão" para "MCMV" se existir
+    # Migração: renomear perfil "Padrão" para "MCMV" se existir e normalizar rótulos
     for p in perfis:
         if p.nome == "Padrão":
             p.nome = PERFIL_PADRAO_NOME  # "MCMV"
+        for c in p.campos_entrada:
+            if c.id == "endereco" and c.rotulo == "Endereço Completo":
+                c.rotulo = "Endereço"
 
     _formularios_builtin = [
         FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
@@ -122,6 +192,7 @@ def carregar_perfis() -> list[Perfil]:
             nome=PERFIL_PADRAO_NOME,
             formularios=list(_formularios_builtin),
             documentos_extras=_documentos_extras_padrao(),
+            campos_entrada=_campos_entrada_padrao(),
         ))
 
     # Garantir que o perfil SBPE sempre existe
@@ -130,9 +201,49 @@ def carregar_perfis() -> list[Perfil]:
             nome="SBPE",
             formularios=list(_formularios_builtin),
             documentos_extras=_documentos_extras_sbpe(),
+            campos_entrada=_campos_entrada_padrao(),
         ))
 
+    _perfis_cache = perfis
     return perfis
+
+
+def _campos_entrada_padrao() -> list[CampoEntrada]:
+    """Retorna a lista de campos de entrada padrão da Etapa 1."""
+    return [
+        CampoEntrada(
+            id="endereco",
+            rotulo="Endereço",
+            tipo="texto",
+            obrigatorio=True,
+            placeholder="Ex: Rua das Flores, 123 - Centro, Camocim - CE",
+            escopo="participante",
+            icone="location",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="data_assinatura",
+            rotulo="Data da assinatura",
+            tipo="data",
+            obrigatorio=True,
+            placeholder="DD/MM/AAAA",
+            escopo="global",
+            icone="calendar",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="local_assinatura",
+            rotulo="Local da assinatura",
+            tipo="texto",
+            obrigatorio=True,
+            placeholder="Ex: CAMOCIM-CE",
+            escopo="global",
+            valor_padrao="CAMOCIM-CE",
+            icone="location",
+            aba="Geral",
+        ),
+    ]
+
 
 def _documentos_extras_padrao() -> list[DocumentoExtra]:
     """Retorna a lista de documentos extras (Etapa 2) padrão para o perfil MCMV."""
@@ -153,20 +264,34 @@ def _documentos_extras_sbpe() -> list[DocumentoExtra]:
 
 
 def salvar_perfis(perfis: list[Perfil]) -> None:
-    """Salva todos os perfis no disco."""
+    """Salva todos os perfis no disco e atualiza o cache imediatamente."""
+    global _perfis_cache
+
     caminho = _caminho_perfis()
     dados = [asdict(p) for p in perfis]
     with open(caminho, "w", encoding="utf-8") as f:
         json.dump(dados, f, indent=2, ensure_ascii=False)
 
+    _perfis_cache = perfis
+
 
 def obter_perfil(nome: str) -> Optional[Perfil]:
-    """Retorna um perfil pelo nome, ou None se não existir."""
-    perfis = carregar_perfis()
-    for p in perfis:
+    """Retorna um perfil pelo nome a partir da memória, ou None se não existir."""
+    global _perfis_cache
+    if _perfis_cache is None:
+        carregar_perfis()
+    for p in _perfis_cache:
         if p.nome == nome:
             return p
     return None
+
+
+def listar_nomes_perfis() -> list[str]:
+    """Retorna a lista de nomes de todos os perfis diretamente da memória."""
+    global _perfis_cache
+    if _perfis_cache is None:
+        carregar_perfis()
+    return [p.nome for p in _perfis_cache]
 
 
 def adicionar_perfil(perfil: Perfil) -> None:
@@ -243,6 +368,22 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         )
         for f in origem.formularios
     ]
+    novos_campos = [
+        CampoEntrada(
+            id=c.id,
+            rotulo=c.rotulo,
+            tipo=c.tipo,
+            obrigatorio=c.obrigatorio,
+            placeholder=c.placeholder,
+            escopo=c.escopo,
+            opcoes=list(c.opcoes),
+            valor_padrao=c.valor_padrao,
+            icone=c.icone,
+            aba=c.aba,
+        )
+        for c in origem.campos_entrada
+    ]
+
     novos_extras = [
         DocumentoExtra(rotulo=d.rotulo, nome_padrao=d.nome_padrao)
         for d in origem.documentos_extras
@@ -252,6 +393,7 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         nome=novo_nome,
         formularios=novos_formularios,
         documentos_extras=novos_extras,
+        campos_entrada=novos_campos,
         formato_saida=origem.formato_saida,
     )
     perfis.append(novo_perfil)

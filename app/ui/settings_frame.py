@@ -114,7 +114,11 @@ class SettingsFrame(ctk.CTkFrame):
         ctk.CTkLabel(secao, text="Tema do aplicativo", font=get_font(FONT_SIZE_BODY),
                      text_color=COLOR_TEXT_SECONDARY).pack(anchor="w", padx=SPACING_LARGE)
 
-        self.var_aparencia = ctk.StringVar(value="Padrão do Sistema" if self._config.get("aparencia", "system") == "system" else self._config.get("aparencia", "system").capitalize())
+        aparencia_atual = self._config.get("aparencia", "system")
+        mapa_config_to_aparencia = {"light": "Light", "dark": "Dark", "system": "Padrão do Sistema"}
+        valor_inicial = mapa_config_to_aparencia.get(aparencia_atual, "Padrão do Sistema")
+
+        self.var_aparencia = ctk.StringVar(value=valor_inicial)
         self.seg_tema = ctk.CTkSegmentedButton(
             secao,
             values=["Light", "Dark", "Padrão do Sistema"],
@@ -124,6 +128,7 @@ class SettingsFrame(ctk.CTkFrame):
             selected_color=get_color_primary(),
             selected_hover_color=get_color_primary_hover(),
         )
+        self.seg_tema.set(valor_inicial)
         self.seg_tema.pack(padx=SPACING_LARGE, pady=(SPACING_SMALL, SPACING_LARGE), fill="x")
 
     def _construir_secao_cor(self) -> None:
@@ -442,12 +447,14 @@ class SettingsFrame(ctk.CTkFrame):
 
     def _salvar(self) -> None:
         val = self.var_aparencia.get()
-        if val == "Padrão do Sistema":
-            val = "system"
-        else:
-            val = val.lower()
+        mapa_aparencia_to_config = {
+            "Light": "light",
+            "Dark": "dark",
+            "Padrão do Sistema": "system",
+        }
+        aparencia_config = mapa_aparencia_to_config.get(val, "system")
             
-        config_manager.definir("aparencia", val)
+        config_manager.definir("aparencia", aparencia_config)
         config_manager.definir("cor_destaque", self._cor_selecionada)
         config_manager.definir("local_padrao", self.entry_local.get().strip() or "CAMOCIM-CE")
         config_manager.definir("tamanho_quadros", self.var_tamanho.get())
@@ -472,3 +479,27 @@ class SettingsFrame(ctk.CTkFrame):
                 fg_color=get_color_primary(),
                 hover_color=get_color_primary_hover()
             )
+
+    def recarregar_campos(self) -> None:
+        """Recarrega os valores dos campos sem recriar os widgets e preservando seleções."""
+        self._config = config_manager.carregar_config()
+        aparencia = self._config.get("aparencia", "system")
+        mapa_config_to_aparencia = {"light": "Light", "dark": "Dark", "system": "Padrão do Sistema"}
+        valor_aparencia = mapa_config_to_aparencia.get(aparencia, "Padrão do Sistema")
+
+        self.var_aparencia.set(valor_aparencia)
+        if hasattr(self, 'seg_tema'):
+            self.seg_tema.set(valor_aparencia)
+
+        cor = self._config.get("cor_destaque", "#1E6FB3")
+        self._selecionar_cor(cor)
+
+        local = self._config.get("local_padrao", "CAMOCIM-CE")
+        self.entry_local.delete(0, "end")
+        self.entry_local.insert(0, local)
+
+        tamanho = self._config.get("tamanho_quadros", "Médio")
+        self.var_tamanho.set(tamanho)
+        if hasattr(self, 'seg_tamanho'):
+            self.seg_tamanho.set(tamanho)
+        self.atualizar_cores()
