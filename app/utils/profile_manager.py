@@ -37,19 +37,26 @@ class DocumentoExtra:
     nome_padrao: str
 
 
+TIPOS_CAMPO_ENTRADA = ["TEXTO", "CPF", "CNPJ", "DATA", "MOEDA", "SELECAO", "CHECKBOX"]
+
+
 @dataclass
 class CampoEntrada:
-    """Definição de um campo de entrada da Etapa 1 configurável por perfil."""
-    id: str
-    rotulo: str
-    tipo: str = "texto"           # "texto", "cpf", "data", "moeda", "selecao", "checkbox"
+    """Especificação de um campo de formulário dinâmico da Etapa 1."""
+    id: str                      # Identificador único (ex: 'cpf', 'renda_bruta', 'cnpj')
+    rotulo: str                  # Texto exibido no Label (ex: 'CPF', 'CNPJ', 'Renda Bruta')
+    tipo: str = "TEXTO"          # "TEXTO", "CPF", "CNPJ", "DATA", "MOEDA", "SELECAO", "CHECKBOX"
     obrigatorio: bool = True
     placeholder: str = ""
-    escopo: str = "participante"  # "participante" ou "global"
-    opcoes: list[str] = field(default_factory=list)  # Para tipo "selecao"
+    escopo: str = "participante" # "participante" ou "global"
+    opcoes: list[str] = field(default_factory=list) # Para tipo "SELECAO"
     valor_padrao: str = ""
     icone: str = "form"
     aba: str = "Geral"           # Para sub-seções/paginação
+
+    def __post_init__(self) -> None:
+        if self.tipo:
+            self.tipo = self.tipo.upper()
 
 
 @dataclass
@@ -214,7 +221,7 @@ def _campos_entrada_padrao() -> list[CampoEntrada]:
         CampoEntrada(
             id="endereco",
             rotulo="Endereço",
-            tipo="texto",
+            tipo="TEXTO",
             obrigatorio=True,
             placeholder="Ex: Rua das Flores, 123 - Centro, Camocim - CE",
             escopo="participante",
@@ -224,7 +231,7 @@ def _campos_entrada_padrao() -> list[CampoEntrada]:
         CampoEntrada(
             id="data_assinatura",
             rotulo="Data da assinatura",
-            tipo="data",
+            tipo="DATA",
             obrigatorio=True,
             placeholder="DD/MM/AAAA",
             escopo="global",
@@ -234,11 +241,10 @@ def _campos_entrada_padrao() -> list[CampoEntrada]:
         CampoEntrada(
             id="local_assinatura",
             rotulo="Local da assinatura",
-            tipo="texto",
+            tipo="TEXTO",
             obrigatorio=True,
             placeholder="Ex: CAMOCIM-CE",
             escopo="global",
-            valor_padrao="CAMOCIM-CE",
             icone="location",
             aba="Geral",
         ),

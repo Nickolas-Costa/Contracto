@@ -789,6 +789,7 @@ class MainWindow(ctk.CTk):
     def _construir_secao_saida(self) -> None:
         secao = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
         secao.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, SPACING_MEDIUM), sticky="ew")
+        secao.grid_columnconfigure(0, minsize=145)
         secao.grid_columnconfigure(1, weight=1)
 
         titulo = ctk.CTkLabel(
@@ -803,6 +804,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(
             secao, text=" Data da assinatura",
             image=get_icon("calendar", (16, 16)), compound="left",
+            width=145, anchor="w",
             font=get_font(FONT_SIZE_BODY)
         ).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
             
@@ -828,6 +830,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(
             secao, text=" Local da assinatura",
             image=get_icon("location", (16, 16)), compound="left",
+            width=145, anchor="w",
             font=get_font(FONT_SIZE_BODY)
         ).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
         self.entry_local = ctk.CTkEntry(secao, placeholder_text="Ex: CAMOCIM-CE", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
@@ -847,6 +850,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(
             secao, text=" Diretório de saída:",
             image=get_icon("folder", (16, 16)), compound="left",
+            width=145, anchor="w",
             font=get_font(FONT_SIZE_BODY, "bold")
         ).grid(row=3, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=(SPACING_SMALL, SPACING_LARGE), sticky="w")
         

@@ -394,7 +394,7 @@ class ProfilesFrame(ctk.CTkFrame):
             c_frame.grid_columnconfigure(0, weight=1)
             
             obrig_str = " (Obrigatório)" if campo.obrigatorio else ""
-            desc = f"{campo.rotulo} [{campo.tipo}] — Escopo: {campo.escopo}{obrig_str}"
+            desc = f"{campo.rotulo} [{campo.tipo.upper()}] — Escopo: {campo.escopo}{obrig_str}"
             nome_label = ctk.CTkLabel(c_frame, text=desc, font=get_font(FONT_SIZE_BODY, "bold"))
             nome_label.grid(row=0, column=0, sticky="w", padx=SPACING_SMALL, pady=SPACING_XSMALL)
             
@@ -417,7 +417,7 @@ class ProfilesFrame(ctk.CTkFrame):
             self._atualizar_lista_campos_editando()
 
     def _abrir_modal_campo_entrada(self, campo_existente=None, index=None) -> None:
-        from utils.profile_manager import CampoEntrada
+        from utils.profile_manager import CampoEntrada, TIPOS_CAMPO_ENTRADA
         if hasattr(self, "_modal_campo_fechar") and self._modal_campo_fechar:
             try:
                 self._modal_campo_fechar()
@@ -466,7 +466,7 @@ class ProfilesFrame(ctk.CTkFrame):
         # 1. Rótulo
         ctk.CTkLabel(f_campos, text="Rótulo:", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=0, column=0, sticky="w", pady=4)
-        entry_rotulo = ctk.CTkEntry(f_campos, placeholder_text="Ex: Valor da Avaliação")
+        entry_rotulo = ctk.CTkEntry(f_campos, placeholder_text="Ex: CNPJ da Empresa ou Valor")
         entry_rotulo.grid(row=0, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
         if campo_existente:
             entry_rotulo.insert(0, campo_existente.rotulo)
@@ -474,7 +474,7 @@ class ProfilesFrame(ctk.CTkFrame):
         # 2. ID da Variável
         ctk.CTkLabel(f_campos, text="ID da Variável:", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=1, column=0, sticky="w", pady=4)
-        entry_id = ctk.CTkEntry(f_campos, placeholder_text="Ex: valor_avaliacao")
+        entry_id = ctk.CTkEntry(f_campos, placeholder_text="Ex: cnpj, valor_avaliacao")
         entry_id.grid(row=1, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
         if campo_existente:
             entry_id.insert(0, campo_existente.id)
@@ -493,8 +493,8 @@ class ProfilesFrame(ctk.CTkFrame):
         # 3. Tipo
         ctk.CTkLabel(f_campos, text="Tipo de Dado:", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=2, column=0, sticky="w", pady=4)
-        tipos_disponiveis = ["texto", "cpf", "data", "moeda", "selecao", "checkbox"]
-        tipo_var = ctk.StringVar(value=campo_existente.tipo if campo_existente else "texto")
+        tipos_disponiveis = TIPOS_CAMPO_ENTRADA
+        tipo_var = ctk.StringVar(value=campo_existente.tipo.upper() if campo_existente else "TEXTO")
         dropdown_tipo = ctk.CTkComboBox(f_campos, values=tipos_disponiveis, variable=tipo_var, state="readonly")
         dropdown_tipo.grid(row=2, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
 
@@ -549,7 +549,7 @@ class ProfilesFrame(ctk.CTkFrame):
         def _salvar_campo():
             rotulo = entry_rotulo.get().strip()
             cid = entry_id.get().strip()
-            tipo = tipo_var.get()
+            tipo = tipo_var.get().upper()
             escopo = escopo_var.get()
             aba = entry_aba.get().strip() or "Geral"
             placeholder = entry_placeholder.get().strip()

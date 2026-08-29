@@ -159,6 +159,19 @@ def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
         "data.ano": ano,
     }
 
+    # Suporte a CNPJ (se informado)
+    cnpj_raw = participante.obter_campo("cnpj", "")
+    if cnpj_raw:
+        try:
+            from utils.cnpj_validator import formatar_cnpj
+            cnpj_fmt = formatar_cnpj(cnpj_raw)
+        except Exception:
+            cnpj_fmt = cnpj_raw
+        variaveis["participante.cnpj"] = cnpj_raw
+        variaveis["participante.cnpj_formatado"] = cnpj_fmt
+        variaveis["cnpj"] = cnpj_raw
+        variaveis["cnpj_formatado"] = cnpj_fmt
+
     # Inclusão dinâmica de todos os campos personalizados
     for campo_id, valor in participante.campos_dinamicos.items():
         str_val = str(valor)
@@ -173,6 +186,14 @@ def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
                 variaveis[f"{campo_id}.dia"] = d_dia
                 variaveis[f"{campo_id}.mes"] = d_mes
                 variaveis[f"{campo_id}.ano"] = d_ano
+            except Exception:
+                pass
+        # Se for campo de CNPJ dinâmico, gerar versão formatada
+        elif ("cnpj" in campo_id.lower()) and len(str_val.replace(".", "").replace("/", "").replace("-", "")) == 14:
+            try:
+                from utils.cnpj_validator import formatar_cnpj
+                variaveis[f"{campo_id}_formatado"] = formatar_cnpj(str_val)
+                variaveis[f"participante.{campo_id}_formatado"] = formatar_cnpj(str_val)
             except Exception:
                 pass
     

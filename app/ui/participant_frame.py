@@ -43,6 +43,7 @@ class ParticipantFrame(ctk.CTkFrame):
         self._local_padrao = local_padrao
         self.widgets_dinamicos: dict[str, CampoDinamicoWidget] = {}
 
+        self.grid_columnconfigure(0, minsize=145)
         self.grid_columnconfigure(1, weight=1)
 
         self.label_titulo = ctk.CTkLabel(
@@ -109,17 +110,19 @@ class ParticipantFrame(ctk.CTkFrame):
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")
 
     def _criar_campo_padrao(self, rotulo: str, linha: int, tipo: str) -> ctk.CTkEntry:
-        icone_nome = "attribution" if tipo == "nome" else ("document" if tipo == "cpf" else "location")
+        icone_nome = "attribution" if tipo == "nome" else ("document" if tipo in ("cpf", "cnpj") else "location")
         placeholder = (
             "Ex: João da Silva" if tipo == "nome"
             else ("123.456.789-10" if tipo == "cpf"
-                  else "Ex: Rua das Flores, 123 - Centro, Camocim - CE")
+                  else ("12.345.678/0001-90" if tipo == "cnpj"
+                        else "Ex: Rua das Flores, 123 - Centro, Camocim - CE"))
         )
         ctk.CTkLabel(
             self,
             text=f" {rotulo}",
             image=get_icon(icone_nome, (16, 16)),
             compound="left",
+            width=145,
             anchor="w",
             font=get_font(FONT_SIZE_BODY),
             text_color=COLOR_TEXT,
@@ -150,6 +153,19 @@ class ParticipantFrame(ctk.CTkFrame):
                     entry.insert(0, fmt)
                     val = fmt
             is_valid = bool(val) and validar_cpf(val)
+        elif tipo == "cnpj":
+            from utils.cnpj_validator import formatar_cnpj, validar_cnpj, limpar_cnpj
+            apenas_alnum = limpar_cnpj(val)
+            if len(apenas_alnum) == 14 and ("." not in val or "/" not in val or "-" not in val):
+                try:
+                    fmt = formatar_cnpj(apenas_alnum)
+                    if fmt != val:
+                        entry.delete(0, "end")
+                        entry.insert(0, fmt)
+                        val = fmt
+                except Exception:
+                    pass
+            is_valid = bool(val) and validar_cnpj(val)
         elif tipo == "endereco":
             is_valid = bool(val)
 
@@ -186,7 +202,7 @@ class ParticipantFrame(ctk.CTkFrame):
             end_val = self.entry_endereco.get().strip()
             if not end_val:
                 self.entry_endereco.configure(border_color=COLOR_BORDER_ERROR)
-                erros.append(f"{prefixo}: Endereço Completo é obrigatório.")
+                erros.append(f"{prefixo}: Endereço é obrigatório.")
             else:
                 self.entry_endereco.configure(border_color=COLOR_BORDER)
 
