@@ -17,6 +17,11 @@ if TYPE_CHECKING:
     from models.participant import Participant
 
 _CARACTERES_INVALIDOS_ARQUIVO = '<>:"/\\|?*'
+_NOMES_RESERVADOS_WINDOWS = {
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+}
 
 
 def remover_acentos(texto: str) -> str:
@@ -31,9 +36,20 @@ def remover_acentos(texto: str) -> str:
 
 
 def _sanitizar_nome_arquivo(nome: str) -> str:
-    """Remove caracteres não permitidos em nomes de arquivo no Windows."""
+    """Remove caracteres não permitidos em nomes de arquivo no Windows e trata nomes reservados."""
     nome_seguro = "".join(c for c in nome if c not in _CARACTERES_INVALIDOS_ARQUIVO)
-    return nome_seguro.strip().rstrip(".")
+    nome_seguro = nome_seguro.strip().rstrip(".")
+    if not nome_seguro:
+        return ""
+
+    # Tratar nomes reservados do Windows (FAT32/NTFS)
+    partes = nome_seguro.rsplit(".", 1)
+    stem = partes[0].upper()
+    if stem in _NOMES_RESERVADOS_WINDOWS:
+        extensao = f".{partes[1]}" if len(partes) > 1 else ""
+        nome_seguro = f"DOC_{partes[0]}{extensao}"
+
+    return nome_seguro
 
 
 def extrair_primeiro_nome(nome_completo: str) -> str:

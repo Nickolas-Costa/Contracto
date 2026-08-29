@@ -1431,11 +1431,18 @@ class MainWindow(ctk.CTk):
         self.document_frame.limpar()
 
     @staticmethod
-    def _abrir_pasta(caminho: Path) -> None:
+    def _abrir_pasta(caminho: Path | str) -> None:
+        """Abre o diretório informado no gerenciador de arquivos com validação estrita de segurança."""
+        p = Path(caminho) if isinstance(caminho, str) else caminho
+        if not p.exists() or not p.is_dir():
+            import logging
+            logging.getLogger("Contracto").warning(f"Tentativa de abrir caminho inválido ou não-diretório: '{p}'")
+            return
+
         if os.name == "nt":
-            os.startfile(caminho)
+            os.startfile(str(p.resolve()))
         else:
-            subprocess.run(["xdg-open", str(caminho)])
+            subprocess.run(["xdg-open", str(p.resolve())])
 
     # ------------------------------------------------------------------
     # Utilitários de Seleção (Etapa 1)

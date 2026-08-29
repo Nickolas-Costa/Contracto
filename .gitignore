@@ -221,3 +221,6 @@ __marimo__/
 saida/
 output/
 
+
+# Auditoria de Seguranca Interna (Scripts, Relatorios e Graficos)
+docs/security-audit/

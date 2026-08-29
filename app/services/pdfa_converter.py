@@ -146,6 +146,7 @@ def converter_para_pdfa(
 
         comando = [
             str(caminho_gs),
+            "-dSAFER",
             f"-dPDFA={nivel_pdfa}",
             "-dBATCH",
             "-dNOPAUSE",

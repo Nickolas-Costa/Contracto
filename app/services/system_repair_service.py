@@ -82,13 +82,16 @@ def _encerrar_processos_orfaos() -> int:
 
     encerrados = 0
     processos_alvo = ["gswin64c.exe", "gswin32c.exe", "gs.exe"]
+    usuario_atual = os.environ.get("USERNAME", "")
+    filtro_usuario = ["/FI", f"USERNAME eq {usuario_atual}"] if usuario_atual else []
 
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
     for proc in processos_alvo:
         try:
+            cmd = ["taskkill", "/F", "/IM", proc] + filtro_usuario
             res = subprocess.run(
-                ["taskkill", "/F", "/IM", proc],
+                cmd,
                 capture_output=True,
                 text=True,
                 stdin=subprocess.DEVNULL,
