@@ -211,8 +211,90 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             campos_entrada=_campos_entrada_padrao(),
         ))
 
+    # Garantir que o perfil Formulário CAIXA sempre existe
+    if not any(p.nome in ("Formulário CAIXA", "MO 30.844") for p in perfis):
+        perfis.append(Perfil(
+            nome="Formulário CAIXA",
+            formularios=[
+                FormularioModelo(
+                    nome="Formulário Cliente CAIXA",
+                    caminho="",
+                    geracao="por_processo",
+                    mapeamento={},
+                )
+            ],
+            documentos_extras=_documentos_extras_padrao(),
+            campos_entrada=_campos_entrada_mo30844(),
+        ))
+
     _perfis_cache = perfis
     return perfis
+
+
+def _campos_entrada_mo30844() -> list[CampoEntrada]:
+    """Retorna a lista de campos de entrada padrão para o Formulário CAIXA (MO 30.844)."""
+    return [
+        CampoEntrada(
+            id="agencia",
+            rotulo="Agência CAIXA",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: 1234",
+            escopo="global",
+            icone="briefcase",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="conta_caixa",
+            rotulo="Conta CAIXA",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: 00012345-6",
+            escopo="global",
+            icone="briefcase",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="autorizo_debito_parcela",
+            rotulo="Débito das parcelas",
+            tipo="CHECKBOX",
+            obrigatorio=False,
+            valor_padrao="Sim",
+            escopo="global",
+            icone="check",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="autorizo_tarifa_avaliacao",
+            rotulo="Débito tarifa avaliação",
+            tipo="CHECKBOX",
+            obrigatorio=False,
+            valor_padrao="Não",
+            escopo="global",
+            icone="check",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="data_assinatura",
+            rotulo="Data da assinatura",
+            tipo="DATA",
+            obrigatorio=True,
+            placeholder="DD/MM/AAAA",
+            escopo="global",
+            icone="calendar",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="local_assinatura",
+            rotulo="Local da assinatura",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: CAMOCIM-CE",
+            escopo="global",
+            icone="location",
+            aba="Geral",
+        ),
+    ]
 
 
 def _campos_entrada_padrao() -> list[CampoEntrada]:

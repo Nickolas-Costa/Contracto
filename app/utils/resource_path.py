@@ -43,3 +43,12 @@ def modelo_padrao_primeiro_imovel() -> Path | None:
     """
     caminho = caminho_recurso("assets", "templates", "1 IMOVEL.pdf")
     return caminho if caminho.exists() else None
+
+
+def modelo_padrao_formulario_caixa() -> Path | None:
+    """Caminho do modelo oficial do Formulário Cliente Crédito Imobiliário CAIXA (MO 30.844 v011).
+
+    Retorna None se o arquivo não estiver presente.
+    """
+    caminho = caminho_recurso("assets", "templates", "MO30844011 (PREENCHIVEL).pdf")
+    return caminho if caminho.exists() else None

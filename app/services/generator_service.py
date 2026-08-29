@@ -24,7 +24,8 @@ from utils.filename_utils import nome_documento_individual
 from utils.profile_manager import Perfil
 
 
-from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel, modelo_padrao_formulario_caixa
+from utils.filename_utils import nome_documento_individual, nome_documento_processo
 
 
 @dataclass
@@ -52,9 +53,45 @@ def resolver_caminho_formulario(f) -> Path | None:
             caminho_resolvido = modelo_padrao_ppe()
         elif "imóvel" in nome or "imovel" in nome or "1" in nome:
             caminho_resolvido = modelo_padrao_primeiro_imovel()
+        elif "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome or "cliente" in nome:
+            caminho_resolvido = modelo_padrao_formulario_caixa()
 
     _caminho_modelo_cache[key] = caminho_resolvido
     return caminho_resolvido
+
+
+def mapeamento_padrao_mo30844011() -> dict[str, str]:
+    """Mapeamento padrão oficial para o formulário CAIXA MO 30.844 v011."""
+    return {
+        "NOME_CLIENTE_1": "participante.1.nome_completo",
+        "CPF1": "participante.1.cpf_formatado",
+        "AGENCIA": "global.agencia",
+        "CONTA_CAIXA": "global.conta_caixa",
+        "checkbox_AUTORIZO_PARCELA": "global.checkbox_autorizo_parcela",
+        "checkbox_GARANTIA": "global.checkbox_garantia",
+        "NOMEPROP1PROPOSTA": "participante.1.nome_completo",
+        "CPFPROP1": "participante.1.cpf_formatado",
+        "NOMEPROP2PROPOSTA": "participante.2.nome_completo",
+        "CPFPROP2": "participante.2.cpf_formatado",
+        "NOMEPROP3PROPOSTA": "participante.3.nome_completo",
+        "CPFPROP3": "participante.3.cpf_formatado",
+        "NOMEPROP4PROPOSTA": "participante.4.nome_completo",
+        "CPFPROP4": "participante.4.cpf_formatado",
+        "MIP1": "participante.1.mip",
+        "MIP2": "participante.2.mip",
+        "MIP3": "participante.3.mip",
+        "MIP4": "participante.4.mip",
+        "LOCAL": "participante.local_assinatura",
+        "DATA DD/MM/AAAA": "participante.data_assinatura",
+        "PARTICIP1NOME": "participante.1.nome_completo",
+        "PARTICIP1CPF": "participante.1.cpf_formatado",
+        "PARTICIP2NOME": "participante.2.nome_completo",
+        "PARTICIP2CPF": "participante.2.cpf_formatado",
+        "PARTICIP3NOME": "participante.3.nome_completo",
+        "PARTICIP3CPF": "participante.3.cpf_formatado",
+        "PARTICIP4NOME": "participante.4.nome_completo",
+        "PARTICIP4CPF": "participante.4.cpf_formatado",
+    }
 
 
 def obter_mapeamento_formulario(f) -> dict[str, str]:
@@ -80,6 +117,8 @@ def obter_mapeamento_formulario(f) -> dict[str, str]:
             "DATA ASSINATURA": "participante.data_assinatura",
             "LOCAL ASSINATURA": "participante.local_assinatura",
         }
+    elif "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome or "cliente" in nome:
+        return mapeamento_padrao_mo30844011()
 
     return {}
 
@@ -131,12 +170,19 @@ def validar_antes_de_gerar(
     return erros
 
 
-def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
+def resolver_variavel(
+    mapeamento_str: str,
+    participante: Participant,
+    todos_participantes: Optional[list[Participant]] = None,
+) -> str:
     """Resolve uma string de mapeamento (ex: 'participante.nome_completo') para o valor real."""
     if not mapeamento_str:
         return ""
         
-    cpf_formatado = formatar_cpf(participante.cpf)
+    try:
+        cpf_formatado = formatar_cpf(participante.cpf) if participante.cpf else ""
+    except Exception:
+        cpf_formatado = participante.cpf
     
     # Extração de data de assinatura se disponível
     data_raw = participante.data_assinatura or str(participante.campos_dinamicos.get("data_assinatura", ""))
@@ -196,7 +242,45 @@ def resolver_variavel(mapeamento_str: str, participante: Participant) -> str:
                 variaveis[f"participante.{campo_id}_formatado"] = formatar_cnpj(str_val)
             except Exception:
                 pass
-    
+
+    # Suporte a múltiplos participantes indexados (ex: participante.1.nome_completo, participante.2.cpf_formatado, etc.)
+    lista_parts = todos_participantes if todos_participantes else [participante]
+    for idx in range(1, 5):
+        if idx <= len(lista_parts):
+            p_idx = lista_parts[idx - 1]
+            try:
+                p_cpf_fmt = formatar_cpf(p_idx.cpf) if p_idx.cpf else ""
+            except Exception:
+                p_cpf_fmt = p_idx.cpf
+            variaveis[f"participante.{idx}.nome_completo"] = p_idx.nome_completo
+            variaveis[f"participante.{idx}.nome"] = p_idx.nome_completo
+            variaveis[f"participante.{idx}.cpf"] = p_idx.cpf
+            variaveis[f"participante.{idx}.cpf_formatado"] = p_cpf_fmt
+            variaveis[f"participante.{idx}.mip"] = "/Yes_uonn"
+            variaveis[f"participante.{idx}.endereco"] = p_idx.endereco
+            for cid, cval in p_idx.campos_dinamicos.items():
+                variaveis[f"participante.{idx}.{cid}"] = str(cval)
+        else:
+            variaveis[f"participante.{idx}.nome_completo"] = ""
+            variaveis[f"participante.{idx}.nome"] = ""
+            variaveis[f"participante.{idx}.cpf"] = ""
+            variaveis[f"participante.{idx}.cpf_formatado"] = ""
+            variaveis[f"participante.{idx}.mip"] = ""
+            variaveis[f"participante.{idx}.endereco"] = ""
+
+    # Resolução de checkboxes com nomes técnicos ou globais
+    val_debito_parcela = str(participante.obter_campo("autorizo_debito_parcela", "Sim")).lower()
+    chk_parcela = "/Yes_uonn" if val_debito_parcela in ("sim", "true", "1", "yes", "") else "/Off"
+    variaveis["global.checkbox_autorizo_parcela"] = chk_parcela
+    variaveis["checkbox_autorizo_parcela"] = chk_parcela
+    variaveis["checkbox_AUTORIZO_PARCELA"] = chk_parcela
+
+    val_tarifa_aval = str(participante.obter_campo("autorizo_tarifa_avaliacao", "Não")).lower()
+    chk_garantia = "/Yes_uonn" if val_tarifa_aval in ("sim", "true", "1", "yes") else "/Off"
+    variaveis["global.checkbox_garantia"] = chk_garantia
+    variaveis["checkbox_garantia"] = chk_garantia
+    variaveis["checkbox_GARANTIA"] = chk_garantia
+
     # Retorna o valor mapeado ou a própria string literal caso não seja uma variável conhecida
     return variaveis.get(mapeamento_str, mapeamento_str)
 
@@ -237,7 +321,8 @@ def gerar_documentos(
         mapeamento = obter_mapeamento_formulario(formulario)
         
         # Decide se gera 1 para todos ou 1 para cada participante
-        alvos = participantes if formulario.geracao == "por_participante" else [participantes[0]]
+        is_por_processo = (formulario.geracao == "por_processo")
+        alvos = [participantes[0]] if is_por_processo else participantes
         
         try:
             reader_modelo = carregar_template_reader(caminho_modelo)
@@ -251,9 +336,17 @@ def gerar_documentos(
             # Constrói o dicionário de valores baseado no mapeamento do formulário
             valores_pdf = {}
             for campo_pdf, var_sistema in mapeamento.items():
-                valores_pdf[campo_pdf] = resolver_variavel(var_sistema, participante)
+                valores_pdf[campo_pdf] = resolver_variavel(
+                    var_sistema,
+                    participante,
+                    todos_participantes=participantes if is_por_processo else None,
+                )
                 
-            nome_arquivo = nome_documento_individual(formulario.nome, participante.nome_completo if formulario.geracao == "por_participante" else "")
+            if is_por_processo:
+                nome_arquivo = nome_documento_processo(formulario.nome, participantes)
+            else:
+                nome_arquivo = nome_documento_individual(formulario.nome, participante.nome_completo)
+
             caminho_saida = _proximo_caminho_disponivel(pasta_saida, nome_arquivo, nomes_de_arquivo_usados)
             
             ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida, reader=reader_modelo)
