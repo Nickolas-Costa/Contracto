@@ -27,6 +27,13 @@ from ui.theme import (
 from utils.cpf_validator import formatar_cpf, validar_cpf
 from utils.cnpj_validator import formatar_cnpj, validar_cnpj, limpar_cnpj
 from utils.date_formatter import validar_data
+from utils.document_validator import (
+    formatar_cpf_progressivo,
+    formatar_cnpj_progressivo,
+    formatar_cpf_ou_cnpj_progressivo,
+    formatar_data_progressiva,
+    validar_cpf_ou_cnpj,
+)
 from utils.profile_manager import CampoEntrada
 
 LARGURA_PADRAO_ROTULO = 145
@@ -60,7 +67,7 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             icone_nome = self.campo.icone
         elif tipo == "DATA":
             icone_nome = "calendar"
-        elif tipo in ("CPF", "CNPJ"):
+        elif tipo in ("CPF", "CNPJ", "CPF_CNPJ"):
             icone_nome = "document"
         elif tipo == "MOEDA":
             icone_nome = "form"
@@ -144,13 +151,15 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.widget_input = self.entry
 
         else:
-            # Tipos TEXTO, CPF, CNPJ, MOEDA
+            # Tipos TEXTO, CPF, CNPJ, CPF_CNPJ, MOEDA
             placeholder = self.campo.placeholder
             if not placeholder:
                 if tipo == "CPF":
                     placeholder = "123.456.789-10"
                 elif tipo == "CNPJ":
                     placeholder = "12.345.678/0001-90"
+                elif tipo == "CPF_CNPJ":
+                    placeholder = "CPF ou CNPJ (ex: 000.000.000-00)"
                 elif tipo == "MOEDA":
                     placeholder = "R$ 0,00"
                 else:
@@ -171,30 +180,42 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.widget_input = self.entry
 
     def _ao_digitar(self, event=None) -> None:
-        val = self.obter_valor()
+        if not hasattr(self, "entry"):
+            return
+
+        # Ignorar teclas de controle como Tab, setas, Shift, etc.
+        if event and event.keysym in ("Tab", "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Left", "Right", "Up", "Down", "Return"):
+            return
+
+        val = self.entry.get()
         tipo = self.campo.tipo.upper()
 
-        # Auto-formatação inteligente para CPF e CNPJ
-        if tipo == "CPF":
-            apenas_nums = "".join(c for c in val if c.isdigit())
-            if len(apenas_nums) == 11 and ("." not in val or "-" not in val):
-                try:
-                    fmt = formatar_cpf(apenas_nums)
-                    if fmt != val:
-                        self.definir_valor(fmt)
-                        val = fmt
-                except Exception:
-                    pass
-        elif tipo == "CNPJ":
-            apenas_alnum = limpar_cnpj(val)
-            if len(apenas_alnum) == 14 and ("." not in val or "/" not in val or "-" not in val):
-                try:
-                    fmt = formatar_cnpj(apenas_alnum)
-                    if fmt != val:
-                        self.definir_valor(fmt)
-                        val = fmt
-                except Exception:
-                    pass
+        # Auto-formatação progressiva em tempo real
+        if event and event.keysym != "BackSpace":
+            if tipo == "CPF":
+                novo_val = formatar_cpf_progressivo(val)
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
+            elif tipo == "CNPJ":
+                novo_val = formatar_cnpj_progressivo(val)
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
+            elif tipo == "CPF_CNPJ":
+                novo_val = formatar_cpf_ou_cnpj_progressivo(val)
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
+            elif tipo == "DATA":
+                novo_val = formatar_data_progressiva(val)
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
 
         self.validar_campo(mostrar_erro=False)
         if self.on_change:
@@ -251,6 +272,8 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 is_valid = validar_cpf(val)
             elif tipo == "CNPJ":
                 is_valid = validar_cnpj(val)
+            elif tipo == "CPF_CNPJ":
+                is_valid, _ = validar_cpf_ou_cnpj(val)
             elif tipo == "DATA":
                 is_valid = validar_data(val)
 
@@ -282,6 +305,12 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 erros.append(f"{rotulo_completo}: O CNPJ informado é inválido.")
                 if hasattr(self, "entry"):
                     self.entry.configure(border_color=COLOR_BORDER_ERROR)
+            elif tipo == "CPF_CNPJ":
+                valido, msg = validar_cpf_ou_cnpj(val)
+                if not valido:
+                    erros.append(f"{rotulo_completo}: {msg}")
+                    if hasattr(self, "entry"):
+                        self.entry.configure(border_color=COLOR_BORDER_ERROR)
             elif tipo == "DATA" and not validar_data(val):
                 erros.append(f"{rotulo_completo}: Data inválida (use o formato DD/MM/AAAA).")
                 if hasattr(self, "entry"):

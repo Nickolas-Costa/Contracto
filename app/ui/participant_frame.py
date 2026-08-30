@@ -10,6 +10,7 @@ from models.participant import Participant
 from ui.campo_dinamico_widget import CampoDinamicoWidget
 from ui.theme import *
 from utils.cpf_validator import formatar_cpf, validar_cpf
+from utils.document_validator import formatar_cpf_progressivo
 from utils.profile_manager import CampoEntrada
 
 
@@ -79,13 +80,13 @@ class ParticipantFrame(ctk.CTkFrame):
 
         self.entry_endereco: ctk.CTkEntry | None = None
 
-        # Renderização modular de campos adicionais
+        # Renderização modular de campos do participante
         if self.campos_customizados:
             for campo in self.campos_customizados:
                 if campo.id in ("nome_completo", "nome", "cpf"):
                     continue
-                # Se não for o principal e for campo de endereço padrão, só exibe se configurado
-                if campo.id == "endereco" and not principal:
+                # Em perfis normais, se for endereço e não for o principal, só exibe se o perfil exigir por participante
+                if campo.id == "endereco" and not principal and campo.escopo != "participante":
                     continue
 
                 widget_campo = CampoDinamicoWidget(
@@ -98,10 +99,6 @@ class ParticipantFrame(ctk.CTkFrame):
                 if campo.id == "endereco" and hasattr(widget_campo, "entry"):
                     self.entry_endereco = widget_campo.entry
                 linha += 1
-        elif principal:
-            # Fallback padrão: Endereço para o principal
-            self.entry_endereco = self._criar_campo_padrao("Endereço", linha, tipo="endereco")
-            linha += 1
 
         # Pequeno respiro na última linha do frame
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
@@ -134,7 +131,7 @@ class ParticipantFrame(ctk.CTkFrame):
             for campo in self.campos_customizados:
                 if campo.id in ("nome_completo", "nome", "cpf"):
                     continue
-                if campo.id == "endereco" and not self.principal:
+                if campo.id == "endereco" and not self.principal and campo.escopo != "participante":
                     continue
 
                 widget_campo = CampoDinamicoWidget(
@@ -151,11 +148,6 @@ class ParticipantFrame(ctk.CTkFrame):
                 if campo.id == "endereco" and hasattr(widget_campo, "entry"):
                     self.entry_endereco = widget_campo.entry
                 linha += 1
-        elif self.principal:
-            self.entry_endereco = self._criar_campo_padrao("Endereço", linha, tipo="endereco")
-            if "endereco" in valores_atuais:
-                self.entry_endereco.insert(0, valores_atuais["endereco"])
-            linha += 1
 
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
         self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
@@ -186,44 +178,39 @@ class ParticipantFrame(ctk.CTkFrame):
         entry = ctk.CTkEntry(self, placeholder_text=placeholder, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         
-        entry.bind("<KeyRelease>", lambda e: self._validar_campo_especifico(entry, tipo))
+        entry.bind("<KeyRelease>", lambda e: self._ao_digitar_campo_padrao(entry, tipo, e))
         entry.bind("<FocusOut>", lambda e: self._validar_campo_especifico(entry, tipo))
             
         return entry
 
-    def _validar_campo_especifico(self, entry: ctk.CTkEntry, tipo: str) -> bool:
+    def _ao_digitar_campo_padrao(self, entry: ctk.CTkEntry, tipo: str, event=None) -> None:
+        if event and event.keysym in ("Tab", "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Left", "Right", "Up", "Down", "Return"):
+            return
+
+        val = entry.get()
+        if tipo == "cpf" and event and event.keysym != "BackSpace":
+            novo_val = formatar_cpf_progressivo(val)
+            if novo_val != val:
+                entry.delete(0, "end")
+                entry.insert(0, novo_val)
+
+        self._validar_campo_especifico(entry, tipo, mostrar_erro=False)
+
+    def _validar_campo_especifico(self, entry: ctk.CTkEntry, tipo: str, mostrar_erro: bool = True) -> bool:
         val = entry.get().strip()
         is_valid = True
 
         if tipo == "nome":
             is_valid = bool(val)
         elif tipo == "cpf":
-            # Auto-formatação ao digitar
-            apenas_nums = "".join(c for c in val if c.isdigit())
-            if len(apenas_nums) == 11 and ("." not in val or "-" not in val):
-                fmt = formatar_cpf(apenas_nums)
-                if fmt != val:
-                    entry.delete(0, "end")
-                    entry.insert(0, fmt)
-                    val = fmt
             is_valid = bool(val) and validar_cpf(val)
         elif tipo == "cnpj":
-            from utils.cnpj_validator import formatar_cnpj, validar_cnpj, limpar_cnpj
-            apenas_alnum = limpar_cnpj(val)
-            if len(apenas_alnum) == 14 and ("." not in val or "/" not in val or "-" not in val):
-                try:
-                    fmt = formatar_cnpj(apenas_alnum)
-                    if fmt != val:
-                        entry.delete(0, "end")
-                        entry.insert(0, fmt)
-                        val = fmt
-                except Exception:
-                    pass
+            from utils.cnpj_validator import validar_cnpj
             is_valid = bool(val) and validar_cnpj(val)
         elif tipo == "endereco":
             is_valid = bool(val)
 
-        if is_valid:
+        if is_valid or not mostrar_erro:
             entry.configure(border_color=COLOR_BORDER)
         else:
             entry.configure(border_color=COLOR_BORDER_ERROR)

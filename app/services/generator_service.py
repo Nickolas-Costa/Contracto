@@ -405,11 +405,18 @@ def gerar_documentos(
             # Constrói o dicionário de valores baseado no mapeamento do formulário
             valores_pdf = {}
             for campo_pdf, var_sistema in mapeamento.items():
-                valores_pdf[campo_pdf] = resolver_variavel(
+                val = resolver_variavel(
                     var_sistema,
                     participante,
                     todos_participantes=participantes if is_por_processo else None,
                 )
+                # Fallbacks para campos específicos do ITBI quando vazios
+                if "itbi" in formulario.nome.lower():
+                    if campo_pdf == "AREA_CONSTRUIDA" and not val:
+                        val = "00,00"
+                    elif campo_pdf in ("VALOR SUBSIDIO", "VALOR_FGTS", "VALOR_RECURSOS") and not val:
+                        val = "0,00"
+                valores_pdf[campo_pdf] = val
                 
             if is_por_processo:
                 nome_arquivo = nome_documento_processo(formulario.nome, participantes)

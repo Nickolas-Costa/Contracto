@@ -48,6 +48,7 @@ from ui.theme import (
 )
 from utils import config_manager
 from utils.date_formatter import validar_data
+from utils.document_validator import formatar_data_progressiva
 from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
 from utils.logger import configurar_logger
 from utils.profile_manager import (
@@ -257,9 +258,8 @@ class MainWindow(ctk.CTk):
         )
         self.btn_perfis.grid(row=0, column=3, padx=3, pady=SPACING_XSMALL)
 
-        # Seletor de Modo na TopBar (Avançado / Simples)
+        # Seletor de Modo na TopBar (Simples | Avançado)
         modo_atual = config_manager.obter("modo_operacao") or "avancado"
-        modo_val = "Avançado" if modo_atual == "avancado" else "Simples"
 
         frame_switch = ctk.CTkFrame(self.toolbar, fg_color="transparent")
         frame_switch.grid(row=0, column=4, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL, sticky="w")
@@ -270,21 +270,37 @@ class MainWindow(ctk.CTk):
             text_color="#FFFFFF",
         ).pack(side="left", padx=(0, SPACING_XSMALL))
 
-        self.switch_modo = ctk.CTkSegmentedButton(
+        self.frame_switch_bg = ctk.CTkFrame(
             frame_switch,
-            values=["Avançado", "Simples"],
-            command=self._ao_alterar_modo_operacao,
-            font=get_font(FONT_SIZE_CAPTION, "bold"),
-            height=28,
+            fg_color=COLOR_SURFACE_VARIANT,
             corner_radius=RADIUS_BUTTON,
-            selected_color=get_color_primary_hover(),
-            selected_hover_color=get_color_primary_hover(),
-            unselected_color=COLOR_SURFACE,
-            unselected_hover_color=COLOR_SURFACE_VARIANT,
-            text_color="#FFFFFF",
+            height=30,
         )
-        self.switch_modo.set(modo_val)
-        self.switch_modo.pack(side="left")
+        self.frame_switch_bg.pack(side="left")
+
+        self.btn_modo_simples = ctk.CTkButton(
+            self.frame_switch_bg,
+            text="Simples",
+            width=70,
+            height=26,
+            corner_radius=RADIUS_BUTTON - 2,
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            command=lambda: self._ao_alterar_modo_operacao("simples"),
+        )
+        self.btn_modo_simples.pack(side="left", padx=2, pady=2)
+
+        self.btn_modo_avancado = ctk.CTkButton(
+            self.frame_switch_bg,
+            text="Avançado",
+            width=76,
+            height=26,
+            corner_radius=RADIUS_BUTTON - 2,
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            command=lambda: self._ao_alterar_modo_operacao("avancado"),
+        )
+        self.btn_modo_avancado.pack(side="left", padx=2, pady=2)
+
+        self._atualizar_botoes_modo(modo_atual)
 
         # Spacer (coluna 5)
 
@@ -493,10 +509,43 @@ class MainWindow(ctk.CTk):
         )
         self.dropdown_perfil.pack(side="left")
 
+    def _atualizar_botoes_modo(self, modo: str) -> None:
+        """Atualiza o estilo visual dos botões do seletor de modo com a cor ativa do tema."""
+        if not hasattr(self, "btn_modo_simples") or not hasattr(self, "btn_modo_avancado"):
+            return
+
+        is_simples = (modo == "simples")
+        cor_destaque = get_color_primary()
+        cor_destaque_hover = get_color_primary_hover()
+
+        if is_simples:
+            self.btn_modo_simples.configure(
+                fg_color=cor_destaque,
+                hover_color=cor_destaque_hover,
+                text_color="#FFFFFF",
+            )
+            self.btn_modo_avancado.configure(
+                fg_color="transparent",
+                hover_color=COLOR_BORDER,
+                text_color=COLOR_TEXT_SECONDARY,
+            )
+        else:
+            self.btn_modo_avancado.configure(
+                fg_color=cor_destaque,
+                hover_color=cor_destaque_hover,
+                text_color="#FFFFFF",
+            )
+            self.btn_modo_simples.configure(
+                fg_color="transparent",
+                hover_color=COLOR_BORDER,
+                text_color=COLOR_TEXT_SECONDARY,
+            )
+
     def _ao_alterar_modo_operacao(self, modo_str: str) -> None:
         """Alterna entre o modo Avançado (Contratos) e Simples (Formulários Únicos)."""
-        novo_modo = "avancado" if modo_str.lower() == "avançado" else "simples"
+        novo_modo = "simples" if modo_str.lower() == "simples" else "avancado"
         config_manager.definir("modo_operacao", novo_modo)
+        self._atualizar_botoes_modo(novo_modo)
 
         perfis_modo = listar_perfis_por_modo(novo_modo)
         nomes_perfis = [p.nome for p in perfis_modo]
@@ -509,7 +558,8 @@ class MainWindow(ctk.CTk):
 
         self._atualizar_stepper(1)
         self._aplicar_perfil_ativo()
-        show_toast(self, f"Modo alterado para: {modo_str}", "info")
+        modo_lbl = "Simples" if novo_modo == "simples" else "Avançado"
+        show_toast(self, f"Modo alterado para: {modo_lbl}", "info")
 
     def _ao_trocar_perfil(self, nome_perfil: str) -> None:
         """Callback ao selecionar um perfil no dropdown."""
@@ -529,18 +579,29 @@ class MainWindow(ctk.CTk):
                 text_color=get_color_primary_text(),
             )
             self.lbl_etapa1.grid(row=0, column=0, columnspan=3, pady=SPACING_MEDIUM, sticky="n")
+
+            if hasattr(self, "botao_adicionar"):
+                self.botao_adicionar.grid_remove()
+
+            # No modo simples, restringir a apenas 1 participante
+            if len(self.participant_frames) > 1:
+                for f in list(self.participant_frames[1:]):
+                    self._remover_participante(f)
         else:
             self.lbl_etapa1.configure(
                 text=" 1. Geração de Documentos",
                 text_color=get_color_primary_text() if etapa == 1 else COLOR_TEXT_DISABLED,
             )
-            self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
-            self.lbl_seta.grid(row=0, column=1, pady=SPACING_MEDIUM)
+            self.lbl_etapa1.grid(row=0, column=0, columnspan=1, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
+            self.lbl_seta.grid(row=0, column=1, columnspan=1, pady=SPACING_MEDIUM)
             self.lbl_etapa2.configure(
                 text=" 2. Conversão e Organização",
                 text_color=get_color_primary_text() if etapa == 2 else COLOR_TEXT_DISABLED,
             )
-            self.lbl_etapa2.grid(row=0, column=2, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
+            self.lbl_etapa2.grid(row=0, column=2, columnspan=1, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
+
+            if hasattr(self, "botao_adicionar"):
+                self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
 
         nomes_perfis = listar_nomes_perfis_por_modo(modo)
         perfil_nome = config_manager.obter("perfil_ativo") or (nomes_perfis[0] if nomes_perfis else PERFIL_PADRAO_NOME)
@@ -842,6 +903,7 @@ class MainWindow(ctk.CTk):
         self.widgets_dinamicos_globais.clear()
 
         if not perfil:
+            self.container_campos_globais.grid_remove()
             return
 
         campos_globais = perfil.obter_campos_globais()
@@ -861,6 +923,47 @@ class MainWindow(ctk.CTk):
             if campo.id in valores_atuais:
                 widget_campo.definir_valor(valores_atuais[campo.id])
             linha += 1
+
+        if linha > 0:
+            self.container_campos_globais.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(0, SPACING_SMALL))
+            # Se for formulário ITBI com campo de recursos próprios, vincular cálculo automático
+            if "valor_recursos" in self.widgets_dinamicos_globais:
+                for trigger_id in ("valor_compra", "valor_financiado", "valor_subsidio", "valor_fgts"):
+                    if trigger_id in self.widgets_dinamicos_globais:
+                        w_trig = self.widgets_dinamicos_globais[trigger_id]
+                        w_trig.on_change = lambda val: self._calcular_recursos_proprios_itbi()
+        else:
+            self.container_campos_globais.grid_remove()
+
+    def _calcular_recursos_proprios_itbi(self) -> None:
+        """Calcula automaticamente Recursos Próprios = Compra - (Financiado + Subsídio + FGTS)."""
+        if "valor_recursos" not in self.widgets_dinamicos_globais:
+            return
+
+        def _parse_moeda(val_str: str) -> float:
+            if not val_str:
+                return 0.0
+            limpo = val_str.replace("R$", "").replace(" ", "").replace(".", "").replace(",", ".")
+            try:
+                return float(limpo)
+            except ValueError:
+                return 0.0
+
+        w_compra = self.widgets_dinamicos_globais.get("valor_compra")
+        w_fin = self.widgets_dinamicos_globais.get("valor_financiado")
+        w_sub = self.widgets_dinamicos_globais.get("valor_subsidio")
+        w_fgts = self.widgets_dinamicos_globais.get("valor_fgts")
+
+        v_compra = _parse_moeda(w_compra.obter_valor() if w_compra else "")
+        v_fin = _parse_moeda(w_fin.obter_valor() if w_fin else "")
+        v_sub = _parse_moeda(w_sub.obter_valor() if w_sub else "")
+        v_fgts = _parse_moeda(w_fgts.obter_valor() if w_fgts else "")
+
+        if v_compra > 0:
+            recursos = max(0.0, v_compra - (v_fin + v_sub + v_fgts))
+            fmt_recursos = f"{recursos:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            w_rec = self.widgets_dinamicos_globais["valor_recursos"]
+            w_rec.definir_valor(fmt_recursos)
 
     def _limpar_campos_etapa1(self) -> None:
         """Limpa os campos preenchidos da Etapa 1."""
@@ -958,13 +1061,14 @@ class MainWindow(ctk.CTk):
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT
         )
         titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
-                    pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
+                    pady=(SPACING_MEDIUM, SPACING_SMALL), sticky="w")
 
-        # Container para campos globais dinâmicos do perfil
+        # Container para campos globais dinâmicos do perfil (inicialmente oculto se vazio)
         self.container_campos_globais = ctk.CTkFrame(secao, fg_color="transparent")
         self.container_campos_globais.grid(row=1, column=0, columnspan=3, sticky="ew")
         self.container_campos_globais.grid_columnconfigure(0, minsize=145)
         self.container_campos_globais.grid_columnconfigure(1, weight=1)
+        self.container_campos_globais.grid_remove()
 
         # Campos Globais Fixos (Data e Local)
         self.frame_data_fixa = ctk.CTkFrame(secao, fg_color="transparent")
@@ -985,7 +1089,7 @@ class MainWindow(ctk.CTk):
         
         self.entry_data = ctk.CTkEntry(frame_data, placeholder_text="DD/MM/AAAA", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_data.grid(row=0, column=0, sticky="ew")
-        self.entry_data.bind("<KeyRelease>", lambda e: self._validar_data_realtime())
+        self.entry_data.bind("<KeyRelease>", self._ao_digitar_data)
         self.entry_data.bind("<FocusOut>", lambda e: self._validar_data_realtime())
         
         self.btn_calendar = ctk.CTkButton(
@@ -1043,6 +1147,17 @@ class MainWindow(ctk.CTk):
                       fg_color=COLOR_BORDER, text_color=COLOR_TEXT,
                       hover_color=COLOR_TEXT_DISABLED, command=self._selecionar_pasta_saida
                       ).grid(row=0, column=1, padx=(SPACING_SMALL, 0))
+
+    def _ao_digitar_data(self, event=None) -> None:
+        if event and event.keysym in ("Tab", "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Left", "Right", "Up", "Down", "Return"):
+            return
+        val = self.entry_data.get()
+        if event and event.keysym != "BackSpace":
+            novo_val = formatar_data_progressiva(val)
+            if novo_val != val:
+                self.entry_data.delete(0, "end")
+                self.entry_data.insert(0, novo_val)
+        self._validar_data_realtime()
 
     def _validar_data_realtime(self) -> bool:
         val = self.entry_data.get().strip()
