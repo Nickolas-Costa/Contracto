@@ -90,28 +90,28 @@ class WelcomeModal:
 
         passos = [
             (
-                "1. Preencha os Dados dos Participantes",
-                "Informe Nome Completo e CPF. O primeiro participante inclui o endereço. O sistema valida os dígitos do CPF em tempo real.",
-                "Passo 1",
+                "1. Escolha o Modo de Trabalho (TopBar)",
+                "Alterne no topo entre 'Avançado' (Contratos com Etapa 1 e 2) ou 'Simples' (Emissão direta de Formulários avulsos: Form Cliente, ITBI, Isenção).",
+                "Modos",
+                "profiles",
+            ),
+            (
+                "2. Preencha os Dados dos Participantes",
+                "Informe Nome e CPF (validação em tempo real). Os campos dinâmicos adaptam-se automaticamente ao perfil e modelo selecionados.",
+                "Etapa 1",
                 "person",
             ),
             (
-                "2. Informe a Data e Local da Assinatura",
-                "Selecione a data no calendário ancorado e informe a cidade de assinatura. Todos os formulários usam esse padrão.",
-                "Passo 2",
-                "calendar",
-            ),
-            (
-                "3. Gere os Documentos com Um Clique",
-                "Clique em 'GERAR DOCUMENTOS E AVANÇAR'. O aplicativo preenche os formulários PDF e organiza a estrutura de pastas.",
-                "Passo 3",
+                "3. Emissão Rápida & Preservação de Dados",
+                "Gere seus documentos em poucos segundos. Ative 'Preservar dados para Reutilizar' para emitir o próximo formulário sem precisar redigitar.",
+                "Geração",
                 "advance",
             ),
             (
-                "4. Personalize Cores e Perfis de Modelos",
-                "Alterne cores nas Configurações e gerencie ou duplique perfis (MCMV, SBPE ou personalizados) para atender aos seus diferentes tipos de contratos.",
-                "Dica",
-                "settings",
+                "4. Conversão e Conformidade PDF/A-2b",
+                "No modo contrato, anexe os documentos da gerente e converta o dossiê automaticamente para o padrão oficial bancário ISO 19005-2.",
+                "Etapa 2",
+                "folder",
             ),
         ]
 

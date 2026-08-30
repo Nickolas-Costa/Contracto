@@ -28,16 +28,17 @@ class TestFormularioCaixa(unittest.TestCase):
     def test_perfil_formulario_caixa_carregado(self):
         perfis = carregar_perfis(forcar_disco=True)
         nomes = [p.nome for p in perfis]
-        self.assertIn("Formulário CAIXA", nomes)
+        self.assertIn("Form Cliente", nomes)
 
-        perfil = obter_perfil("Formulário CAIXA")
+        perfil = obter_perfil("Form Cliente")
         self.assertIsNotNone(perfil)
         self.assertEqual(len(perfil.formularios), 1)
-        self.assertEqual(perfil.formularios[0].nome, "Formulário Cliente CAIXA")
+        self.assertEqual(perfil.formularios[0].nome, "Form Cliente")
         self.assertEqual(perfil.formularios[0].geracao, "por_processo")
+        self.assertEqual(perfil.modo_fluxo, "formulario_simples")
 
     def test_geracao_ponta_a_ponta_com_formulario_caixa(self):
-        perfil = obter_perfil("Formulário CAIXA")
+        perfil = obter_perfil("Form Cliente")
         self.assertIsNotNone(perfil)
 
         p1 = Participant(

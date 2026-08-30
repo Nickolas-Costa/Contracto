@@ -1,40 +1,35 @@
-# Walkthrough — Versão 4.5: Centralização de Modais, Responsividade dos Quadros e Otimizações de Interface
+# Walkthrough - Integração do Template MO 30.844 (Formulário CAIXA) e Limpeza de Assets
 
-## 📌 Ajustes e Melhorias Realizados na Versão 4.5
+Todas as tarefas solicitadas foram implementadas, testadas e validadas com sucesso:
 
----
+1. **Remoção de Loaders e Arquivos Legados Não Utilizados**:
+   - Eliminados todos os GIFs legados de loaders pesados em `app/assets/loaders/` (o sistema agora utiliza o `SimpleLoader` e `CanvasSpinner` 100% nativo em Tkinter Canvas).
+   - Removidos arquivos `.spec` legados e temporários desnecessários.
+   - Atualizado o script [build_exe.bat](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/build_exe.bat) para não mais empacotar a pasta legada de loaders.
 
-### 1. Centralização Geométrica Perfeita dos Modais com Compensação DPI
-* Criação do helper centralizado `configurar_janela_modal` em `app/ui/theme.py`.
-* Cálculo das dimensões físicas reais (`pw = round(w * scaling)` e `ph = round(h * scaling)`) em relação à janela raiz do aplicativo.
-* Eliminação do deslocamento para a esquerda e para cima em monitores com escalonamento de DPI do Windows (125%, 150%, 4K).
-* O overlay escuro translúcido cobre exatamente a área do aplicativo com fidelidade e sem artefatos.
+2. **Verificação Completa dos Campos do Template `MO30844011 (PREENCHIVEL).pdf`**:
+   - Analisados todos os **28 campos AcroForm** do formulário oficial CAIXA 30.844 v011:
+     - **Página 1**: `NOME_CLIENTE_1`, `CPF1`, `AGENCIA`, `CONTA_CAIXA`, `checkbox_AUTORIZO_PARCELA`, `checkbox_GARANTIA`
+     - **Página 2 (Proposta Seguro Habitacional)**: `NOMEPROP1PROPOSTA`, `CPFPROP1`, `NOMEPROP2PROPOSTA`, `CPFPROP2`, `NOMEPROP3PROPOSTA`, `CPFPROP3`, `NOMEPROP4PROPOSTA`, `CPFPROP4`
+     - **Página 3 (Declaração de Saúde - MIP)**: `MIP1`, `MIP2`, `MIP3`, `MIP4`
+     - **Página 4 (Assinaturas e Data)**: `LOCAL`, `DATA DD/MM/AAAA`, `PARTICIP1NOME`, `PARTICIP1CPF`, `PARTICIP2NOME`, `PARTICIP2CPF`, `PARTICIP3NOME`, `PARTICIP3CPF`, `PARTICIP4NOME`, `PARTICIP4CPF`
+   - **Resultado da Verificação**: Todos os 28 campos foram nomeados com **100% de exatidão** e correspondem perfeitamente à estrutura do documento.
 
----
+3. **Novo Perfil Dedicado: `Formulário CAIXA`**:
+   - Criado perfil padrão em [app/utils/profile_manager.py](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/app/utils/profile_manager.py) contendo unicamente o modelo `Formulário Cliente CAIXA` configurado como `geracao="por_processo"`.
+   - Adicionados os campos de entrada dedicados da Etapa 1:
+     - `agencia`: Agência CAIXA
+     - `conta_caixa`: Conta CAIXA
+     - `autorizo_debito_parcela`: Débito das parcelas (CHECKBOX)
+     - `autorizo_tarifa_avaliacao`: Débito tarifa avaliação (CHECKBOX)
+     - `data_assinatura`: Data da assinatura (DATA)
+     - `local_assinatura`: Local da assinatura (TEXTO)
 
-### 2. Prevenção de Acúmulo e Encerramento Seguro de Popups
-* Implementação do padrão singleton/instância ativa (`_instancia_ativa`) em todos os modais da aplicação (`WelcomeModal`, `AlertModal`, `ConfirmModal`, `LoadingModal` e modais do `ProfilesFrame`).
-* Eliminação de popups e overlays órfãos em cliques múltiplos ou aberturas sucessivas.
-* Suporte a fechamento ao clicar no overlay escuro de fundo ou pressionar a tecla `Escape`.
-* O método `dismiss()` garante limpeza completa do cartão, overlay e liberação do ciclo de eventos do Tkinter via `update_idletasks()`.
+4. **Resolução Dinâmica e Preenchimento Multi-Participante**:
+   - Atualizado [app/services/generator_service.py](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/app/services/generator_service.py) e [app/utils/resource_path.py](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/app/utils/resource_path.py) com suporte a variáveis indexadas (`participante.1..4.nome_completo`, `participante.1..4.cpf_formatado`, `participante.1..4.mip`), dados bancários e caixas de seleção.
 
----
-
-### 3. Redução de Largura e Responsividade dos Quadros
-* Ajuste proporcional das larguras de quadro na tela inicial:
-  - **Pequeno**: `560px`
-  - **Médio (Padrão)**: `720px`
-  - **Grande**: `880px`
-* Cálculo dinâmico em tempo real da margem (`_calcular_margem_responsiva`) durante o redimensionamento e restauração de janelas.
-
----
-
-### 4. Alinhamento e Otimização na Etapa 2
-* Checkboxes e opções de formulários dinâmicos alinhadas à esquerda de forma consistente.
-* Remoção de barras de rolagem desnecessárias e otimização do autoscroll.
-
----
-
-### 5. Validação e Qualidade
-* Execução da suíte completa de 88 testes unitários automatizados com 100% de sucesso.
-* Documentações atualizadas: `README.md`, `CHANGELOG_v4.md`, `DESIGN_SYSTEM.md` e `walkthrough.md`.
+5. **Testes Unitários, Smoke Test e Build**:
+   - Criado [tests/test_formulario_caixa.py](file:///c:/Users/sousa/OneDrive/Desktop/PROJETOS/Contracto/tests/test_formulario_caixa.py).
+   - Executada a suíte completa de **107 testes unitários** com 100% de sucesso.
+   - Compilado novo executável `Contracto_v4.5.5.exe`, atalho na Área de Trabalho e pacote de distribuição `dist/Contracto_v4.5.5.zip`.
+   - Modificações commitadas e enviadas para as branches `main` e `fix-performance` no GitHub.

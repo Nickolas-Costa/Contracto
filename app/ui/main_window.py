@@ -26,6 +26,7 @@ from services.pdfa_converter import ProcessoCanceladoError
 from services.queue_manager import ProcessJob, QueueManager
 from services.stage2_service import ResultadoEtapa2, executar_etapa2
 from ui.animated_loader import CanvasSpinner
+from ui.campo_dinamico_widget import CampoDinamicoWidget
 from ui.date_picker import DatePickerPopup
 from ui.document_frame import DocumentFrame
 from ui.feedback_toast import show_toast
@@ -50,9 +51,13 @@ from utils.date_formatter import validar_data
 from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
 from utils.logger import configurar_logger
 from utils.profile_manager import (
-    PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis, obter_perfil,
+    PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis,
+    listar_perfis_por_modo, listar_nomes_perfis_por_modo, obter_perfil,
 )
-from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+from utils.resource_path import (
+    modelo_padrao_ppe, modelo_padrao_primeiro_imovel,
+    modelo_padrao_form_cliente, modelo_padrao_itbi, modelo_padrao_isencao_tributos,
+)
 from version import __version__
 
 
@@ -132,14 +137,12 @@ class MainWindow(ctk.CTk):
         # =============================================================
         self.pasta_saida: Path | None = None
         self.participant_frames: list[ParticipantFrame] = []
+        self.widgets_dinamicos_globais: dict[str, CampoDinamicoWidget] = {}
 
         self.participantes_etapa1: list[Participant] = []
         self.arquivos_gerados_etapa1: list[Path] = []
 
         self._tela_atual = "inicio"
-
-        # Aplicar perfil ativo
-        self._aplicar_perfil_ativo()
 
         # =============================================================
         # Layout Principal
@@ -183,6 +186,7 @@ class MainWindow(ctk.CTk):
         self._construir_etapa2()
 
         self._adicionar_participante(principal=True)
+        self._aplicar_perfil_ativo()
         self._mostrar_tela("inicio")
 
         # Recarregar gradiente ao redimensionar
@@ -210,6 +214,7 @@ class MainWindow(ctk.CTk):
         self.icon_calendar = get_icon("calendar", (18, 18))
         self.icon_help = get_icon("question_circle", (20, 20), light_only=True)
         self.icon_advance = get_icon("advance", (20, 20), light_only=True)
+        self.icon_contract = get_icon("contract", (20, 20), light_only=True)
         self.icon_back = get_icon("back", (18, 18))
         self.icon_success = get_icon("finish", (20, 20), light_only=True)
         self.icon_folder = get_icon("folder", (18, 18))
@@ -220,7 +225,7 @@ class MainWindow(ctk.CTk):
         self.toolbar = ctk.CTkFrame(self, fg_color=get_color_primary(),
                                      corner_radius=0, height=48)
         self.toolbar.grid(row=0, column=0, sticky="ew")
-        self.toolbar.grid_columnconfigure(4, weight=1)  # spacer between left and right groups
+        self.toolbar.grid_columnconfigure(5, weight=1)  # spacer between left and right groups
 
         # Nome oficial por extenso na barra superior
         ctk.CTkLabel(
@@ -252,7 +257,36 @@ class MainWindow(ctk.CTk):
         )
         self.btn_perfis.grid(row=0, column=3, padx=3, pady=SPACING_XSMALL)
 
-        # Spacer (coluna 4)
+        # Seletor de Modo na TopBar (Avançado / Simples)
+        modo_atual = config_manager.obter("modo_operacao") or "avancado"
+        modo_val = "Avançado" if modo_atual == "avancado" else "Simples"
+
+        frame_switch = ctk.CTkFrame(self.toolbar, fg_color="transparent")
+        frame_switch.grid(row=0, column=4, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL, sticky="w")
+
+        ctk.CTkLabel(
+            frame_switch, text="Modo:",
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            text_color="#FFFFFF",
+        ).pack(side="left", padx=(0, SPACING_XSMALL))
+
+        self.switch_modo = ctk.CTkSegmentedButton(
+            frame_switch,
+            values=["Avançado", "Simples"],
+            command=self._ao_alterar_modo_operacao,
+            font=get_font(FONT_SIZE_CAPTION, "bold"),
+            height=28,
+            corner_radius=RADIUS_BUTTON,
+            selected_color=get_color_primary_hover(),
+            selected_hover_color=get_color_primary_hover(),
+            unselected_color=COLOR_SURFACE,
+            unselected_hover_color=COLOR_SURFACE_VARIANT,
+            text_color="#FFFFFF",
+        )
+        self.switch_modo.set(modo_val)
+        self.switch_modo.pack(side="left")
+
+        # Spacer (coluna 5)
 
         # Botão de Status da Fila em Segundo Plano (à esquerda do botão Ajuda)
         self.btn_fila_status = ctk.CTkButton(
@@ -269,24 +303,24 @@ class MainWindow(ctk.CTk):
             text_color="#FFFFFF",
             command=self._abrir_modal_fila,
         )
-        self.btn_fila_status.grid(row=0, column=5, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL)
+        self.btn_fila_status.grid(row=0, column=6, padx=(SPACING_SMALL, SPACING_SMALL), pady=SPACING_XSMALL)
         self.btn_fila_status.grid_remove()  # Oculto por padrão
 
         # Separador vertical antes dos botões de ajuda e config
         self.sep2 = ctk.CTkFrame(self.toolbar, width=1, height=28, fg_color=get_color_primary_hover(), corner_radius=0)
-        self.sep2.grid(row=0, column=6, padx=(SPACING_SMALL, SPACING_SMALL))
+        self.sep2.grid(row=0, column=7, padx=(SPACING_SMALL, SPACING_SMALL))
 
         self.btn_ajuda = ctk.CTkButton(
             self.toolbar, text=" Ajuda", image=self.icon_help, width=95,
             command=self._abrir_ajuda, **btn_style,
         )
-        self.btn_ajuda.grid(row=0, column=7, padx=3, pady=SPACING_XSMALL)
+        self.btn_ajuda.grid(row=0, column=8, padx=3, pady=SPACING_XSMALL)
 
         self.btn_config = ctk.CTkButton(
             self.toolbar, text=" Configurações", image=self.icon_settings, width=140,
             command=lambda: self._mostrar_tela("config"), **btn_style,
         )
-        self.btn_config.grid(row=0, column=8, padx=(3, SPACING_LARGE), pady=SPACING_XSMALL)
+        self.btn_config.grid(row=0, column=9, padx=(3, SPACING_LARGE), pady=SPACING_XSMALL)
 
     def _abrir_ajuda(self) -> None:
         """Abre o guia interativo de uso do aplicativo."""
@@ -459,6 +493,24 @@ class MainWindow(ctk.CTk):
         )
         self.dropdown_perfil.pack(side="left")
 
+    def _ao_alterar_modo_operacao(self, modo_str: str) -> None:
+        """Alterna entre o modo Avançado (Contratos) e Simples (Formulários Únicos)."""
+        novo_modo = "avancado" if modo_str.lower() == "avançado" else "simples"
+        config_manager.definir("modo_operacao", novo_modo)
+
+        perfis_modo = listar_perfis_por_modo(novo_modo)
+        nomes_perfis = [p.nome for p in perfis_modo]
+        perfil_ativo_atual = config_manager.obter("perfil_ativo") or ""
+
+        if perfil_ativo_atual not in nomes_perfis and nomes_perfis:
+            novo_perfil = nomes_perfis[0]
+            config_manager.definir("perfil_ativo", novo_perfil)
+            self.dropdown_perfil.set(novo_perfil)
+
+        self._atualizar_stepper(1)
+        self._aplicar_perfil_ativo()
+        show_toast(self, f"Modo alterado para: {modo_str}", "info")
+
     def _ao_trocar_perfil(self, nome_perfil: str) -> None:
         """Callback ao selecionar um perfil no dropdown."""
         config_manager.definir("perfil_ativo", nome_perfil)
@@ -466,15 +518,32 @@ class MainWindow(ctk.CTk):
         show_toast(self, f"Perfil alterado para: {nome_perfil}", "success")
 
     def _atualizar_stepper(self, etapa: int) -> None:
-        if etapa == 1:
-            self.lbl_etapa1.configure(text_color=get_color_primary_text())
-            self.lbl_etapa2.configure(text_color=COLOR_TEXT_DISABLED)
-        else:
-            self.lbl_etapa1.configure(text_color=COLOR_TEXT_DISABLED)
-            self.lbl_etapa2.configure(text_color=get_color_primary_text())
+        modo = config_manager.obter("modo_operacao") or "avancado"
+        is_simples = (modo == "simples")
 
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        nomes_perfis = listar_nomes_perfis()
+        if is_simples:
+            self.lbl_seta.grid_forget()
+            self.lbl_etapa2.grid_forget()
+            self.lbl_etapa1.configure(
+                text=" Emissão de Formulário Único",
+                text_color=get_color_primary_text(),
+            )
+            self.lbl_etapa1.grid(row=0, column=0, columnspan=3, pady=SPACING_MEDIUM, sticky="n")
+        else:
+            self.lbl_etapa1.configure(
+                text=" 1. Geração de Documentos",
+                text_color=get_color_primary_text() if etapa == 1 else COLOR_TEXT_DISABLED,
+            )
+            self.lbl_etapa1.grid(row=0, column=0, pady=SPACING_MEDIUM, sticky="e", padx=SPACING_MEDIUM)
+            self.lbl_seta.grid(row=0, column=1, pady=SPACING_MEDIUM)
+            self.lbl_etapa2.configure(
+                text=" 2. Conversão e Organização",
+                text_color=get_color_primary_text() if etapa == 2 else COLOR_TEXT_DISABLED,
+            )
+            self.lbl_etapa2.grid(row=0, column=2, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
+
+        nomes_perfis = listar_nomes_perfis_por_modo(modo)
+        perfil_nome = config_manager.obter("perfil_ativo") or (nomes_perfis[0] if nomes_perfis else PERFIL_PADRAO_NOME)
         if nomes_perfis:
             self.dropdown_perfil.configure(values=nomes_perfis)
         self.dropdown_perfil.set(perfil_nome)
@@ -711,10 +780,45 @@ class MainWindow(ctk.CTk):
         self.update_idletasks()
 
     def _aplicar_perfil_ativo(self) -> None:
-        """Atualiza a UI da Etapa 2 para refletir o perfil ativo (formulários dinâmicos, documentos extras e formato de saída)."""
+        """Atualiza a UI da Etapa 1 e Etapa 2 para refletir o perfil ativo."""
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
+        modo = config_manager.obter("modo_operacao") or "avancado"
+        is_simples = (modo == "simples")
 
+        # 1. Atualizar campos customizados dos participantes na Etapa 1
+        campos_participante = perfil.obter_campos_participante() if perfil else []
+        for pf in self.participant_frames:
+            pf.reconstruir_campos_customizados(campos_participante)
+
+        # 2. Reconstruir campos globais na Seção de Destino
+        self._reconstruir_campos_globais_saida(perfil)
+
+        # 3. Controlar visibilidade do botão de adicionar participante no modo simples
+        if hasattr(self, "botao_adicionar"):
+            if is_simples and perfil and perfil.formularios and perfil.formularios[0].geracao == "por_participante":
+                if len(self.participant_frames) > 1:
+                    for f in self.participant_frames[1:]:
+                        f.destroy()
+                    self.participant_frames = [self.participant_frames[0]]
+                self.botao_adicionar.grid_remove()
+            else:
+                self.botao_adicionar.grid()
+
+        # 4. Atualizar texto do botão de ação da Etapa 1
+        if hasattr(self, "botao_avancar"):
+            if is_simples:
+                self.botao_avancar.configure(
+                    text="GERAR FORMULÁRIO (PDF) ",
+                    image=self.icon_contract,
+                )
+            else:
+                self.botao_avancar.configure(
+                    text="GERAR DOCUMENTOS E AVANÇAR ",
+                    image=self.icon_advance,
+                )
+
+        # 5. Atualizar UI da Etapa 2
         self._carregar_formularios_dinamicos_etapa2()
 
         if hasattr(self, 'document_frame') and perfil:
@@ -722,6 +826,50 @@ class MainWindow(ctk.CTk):
 
         if hasattr(self, 'label_formato_etapa2') and perfil:
             self.label_formato_etapa2.configure(text=f"Formato de saída: {perfil.formato_saida}")
+
+    def _reconstruir_campos_globais_saida(self, perfil: Optional[Perfil]) -> None:
+        """Reconstrói dinamicamente os campos de escopo global na seção de destino."""
+        if not hasattr(self, "container_campos_globais"):
+            return
+
+        valores_atuais = {cid: w.obter_valor() for cid, w in self.widgets_dinamicos_globais.items()}
+
+        for w in self.widgets_dinamicos_globais.values():
+            try:
+                w.destroy()
+            except Exception:
+                pass
+        self.widgets_dinamicos_globais.clear()
+
+        if not perfil:
+            return
+
+        campos_globais = perfil.obter_campos_globais()
+        linha = 0
+        for campo in campos_globais:
+            if campo.id in ("data_assinatura", "local_assinatura"):
+                continue
+
+            widget_campo = CampoDinamicoWidget(
+                self.container_campos_globais,
+                campo=campo,
+                on_open_datepicker=lambda entry: DatePickerPopup(self, entry),
+            )
+            widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+            self.widgets_dinamicos_globais[campo.id] = widget_campo
+
+            if campo.id in valores_atuais:
+                widget_campo.definir_valor(valores_atuais[campo.id])
+            linha += 1
+
+    def _limpar_campos_etapa1(self) -> None:
+        """Limpa os campos preenchidos da Etapa 1."""
+        for pf in self.participant_frames:
+            pf.limpar_campos()
+        self.entry_data.delete(0, "end")
+        self.entry_data.configure(border_color=COLOR_BORDER)
+        for w in self.widgets_dinamicos_globais.values():
+            w.limpar()
 
     # ------------------------------------------------------------------
     # ETAPA 1: Preenchimento e Validação (Estrutura Responsiva e Flexível)
@@ -741,8 +889,20 @@ class MainWindow(ctk.CTk):
         # Botão de ação inferior SEMPRE fixado na base do card (row 1)
         frame_botoes = ctk.CTkFrame(self.container_etapa1, fg_color="transparent")
         frame_botoes.grid(row=1, column=0, padx=SPACING_LARGE,
-                          pady=(SPACING_MEDIUM, SPACING_LARGE), sticky="ew")
+                          pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_botoes.grid_columnconfigure(0, weight=1)
+
+        self.chk_preservar_dados = ctk.CTkCheckBox(
+            frame_botoes,
+            text="Preservar dados para Reutilizar",
+            font=get_font(FONT_SIZE_BODY),
+            text_color=COLOR_TEXT,
+            border_color=COLOR_BORDER,
+            fg_color=get_color_primary(),
+            hover_color=get_color_primary_hover(),
+            corner_radius=RADIUS_BUTTON,
+        )
+        self.chk_preservar_dados.grid(row=0, column=0, padx=SPACING_XSMALL, pady=(0, SPACING_SMALL), sticky="w")
 
         self.botao_avancar = ctk.CTkButton(
             frame_botoes,
@@ -757,7 +917,7 @@ class MainWindow(ctk.CTk):
             height=48,
             command=self._ao_clicar_avancar,
         )
-        self.botao_avancar.grid(row=0, column=0, sticky="ew")
+        self.botao_avancar.grid(row=1, column=0, sticky="ew")
 
     def _construir_secao_participantes(self) -> None:
         self.secao_participantes = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
@@ -793,23 +953,34 @@ class MainWindow(ctk.CTk):
         secao.grid_columnconfigure(1, weight=1)
 
         titulo = ctk.CTkLabel(
-            secao, text=" Destino",
+            secao, text=" Destino & Dados Complementares",
             image=get_icon("briefcase", (18, 18)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT
         )
         titulo.grid(row=0, column=0, columnspan=3, padx=SPACING_LARGE,
                     pady=(SPACING_LARGE, SPACING_SMALL), sticky="w")
 
-        # Campos Globais
+        # Container para campos globais dinâmicos do perfil
+        self.container_campos_globais = ctk.CTkFrame(secao, fg_color="transparent")
+        self.container_campos_globais.grid(row=1, column=0, columnspan=3, sticky="ew")
+        self.container_campos_globais.grid_columnconfigure(0, minsize=145)
+        self.container_campos_globais.grid_columnconfigure(1, weight=1)
+
+        # Campos Globais Fixos (Data e Local)
+        self.frame_data_fixa = ctk.CTkFrame(secao, fg_color="transparent")
+        self.frame_data_fixa.grid(row=2, column=0, columnspan=3, sticky="ew")
+        self.frame_data_fixa.grid_columnconfigure(0, minsize=145)
+        self.frame_data_fixa.grid_columnconfigure(1, weight=1)
+
         ctk.CTkLabel(
-            secao, text=" Data da assinatura",
+            self.frame_data_fixa, text=" Data da assinatura",
             image=get_icon("calendar", (16, 16)), compound="left",
             width=145, anchor="w",
             font=get_font(FONT_SIZE_BODY)
-        ).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        ).grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
             
-        frame_data = ctk.CTkFrame(secao, fg_color="transparent")
-        frame_data.grid(row=1, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+        frame_data = ctk.CTkFrame(self.frame_data_fixa, fg_color="transparent")
+        frame_data.grid(row=0, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         frame_data.grid_columnconfigure(0, weight=1)
         
         self.entry_data = ctk.CTkEntry(frame_data, placeholder_text="DD/MM/AAAA", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
@@ -828,13 +999,13 @@ class MainWindow(ctk.CTk):
         self.btn_calendar.grid(row=0, column=1, padx=(SPACING_SMALL, 0))
 
         ctk.CTkLabel(
-            secao, text=" Local da assinatura",
+            self.frame_data_fixa, text=" Local da assinatura",
             image=get_icon("location", (16, 16)), compound="left",
             width=145, anchor="w",
             font=get_font(FONT_SIZE_BODY)
-        ).grid(row=2, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
-        self.entry_local = ctk.CTkEntry(secao, placeholder_text="Ex: CAMOCIM-CE", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
-        self.entry_local.grid(row=2, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+        ).grid(row=1, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        self.entry_local = ctk.CTkEntry(self.frame_data_fixa, placeholder_text="Ex: CAMOCIM-CE", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        self.entry_local.grid(row=1, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
         self.entry_local.bind("<KeyRelease>", lambda e: self._validar_local_realtime())
         self.entry_local.bind("<FocusOut>", lambda e: self._validar_local_realtime())
@@ -938,7 +1109,11 @@ class MainWindow(ctk.CTk):
         for frame in self.participant_frames:
             erros.extend(frame.validar_campos())
 
-        # 2. Validar Data e Local
+        # 2. Validar campos globais dinâmicos
+        for campo_id, widget in self.widgets_dinamicos_globais.items():
+            erros.extend(widget.validar(prefixo="Destino / Complemento"))
+
+        # 3. Validar Data e Local
         if not self._validar_data_realtime():
             val = self.entry_data.get().strip()
             if not val:
@@ -949,7 +1124,7 @@ class MainWindow(ctk.CTk):
         if not self._validar_local_realtime():
             erros.append("Local da assinatura é obrigatório.")
 
-        # 3. Validar perfil e modelos
+        # 4. Validar perfil e modelos
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
         if not perfil:
@@ -963,7 +1138,7 @@ class MainWindow(ctk.CTk):
                 if not caminho_resolvido or not caminho_resolvido.exists():
                     erros.append(f"O formulário '{f.nome}' aponta para um arquivo inexistente.")
 
-        # 4. Validar pasta de saída
+        # 5. Validar pasta de saída
         if not self.pasta_saida:
             erros.append("Selecione a pasta de saída.")
         elif not self._verificar_permissao_escrita(self.pasta_saida):
@@ -983,16 +1158,75 @@ class MainWindow(ctk.CTk):
         principal.data_assinatura = self.entry_data.get().strip()
         principal.local_assinatura = self.entry_local.get().strip()
 
+        # Coletar campos globais para o participante principal
+        for campo_id, widget in self.widgets_dinamicos_globais.items():
+            principal.definir_campo(campo_id, widget.obter_valor())
+
         participantes = [principal]
         for frame in self.participant_frames[1:]:
             p = frame.obter_participante()
             p.copiar_dados_compartilhados(principal)
+            for campo_id, widget in self.widgets_dinamicos_globais.items():
+                p.definir_campo(campo_id, widget.obter_valor())
             participantes.append(p)
+
+        modo = config_manager.obter("modo_operacao") or "avancado"
+        if modo == "simples" or getattr(perfil, "modo_fluxo", "contrato") == "formulario_simples":
+            self._executar_geracao_simples(participantes, perfil)
+            return
 
         self.participantes_etapa1 = participantes
         self.label_pasta_etapa2.configure(text=f"Pasta: {self.pasta_saida}")
-
         self._mostrar_tela("etapa2")
+
+    def _executar_geracao_simples(self, participantes: list[Participant], perfil: Perfil) -> None:
+        """Gera o formulário simples diretamente sem passar pela Etapa 2."""
+        from ui.loading_modal import LoadingModal
+        from services.generator_service import gerar_documentos
+
+        modal = LoadingModal(self, titulo=f"Gerando {perfil.nome}...")
+
+        def _tarefa():
+            try:
+                res = gerar_documentos(
+                    participantes=participantes,
+                    perfil=perfil,
+                    pasta_saida=self.pasta_saida,
+                )
+                self.after(0, lambda: self._pos_geracao_simples(modal, res, perfil))
+            except Exception as e:
+                self.after(0, lambda: self._falha_geracao_simples(modal, str(e)))
+
+        threading.Thread(target=_tarefa, daemon=True).start()
+
+    def _pos_geracao_simples(self, modal, resultado, perfil) -> None:
+        try:
+            modal.dismiss()
+        except Exception:
+            pass
+
+        preservar = bool(self.chk_preservar_dados.get())
+        total = len(resultado.arquivos_gerados)
+
+        if total > 0:
+            show_toast(self, f"{perfil.nome} gerado com sucesso!", "success")
+            if config_manager.obter("abrir_pasta_ao_concluir"):
+                self._abrir_pasta(self.pasta_saida)
+
+        if resultado.avisos:
+            from ui.alert_modal import AlertModal
+            AlertModal(self, titulo="Avisos na Geração", subtitulo="Atenção aos seguintes avisos:", erros=resultado.avisos)
+
+        if not preservar:
+            self._limpar_campos_etapa1()
+
+    def _falha_geracao_simples(self, modal, erro_msg: str) -> None:
+        try:
+            modal.dismiss()
+        except Exception:
+            pass
+        from ui.alert_modal import AlertModal
+        AlertModal(self, titulo="Erro na Geração", subtitulo="Ocorreu um problema ao gerar o formulário:", erros=[erro_msg])
 
     # ------------------------------------------------------------------
     # ETAPA 2: Documentos da Gerente e PDF/A (Layout Responsivo)
@@ -1345,8 +1579,9 @@ class MainWindow(ctk.CTk):
             texto_cancelar="Fechar",
         )
 
+        preservar = bool(hasattr(self, "chk_preservar_dados") and self.chk_preservar_dados.get())
         if modal_estava_aberto:
-            self._resetar_aplicacao()
+            self._resetar_aplicacao(preservar_dados=preservar)
         else:
             show_toast(self, f"Sucesso: {job.titulo} finalizado!", "success")
 
@@ -1388,7 +1623,7 @@ class MainWindow(ctk.CTk):
         if self._modal_fila_ativo:
             self._modal_fila_ativo.dismiss()
             self._modal_fila_ativo = None
-        show_toast(self, f"Processo cancelado: {job.titulo}", "warning")
+        show_toast(self, f"Processo '{job.titulo}' foi cancelado.", "warning")
         self._atualizar_botao_fila_status()
 
     def _ao_mudar_fila(self) -> None:
@@ -1414,17 +1649,26 @@ class MainWindow(ctk.CTk):
         else:
             self.btn_fila_status.grid_remove()
 
-    def _resetar_aplicacao(self) -> None:
+    def _resetar_aplicacao(self, preservar_dados: bool = False) -> None:
         self._mostrar_tela("inicio")
-        for frame in list(self.participant_frames[1:]):
-            self._remover_participante(frame)
+        if not preservar_dados:
+            for frame in list(self.participant_frames[1:]):
+                self._remover_participante(frame)
 
-        if self.participant_frames:
-            primeiro = self.participant_frames[0]
-            primeiro.limpar_campos()
-            
-        self.entry_data.delete(0, "end")
-        self.entry_data.configure(border_color=COLOR_BORDER)
+            if self.participant_frames:
+                primeiro = self.participant_frames[0]
+                primeiro.limpar_campos()
+                
+            self.entry_data.delete(0, "end")
+            self.entry_data.configure(border_color=COLOR_BORDER)
+            for w in self.widgets_dinamicos_globais.values():
+                w.limpar()
+
+        if hasattr(self, 'document_frame') and self.document_frame:
+            self.document_frame.limpar_campos()
+
+        self.participantes_etapa1 = []
+        self.arquivos_gerados_etapa1 = []
 
         local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
         self.entry_local.delete(0, "end")

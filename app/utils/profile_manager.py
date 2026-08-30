@@ -67,6 +67,7 @@ class Perfil:
     documentos_extras: list[DocumentoExtra] = field(default_factory=list)
     campos_entrada: list[CampoEntrada] = field(default_factory=list)
     formato_saida: str = "PDF/A-2b"     # "PDF/A-2b" ou "PDF"
+    modo_fluxo: str = "contrato"        # "contrato" (completo) ou "formulario_simples" (avulso)
 
     def usa_modelos_embutidos(self) -> bool:
         """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
@@ -115,7 +116,7 @@ def invalidar_cache() -> None:
 
 
 def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
-    """Carrega todos os perfis do disco (ou do cache em memória). Sempre inclui o perfil Padrão."""
+    """Carrega todos os perfis do disco (ou do cache em memória). Sempre inclui os perfis padrão."""
     global _perfis_cache
 
     if _perfis_cache is not None and not forcar_disco:
@@ -133,6 +134,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     for c in p.campos_entrada
                 ],
                 formato_saida=p.formato_saida,
+                modo_fluxo=getattr(p, "modo_fluxo", "contrato"),
             )
             for p in _perfis_cache
         ]
@@ -150,7 +152,6 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     ppe_path = item.pop("caminho_modelo_ppe", "")
                     imovel_path = item.pop("caminho_modelo_imovel", "")
                     
-                    # Criação dos formulários dinâmicos com o mapeamento antigo fixo
                     formularios = []
                     if ppe_path or imovel_path:
                         formularios.append(FormularioModelo(
@@ -163,7 +164,6 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                         ))
                     item["formularios"] = formularios
                 else:
-                    # Formato novo: desserializar os dicionários de formulário
                     item["formularios"] = [FormularioModelo(**f) for f in item.get("formularios", [])]
                     
                     if "documentos_extras" in item:
@@ -180,10 +180,15 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []
 
-    # Migração: renomear perfil "Padrão" para "MCMV" se existir e normalizar rótulos
+    # Migração e normalização de nomes
     for p in perfis:
         if p.nome == "Padrão":
             p.nome = PERFIL_PADRAO_NOME  # "MCMV"
+        elif p.nome in ("Formulário CAIXA", "MO 30.844"):
+            p.nome = "Form Cliente"
+            p.modo_fluxo = "formulario_simples"
+            if p.formularios:
+                p.formularios[0].nome = "Form Cliente"
         for c in p.campos_entrada:
             if c.id == "endereco" and c.rotulo == "Endereço Completo":
                 c.rotulo = "Endereço"
@@ -200,6 +205,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             formularios=list(_formularios_builtin),
             documentos_extras=_documentos_extras_padrao(),
             campos_entrada=_campos_entrada_padrao(),
+            modo_fluxo="contrato",
         ))
 
     # Garantir que o perfil SBPE sempre existe
@@ -209,30 +215,81 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             formularios=list(_formularios_builtin),
             documentos_extras=_documentos_extras_sbpe(),
             campos_entrada=_campos_entrada_padrao(),
+            modo_fluxo="contrato",
         ))
 
-    # Garantir que o perfil Formulário CAIXA sempre existe
-    if not any(p.nome in ("Formulário CAIXA", "MO 30.844") for p in perfis):
+    # Garantir que o perfil Form Cliente sempre existe
+    if not any(p.nome == "Form Cliente" for p in perfis):
         perfis.append(Perfil(
-            nome="Formulário CAIXA",
+            nome="Form Cliente",
             formularios=[
                 FormularioModelo(
-                    nome="Formulário Cliente CAIXA",
+                    nome="Form Cliente",
                     caminho="",
                     geracao="por_processo",
                     mapeamento={},
                 )
             ],
-            documentos_extras=_documentos_extras_padrao(),
-            campos_entrada=_campos_entrada_mo30844(),
+            documentos_extras=[],
+            campos_entrada=_campos_entrada_form_cliente(),
+            modo_fluxo="formulario_simples",
+            formato_saida="PDF",
+        ))
+
+    # Garantir que o perfil ITBI sempre existe
+    if not any(p.nome == "ITBI" for p in perfis):
+        perfis.append(Perfil(
+            nome="ITBI",
+            formularios=[
+                FormularioModelo(
+                    nome="Declaração ITBI",
+                    caminho="",
+                    geracao="por_processo",
+                    mapeamento={},
+                )
+            ],
+            documentos_extras=[],
+            campos_entrada=_campos_entrada_itbi(),
+            modo_fluxo="formulario_simples",
+            formato_saida="PDF",
+        ))
+
+    # Garantir que o perfil Isenção de Tributos sempre existe
+    if not any(p.nome == "Isenção de Tributos" for p in perfis):
+        perfis.append(Perfil(
+            nome="Isenção de Tributos",
+            formularios=[
+                FormularioModelo(
+                    nome="Requerimento de Isenção",
+                    caminho="",
+                    geracao="por_participante",
+                    mapeamento={},
+                )
+            ],
+            documentos_extras=[],
+            campos_entrada=_campos_entrada_isencao_tributos(),
+            modo_fluxo="formulario_simples",
+            formato_saida="PDF",
         ))
 
     _perfis_cache = perfis
     return perfis
 
 
-def _campos_entrada_mo30844() -> list[CampoEntrada]:
-    """Retorna a lista de campos de entrada padrão para o Formulário CAIXA (MO 30.844)."""
+def listar_perfis_por_modo(modo: str = "contrato") -> list[Perfil]:
+    """Retorna os perfis filtrados pelo modo de operação ('contrato' ou 'formulario_simples')."""
+    perfis = carregar_perfis()
+    modo_norm = "formulario_simples" if modo.lower() in ("simples", "formulario_simples") else "contrato"
+    return [p for p in perfis if getattr(p, "modo_fluxo", "contrato") == modo_norm]
+
+
+def listar_nomes_perfis_por_modo(modo: str = "contrato") -> list[str]:
+    """Retorna apenas os nomes dos perfis para o modo informado."""
+    perfis_modo = listar_perfis_por_modo(modo)
+    return [p.nome for p in perfis_modo]
+
+def _campos_entrada_form_cliente() -> list[CampoEntrada]:
+    """Retorna a lista de campos de entrada padrão para o Form Cliente (FORM CLIENTE.pdf)."""
     return [
         CampoEntrada(
             id="agencia",
@@ -272,6 +329,297 @@ def _campos_entrada_mo30844() -> list[CampoEntrada]:
             valor_padrao="Não",
             escopo="global",
             icone="check",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="data_assinatura",
+            rotulo="Data da assinatura",
+            tipo="DATA",
+            obrigatorio=True,
+            placeholder="DD/MM/AAAA",
+            escopo="global",
+            icone="calendar",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="local_assinatura",
+            rotulo="Local da assinatura",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: CAMOCIM-CE",
+            escopo="global",
+            icone="location",
+            aba="Geral",
+        ),
+    ]
+
+
+def _campos_entrada_mo30844() -> list[CampoEntrada]:
+    """Alias para _campos_entrada_form_cliente."""
+    return _campos_entrada_form_cliente()
+
+
+def _campos_entrada_itbi() -> list[CampoEntrada]:
+    """Retorna os campos de entrada para a Declaração de Pagamento de ITBI."""
+    return [
+        CampoEntrada(
+            id="nome_vendedor",
+            rotulo="Nome do Vendedor",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: CONSTRUTORA EXEMPLO LTDA",
+            escopo="global",
+            icone="person",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="cpf_cnpj_vendedor",
+            rotulo="CPF/CNPJ Vendedor",
+            tipo="CNPJ",
+            obrigatorio=True,
+            placeholder="Ex: 00.000.000/0001-00",
+            escopo="global",
+            icone="document",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="matricula",
+            rotulo="Matrícula do Imóvel",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: 12.345",
+            escopo="global",
+            icone="document",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="cartorio_oficio",
+            rotulo="Ofício do Cartório",
+            tipo="TEXTO",
+            obrigatorio=False,
+            valor_padrao="2º",
+            placeholder="Ex: 2º",
+            escopo="global",
+            icone="briefcase",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="cartorio_local",
+            rotulo="Comarca Cartório",
+            tipo="TEXTO",
+            obrigatorio=False,
+            valor_padrao="CAMOCIM-CE",
+            placeholder="Ex: CAMOCIM-CE",
+            escopo="global",
+            icone="location",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="iptu",
+            rotulo="Inscrição de IPTU",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: 01.02.003.0004.001",
+            escopo="global",
+            icone="document",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="area_terreno",
+            rotulo="Área Terreno (m²)",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: 200,00",
+            escopo="global",
+            icone="ratio",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="area_construida",
+            rotulo="Área Construída (m²)",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: 65,50",
+            escopo="global",
+            icone="ratio",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="fracao_ideal",
+            rotulo="Fração Ideal (%)",
+            tipo="TEXTO",
+            obrigatorio=False,
+            valor_padrao="100,00",
+            placeholder="Ex: 100,00",
+            escopo="global",
+            icone="ratio",
+            aba="Vendedor & Imóvel",
+        ),
+        CampoEntrada(
+            id="comprador_telefone",
+            rotulo="Telefone Comprador",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: (88) 99999-9999",
+            escopo="participante",
+            icone="help",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="comprador_email",
+            rotulo="E-mail Comprador",
+            tipo="TEXTO",
+            obrigatorio=False,
+            placeholder="Ex: comprador@email.com",
+            escopo="participante",
+            icone="globe",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="endereco_imovel",
+            rotulo="Endereço do Imóvel",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: Rua das Flores, 123 - Centro, Camocim-CE",
+            escopo="global",
+            icone="location",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_compra",
+            rotulo="Valor Compra e Venda",
+            tipo="MOEDA",
+            obrigatorio=True,
+            placeholder="Ex: 180.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_avaliacao",
+            rotulo="Valor Avaliação CAIXA",
+            tipo="MOEDA",
+            obrigatorio=False,
+            placeholder="Ex: 185.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_financiado",
+            rotulo="Valor Financiamento",
+            tipo="MOEDA",
+            obrigatorio=False,
+            placeholder="Ex: 140.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_subsidio",
+            rotulo="Valor do Subsídio",
+            tipo="MOEDA",
+            obrigatorio=False,
+            placeholder="Ex: 20.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_recursos",
+            rotulo="Recursos Próprios",
+            tipo="MOEDA",
+            obrigatorio=False,
+            placeholder="Ex: 10.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="valor_fgts",
+            rotulo="Valor do FGTS",
+            tipo="MOEDA",
+            obrigatorio=False,
+            placeholder="Ex: 10.000,00",
+            escopo="global",
+            icone="calculator",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="solicitar_isencao",
+            rotulo="Isenção ITBI (Lei 1648/2023)",
+            tipo="CHECKBOX",
+            obrigatorio=False,
+            valor_padrao="Sim",
+            escopo="global",
+            icone="check",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="data_assinatura",
+            rotulo="Data da assinatura",
+            tipo="DATA",
+            obrigatorio=True,
+            placeholder="DD/MM/AAAA",
+            escopo="global",
+            icone="calendar",
+            aba="Comprador & Valores",
+        ),
+        CampoEntrada(
+            id="local_assinatura",
+            rotulo="Local da assinatura",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: CAMOCIM-CE",
+            escopo="global",
+            icone="location",
+            aba="Comprador & Valores",
+        ),
+    ]
+
+
+def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
+    """Retorna os campos de entrada para o Requerimento de Isenção de Tributos Municipais."""
+    return [
+        CampoEntrada(
+            id="rg",
+            rotulo="RG do Requerente",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: 2008123456-7 SSP/CE",
+            escopo="participante",
+            icone="document",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="estado_civil",
+            rotulo="Estado Civil",
+            tipo="SELECAO",
+            obrigatorio=True,
+            opcoes=["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"],
+            valor_padrao="Solteiro(a)",
+            escopo="participante",
+            icone="person",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="endereco",
+            rotulo="Endereço",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: Rua das Flores, 123 - Centro, Camocim - CE",
+            escopo="participante",
+            icone="location",
+            aba="Geral",
+        ),
+        CampoEntrada(
+            id="matricula",
+            rotulo="Matrícula do Imóvel",
+            tipo="TEXTO",
+            obrigatorio=True,
+            placeholder="Ex: 12.345",
+            escopo="global",
+            icone="document",
             aba="Geral",
         ),
         CampoEntrada(

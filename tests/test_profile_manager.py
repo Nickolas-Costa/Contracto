@@ -41,8 +41,8 @@ class TestProfileManager(unittest.TestCase):
             self.assertEqual(len(mcmv.documentos_extras), 5)
             # SBPE deve ter 6 documentos extras (incluindo Cédula de Crédito)
             self.assertEqual(len(sbpe.documentos_extras), 6)
-            rotulos_sbpe = [d.rotulo for d in sbpe.documentos_extras]
-            self.assertIn("Cédula de Crédito", rotulos_sbpe)
+            rotulos_sbpe = [d.rotulo.upper() for d in sbpe.documentos_extras]
+            self.assertTrue(any("CÉDULA DE CRÉDITO" in r or "CEDULA DE CREDITO" in r for r in rotulos_sbpe))
 
     def test_migration_from_legacy_padrao(self):
         """Verifica se perfil antigo com nome 'Padrão' é migrado para 'MCMV'."""

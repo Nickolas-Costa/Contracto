@@ -104,7 +104,61 @@ class ParticipantFrame(ctk.CTkFrame):
             linha += 1
 
         # Pequeno respiro na última linha do frame
-        ctk.CTkLabel(self, text="", height=2).grid(row=linha, column=0, pady=(0, SPACING_SMALL))
+        self._label_respiro = ctk.CTkLabel(self, text="", height=2)
+        self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
+
+    def reconstruir_campos_customizados(self, novos_campos: Optional[list[CampoEntrada]]) -> None:
+        """Reconstrói dinamicamente os campos customizados mantendo os valores já preenchidos."""
+        valores_atuais = {cid: widget.obter_valor() for cid, widget in self.widgets_dinamicos.items()}
+        if self.entry_endereco is not None:
+            valores_atuais["endereco"] = self.entry_endereco.get().strip()
+
+        for widget in self.widgets_dinamicos.values():
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+        self.widgets_dinamicos.clear()
+        self.entry_endereco = None
+
+        if hasattr(self, "_label_respiro") and self._label_respiro:
+            try:
+                self._label_respiro.destroy()
+            except Exception:
+                pass
+
+        self.campos_customizados = novos_campos or []
+        linha = 3  # Linha 0: Título, Linha 1: Nome, Linha 2: CPF
+
+        if self.campos_customizados:
+            for campo in self.campos_customizados:
+                if campo.id in ("nome_completo", "nome", "cpf"):
+                    continue
+                if campo.id == "endereco" and not self.principal:
+                    continue
+
+                widget_campo = CampoDinamicoWidget(
+                    self,
+                    campo=campo,
+                    on_open_datepicker=self.on_open_datepicker,
+                )
+                widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+                self.widgets_dinamicos[campo.id] = widget_campo
+
+                if campo.id in valores_atuais:
+                    widget_campo.definir_valor(valores_atuais[campo.id])
+
+                if campo.id == "endereco" and hasattr(widget_campo, "entry"):
+                    self.entry_endereco = widget_campo.entry
+                linha += 1
+        elif self.principal:
+            self.entry_endereco = self._criar_campo_padrao("Endereço", linha, tipo="endereco")
+            if "endereco" in valores_atuais:
+                self.entry_endereco.insert(0, valores_atuais["endereco"])
+            linha += 1
+
+        self._label_respiro = ctk.CTkLabel(self, text="", height=2)
+        self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
 
     def _titulo(self, indice: int) -> str:
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")

@@ -24,7 +24,14 @@ from utils.filename_utils import nome_documento_individual
 from utils.profile_manager import Perfil
 
 
-from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel, modelo_padrao_formulario_caixa
+from utils.resource_path import (
+    modelo_padrao_ppe,
+    modelo_padrao_primeiro_imovel,
+    modelo_padrao_form_cliente,
+    modelo_padrao_formulario_caixa,
+    modelo_padrao_itbi,
+    modelo_padrao_isencao_tributos,
+)
 from utils.filename_utils import nome_documento_individual, nome_documento_processo
 
 
@@ -53,15 +60,19 @@ def resolver_caminho_formulario(f) -> Path | None:
             caminho_resolvido = modelo_padrao_ppe()
         elif "imóvel" in nome or "imovel" in nome or "1" in nome:
             caminho_resolvido = modelo_padrao_primeiro_imovel()
-        elif "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome or "cliente" in nome:
-            caminho_resolvido = modelo_padrao_formulario_caixa()
+        elif "itbi" in nome:
+            caminho_resolvido = modelo_padrao_itbi()
+        elif "isenção" in nome or "isencao" in nome or "tributos" in nome:
+            caminho_resolvido = modelo_padrao_isencao_tributos()
+        elif "cliente" in nome or "form" in nome or "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome:
+            caminho_resolvido = modelo_padrao_form_cliente()
 
     _caminho_modelo_cache[key] = caminho_resolvido
     return caminho_resolvido
 
 
-def mapeamento_padrao_mo30844011() -> dict[str, str]:
-    """Mapeamento padrão oficial para o formulário CAIXA MO 30.844 v011."""
+def mapeamento_padrao_form_cliente() -> dict[str, str]:
+    """Mapeamento padrão oficial para o Form Cliente Crédito Imobiliário (FORM CLIENTE.pdf)."""
     return {
         "NOME_CLIENTE_1": "participante.1.nome_completo",
         "CPF1": "participante.1.cpf_formatado",
@@ -94,6 +105,60 @@ def mapeamento_padrao_mo30844011() -> dict[str, str]:
     }
 
 
+def mapeamento_padrao_mo30844011() -> dict[str, str]:
+    """Alias para compatibilidade."""
+    return mapeamento_padrao_form_cliente()
+
+
+def mapeamento_padrao_itbi() -> dict[str, str]:
+    """Mapeamento padrão oficial para a Declaração para Pagamento do ITBI."""
+    return {
+        "NOME_VENDEDOR": "global.nome_vendedor",
+        "CPF_CNPJ_VENDEDOR": "global.cpf_cnpj_vendedor",
+        "MATRICULA": "global.matricula",
+        "CARTORIO_OFICIO": "global.cartorio_oficio",
+        "CARTORIO_LOCAL": "global.cartorio_local",
+        "IPTU": "global.iptu",
+        "AREA_TERRENO": "global.area_terreno",
+        "AREA_CONSTRUIDA": "global.area_construida",
+        "FRACAO_IDEAL": "global.fracao_ideal",
+        "COMPRADOR_NOME": "participante.nome_completo",
+        "COMPRADOR_CPF": "participante.cpf_formatado",
+        "COMPRADOR_ENDERECO": "participante.endereco",
+        "COMPRADOR_TELEFONE": "participante.comprador_telefone",
+        "COMPRADOR_EMAIL": "participante.comprador_email",
+        "ENDERECO_IMOVEL": "global.endereco_imovel",
+        "VALOR_COMPRA": "global.valor_compra",
+        "VALOR_AVALIACAO": "global.valor_avaliacao",
+        "VALOR_FINANCIADO": "global.valor_financiado",
+        "VALOR SUBSIDIO": "global.valor_subsidio",
+        "VALOR_RECURSOS": "global.valor_recursos",
+        "VALOR_FGTS": "global.valor_fgts",
+        "LOCAL_ASSINATURA": "participante.local_assinatura",
+        "DIA": "data.dia",
+        "MES": "data.mes",
+        "ANO": "data.ano",
+    }
+
+
+def mapeamento_padrao_isencao_tributos() -> dict[str, str]:
+    """Mapeamento padrão oficial para o Requerimento de Isenção de Tributos Municipais."""
+    return {
+        "NOME COMPLETO": "participante.nome_completo",
+        "CPF": "participante.cpf_formatado",
+        "RG": "participante.rg",
+        "ESTADO CIVIL": "participante.estado_civil",
+        "ENDERECO": "participante.endereco",
+        "MATRICULA": "global.matricula",
+        "NOME_COMPLETO2": "participante.nome_completo",
+        "2CPF": "participante.cpf_formatado",
+        "LOCAL": "participante.local_assinatura",
+        "DIA": "data.dia",
+        "MES": "data.mes",
+        "ANO": "data.ano",
+    }
+
+
 def obter_mapeamento_formulario(f) -> dict[str, str]:
     """Retorna o mapeamento de campos do formulário, ou o mapeamento padrão caso esteja vazio."""
     if f.mapeamento:
@@ -117,8 +182,12 @@ def obter_mapeamento_formulario(f) -> dict[str, str]:
             "DATA ASSINATURA": "participante.data_assinatura",
             "LOCAL ASSINATURA": "participante.local_assinatura",
         }
-    elif "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome or "cliente" in nome:
-        return mapeamento_padrao_mo30844011()
+    elif "itbi" in nome:
+        return mapeamento_padrao_itbi()
+    elif "isenção" in nome or "isencao" in nome or "tributos" in nome:
+        return mapeamento_padrao_isencao_tributos()
+    elif "cliente" in nome or "form" in nome or "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome:
+        return mapeamento_padrao_form_cliente()
 
     return {}
 

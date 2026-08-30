@@ -1,10 +1,54 @@
-# Contracto (v4.5.5)
+<div align="center">
 
-Aplicativo desktop (Windows) moderno e ultrarrápido para preenchimento automatizado de declarações habitacionais e conversão de documentos contratuais para o padrão de conformidade e arquivamento perene **PDF/A-2b**:
+# 📑 Contracto
+### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conformidade PDF/A-2b
+
+[![Versão](https://img.shields.io/badge/versão-v4.5.5-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
+[![Privacidade](https://img.shields.io/badge/Privacidade-100%25%20Offline%20%7C%20Zero%20Cloud-2E7D32?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/Nickolas-Costa/Contracto#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)
+[![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
+[![Testes](https://img.shields.io/badge/Testes-116%2F116%20Passando-success?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
+
+<br/>
+
+**[📥 Baixar Executável (.zip)](https://github.com/Nickolas-Costa/Contracto/releases)** &nbsp;•&nbsp;
+**[📖 Guia de Uso](#-modos-de-opera%C3%A7%C3%A3o-e-fluxos-de-trabalho)** &nbsp;•&nbsp;
+**[🔒 Segurança & Privacidade](#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)** &nbsp;•&nbsp;
+**[🎨 Design System](DESIGN_SYSTEM.md)**
+
+</div>
+
+---
+
+## 💡 Sobre o Contracto
+
+O **Contracto** é uma solução desktop Windows nativa, moderna e de alto desempenho desenvolvida para imobiliárias, correspondentes bancários e profissionais do setor habitacional. Ele automatiza o preenchimento de formulários cadastrais, organiza dossiês de financiamento e converte documentos contratuais para o formato de conformidade perene **PDF/A-2b (ISO 19005-2)**.
+
+### 📋 Modelos Oficiais Suportados Nativamente:
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
 - **Declaração de Primeiro Imóvel**
-- **Formulário Cliente Crédito Imobiliário CAIXA (MO 30.844 v011)**
-- **Suporte a Modelos Personalizados e Perfis Customizados (MCMV, SBPE, Formulário CAIXA, etc.)**
+- **Form Cliente Crédito Imobiliário (FORM CLIENTE / MO 30.844)**
+- **Declaração para Pagamento do ITBI** (com enquadramento de isenção via Lei 1648/2023)
+- **Requerimento de Isenção de Tributos Municipais** (com herança automática de assinatura)
+- **Perfis Personalizados** (MCMV, SBPE, customizáveis pelo usuário)
+
+---
+
+## 🔄 Modos de Operação e Fluxos de Trabalho
+
+O sistema dispõe de um seletor dinâmico de modo na barra superior (*TopBar*), permitindo alternar instantaneamente entre dois modos especializados:
+
+### 1. 📂 Modo Avançado (Contratos Habitacionais)
+Projetado para processos contratuais completos com fluxo de 2 etapas:
+- **Etapa 1 (Geração de Documentos)**: Preenchimento de 1 a 4 participantes com validação de CPF/CNPJ em tempo real, data no calendário e diretório de destino.
+- **Etapa 2 (Conversão e Organização)**: Inclusão de documentos do processo (Contrato, Cédula de Crédito, Planilha de Evolução, etc.), conversão em lote para **PDF/A-2b** e criação automática da estrutura de pastas padronizada.
+
+### 2. 📄 Modo Simples (Formulários Únicos & Declarações Avulsas)
+Projetado para emissão rápida e direta de formulários individuais com **1 clique**:
+- Interface simplificada sem necessidade de Etapa 2.
+- Geração instantânea do PDF preenchido e abertura direta da pasta de destino.
+- **Opção `[x] Preservar dados para Reutilizar`**: Mantém Nome, CPF, Endereço e Local preenchidos na tela para que você possa emitir formulários sequenciais (ex: Contrato e logo após ITBI/Isenção) sem precisar digitar nada novamente.
 
 ---
 
@@ -12,52 +56,23 @@ Aplicativo desktop (Windows) moderno e ultrarrápido para preenchimento automati
 
 O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no sigilo profissional**:
 
-- **Zero Nuvem (100% Offline e Local)**: Todo o processamento de dados, preenchimento de formulários e conversão de documentos ocorrem exclusivamente dentro da memória e do disco da sua própria máquina. **Nenhum dado é enviado para servidores externos, APIs ou serviços de terceiros.**
-- **Conformidade Natural com a LGPD**: Como nenhuma informação de clientes (Nome, CPF, CNPJ, dados bancários, endereços ou rendas) trafega pela internet ou fica armazenada em servidores externos, seu escritório ou imobiliária mantém total controle e conformidade com a Lei Geral de Proteção de Dados.
-- **Isolamento e Proteção de Processos**: A conversão de PDFs e renderização operam com interpretadores isolados em sandbox nativa de segurança (`-dSAFER`), prevenindo qualquer execução indevida de arquivos adulterados.
+- **Zero Nuvem (100% Offline e Local)**: Todo o processamento de dados, preenchimento de formulários e conversão de documentos ocorrem exclusivamente dentro da memória e do disco da sua própria máquina. **Nenhum dado pessoal ou financeiro é enviado para servidores externos, APIs ou serviços em nuvem.**
+- **Conformidade Natural com a LGPD**: Como nenhuma informação de clientes (Nome, CPF, CNPJ, dados bancários, endereços ou rendas) trafega pela internet, seu escritório mantém total controle e conformidade com a Lei Geral de Proteção de Dados.
+- **Isolamento e Proteção de Processos**: A conversão de PDFs opera com interpretadores isolados em sandbox nativa de segurança (`-dSAFER`), prevenindo qualquer execução indevida de arquivos adulterados.
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
 
 ## 🚀 Principais Recursos da Versão 4.5.5
 
+- **Seletor de Modos Avançado / Simples**: Chaveador integrado na barra superior com stepper dinâmico adaptativo.
+- **Preservação Inteligente de Dados**: Reaproveitamento instantâneo de dados cadastrais entre formulários diferentes.
 - **Novo Validador Universal de CNPJ**: Suporte completo ao CNPJ tradicional (14 dígitos numéricos) e ao **novo padrão de CNPJ Alfanumérico da Receita Federal** (*IN RFB nº 2.229/2024*), com cálculo via Módulo 11 ASCII e auto-formatação em tempo real.
 - **Interface e Tipografia Uniforme**: Alinhamento milimétrico de todos os campos da Etapa 1 e Etapa 2 (145px de largura uniforme para todos os rótulos), eliminando desalinhamentos e cortes visuais.
-- **Design System Dinâmico & Temas**: Suporte a temas Claro e Escuro, paletas de cores personalizáveis e ícones vetoriais de alta resolução em SVG rasterizados sob demanda.
-- **Centralização Inteligente com Compensação de DPI**: Modais e popups perfeitamente centralizados em qualquer escala de monitor (100%, 125%, 150%, 4K).
+- **Design System Dinâmico & Temas**: Suporte a temas Claro e Escuro, paletas de cores personalizáveis e ícones vetoriais de alta resolução.
 - **Gerenciador Modular de Perfis**: Crie, edite e duplique perfis com campos customizáveis em tipos padronizados (`TEXTO`, `CPF`, `CNPJ`, `DATA`, `MOEDA`, `SELECAO`, `CHECKBOX`).
 - **Conversão Silenciosa para PDF/A-2b**: Geração de documentos em conformidade ISO 19005-2 sem janelas piscando ou travamentos.
 - **Diagnóstico e Reparo Automatizado**: Verificação de integridade do ambiente com 1 clique na aba de Configurações.
-
----
-
-## 📥 Download e Atualização
-
-### Instalação para Usuários Finais
-
-1. Baixe o pacote comprimido `Contracto_v4.5.5.zip` na página de [Releases](https://github.com/Nickolas-Costa/Contracto/releases).
-2. Extraia o conteúdo em um local da sua preferência no computador.
-3. Execute `Contracto_v4.5.5.exe`. Todos os modelos, utilitários e o interpretador Ghostscript já vêm embutidos!
-
-### Como Atualizar
-
-Para atualizar o aplicativo, basta baixar o novo `.zip` e substituir o executável anterior. **Suas configurações salvas e perfis personalizados são preservados**, pois ficam protegidos no diretório `%APPDATA%\Contracto`.
-
----
-
-## 🛠️ Tecnologias e Bibliotecas Utilizadas
-
-O ecossistema do **Contracto** utiliza tecnologias consagradas de código aberto:
-
-- **[Python 3.12+](https://www.python.org/)** — Linguagem de programação principal de alta confiabilidade
-- **[CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)** — Biblioteca de interface gráfica moderna, com temas e responsividade
-- **[pypdf](https://pypdf.readthedocs.io/)** — Leitura e preenchimento técnico de formulários PDF (AcroForm)
-- **[pikepdf](https://pikepdf.readthedocs.io/)** — Validação estrutural de metadados e integridade de arquivos PDF
-- **[Ghostscript](https://ghostscript.com/)** — Motor de renderização e conformidade com o padrão internacional PDF/A-2b (ISO 19005-2)
-- **[Pillow (PIL)](https://python-pillow.org/)** — Processamento de imagens, rasterização de ícones e geração de gradientes em tempo real
-- **[darkdetect](https://github.com/alfaifi/darkdetect)** — Detecção automática do modo Claro/Escuro do sistema operacional Windows
-- **[pywin32](https://github.com/mhammond/pywin32)** — Integração nativa com a API do Windows, barra de tarefas e automação COM
-- **[PyInstaller](https://pyinstaller.org/)** — Empacotador autônomo para compilação em executável único independente (`.exe`)
 
 ---
 
