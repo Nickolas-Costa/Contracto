@@ -23,7 +23,15 @@ class LoadingModal:
         submessage: str = "",
         on_cancel: Optional[Callable[[], None]] = None,
         on_minimize: Optional[Callable[[], None]] = None,
+        titulo: Optional[str] = None,
+        subtitulo: Optional[str] = None,
+        **kwargs,
     ):
+        if titulo is not None:
+            message = titulo
+        if subtitulo is not None:
+            submessage = subtitulo
+
         if LoadingModal._instancia_ativa is not None:
             try:
                 LoadingModal._instancia_ativa.dismiss()

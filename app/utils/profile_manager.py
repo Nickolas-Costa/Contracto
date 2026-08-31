@@ -37,7 +37,7 @@ class DocumentoExtra:
     nome_padrao: str
 
 
-TIPOS_CAMPO_ENTRADA = ["TEXTO", "CPF", "CNPJ", "DATA", "MOEDA", "SELECAO", "CHECKBOX"]
+TIPOS_CAMPO_ENTRADA = ["TEXTO", "CPF", "CNPJ", "CPF_CNPJ", "DATA", "MOEDA", "AREA", "TELEFONE", "EMAIL", "SELECAO", "CHECKBOX"]
 
 
 @dataclass
@@ -68,6 +68,7 @@ class Perfil:
     campos_entrada: list[CampoEntrada] = field(default_factory=list)
     formato_saida: str = "PDF/A-2b"     # "PDF/A-2b" ou "PDF"
     modo_fluxo: str = "contrato"        # "contrato" (completo) ou "formulario_simples" (avulso)
+    max_participantes: int = 4          # 1 a 4 participantes permitidos
 
     def usa_modelos_embutidos(self) -> bool:
         """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
@@ -134,7 +135,8 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     for c in p.campos_entrada
                 ],
                 formato_saida=p.formato_saida,
-                modo_fluxo=getattr(p, "modo_fluxo", "contrato"),
+                modo_fluxo=p.modo_fluxo,
+                max_participantes=p.max_participantes,
             )
             for p in _perfis_cache
         ]
@@ -147,27 +149,29 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             with open(caminho, "r", encoding="utf-8") as f:
                 dados = json.load(f)
             for item in dados:
-                # Migração: Se for o formato antigo (com caminho_modelo_ppe)
-                if "caminho_modelo_ppe" in item:
-                    ppe_path = item.pop("caminho_modelo_ppe", "")
-                    imovel_path = item.pop("caminho_modelo_imovel", "")
-                    
-                    formularios = []
-                    if ppe_path or imovel_path:
-                        formularios.append(FormularioModelo(
-                            nome="PPE", caminho=ppe_path, geracao="por_participante", 
-                            mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "DIA": "data.dia", "MES": "data.mes", "ANO": "data.ano", "LOCAL ASSINATURA": "participante.local_assinatura"}
-                        ))
-                        formularios.append(FormularioModelo(
-                            nome="1_IMOVEL", caminho=imovel_path, geracao="por_participante",
-                            mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "ENDERECO": "participante.endereco", "DATA ASSINATURA": "participante.data_assinatura", "LOCAL ASSINATURA": "participante.local_assinatura"}
-                        ))
-                    item["formularios"] = formularios
+                if "formularios" in item:
+                    item["formularios"] = [
+                        FormularioModelo(
+                            nome=fm["nome"],
+                            caminho=fm.get("caminho", ""),
+                            geracao=fm.get("geracao", "por_participante"),
+                            mapeamento=fm.get("mapeamento", {}),
+                        )
+                        for fm in item["formularios"]
+                    ]
                 else:
-                    item["formularios"] = [FormularioModelo(**f) for f in item.get("formularios", [])]
-                    
-                    if "documentos_extras" in item:
+                    item["formularios"] = []
+
+                if "documentos_extras" in item:
+                    if item.get("nome") == "SBPE":
                         item["documentos_extras"] = [DocumentoExtra(**d) for d in item["documentos_extras"]]
+                    else:
+                        item["documentos_extras"] = [DocumentoExtra(**d) for d in item["documentos_extras"]]
+                else:
+                    if item.get("nome") == "SBPE":
+                        item["documentos_extras"] = _documentos_extras_sbpe()
+                    elif item.get("modo_fluxo") == "formulario_simples":
+                        item["documentos_extras"] = []
                     else:
                         item["documentos_extras"] = _documentos_extras_padrao()
 
@@ -175,12 +179,15 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     item["campos_entrada"] = [CampoEntrada(**c) for c in item["campos_entrada"]]
                 else:
                     item["campos_entrada"] = _campos_entrada_padrao()
+
+                if "max_participantes" not in item:
+                    item["max_participantes"] = 1 if item.get("nome") in ("ITBI", "Isenção de Tributos", "Isenção de Tributos Municipais") else 4
                         
                 perfis.append(Perfil(**item))
         except (json.JSONDecodeError, OSError, TypeError):
             perfis = []
 
-    # Migração e normalização de nomes
+    # Migração e normalização de nomes e campos dos perfis
     for p in perfis:
         if p.nome == "Padrão":
             p.nome = PERFIL_PADRAO_NOME  # "MCMV"
@@ -189,9 +196,31 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             p.modo_fluxo = "formulario_simples"
             if p.formularios:
                 p.formularios[0].nome = "Form Cliente"
-        for c in p.campos_entrada:
-            if c.id == "endereco" and c.rotulo == "Endereço Completo":
-                c.rotulo = "Endereço"
+
+        # Garantir limites oficiais de participantes
+        if p.nome in ("MCMV", "SBPE", "Form Cliente"):
+            if not getattr(p, "max_participantes", None) or p.max_participantes < 1:
+                p.max_participantes = 4
+        elif p.nome in ("ITBI", "Isenção de Tributos", "Isenção de Tributos Municipais"):
+            p.max_participantes = 1
+
+        # Sincronização dos campos do Form Cliente
+        if p.nome == "Form Cliente":
+            p.campos_entrada = _campos_entrada_form_cliente()
+
+        # Sincronização dos campos do ITBI
+        if p.nome == "ITBI":
+            p.campos_entrada = _campos_entrada_itbi()
+
+        # Sincronização dos campos da Isenção
+        if p.nome in ("Isenção de Tributos", "Isenção de Tributos Municipais"):
+            p.campos_entrada = _campos_entrada_isencao_tributos()
+
+        # Garantir placeholder nos perfis de contrato
+        if p.nome in ("MCMV", "SBPE"):
+            for c in p.campos_entrada:
+                if c.id == "endereco" and not c.placeholder:
+                    c.placeholder = "Ex: Rua das Flores, 123 - Centro, Camocim - CE"
 
     _formularios_builtin = [
         FormularioModelo(nome="PPE", caminho="", geracao="por_participante", mapeamento={}),
@@ -206,6 +235,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             documentos_extras=_documentos_extras_padrao(),
             campos_entrada=_campos_entrada_padrao(),
             modo_fluxo="contrato",
+            max_participantes=4,
         ))
 
     # Garantir que o perfil SBPE sempre existe
@@ -216,6 +246,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             documentos_extras=_documentos_extras_sbpe(),
             campos_entrada=_campos_entrada_padrao(),
             modo_fluxo="contrato",
+            max_participantes=4,
         ))
 
     # Garantir que o perfil Form Cliente sempre existe
@@ -234,6 +265,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             campos_entrada=_campos_entrada_form_cliente(),
             modo_fluxo="formulario_simples",
             formato_saida="PDF",
+            max_participantes=4,
         ))
 
     # Garantir que o perfil ITBI sempre existe
@@ -252,6 +284,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             campos_entrada=_campos_entrada_itbi(),
             modo_fluxo="formulario_simples",
             formato_saida="PDF",
+            max_participantes=1,
         ))
 
     # Garantir que o perfil Isenção de Tributos sempre existe
@@ -270,6 +303,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             campos_entrada=_campos_entrada_isencao_tributos(),
             modo_fluxo="formulario_simples",
             formato_saida="PDF",
+            max_participantes=1,
         ))
 
     _perfis_cache = perfis
@@ -299,7 +333,7 @@ def _campos_entrada_form_cliente() -> list[CampoEntrada]:
             placeholder="Ex: 1234",
             escopo="participante",
             icone="briefcase",
-            aba="Geral",
+            aba="Conta CAIXA",
         ),
         CampoEntrada(
             id="conta_caixa",
@@ -309,27 +343,27 @@ def _campos_entrada_form_cliente() -> list[CampoEntrada]:
             placeholder="Ex: 00012345-6",
             escopo="participante",
             icone="briefcase",
-            aba="Geral",
+            aba="Conta CAIXA",
         ),
         CampoEntrada(
             id="autorizo_debito_parcela",
-            rotulo="Débito das parcelas",
+            rotulo="Débito de parcelas",
             tipo="CHECKBOX",
             obrigatorio=False,
             valor_padrao="Sim",
             escopo="global",
             icone="check",
-            aba="Geral",
+            aba="Autorizações e Débitos em Conta",
         ),
         CampoEntrada(
             id="autorizo_tarifa_avaliacao",
-            rotulo="Débito tarifa avaliação",
+            rotulo="Tarifa de avaliação",
             tipo="CHECKBOX",
             obrigatorio=False,
             valor_padrao="Sim",
             escopo="global",
             icone="check",
-            aba="Geral",
+            aba="Autorizações e Débitos em Conta",
         ),
         CampoEntrada(
             id="data_assinatura",
@@ -339,7 +373,7 @@ def _campos_entrada_form_cliente() -> list[CampoEntrada]:
             placeholder="DD/MM/AAAA",
             escopo="global",
             icone="calendar",
-            aba="Geral",
+            aba="Local e Data",
         ),
         CampoEntrada(
             id="local_assinatura",
@@ -349,7 +383,7 @@ def _campos_entrada_form_cliente() -> list[CampoEntrada]:
             placeholder="Ex: CAMOCIM-CE",
             escopo="global",
             icone="location",
-            aba="Geral",
+            aba="Local e Data",
         ),
     ]
 
@@ -370,37 +404,37 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="Ex: Rua das Flores, 123 - Centro",
             escopo="participante",
             icone="location",
-            aba="Comprador & Valores",
+            aba="Dados do Comprador",
         ),
         CampoEntrada(
             id="comprador_telefone",
             rotulo="Telefone",
-            tipo="TEXTO",
+            tipo="TELEFONE",
             obrigatorio=False,
             placeholder="Ex: (88) 99999-9999",
             escopo="participante",
             icone="help",
-            aba="Comprador & Valores",
+            aba="Dados do Comprador",
         ),
         CampoEntrada(
             id="comprador_email",
             rotulo="E-mail",
-            tipo="TEXTO",
+            tipo="EMAIL",
             obrigatorio=False,
             placeholder="Ex: comprador@email.com",
             escopo="participante",
             icone="globe",
-            aba="Comprador & Valores",
+            aba="Dados do Comprador",
         ),
         CampoEntrada(
             id="nome_vendedor",
-            rotulo="Nome do Vendedor",
+            rotulo="Nome Vendedor",
             tipo="TEXTO",
             obrigatorio=True,
             placeholder="Ex: CONSTRUTORA EXEMPLO LTDA",
             escopo="global",
             icone="person",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Vendedor",
         ),
         CampoEntrada(
             id="cpf_cnpj_vendedor",
@@ -410,28 +444,28 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="Ex: 00.000.000/0001-00",
             escopo="global",
             icone="document",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Vendedor",
         ),
         CampoEntrada(
             id="matricula",
-            rotulo="Matrícula do Imóvel",
+            rotulo="Matrícula",
             tipo="TEXTO",
             obrigatorio=True,
             placeholder="Ex: 12.345",
             escopo="global",
             icone="document",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="cartorio_oficio",
-            rotulo="Ofício do Cartório",
+            rotulo="Ofício Cartório",
             tipo="TEXTO",
             obrigatorio=True,
-            valor_padrao="2º",
-            placeholder="Ex: 2º",
+            valor_padrao="2",
+            placeholder="Ex: 2",
             escopo="global",
             icone="briefcase",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="cartorio_local",
@@ -442,108 +476,118 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="Ex: CAMOCIM-CE",
             escopo="global",
             icone="location",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="iptu",
-            rotulo="Inscrição de IPTU",
+            rotulo="Inscrição IPTU",
             tipo="TEXTO",
             obrigatorio=False,
             placeholder="Ex: 01.02.003.0004.001",
             escopo="global",
             icone="document",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="area_terreno",
             rotulo="Área Terreno (m²)",
-            tipo="TEXTO",
+            tipo="AREA",
             obrigatorio=True,
             placeholder="Ex: 200,00",
             escopo="global",
             icone="ratio",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="area_construida",
-            rotulo="Área Construída (m²)",
-            tipo="TEXTO",
+            rotulo="Área Constr. (m²)",
+            tipo="AREA",
             obrigatorio=False,
             placeholder="Ex: 65,50",
             escopo="global",
             icone="ratio",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="fracao_ideal",
             rotulo="Fração Ideal (%)",
             tipo="TEXTO",
             obrigatorio=True,
-            valor_padrao="100%",
-            placeholder="Ex: 100%",
+            valor_padrao="100",
+            placeholder="Ex: 100",
             escopo="global",
             icone="ratio",
-            aba="Vendedor & Imóvel",
+            aba="Dados do Imóvel e Cartório",
+        ),
+        CampoEntrada(
+            id="enquadramento_isencao",
+            rotulo="Enquadramento na Isenção (Lei 1648/2023)",
+            tipo="CHECKBOX",
+            valor_padrao="Sim",
+            obrigatorio=False,
+            escopo="global",
+            icone="check",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="endereco_imovel",
-            rotulo="Endereço do Imóvel",
+            rotulo="Endereço Imóvel",
             tipo="TEXTO",
             obrigatorio=True,
             placeholder="Ex: Rua das Flores, 123 - Centro, Camocim-CE",
             escopo="global",
             icone="location",
-            aba="Comprador & Valores",
+            aba="Dados do Imóvel e Cartório",
         ),
         CampoEntrada(
             id="valor_compra",
-            rotulo="Valor Compra e Venda",
+            rotulo="Compra e Venda",
             tipo="MOEDA",
             obrigatorio=True,
             placeholder="Ex: 180.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="valor_avaliacao",
-            rotulo="Valor Avaliação CAIXA",
+            rotulo="Avaliação CAIXA",
             tipo="MOEDA",
             obrigatorio=True,
             placeholder="Ex: 185.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="valor_financiado",
-            rotulo="Valor Financiamento",
+            rotulo="Financiamento",
             tipo="MOEDA",
             obrigatorio=True,
             placeholder="Ex: 140.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="valor_subsidio",
-            rotulo="Valor do Subsídio",
+            rotulo="Subsídio",
             tipo="MOEDA",
             obrigatorio=False,
             placeholder="Ex: 20.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="valor_fgts",
-            rotulo="Valor do FGTS",
+            rotulo="FGTS",
             tipo="MOEDA",
             obrigatorio=False,
             placeholder="Ex: 10.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="valor_recursos",
@@ -553,7 +597,7 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="Ex: 10.000,00",
             escopo="global",
             icone="calculator",
-            aba="Comprador & Valores",
+            aba="Valores da Operação",
         ),
         CampoEntrada(
             id="data_assinatura",
@@ -563,7 +607,7 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="DD/MM/AAAA",
             escopo="global",
             icone="calendar",
-            aba="Comprador & Valores",
+            aba="Local e Data",
         ),
         CampoEntrada(
             id="local_assinatura",
@@ -573,7 +617,7 @@ def _campos_entrada_itbi() -> list[CampoEntrada]:
             placeholder="Ex: CAMOCIM-CE",
             escopo="global",
             icone="location",
-            aba="Comprador & Valores",
+            aba="Local e Data",
         ),
     ]
 
@@ -589,7 +633,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             placeholder="Ex: 2008123456-7 SSP/CE",
             escopo="participante",
             icone="document",
-            aba="Geral",
+            aba="Qualificação do Requerente",
         ),
         CampoEntrada(
             id="estado_civil",
@@ -600,7 +644,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             valor_padrao="Solteiro(a)",
             escopo="participante",
             icone="person",
-            aba="Geral",
+            aba="Qualificação do Requerente",
         ),
         CampoEntrada(
             id="endereco",
@@ -610,7 +654,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             placeholder="Ex: Rua das Flores, 123 - Centro, Camocim - CE",
             escopo="participante",
             icone="location",
-            aba="Geral",
+            aba="Qualificação do Requerente",
         ),
         CampoEntrada(
             id="matricula",
@@ -620,7 +664,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             placeholder="Ex: 12.345",
             escopo="global",
             icone="document",
-            aba="Geral",
+            aba="Dados do Imóvel",
         ),
         CampoEntrada(
             id="data_assinatura",
@@ -630,7 +674,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             placeholder="DD/MM/AAAA",
             escopo="global",
             icone="calendar",
-            aba="Geral",
+            aba="Local e Data",
         ),
         CampoEntrada(
             id="local_assinatura",
@@ -640,7 +684,7 @@ def _campos_entrada_isencao_tributos() -> list[CampoEntrada]:
             placeholder="Ex: CAMOCIM-CE",
             escopo="global",
             icone="location",
-            aba="Geral",
+            aba="Local e Data",
         ),
     ]
 
@@ -757,11 +801,6 @@ def excluir_perfil(nome: str) -> None:
     perfis = carregar_perfis()
     perfis = [p for p in perfis if p.nome != nome]
     salvar_perfis(perfis)
-
-
-def listar_nomes_perfis() -> list[str]:
-    """Retorna a lista de nomes de todos os perfis."""
-    return [p.nome for p in carregar_perfis()]
 
 
 def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:

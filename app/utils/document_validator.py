@@ -74,6 +74,60 @@ def formatar_data_progressiva(valor: str) -> str:
         return f"{digitos[:2]}/{digitos[2:4]}/{digitos[4:]}"
 
 
+def formatar_moeda_progressiva(valor: str) -> str:
+    """
+    Aplica a máscara monetária brasileira progressiva conforme a digitação dos números.
+    Exemplos:
+      '5' -> '0,05'
+      '50' -> '0,50'
+      '50000' -> '500,00'
+      '5000000' -> '50.000,00'
+      '18000000' -> '180.000,00'
+    """
+    digitos = re.sub(r"\D", "", valor or "").lstrip("0")
+    if not digitos:
+        return ""
+    if len(digitos) == 1:
+        return f"0,0{digitos}"
+    elif len(digitos) == 2:
+        return f"0,{digitos}"
+    else:
+        inteiro = digitos[:-2]
+        centavos = digitos[-2:]
+        inteiro_fmt = f"{int(inteiro):,}".replace(",", ".")
+        return f"{inteiro_fmt},{centavos}"
+
+
+def formatar_area_progressiva(valor: str) -> str:
+    """Formata progressivamente uma área em m² com casas decimais (ex: 200,00 ou 1.250,50).
+    
+    Exemplos:
+    - "2" -> "0,02"
+    - "20" -> "0,20"
+    - "200" -> "2,00"
+    - "20000" -> "200,00"
+    - "6550" -> "65,50"
+    - "125000" -> "1.250,00"
+    """
+    if not valor:
+        return ""
+    digitos = re.sub(r"\D", "", valor)
+    if not digitos:
+        return ""
+    digitos = digitos.lstrip("0")
+    if not digitos:
+        return ""
+    if len(digitos) == 1:
+        return f"0,0{digitos}"
+    elif len(digitos) == 2:
+        return f"0,{digitos}"
+    else:
+        inteiro = digitos[:-2]
+        centavos = digitos[-2:]
+        inteiro_fmt = f"{int(inteiro):,}".replace(",", ".")
+        return f"{inteiro_fmt},{centavos}"
+
+
 def validar_cpf_ou_cnpj(valor: str) -> tuple[bool, str]:
     """
     Valida um documento que pode ser CPF ou CNPJ (tradicional ou alfanumérico).
@@ -99,3 +153,44 @@ def validar_cpf_ou_cnpj(valor: str) -> tuple[bool, str]:
         return False, "CNPJ inválido. Verifique os dígitos informados."
     else:
         return False, f"Documento inválido: esperado 11 dígitos (CPF) ou 14 dígitos (CNPJ). Informado: {len(limpo)} caracteres."
+
+
+def formatar_telefone_progressivo(valor: str) -> str:
+    """Formata progressivamente um número de telefone à medida que o usuário digita.
+    
+    Exemplos:
+    - "88" -> "(88"
+    - "889" -> "(88) 9"
+    - "889999" -> "(88) 9999"
+    - "8836211234" -> "(88) 3621-1234" (Fixo: 10 dígitos)
+    - "88999999999" -> "(88) 99999-9999" (Celular: 11 dígitos)
+    """
+    if not valor:
+        return ""
+    digitos = re.sub(r"\D", "", valor)[:11]
+    n = len(digitos)
+    if n == 0:
+        return ""
+    if n <= 2:
+        return f"({digitos}"
+    if n <= 6:
+        return f"({digitos[:2]}) {digitos[2:]}"
+    if n <= 10:
+        return f"({digitos[:2]}) {digitos[2:6]}-{digitos[6:]}"
+    return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
+
+
+def validar_telefone(valor: str) -> bool:
+    """Valida se o telefone possui 10 dígitos (fixo) ou 11 dígitos (celular)."""
+    if not valor or not valor.strip():
+        return True
+    digitos = re.sub(r"\D", "", valor)
+    return len(digitos) in (10, 11)
+
+
+def validar_email(valor: str) -> bool:
+    """Valida se o endereço de e-mail possui formato sintático válido."""
+    if not valor or not valor.strip():
+        return True
+    padrao = r"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$"
+    return bool(re.match(padrao, valor.strip()))

@@ -27,7 +27,10 @@ if not defined VIRTUAL_ENV (
     echo.
 )
 
-echo [1/5] Limpando builds anteriores...
+echo [1/5] Limpando builds anteriores e processos abertos...
+taskkill /F /IM Contracto_v%APP_VERSION%.exe /FI "USERNAME eq %USERNAME%" 2>nul
+taskkill /F /IM Contracto_v4.5.5.exe /FI "USERNAME eq %USERNAME%" 2>nul
+taskkill /F /IM Contracto.exe /FI "USERNAME eq %USERNAME%" 2>nul
 if exist app\build rmdir /s /q app\build
 if exist app\dist rmdir /s /q app\dist
 if exist dist rmdir /s /q dist

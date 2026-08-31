@@ -65,14 +65,16 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ## 🚀 Principais Recursos da Versão 4.5.5
 
-- **Seletor de Modos Avançado / Simples**: Chaveador integrado na barra superior com stepper dinâmico adaptativo.
-- **Preservação Inteligente de Dados**: Reaproveitamento instantâneo de dados cadastrais entre formulários diferentes.
-- **Novo Validador Universal de CNPJ**: Suporte completo ao CNPJ tradicional (14 dígitos numéricos) e ao **novo padrão de CNPJ Alfanumérico da Receita Federal** (*IN RFB nº 2.229/2024*), com cálculo via Módulo 11 ASCII e auto-formatação em tempo real.
-- **Interface e Tipografia Uniforme**: Alinhamento milimétrico de todos os campos da Etapa 1 e Etapa 2 (145px de largura uniforme para todos os rótulos), eliminando desalinhamentos e cortes visuais.
-- **Design System Dinâmico & Temas**: Suporte a temas Claro e Escuro, paletas de cores personalizáveis e ícones vetoriais de alta resolução.
-- **Gerenciador Modular de Perfis**: Crie, edite e duplique perfis com campos customizáveis em tipos padronizados (`TEXTO`, `CPF`, `CNPJ`, `DATA`, `MOEDA`, `SELECAO`, `CHECKBOX`).
-- **Conversão Silenciosa para PDF/A-2b**: Geração de documentos em conformidade ISO 19005-2 sem janelas piscando ou travamentos.
-- **Diagnóstico e Reparo Automatizado**: Verificação de integridade do ambiente com 1 clique na aba de Configurações.
+- **Seletor de Modos Avançado / Simples**: Alternância rápida na barra superior com suporte a formulários únicos (1 clique) e contratos completos.
+- **Preservação Inteligente de Dados**: Opção `[x] Preservar dados para Reutilizar` no modo simples para emissão em sequência de vários formulários sem redigitar dados cadastrais.
+- **Subtítulos de Seções e Layout Organizado**: Subtítulos agrupando visualmente *Dados do Vendedor*, *Dados do Imóvel e Cartório* e *Valores da Operação* em todos os formulários.
+- **Navegação por Teclado (<kbd>Tab</kbd>) & Anéis de Foco**: Auto-rolagem suave do viewport para acompanhar o foco do cursor e destaque visual com borda de 2px no widget ativo.
+- **Auto-Formatação de Valores, Áreas e Telefones**: Formatação em tempo real no padrão nacional (`0.000,00`), máscara para telefone `(00) 00000-0000` e validador de e-mail integrado.
+- **Enquadramento de Isenção no ITBI (Lei Municipal 1648/2023)**: Checkbox no perfil ITBI que insere o texto legal padrão de enquadramento na isenção no PDF quando ativado, ou limpa o conteúdo quando desativado.
+- **Correção de Placeholders Nativos**: Restauração imediata dos placeholders visuais em todas as entradas de dados sem necessidade de intervenção do usuário.
+- **Novo Validador Universal de CNPJ**: Suporte completo ao CNPJ tradicional e ao **novo padrão de CNPJ Alfanumérico da Receita Federal** (*IN RFB nº 2.229/2024*).
+- **Design System Dinâmico & Temas**: Transição fluida entre modo Claro e Escuro com cores de destaque vivas e arredondamento impecável dos seletores.
+- **Conversão Silenciosa para PDF/A-2b**: Geração de documentos em conformidade ISO 19005-2 via Ghostscript isolado em sandbox (`-dSAFER`).
 
 ---
 

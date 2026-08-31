@@ -90,26 +90,26 @@ class WelcomeModal:
 
         passos = [
             (
-                "1. Escolha o Modo de Trabalho (TopBar)",
-                "Alterne no topo entre 'Avançado' (Contratos com Etapa 1 e 2) ou 'Simples' (Emissão direta de Formulários avulsos: Form Cliente, ITBI, Isenção).",
+                "1. Escolha o Modo de Trabalho (Barra Superior)",
+                "Alterne no topo entre 'Avançado' (Contratos completos com Etapa 1 e Etapa 2) ou 'Simples' (Emissão direta de Formulários avulsos: Form Cliente, ITBI, Isenção).",
                 "Modos",
                 "profiles",
             ),
             (
                 "2. Preencha os Dados dos Participantes",
-                "Informe Nome e CPF (validação em tempo real). Os campos dinâmicos adaptam-se automaticamente ao perfil e modelo selecionados.",
+                "Informe Nome e CPF com validação e pontuação automática. Os campos adaptam-se automaticamente ao perfil e modelo selecionados.",
                 "Etapa 1",
                 "person",
             ),
             (
-                "3. Emissão Rápida & Preservação de Dados",
-                "Gere seus documentos em poucos segundos. Ative 'Preservar dados para Reutilizar' para emitir o próximo formulário sem precisar redigitar.",
+                "3. Emissão Rápida e Preservação de Dados",
+                "Gere seus documentos em PDF em poucos segundos. Deixe marcada a opção 'Preservar dados para Reutilizar' para emitir o próximo formulário sem precisar redigitar.",
                 "Geração",
                 "advance",
             ),
             (
-                "4. Conversão e Conformidade PDF/A-2b",
-                "No modo contrato, anexe os documentos da gerente e converta o dossiê automaticamente para o padrão oficial bancário ISO 19005-2.",
+                "4. Organização e Padrão Bancário (PDF/A)",
+                "No modo contrato, anexe os documentos da gerente e converta todo o processo automaticamente para o formato oficial e seguro do banco.",
                 "Etapa 2",
                 "folder",
             ),

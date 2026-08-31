@@ -127,6 +127,19 @@ COLOR_TEXT_DISABLED = ("#9E9E9E", "#757575")
 COLOR_BORDER = ("#E0E0E0", "#424242")
 COLOR_BORDER_ERROR = COLOR_ERROR
 
+def reload_theme() -> None:
+    """Limpa o cache de cores dinâmicas e sincroniza as variáveis de tema globais."""
+    global _cor_primaria_cache, _cor_hover_cache, _cor_light_cache, _cor_dark_grad_cache
+    global COLOR_PRIMARY, COLOR_PRIMARY_HOVER, COLOR_BORDER_FOCUS
+    _cor_primaria_cache = None
+    _cor_hover_cache = None
+    _cor_light_cache = None
+    _cor_dark_grad_cache = None
+    COLOR_PRIMARY = _cor_primaria()
+    COLOR_PRIMARY_HOVER = _cor_primaria_hover()
+    COLOR_BORDER_FOCUS = COLOR_PRIMARY
+
+
 # Aliases dinâmicos que serão recalculados
 COLOR_PRIMARY = "#005CA9"       # Será sobrescrito por reload_theme()
 COLOR_PRIMARY_HOVER = "#004785"
@@ -329,6 +342,55 @@ def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
         scroll_frame._parent_canvas.bind("<Configure>", _agendar_verificacao, add="+")
         scroll_frame._parent_frame.bind("<Configure>", _agendar_verificacao, add="+")
         _agendar_verificacao()
+    except Exception:
+        pass
+
+
+def rolar_para_widget_se_necessario(widget, scroll_frame: ctk.CTkScrollableFrame, margem: int = 40) -> None:
+    """Rola o CTkScrollableFrame para garantir que o widget focado esteja visível no viewport."""
+    try:
+        if not scroll_frame or not scroll_frame.winfo_exists() or not widget or not widget.winfo_exists():
+            return
+
+        canvas = scroll_frame._parent_canvas
+        if not canvas or not canvas.winfo_exists():
+            return
+
+        canvas_y = canvas.winfo_rooty()
+        canvas_h = canvas.winfo_height()
+        if canvas_h <= 1:
+            return
+
+        widget_y = widget.winfo_rooty()
+        widget_h = widget.winfo_height()
+
+        rel_top = widget_y - canvas_y
+        rel_bottom = rel_top + widget_h
+
+        # Se já estiver visível dentro dos limites, não alterar
+        if rel_top >= margem and rel_bottom <= (canvas_h - margem):
+            return
+
+        bbox = canvas.bbox("all")
+        if not bbox:
+            return
+
+        total_h = bbox[3] - bbox[1]
+        if total_h <= canvas_h or total_h <= 0:
+            return
+
+        y_view = canvas.yview()
+        current_top_in_content = y_view[0] * total_h
+
+        widget_pos_in_content = current_top_in_content + rel_top
+
+        if rel_top < margem:
+            target_content_y = max(0.0, widget_pos_in_content - margem)
+        else:
+            target_content_y = max(0.0, widget_pos_in_content + widget_h + margem - canvas_h)
+
+        target_fraction = max(0.0, min(1.0, target_content_y / total_h))
+        canvas.yview_moveto(target_fraction)
     except Exception:
         pass
 

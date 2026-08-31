@@ -5,13 +5,18 @@ Valida auto-formatação progressiva em tempo real e validação de CPF, CNPJ (i
 
 import unittest
 from utils.document_validator import (
-    limpar_documento,
-    limpar_apenas_digitos,
-    formatar_cpf_progressivo,
+    formatar_area_progressiva,
     formatar_cnpj_progressivo,
     formatar_cpf_ou_cnpj_progressivo,
+    formatar_cpf_progressivo,
     formatar_data_progressiva,
+    formatar_moeda_progressiva,
+    formatar_telefone_progressivo,
+    limpar_apenas_digitos,
+    limpar_documento,
     validar_cpf_ou_cnpj,
+    validar_email,
+    validar_telefone,
 )
 
 
@@ -81,6 +86,55 @@ class TestDocumentValidator(unittest.TestCase):
         valido, msg = validar_cpf_ou_cnpj("12345")
         self.assertFalse(valido)
         self.assertIn("esperado 11 dígitos", msg)
+
+    def test_formatar_moeda_progressiva(self):
+        self.assertEqual(formatar_moeda_progressiva(""), "")
+        self.assertEqual(formatar_moeda_progressiva("0"), "")
+        self.assertEqual(formatar_moeda_progressiva("5"), "0,05")
+        self.assertEqual(formatar_moeda_progressiva("50"), "0,50")
+        self.assertEqual(formatar_moeda_progressiva("500"), "5,00")
+        self.assertEqual(formatar_moeda_progressiva("5000"), "50,00")
+        self.assertEqual(formatar_moeda_progressiva("50000"), "500,00")
+        self.assertEqual(formatar_moeda_progressiva("500000"), "5.000,00")
+        self.assertEqual(formatar_moeda_progressiva("5000000"), "50.000,00")
+        self.assertEqual(formatar_moeda_progressiva("18000000"), "180.000,00")
+        self.assertEqual(formatar_moeda_progressiva("180.000,00"), "180.000,00")
+
+    def test_formatar_area_progressiva(self):
+        self.assertEqual(formatar_area_progressiva(""), "")
+        self.assertEqual(formatar_area_progressiva("0"), "")
+        self.assertEqual(formatar_area_progressiva("2"), "0,02")
+        self.assertEqual(formatar_area_progressiva("20"), "0,20")
+        self.assertEqual(formatar_area_progressiva("200"), "2,00")
+        self.assertEqual(formatar_area_progressiva("2000"), "20,00")
+        self.assertEqual(formatar_area_progressiva("20000"), "200,00")
+        self.assertEqual(formatar_area_progressiva("6550"), "65,50")
+        self.assertEqual(formatar_area_progressiva("125000"), "1.250,00")
+
+    def test_formatar_telefone_progressivo(self):
+        self.assertEqual(formatar_telefone_progressivo(""), "")
+        self.assertEqual(formatar_telefone_progressivo("8"), "(8")
+        self.assertEqual(formatar_telefone_progressivo("88"), "(88")
+        self.assertEqual(formatar_telefone_progressivo("889"), "(88) 9")
+        self.assertEqual(formatar_telefone_progressivo("889999"), "(88) 9999")
+        self.assertEqual(formatar_telefone_progressivo("8836211234"), "(88) 3621-1234")
+        self.assertEqual(formatar_telefone_progressivo("88999999999"), "(88) 99999-9999")
+
+    def test_validar_telefone(self):
+        self.assertTrue(validar_telefone(""))
+        self.assertTrue(validar_telefone("(88) 3621-1234"))
+        self.assertTrue(validar_telefone("(88) 99999-9999"))
+        self.assertTrue(validar_telefone("88999999999"))
+        self.assertFalse(validar_telefone("123"))
+        self.assertFalse(validar_telefone("1234567890123"))
+
+    def test_validar_email(self):
+        self.assertTrue(validar_email(""))
+        self.assertTrue(validar_email("usuario@exemplo.com"))
+        self.assertTrue(validar_email("nome.sobrenome@dominio.com.br"))
+        self.assertFalse(validar_email("usuario@"))
+        self.assertFalse(validar_email("usuario@exemplo"))
+        self.assertFalse(validar_email("usuario.com"))
 
 
 if __name__ == "__main__":

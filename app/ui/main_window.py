@@ -44,7 +44,7 @@ from ui.theme import (
     SPACING_XSMALL,
     aplicar_gradiente, configurar_autoscroll, configure_appearance, get_color_primary,
     get_color_primary_dark_gradient, get_color_primary_hover, get_color_primary_light,
-    get_color_primary_text, get_font, get_icon, reload_theme,
+    get_color_primary_text, get_font, get_icon, reload_theme, rolar_para_widget_se_necessario,
 )
 from utils import config_manager
 from utils.date_formatter import validar_data
@@ -272,8 +272,8 @@ class MainWindow(ctk.CTk):
 
         self.frame_switch_bg = ctk.CTkFrame(
             frame_switch,
-            fg_color=COLOR_SURFACE_VARIANT,
-            corner_radius=RADIUS_BUTTON,
+            fg_color="transparent",
+            corner_radius=0,
             height=30,
         )
         self.frame_switch_bg.pack(side="left")
@@ -283,7 +283,7 @@ class MainWindow(ctk.CTk):
             text="Simples",
             width=70,
             height=26,
-            corner_radius=RADIUS_BUTTON - 2,
+            corner_radius=RADIUS_BUTTON,
             font=get_font(FONT_SIZE_CAPTION, "bold"),
             command=lambda: self._ao_alterar_modo_operacao("simples"),
         )
@@ -294,7 +294,7 @@ class MainWindow(ctk.CTk):
             text="Avançado",
             width=76,
             height=26,
-            corner_radius=RADIUS_BUTTON - 2,
+            corner_radius=RADIUS_BUTTON,
             font=get_font(FONT_SIZE_CAPTION, "bold"),
             command=lambda: self._ao_alterar_modo_operacao("avancado"),
         )
@@ -510,35 +510,44 @@ class MainWindow(ctk.CTk):
         self.dropdown_perfil.pack(side="left")
 
     def _atualizar_botoes_modo(self, modo: str) -> None:
-        """Atualiza o estilo visual dos botões do seletor de modo com a cor ativa do tema."""
+        """Atualiza o estilo visual dos botões do seletor de modo com o quadro arredondado ativo."""
         if not hasattr(self, "btn_modo_simples") or not hasattr(self, "btn_modo_avancado"):
             return
 
         is_simples = (modo == "simples")
-        cor_destaque = get_color_primary()
-        cor_destaque_hover = get_color_primary_hover()
+        cor_destaque = get_color_primary_hover()
 
         if is_simples:
             self.btn_modo_simples.configure(
                 fg_color=cor_destaque,
-                hover_color=cor_destaque_hover,
+                hover_color=cor_destaque,
                 text_color="#FFFFFF",
+                border_width=1,
+                border_color="#FFFFFF",
+                corner_radius=RADIUS_BUTTON,
             )
             self.btn_modo_avancado.configure(
                 fg_color="transparent",
-                hover_color=COLOR_BORDER,
-                text_color=COLOR_TEXT_SECONDARY,
+                hover_color=get_color_primary_hover(),
+                text_color="#CBD5E1",
+                border_width=0,
+                corner_radius=RADIUS_BUTTON,
             )
         else:
             self.btn_modo_avancado.configure(
                 fg_color=cor_destaque,
-                hover_color=cor_destaque_hover,
+                hover_color=cor_destaque,
                 text_color="#FFFFFF",
+                border_width=1,
+                border_color="#FFFFFF",
+                corner_radius=RADIUS_BUTTON,
             )
             self.btn_modo_simples.configure(
                 fg_color="transparent",
-                hover_color=COLOR_BORDER,
-                text_color=COLOR_TEXT_SECONDARY,
+                hover_color=get_color_primary_hover(),
+                text_color="#CBD5E1",
+                border_width=0,
+                corner_radius=RADIUS_BUTTON,
             )
 
     def _ao_alterar_modo_operacao(self, modo_str: str) -> None:
@@ -579,14 +588,6 @@ class MainWindow(ctk.CTk):
                 text_color=get_color_primary_text(),
             )
             self.lbl_etapa1.grid(row=0, column=0, columnspan=3, pady=SPACING_MEDIUM, sticky="n")
-
-            if hasattr(self, "botao_adicionar"):
-                self.botao_adicionar.grid_remove()
-
-            # No modo simples, restringir a apenas 1 participante
-            if len(self.participant_frames) > 1:
-                for f in list(self.participant_frames[1:]):
-                    self._remover_participante(f)
         else:
             self.lbl_etapa1.configure(
                 text=" 1. Geração de Documentos",
@@ -735,8 +736,32 @@ class MainWindow(ctk.CTk):
             if hasattr(self, 'botao_adicionar'):
                 self.botao_adicionar.configure(
                     text_color=get_color_primary_text(),
-                    border_color=get_color_primary()
+                    border_color=get_color_primary_text()
                 )
+
+            # Atualizar seletor de modo
+            modo_atual = config_manager.obter("modo_operacao") or "avancado"
+            self._atualizar_botoes_modo(modo_atual)
+
+            # Atualizar checkbox de preservação de dados
+            if hasattr(self, "chk_preservar_dados"):
+                self.chk_preservar_dados.configure(
+                    fg_color=get_color_primary(),
+                    hover_color=get_color_primary_hover()
+                )
+
+            # Atualizar subtítulos globais
+            if hasattr(self, "_subtitulos_labels"):
+                for lbl in self._subtitulos_labels:
+                    try:
+                        lbl.configure(text_color=get_color_primary_text())
+                    except Exception:
+                        pass
+
+            # Atualizar widgets dinâmicos globais (como checkboxes de tarifas)
+            for w in self.widgets_dinamicos_globais.values():
+                if hasattr(w, "atualizar_cores"):
+                    w.atualizar_cores()
             
             # Atualizar frames de participantes
             if hasattr(self, 'participant_frames'):
@@ -855,16 +880,23 @@ class MainWindow(ctk.CTk):
         # 2. Reconstruir campos globais na Seção de Destino
         self._reconstruir_campos_globais_saida(perfil)
 
-        # 3. Controlar visibilidade do botão de adicionar participante no modo simples
+        # 3. Controlar visibilidade do botão de adicionar participante baseado em perfil.max_participantes
+        max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
+        if len(self.participant_frames) > max_part:
+            for f in list(self.participant_frames[max_part:]):
+                try:
+                    f.destroy()
+                except Exception:
+                    pass
+            self.participant_frames = self.participant_frames[:max_part]
+            for novo_indice, restante in enumerate(self.participant_frames, start=1):
+                restante.atualizar_indice(novo_indice)
+
         if hasattr(self, "botao_adicionar"):
-            if is_simples and perfil and perfil.formularios and perfil.formularios[0].geracao == "por_participante":
-                if len(self.participant_frames) > 1:
-                    for f in self.participant_frames[1:]:
-                        f.destroy()
-                    self.participant_frames = [self.participant_frames[0]]
-                self.botao_adicionar.grid_remove()
-            else:
+            if len(self.participant_frames) < max_part:
                 self.botao_adicionar.grid()
+            else:
+                self.botao_adicionar.grid_remove()
 
         # 4. Atualizar texto do botão de ação da Etapa 1
         if hasattr(self, "botao_avancar"):
@@ -888,10 +920,53 @@ class MainWindow(ctk.CTk):
         if hasattr(self, 'label_formato_etapa2') and perfil:
             self.label_formato_etapa2.configure(text=f"Formato de saída: {perfil.formato_saida}")
 
+    def _criar_subtitulo_secao(self, master, titulo: str) -> ctk.CTkFrame:
+        """Cria um cabeçalho/subtítulo elegante com ícone e linha divisória sutil."""
+        frame = ctk.CTkFrame(master, fg_color="transparent")
+        frame.grid_columnconfigure(0, weight=1)
+
+        t_low = titulo.lower()
+        if "vendedor" in t_low:
+            icone = "person"
+        elif "imóvel" in t_low or "imovel" in t_low or "cartório" in t_low or "cartorio" in t_low:
+            icone = "location"
+        elif "valor" in t_low or "pagamento" in t_low or "operação" in t_low or "operacao" in t_low or "financiamento" in t_low:
+            icone = "calculator"
+        elif "autoriza" in t_low or "débito" in t_low or "debito" in t_low or "conta" in t_low:
+            icone = "check"
+        elif "qualifica" in t_low or "requerente" in t_low:
+            icone = "document"
+        else:
+            icone = "briefcase"
+
+        header_box = ctk.CTkFrame(frame, fg_color="transparent")
+        header_box.grid(row=0, column=0, sticky="ew", padx=SPACING_LARGE, pady=(SPACING_MEDIUM, 2))
+
+        lbl = ctk.CTkLabel(
+            header_box,
+            text=f" {titulo}",
+            image=get_icon(icone, (15, 15)),
+            compound="left",
+            font=get_font(FONT_SIZE_BODY, "bold"),
+            text_color=get_color_primary_text(),
+        )
+        lbl.pack(side="left")
+        if not hasattr(self, "_subtitulos_labels"):
+            self._subtitulos_labels = []
+        self._subtitulos_labels.append(lbl)
+
+        linha = ctk.CTkFrame(frame, height=1, fg_color=COLOR_BORDER)
+        linha.grid(row=1, column=0, sticky="ew", padx=SPACING_LARGE, pady=(2, SPACING_XSMALL))
+
+        return frame
+
     def _reconstruir_campos_globais_saida(self, perfil: Optional[Perfil]) -> None:
         """Reconstrói dinamicamente os campos de escopo global na seção de destino."""
         if not hasattr(self, "container_campos_globais"):
             return
+
+        if hasattr(self, "_subtitulos_labels"):
+            self._subtitulos_labels.clear()
 
         valores_atuais = {cid: w.obter_valor() for cid, w in self.widgets_dinamicos_globais.items()}
 
@@ -902,15 +977,37 @@ class MainWindow(ctk.CTk):
                 pass
         self.widgets_dinamicos_globais.clear()
 
+        if hasattr(self, "_frames_subtitulos_globais"):
+            for f in self._frames_subtitulos_globais:
+                try:
+                    f.destroy()
+                except Exception:
+                    pass
+        self._frames_subtitulos_globais = []
+
         if not perfil:
             self.container_campos_globais.grid_remove()
             return
 
         campos_globais = perfil.obter_campos_globais()
+        if not any(c.id not in ("data_assinatura", "local_assinatura") for c in campos_globais):
+            self.container_campos_globais.grid_remove()
+            return
+
+        self.container_campos_globais.grid()
         linha = 0
+        secao_anterior = None
         for campo in campos_globais:
             if campo.id in ("data_assinatura", "local_assinatura"):
                 continue
+
+            nome_secao = campo.aba.strip() if campo.aba else ""
+            if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
+                frame_sub = self._criar_subtitulo_secao(self.container_campos_globais, nome_secao)
+                frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                self._frames_subtitulos_globais.append(frame_sub)
+                linha += 1
+                secao_anterior = nome_secao
 
             widget_campo = CampoDinamicoWidget(
                 self.container_campos_globais,
@@ -970,9 +1067,32 @@ class MainWindow(ctk.CTk):
         for pf in self.participant_frames:
             pf.limpar_campos()
         self.entry_data.delete(0, "end")
+        if hasattr(self.entry_data, "_activate_placeholder"):
+            try:
+                self.entry_data._activate_placeholder()
+            except Exception:
+                pass
         self.entry_data.configure(border_color=COLOR_BORDER)
         for w in self.widgets_dinamicos_globais.values():
             w.limpar()
+
+    def _ao_foco_widget(self, widget, border_color=None, border_width=2) -> None:
+        """Destaca visualmente o elemento em foco e ajusta o scroll se necessário."""
+        try:
+            widget.configure(border_color=border_color or get_color_primary(), border_width=border_width)
+            if hasattr(self, "scroll_etapa1"):
+                self.after(50, lambda: rolar_para_widget_se_necessario(widget, self.scroll_etapa1))
+        except Exception:
+            pass
+
+    def _ao_desfoco_widget(self, widget, callback_validar=None, default_border_width=1, default_border_color=COLOR_BORDER) -> None:
+        """Restaura o estilo padrão ao perder o foco."""
+        try:
+            widget.configure(border_width=default_border_width, border_color=default_border_color)
+            if callback_validar:
+                callback_validar()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # ETAPA 1: Preenchimento e Validação (Estrutura Responsiva e Flexível)
@@ -1021,6 +1141,8 @@ class MainWindow(ctk.CTk):
             command=self._ao_clicar_avancar,
         )
         self.botao_avancar.grid(row=1, column=0, sticky="ew")
+        self.botao_avancar.bind("<FocusIn>", lambda e: self.botao_avancar.configure(border_width=2, border_color="#FFFFFF"))
+        self.botao_avancar.bind("<FocusOut>", lambda e: self.botao_avancar.configure(border_width=0))
 
     def _construir_secao_participantes(self) -> None:
         self.secao_participantes = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
@@ -1048,6 +1170,8 @@ class MainWindow(ctk.CTk):
             command=self._adicionar_participante,
         )
         self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
+        self.botao_adicionar.bind("<FocusIn>", lambda e: self._ao_foco_widget(self.botao_adicionar, border_color=get_color_primary(), border_width=2))
+        self.botao_adicionar.bind("<FocusOut>", lambda e: self._ao_desfoco_widget(self.botao_adicionar, default_border_width=1, default_border_color=get_color_primary_text()))
 
     def _construir_secao_saida(self) -> None:
         secao = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
@@ -1056,7 +1180,7 @@ class MainWindow(ctk.CTk):
         secao.grid_columnconfigure(1, weight=1)
 
         titulo = ctk.CTkLabel(
-            secao, text=" Destino & Dados Complementares",
+            secao, text=" Destino e Dados Complementares",
             image=get_icon("briefcase", (18, 18)), compound="left",
             font=get_font(FONT_SIZE_H3, "bold"), text_color=COLOR_TEXT
         )
@@ -1090,7 +1214,8 @@ class MainWindow(ctk.CTk):
         self.entry_data = ctk.CTkEntry(frame_data, placeholder_text="DD/MM/AAAA", corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         self.entry_data.grid(row=0, column=0, sticky="ew")
         self.entry_data.bind("<KeyRelease>", self._ao_digitar_data)
-        self.entry_data.bind("<FocusOut>", lambda e: self._validar_data_realtime())
+        self.entry_data.bind("<FocusIn>", lambda e: self._ao_foco_widget(self.entry_data))
+        self.entry_data.bind("<FocusOut>", lambda e: self._ao_desfoco_widget(self.entry_data, self._validar_data_realtime))
         
         self.btn_calendar = ctk.CTkButton(
             frame_data, text="", image=self.icon_calendar, width=40, corner_radius=RADIUS_BUTTON,
@@ -1112,7 +1237,8 @@ class MainWindow(ctk.CTk):
         self.entry_local.grid(row=1, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self.entry_local.insert(0, config_manager.obter("local_padrao") or "CAMOCIM-CE")
         self.entry_local.bind("<KeyRelease>", lambda e: self._validar_local_realtime())
-        self.entry_local.bind("<FocusOut>", lambda e: self._validar_local_realtime())
+        self.entry_local.bind("<FocusIn>", lambda e: self._ao_foco_widget(self.entry_local))
+        self.entry_local.bind("<FocusOut>", lambda e: self._ao_desfoco_widget(self.entry_local, self._validar_local_realtime))
 
         # Pasta padrão Downloads
         if os.name == "nt":
@@ -1178,10 +1304,17 @@ class MainWindow(ctk.CTk):
             return True
 
     def _adicionar_participante(self, principal: bool = False) -> None:
-        indice = len(self.participant_frames) + 1
-        local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
         perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
         perfil = obter_perfil(perfil_nome)
+        max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
+
+        if not principal and len(self.participant_frames) >= max_part:
+            if hasattr(self, "botao_adicionar"):
+                self.botao_adicionar.grid_remove()
+            return
+
+        indice = len(self.participant_frames) + 1
+        local_padrao = config_manager.obter("local_padrao") or "CAMOCIM-CE"
         campos_participante = perfil.obter_campos_participante() if perfil else None
 
         frame = ParticipantFrame(
@@ -1193,18 +1326,32 @@ class MainWindow(ctk.CTk):
             on_open_datepicker=lambda entry: DatePickerPopup(self, entry),
             local_padrao=local_padrao,
         )
-        frame.grid(row=indice - 1, column=0, padx=SPACING_XSMALL,
+        frame.grid(row=indice - 1, column=0, padx=SPACING_SMALL,
                    pady=SPACING_SMALL, sticky="ew")
         self.participant_frames.append(frame)
 
         if not principal:
             frame.piscar_destaque()
 
+        if hasattr(self, "botao_adicionar"):
+            if len(self.participant_frames) < max_part:
+                self.botao_adicionar.grid()
+            else:
+                self.botao_adicionar.grid_remove()
+
     def _remover_participante(self, frame: ParticipantFrame) -> None:
         frame.destroy()
-        self.participant_frames.remove(frame)
+        if frame in self.participant_frames:
+            self.participant_frames.remove(frame)
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
+
+        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        perfil = obter_perfil(perfil_nome)
+        max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
+        if hasattr(self, "botao_adicionar"):
+            if len(self.participant_frames) < max_part:
+                self.botao_adicionar.grid()
 
     def _verificar_permissao_escrita(self, pasta: Path) -> bool:
         if not pasta or not pasta.exists():
@@ -1296,23 +1443,36 @@ class MainWindow(ctk.CTk):
 
     def _executar_geracao_simples(self, participantes: list[Participant], perfil: Perfil) -> None:
         """Gera o formulário simples diretamente sem passar pela Etapa 2."""
-        from ui.loading_modal import LoadingModal
-        from services.generator_service import gerar_documentos
+        try:
+            from ui.loading_modal import LoadingModal
+            from services.generator_service import gerar_documentos
 
-        modal = LoadingModal(self, titulo=f"Gerando {perfil.nome}...")
+            modal = LoadingModal(
+                self,
+                message=f"Gerando {perfil.nome}...",
+                submessage="Preenchendo e salvando o documento...",
+            )
 
-        def _tarefa():
-            try:
-                res = gerar_documentos(
-                    participantes=participantes,
-                    perfil=perfil,
-                    pasta_saida=self.pasta_saida,
-                )
-                self.after(0, lambda: self._pos_geracao_simples(modal, res, perfil))
-            except Exception as e:
-                self.after(0, lambda: self._falha_geracao_simples(modal, str(e)))
+            def _tarefa():
+                try:
+                    res = gerar_documentos(
+                        participantes=participantes,
+                        perfil=perfil,
+                        pasta_saida=self.pasta_saida,
+                    )
+                    self.after(0, lambda: self._pos_geracao_simples(modal, res, perfil))
+                except Exception as e:
+                    self.after(0, lambda: self._falha_geracao_simples(modal, str(e)))
 
-        threading.Thread(target=_tarefa, daemon=True).start()
+            threading.Thread(target=_tarefa, daemon=True).start()
+        except Exception as e:
+            from ui.alert_modal import AlertModal
+            AlertModal(
+                self,
+                titulo="Erro na Geração",
+                subtitulo="Ocorreu um problema ao iniciar a geração:",
+                erros=[str(e)],
+            )
 
     def _pos_geracao_simples(self, modal, resultado, perfil) -> None:
         try:
@@ -1324,7 +1484,14 @@ class MainWindow(ctk.CTk):
         total = len(resultado.arquivos_gerados)
 
         if total > 0:
-            show_toast(self, f"{perfil.nome} gerado com sucesso!", "success")
+            from ui.success_modal import SuccessModal
+            SuccessModal(
+                self,
+                titulo=f"{perfil.nome} Gerado com Sucesso!",
+                subtitulo="O formulário foi preenchido e salvo com sucesso:",
+                arquivos_gerados=resultado.arquivos_gerados,
+                pasta_destino=self.pasta_saida,
+            )
             if config_manager.obter("abrir_pasta_ao_concluir"):
                 self._abrir_pasta(self.pasta_saida)
 
@@ -1480,6 +1647,8 @@ class MainWindow(ctk.CTk):
             command=lambda: self._mostrar_tela("inicio"),
         )
         self.botao_voltar.grid(row=0, column=0, padx=(0, SPACING_MEDIUM))
+        self.botao_voltar.bind("<FocusIn>", lambda e: self.botao_voltar.configure(border_width=2, border_color=get_color_primary()))
+        self.botao_voltar.bind("<FocusOut>", lambda e: self.botao_voltar.configure(border_width=1, border_color=COLOR_BORDER))
 
         self.botao_finalizar = ctk.CTkButton(
             frame_botoes,
@@ -1495,6 +1664,8 @@ class MainWindow(ctk.CTk):
             command=self._ao_clicar_finalizar,
         )
         self.botao_finalizar.grid(row=0, column=1, sticky="ew")
+        self.botao_finalizar.bind("<FocusIn>", lambda e: self.botao_finalizar.configure(border_width=2, border_color="#FFFFFF"))
+        self.botao_finalizar.bind("<FocusOut>", lambda e: self.botao_finalizar.configure(border_width=0))
 
     def _carregar_formularios_dinamicos_etapa2(self) -> None:
         """Recarrega a checklist de formulários dinâmicos baseando-se no perfil ativo."""

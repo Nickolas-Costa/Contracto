@@ -67,7 +67,7 @@ class ProfilesFrame(ctk.CTkFrame):
             text_color=COLOR_TEXT_SECONDARY,
         ).grid(row=1, column=0, sticky="w", pady=(SPACING_SMALL, 0))
 
-        ctk.CTkButton(
+        self.btn_novo_perfil = ctk.CTkButton(
             self.header_perfis, text=" + Novo Perfil",
             image=get_icon("save", (16, 16)), compound="left",
             width=135,
@@ -76,7 +76,8 @@ class ProfilesFrame(ctk.CTkFrame):
             hover_color=COLOR_SURFACE_VARIANT,
             corner_radius=RADIUS_BUTTON,
             command=self._criar_novo,
-        ).grid(row=0, column=1, sticky="e")
+        )
+        self.btn_novo_perfil.grid(row=0, column=1, sticky="e")
 
     def _construir_lista_perfis(self) -> None:
         self.scroll_perfis = ctk.CTkScrollableFrame(
@@ -131,9 +132,25 @@ class ProfilesFrame(ctk.CTkFrame):
         self.edit_formato.grid(row=2, column=1, padx=(0, SPACING_LARGE),
                                pady=SPACING_SMALL, sticky="ew")
 
+        # Máximo de Participantes
+        ctk.CTkLabel(
+            self.scroll_editor, text=" Participantes:",
+            image=get_icon("person", (16, 16)), compound="left",
+            font=get_font(FONT_SIZE_BODY), text_color=COLOR_TEXT
+        ).grid(row=3, column=0, padx=(SPACING_LARGE, SPACING_SMALL), pady=SPACING_SMALL, sticky="w")
+        self.edit_max_participantes = ctk.CTkSegmentedButton(
+            self.scroll_editor, values=["1", "2", "3", "4"],
+            font=get_font(FONT_SIZE_BODY),
+            corner_radius=RADIUS_BUTTON,
+            selected_color=get_color_primary(),
+            selected_hover_color=get_color_primary_hover(),
+        )
+        self.edit_max_participantes.grid(row=3, column=1, padx=(0, SPACING_LARGE),
+                                         pady=SPACING_SMALL, sticky="ew")
+
         # Formulários Dinâmicos
         header_form = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        header_form.grid(row=3, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        header_form.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         header_form.grid_columnconfigure(0, weight=1)
         
         ctk.CTkLabel(header_form, text="Formulários Dinâmicos:", font=get_font(FONT_SIZE_BODY, "bold"),
@@ -144,12 +161,12 @@ class ProfilesFrame(ctk.CTkFrame):
                       command=self._adicionar_formulario).grid(row=0, column=1, sticky="e")
 
         self.scroll_forms = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        self.scroll_forms.grid(row=4, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        self.scroll_forms.grid(row=5, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_forms.grid_columnconfigure(0, weight=1)
 
         # Documentos Extras (Etapa 2)
         header_extras = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        header_extras.grid(row=5, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        header_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         header_extras.grid_columnconfigure(0, weight=1)
         
         ctk.CTkLabel(header_extras, text="Documentos Extras (Etapa 2):", font=get_font(FONT_SIZE_BODY, "bold"),
@@ -160,12 +177,12 @@ class ProfilesFrame(ctk.CTkFrame):
                       command=self._adicionar_documento_extra).grid(row=0, column=1, sticky="e")
 
         self.scroll_extras = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        self.scroll_extras.grid(row=6, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        self.scroll_extras.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_extras.grid_columnconfigure(0, weight=1)
 
         # Campos de Entrada (Etapa 1)
         header_campos = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        header_campos.grid(row=7, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        header_campos.grid(row=8, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         header_campos.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(header_campos, text="Campos de Entrada (Etapa 1):", font=get_font(FONT_SIZE_BODY, "bold"),
@@ -176,12 +193,12 @@ class ProfilesFrame(ctk.CTkFrame):
                       command=self._adicionar_campo_entrada).grid(row=0, column=1, sticky="e")
 
         self.scroll_campos = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        self.scroll_campos.grid(row=8, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
+        self.scroll_campos.grid(row=9, column=0, columnspan=2, padx=SPACING_LARGE, pady=SPACING_SMALL, sticky="ew")
         self.scroll_campos.grid_columnconfigure(0, weight=1)
 
         # Botões do editor
         frame_btns = ctk.CTkFrame(self.scroll_editor, fg_color="transparent")
-        frame_btns.grid(row=9, column=0, columnspan=2, padx=SPACING_LARGE,
+        frame_btns.grid(row=10, column=0, columnspan=2, padx=SPACING_LARGE,
                         pady=(SPACING_SMALL, SPACING_LARGE), sticky="ew")
         frame_btns.grid_columnconfigure(1, weight=1)
 
@@ -191,11 +208,13 @@ class ProfilesFrame(ctk.CTkFrame):
                       corner_radius=RADIUS_BUTTON, command=self._fechar_editor
                       ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
 
-        ctk.CTkButton(frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16), light_only=True), compound="left",
-                      fg_color=get_color_primary(), text_color="#FFFFFF",
-                      hover_color=get_color_primary_hover(), corner_radius=RADIUS_BUTTON,
-                      command=self._salvar_edicao
-                      ).grid(row=0, column=1, sticky="ew")
+        self.btn_salvar_perfil = ctk.CTkButton(
+            frame_btns, text=" Salvar Perfil", image=get_icon("save", (16, 16), light_only=True), compound="left",
+            fg_color=get_color_primary(), text_color="#FFFFFF",
+            hover_color=get_color_primary_hover(), corner_radius=RADIUS_BUTTON,
+            command=self._salvar_edicao
+        )
+        self.btn_salvar_perfil.grid(row=0, column=1, sticky="ew")
 
         configurar_autoscroll(self.scroll_editor)
 
@@ -317,6 +336,7 @@ class ProfilesFrame(ctk.CTkFrame):
         self.edit_nome.insert(0, perfil.nome)
 
         self.edit_formato.set(perfil.formato_saida)
+        self.edit_max_participantes.set(str(getattr(perfil, "max_participantes", 4) or 4))
         
         self._atualizar_lista_formularios_editando()
         self._atualizar_lista_documentos_editando()
@@ -505,10 +525,10 @@ class ProfilesFrame(ctk.CTkFrame):
         dropdown_escopo = ctk.CTkComboBox(f_campos, values=["participante", "global"], variable=escopo_var, state="readonly")
         dropdown_escopo.grid(row=3, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
 
-        # 5. Aba / Seção
-        ctk.CTkLabel(f_campos, text="Aba / Seção:", font=get_font(FONT_SIZE_BODY, "bold"),
+        # 5. Seção / Subtítulo
+        ctk.CTkLabel(f_campos, text="Seção / Subtítulo:", font=get_font(FONT_SIZE_BODY, "bold"),
                      text_color=COLOR_TEXT).grid(row=4, column=0, sticky="w", pady=4)
-        entry_aba = ctk.CTkEntry(f_campos, placeholder_text="Ex: Geral, Dados do Imóvel, etc.")
+        entry_aba = ctk.CTkEntry(f_campos, placeholder_text="Ex: Dados do Vendedor, Valores da Operação, etc.")
         entry_aba.grid(row=4, column=1, sticky="ew", padx=(SPACING_SMALL, 0), pady=4)
         entry_aba.insert(0, campo_existente.aba if (campo_existente and campo_existente.aba) else "Geral")
 
@@ -905,12 +925,17 @@ class ProfilesFrame(ctk.CTkFrame):
             AlertModal(self.winfo_toplevel(), "Nome Obrigatório", "Por favor, informe o nome do perfil.", ["O nome do perfil não pode ficar em branco."])
             return
 
+        max_part = int(self.edit_max_participantes.get() or "4")
+        modo_fluxo = getattr(self._perfil_editando, "modo_fluxo", "contrato") if self._perfil_editando else "contrato"
+
         perfil = Perfil(
             nome=nome,
             formularios=self._formularios_editando.copy(),
             documentos_extras=self._documentos_extras_editando.copy(),
             campos_entrada=self._campos_entrada_editando.copy(),
             formato_saida=self.edit_formato.get(),
+            modo_fluxo=modo_fluxo,
+            max_participantes=max_part,
         )
 
         try:
@@ -953,6 +978,26 @@ class ProfilesFrame(ctk.CTkFrame):
         )
 
     def atualizar_cores(self) -> None:
-        """Atualiza a tela de perfis ao mudar o tema, recarregando a lista."""
+        """Atualiza a tela de perfis ao mudar o tema, recarregando a lista e controles."""
+        if hasattr(self, 'btn_novo_perfil'):
+            self.btn_novo_perfil.configure(
+                text_color=get_color_primary_text(),
+                border_color=get_color_primary_text()
+            )
+        if hasattr(self, 'edit_formato'):
+            self.edit_formato.configure(
+                selected_color=get_color_primary(),
+                selected_hover_color=get_color_primary_hover()
+            )
+        if hasattr(self, 'edit_max_participantes'):
+            self.edit_max_participantes.configure(
+                selected_color=get_color_primary(),
+                selected_hover_color=get_color_primary_hover()
+            )
+        if hasattr(self, 'btn_salvar_perfil'):
+            self.btn_salvar_perfil.configure(
+                fg_color=get_color_primary(),
+                hover_color=get_color_primary_hover()
+            )
         self._fechar_editor()
         self._carregar_lista()

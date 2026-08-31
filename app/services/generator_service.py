@@ -138,6 +138,7 @@ def mapeamento_padrao_itbi() -> dict[str, str]:
         "DIA": "data.dia",
         "MES": "data.mes",
         "ANO": "data.ano",
+        "TEXTO_ISENCAO": "global.texto_isencao",
     }
 
 
@@ -215,11 +216,16 @@ def validar_antes_de_gerar(
             )
 
     principal = participantes[0]
-    if not principal.endereco.strip():
-        erros.append("O Endereço Completo é obrigatório.")
-    if not principal.data_assinatura.strip():
+    tem_campo_endereco = any(c.id == "endereco" and c.obrigatorio for c in perfil.campos_entrada)
+    if (getattr(perfil, "modo_fluxo", "contrato") == "contrato" or tem_campo_endereco):
+        end_val = str(principal.obter_campo("endereco", "")).strip()
+        if not end_val:
+            erros.append("O Endereço Completo é obrigatório.")
+
+    data_val = str(principal.obter_campo("data_assinatura", "")).strip()
+    if not data_val:
         erros.append("A Data da assinatura é obrigatória.")
-    elif not validar_data(principal.data_assinatura):
+    elif not validar_data(data_val):
         erros.append(
             "A Data da assinatura é inválida. Utilize o formato DD/MM/AAAA "
             "(ex.: 15/07/2026)."
@@ -349,6 +355,18 @@ def resolver_variavel(
     variaveis["global.checkbox_garantia"] = chk_garantia
     variaveis["checkbox_garantia"] = chk_garantia
     variaveis["checkbox_GARANTIA"] = chk_garantia
+
+    # Suporte a enquadramento de isenção no ITBI
+    val_isencao = str(participante.obter_campo("enquadramento_isencao", "Sim")).lower()
+    if val_isencao in ("sim", "true", "1", "yes", ""):
+        texto_isencao = (
+            "            Conforme  Lei  Municipal  nº  1648/2023,  de  29  de  dezembro  de  2023,  bem  como  a  Lei  Federal  nº 14620/2023. Declaro que cumpro os requisitos para ser contemplado com os benefícios da Lei supracitada."
+        )
+    else:
+        texto_isencao = ""
+    variaveis["global.texto_isencao"] = texto_isencao
+    variaveis["texto_isencao"] = texto_isencao
+    variaveis["TEXTO_ISENCAO"] = texto_isencao
 
     # Retorna o valor mapeado ou a própria string literal caso não seja uma variável conhecida
     return variaveis.get(mapeamento_str, mapeamento_str)

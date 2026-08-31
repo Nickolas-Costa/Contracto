@@ -79,6 +79,9 @@ class ParticipantFrame(ctk.CTkFrame):
         linha += 1
 
         self.entry_endereco: ctk.CTkEntry | None = None
+        self._frames_subtitulos_part = []
+        self._labels_subtitulos_part = []
+        secao_anterior = None
 
         # Renderização modular de campos do participante
         if self.campos_customizados:
@@ -88,6 +91,14 @@ class ParticipantFrame(ctk.CTkFrame):
                 # Em perfis normais, se for endereço e não for o principal, só exibe se o perfil exigir por participante
                 if campo.id == "endereco" and not principal and campo.escopo != "participante":
                     continue
+
+                nome_secao = campo.aba.strip() if campo.aba else ""
+                if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
+                    frame_sub = self._criar_subtitulo_secao(nome_secao)
+                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                    self._frames_subtitulos_part.append(frame_sub)
+                    linha += 1
+                    secao_anterior = nome_secao
 
                 widget_campo = CampoDinamicoWidget(
                     self,
@@ -104,6 +115,40 @@ class ParticipantFrame(ctk.CTkFrame):
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
         self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
 
+    def _criar_subtitulo_secao(self, titulo: str) -> ctk.CTkFrame:
+        """Cria um cabeçalho/subtítulo elegante dentro do quadro do participante."""
+        frame = ctk.CTkFrame(self, fg_color="transparent")
+        frame.grid_columnconfigure(0, weight=1)
+
+        t_low = titulo.lower()
+        if "conta" in t_low or "banco" in t_low or "agência" in t_low or "agencia" in t_low:
+            icone = "briefcase"
+        elif "qualifica" in t_low or "requerente" in t_low or "rg" in t_low:
+            icone = "document"
+        elif "contato" in t_low or "telefone" in t_low or "comprador" in t_low:
+            icone = "help"
+        else:
+            icone = "person"
+
+        header_box = ctk.CTkFrame(frame, fg_color="transparent")
+        header_box.grid(row=0, column=0, sticky="ew", padx=SPACING_LARGE, pady=(SPACING_SMALL, 2))
+
+        lbl = ctk.CTkLabel(
+            header_box,
+            text=f" {titulo}",
+            image=get_icon(icone, (15, 15)),
+            compound="left",
+            font=get_font(FONT_SIZE_BODY, "bold"),
+            text_color=get_color_primary_text(),
+        )
+        lbl.pack(side="left")
+        self._labels_subtitulos_part.append(lbl)
+
+        linha = ctk.CTkFrame(frame, height=1, fg_color=COLOR_BORDER)
+        linha.grid(row=1, column=0, sticky="ew", padx=SPACING_LARGE, pady=(2, SPACING_XSMALL))
+
+        return frame
+
     def reconstruir_campos_customizados(self, novos_campos: Optional[list[CampoEntrada]]) -> None:
         """Reconstrói dinamicamente os campos customizados mantendo os valores já preenchidos."""
         valores_atuais = {cid: widget.obter_valor() for cid, widget in self.widgets_dinamicos.items()}
@@ -118,6 +163,15 @@ class ParticipantFrame(ctk.CTkFrame):
         self.widgets_dinamicos.clear()
         self.entry_endereco = None
 
+        if hasattr(self, "_frames_subtitulos_part"):
+            for f in self._frames_subtitulos_part:
+                try:
+                    f.destroy()
+                except Exception:
+                    pass
+        self._frames_subtitulos_part = []
+        self._labels_subtitulos_part = []
+
         if hasattr(self, "_label_respiro") and self._label_respiro:
             try:
                 self._label_respiro.destroy()
@@ -126,6 +180,7 @@ class ParticipantFrame(ctk.CTkFrame):
 
         self.campos_customizados = novos_campos or []
         linha = 3  # Linha 0: Título, Linha 1: Nome, Linha 2: CPF
+        secao_anterior = None
 
         if self.campos_customizados:
             for campo in self.campos_customizados:
@@ -133,6 +188,14 @@ class ParticipantFrame(ctk.CTkFrame):
                     continue
                 if campo.id == "endereco" and not self.principal and campo.escopo != "participante":
                     continue
+
+                nome_secao = campo.aba.strip() if campo.aba else ""
+                if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
+                    frame_sub = self._criar_subtitulo_secao(nome_secao)
+                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                    self._frames_subtitulos_part.append(frame_sub)
+                    linha += 1
+                    secao_anterior = nome_secao
 
                 widget_campo = CampoDinamicoWidget(
                     self,
@@ -179,9 +242,29 @@ class ParticipantFrame(ctk.CTkFrame):
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         
         entry.bind("<KeyRelease>", lambda e: self._ao_digitar_campo_padrao(entry, tipo, e))
-        entry.bind("<FocusOut>", lambda e: self._validar_campo_especifico(entry, tipo))
+        entry.bind("<FocusIn>", lambda e: self._ao_foco_campo_padrao(entry))
+        entry.bind("<FocusOut>", lambda e: self._ao_desfoco_campo_padrao(entry, tipo))
             
         return entry
+
+    def _encontrar_scrollable_parent(self) -> Optional[ctk.CTkScrollableFrame]:
+        """Procura o CTkScrollableFrame ancestral mais próximo."""
+        p = self.master
+        while p:
+            if isinstance(p, ctk.CTkScrollableFrame):
+                return p
+            p = getattr(p, "master", None)
+        return None
+
+    def _ao_foco_campo_padrao(self, entry: ctk.CTkEntry) -> None:
+        entry.configure(border_color=get_color_primary(), border_width=2)
+        scroll = self._encontrar_scrollable_parent()
+        if scroll:
+            self.after(50, lambda: rolar_para_widget_se_necessario(entry, scroll))
+
+    def _ao_desfoco_campo_padrao(self, entry: ctk.CTkEntry, tipo: str) -> None:
+        entry.configure(border_width=1)
+        self._validar_campo_especifico(entry, tipo)
 
     def _ao_digitar_campo_padrao(self, entry: ctk.CTkEntry, tipo: str, event=None) -> None:
         if event and event.keysym in ("Tab", "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Left", "Right", "Up", "Down", "Return"):
@@ -257,13 +340,28 @@ class ParticipantFrame(ctk.CTkFrame):
     def limpar_campos(self) -> None:
         """Limpa todos os campos deste quadro."""
         self.entry_nome.delete(0, "end")
+        if hasattr(self.entry_nome, "_activate_placeholder"):
+            try:
+                self.entry_nome._activate_placeholder()
+            except Exception:
+                pass
         self.entry_nome.configure(border_color=COLOR_BORDER)
 
         self.entry_cpf.delete(0, "end")
+        if hasattr(self.entry_cpf, "_activate_placeholder"):
+            try:
+                self.entry_cpf._activate_placeholder()
+            except Exception:
+                pass
         self.entry_cpf.configure(border_color=COLOR_BORDER)
 
         if self.entry_endereco is not None:
             self.entry_endereco.delete(0, "end")
+            if hasattr(self.entry_endereco, "_activate_placeholder"):
+                try:
+                    self.entry_endereco._activate_placeholder()
+                except Exception:
+                    pass
             self.entry_endereco.configure(border_color=COLOR_BORDER)
 
         for widget in self.widgets_dinamicos.values():
@@ -276,6 +374,15 @@ class ParticipantFrame(ctk.CTkFrame):
     def atualizar_cores(self) -> None:
         """Atualiza as cores dinâmicas deste frame."""
         self.label_titulo.configure(text_color=get_color_primary_text())
+        if hasattr(self, "_labels_subtitulos_part"):
+            for lbl in self._labels_subtitulos_part:
+                try:
+                    lbl.configure(text_color=get_color_primary_text())
+                except Exception:
+                    pass
+        for w in self.widgets_dinamicos.values():
+            if hasattr(w, "atualizar_cores"):
+                w.atualizar_cores()
 
     def piscar_destaque(self) -> None:
         """Faz o quadro 'piscar' visualmente ao ser adicionado."""
