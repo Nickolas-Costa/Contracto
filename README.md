@@ -3,7 +3,7 @@
 # 📑 Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conformidade PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v4.5.5-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v4.5.9-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Privacidade](https://img.shields.io/badge/Privacidade-100%25%20Offline%20%7C%20Zero%20Cloud-2E7D32?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/Nickolas-Costa/Contracto#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)
@@ -63,8 +63,9 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
-## 🚀 Principais Recursos da Versão 4.5.5
+## 🚀 Principais Recursos da Versão 4.5.9
 
+- **Seleção Multi-Formulários no Modo Simples**: Seletor com checkboxes que combina 2+ perfis (`profile_composer.combinar_perfis`) com validação de compatibilidade e persistência em `formularios_basicos_selecionados`.
 - **Seletor de Modos Avançado / Simples**: Alternância rápida na barra superior com suporte a formulários únicos (1 clique) e contratos completos.
 - **Preservação Inteligente de Dados**: Opção `[x] Preservar dados para Reutilizar` no modo simples para emissão em sequência de vários formulários sem redigitar dados cadastrais.
 - **Subtítulos de Seções e Layout Organizado**: Subtítulos agrupando visualmente *Dados do Vendedor*, *Dados do Imóvel e Cartório* e *Valores da Operação* em todos os formulários.
@@ -91,7 +92,7 @@ CONTRACTO/
 ├── build_exe.bat                       # Script de compilação automatizada (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.5.5)
+│   ├── version.py                      # Versão centralizada do sistema (v4.5.9)
 │   ├── ui/                             # Componentes visuais, telas, temas e modais
 │   │   ├── alert_modal.py              # Modal de alertas informativos e de erro
 │   │   ├── animated_loader.py          # Indicador visual leve de carregamento
@@ -187,13 +188,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 4.5.5, execute:
+Para compilar o executável autônomo da versão 4.5.9, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.5.zip`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.9.zip`.
 
 ---
 

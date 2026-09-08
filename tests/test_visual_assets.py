@@ -22,9 +22,9 @@ import version
 class TestVisualAssets(unittest.TestCase):
     """Valida a existência dos ícones vetoriais e o componente de carregamento leve."""
 
-    def test_version_is_v4_5_5(self):
-        """Verifica se a versão centralizada está definida como 4.5.5."""
-        self.assertEqual(version.__version__, "4.5.5")
+    def test_version_is_v4_5_9(self):
+        """Verifica se a versão centralizada está definida como 4.5.9."""
+        self.assertEqual(version.__version__, "4.5.9")
 
     def test_simple_loader_instantiation(self):
         """Verifica se o componente SimpleLoader pode ser instanciado sem erros."""
