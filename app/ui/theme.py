@@ -6,6 +6,9 @@ definidos aqui. Suporta modo claro e escuro, cores dinâmicas
 carregadas das configurações do usuário, e gradientes de fundo.
 """
 
+import sys
+import tkinter as tk
+
 import customtkinter as ctk
 
 from utils import config_manager
@@ -109,6 +112,78 @@ def get_color_primary_light() -> str:
 
 def get_color_primary_dark_gradient() -> str:
     return _cor_primaria_dark_gradient()
+
+
+def adicionar_tooltip(widget, texto: str, atraso: int = 350) -> None:
+    """Mostra uma explicação curta ao passar o mouse sobre um controle."""
+    estado = {"timer": None, "popup": None}
+
+    def fechar(event=None):
+        timer = estado.pop("timer", None)
+        if timer:
+            try:
+                widget.after_cancel(timer)
+            except Exception:
+                pass
+        popup = estado.pop("popup", None)
+        if popup:
+            try:
+                popup.destroy()
+            except Exception:
+                pass
+
+    def mostrar():
+        estado["timer"] = None
+        try:
+            if not widget.winfo_exists():
+                return
+            popup = tk.Toplevel(widget)
+            popup.overrideredirect(True)
+            popup.attributes("-topmost", True)
+            mensagem = " ".join(str(texto).splitlines())
+            label = tk.Label(
+                popup, text=mensagem, bg="#FFFFFF", fg="#253247",
+                relief="solid", borderwidth=1, padx=9, pady=6,
+                font=("Segoe UI", 9),
+            )
+            label.pack()
+            popup.update_idletasks()
+            x = widget.winfo_rootx() + widget.winfo_width() + 6
+            y = widget.winfo_rooty() - max(0, (popup.winfo_reqheight() - widget.winfo_height()) // 2)
+            popup.geometry(f"+{x}+{y}")
+            estado["popup"] = popup
+        except Exception:
+            fechar()
+
+    def agendar(event=None):
+        fechar()
+        try:
+            estado["timer"] = widget.after(atraso, mostrar)
+        except Exception:
+            pass
+
+    widget.bind("<Enter>", agendar, add="+")
+    widget.bind("<Leave>", fechar, add="+")
+    widget.bind("<Destroy>", fechar, add="+")
+
+
+def icone_para_secao(titulo: str) -> str:
+    """Escolhe um ícone de acordo com o assunto da seção."""
+    texto = titulo.casefold()
+    grupos = (
+        (("resid", "imóvel", "imovel", "endereço", "endereco"), "home"),
+        (("ocup", "profiss", "trabalho", "renda"), "briefcase"),
+        (("data", "casamento"), "calendar"),
+        (("valor", "pagamento", "financ", "modalidade"), "calculator"),
+        (("conta", "banco", "agência", "agencia", "fgts"), "grid_array"),
+        (("contato", "telefone", "email"), "globe"),
+        (("identifica", "estado civil", "participante", "requerente"), "person"),
+        (("imposto", "declara", "documento", "usufruto", "enquadramento"), "document"),
+    )
+    for palavras, icone in grupos:
+        if any(palavra in texto for palavra in palavras):
+            return icone
+    return "grid_sections"
 
 
 # Cores estáticas (não mudam com config)
@@ -240,7 +315,80 @@ def configure_appearance() -> None:
     aparencia = config_manager.obter("aparencia") or "system"
     ctk.set_appearance_mode(aparencia)
     ctk.set_default_color_theme("blue")
+    _configurar_rolagem()
+    _configurar_fechamento_janelas()
     reload_theme()
+
+
+def _configurar_rolagem() -> None:
+    """Evita que movimentos pequenos do mouse ou touchpad sejam ignorados."""
+    if getattr(ctk.CTkScrollableFrame, "_contracto_rolagem", False):
+        return
+
+    def rolar(self, event):
+        try:
+            if not self._check_if_valid_scroll(event.widget):
+                return
+            if sys.platform.startswith("linux"):
+                passos = -1 if event.num == 4 else 1
+            else:
+                delta = getattr(event, "delta", 0)
+                if not delta:
+                    return
+                intensidade = max(1, round(abs(delta) / 120))
+                passos = -intensidade if delta > 0 else intensidade
+            canvas = self._parent_canvas
+            if self._shift_pressed and canvas.xview() != (0.0, 1.0):
+                canvas.xview_scroll(passos * 3, "units")
+            elif canvas.yview() != (0.0, 1.0):
+                canvas.yview_scroll(passos * 3, "units")
+        except Exception:
+            pass
+
+    ctk.CTkScrollableFrame._mouse_wheel_all = rolar
+    ctk.CTkScrollableFrame._contracto_rolagem = True
+
+
+def _configurar_fechamento_janelas() -> None:
+    """Cancela tarefas pendentes de uma janela antes de fechá-la."""
+    if getattr(ctk.CTkToplevel, "_contracto_fechamento", False):
+        return
+    destruir_original = ctk.CTkToplevel.destroy
+
+    def destruir(self):
+        comandos = set(getattr(self, "_tclCommands", []) or [])
+        if comandos:
+            try:
+                for timer in self.tk.call("after", "info"):
+                    dados = str(self.tk.call("after", "info", timer))
+                    if any(comando in dados for comando in comandos):
+                        try:
+                            self.tk.call("after", "cancel", timer)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        destruir_original(self)
+
+    ctk.CTkToplevel.destroy = destruir
+    ctk.CTkToplevel._contracto_fechamento = True
+
+    if not getattr(ctk.CTk, "_contracto_fechamento", False):
+        destruir_raiz_original = ctk.CTk.destroy
+
+        def destruir_raiz(self):
+            try:
+                for timer in self.tk.call("after", "info"):
+                    self.tk.call("after", "cancel", timer)
+            except Exception:
+                pass
+            destruir_raiz_original(self)
+
+        ctk.CTk.destroy = destruir_raiz
+        ctk.CTk._contracto_fechamento = True
+
+
+_configurar_fechamento_janelas()
 
 
 def configurar_janela_modal(
@@ -302,7 +450,13 @@ def configurar_janela_modal(
 
 
 def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
-    """Oculta automaticamente a barra de rolagem do CTkScrollableFrame de forma otimizada (sem loops de eventos)."""
+    """Ajusta a barra e deixa a rolagem do mouse mais responsiva."""
+    if getattr(scroll_frame, "_autoscroll_configurado", False):
+        agendar = getattr(scroll_frame, "_agendar_autoscroll", None)
+        if agendar:
+            agendar()
+        return
+    scroll_frame._autoscroll_configurado = True
     timer_attr = "_autoscroll_timer_id"
 
     def _do_check():
@@ -338,9 +492,21 @@ def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
         except Exception:
             pass
 
+    def _ao_destruir(event=None):
+        if event is not None and event.widget is not scroll_frame:
+            return
+        timer_id = getattr(scroll_frame, timer_attr, None)
+        if timer_id is not None:
+            try:
+                scroll_frame.after_cancel(timer_id)
+            except Exception:
+                pass
+
     try:
+        scroll_frame._agendar_autoscroll = _agendar_verificacao
         scroll_frame._parent_canvas.bind("<Configure>", _agendar_verificacao, add="+")
         scroll_frame._parent_frame.bind("<Configure>", _agendar_verificacao, add="+")
+        scroll_frame.bind("<Destroy>", _ao_destruir, add="+")
         _agendar_verificacao()
     except Exception:
         pass

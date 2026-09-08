@@ -19,19 +19,19 @@ from pypdf import PdfReader
 from models.participant import Participant
 from services import generator_service
 from services.pdf_service import obter_campos_do_formulario
-from utils.resource_path import modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+from utils.resource_path import modelo_configurado
 from utils.profile_manager import Perfil, FormularioModelo
 
 
 class TestModelosOficiaisExistem(unittest.TestCase):
     def test_modelo_ppe_esta_presente(self):
         self.assertIsNotNone(
-            modelo_padrao_ppe(), "app/assets/templates/PPE.pdf não foi encontrado."
+            modelo_configurado("modelo_04"), "O primeiro modelo configurado não foi encontrado."
         )
 
     def test_modelo_primeiro_imovel_esta_presente(self):
         self.assertIsNotNone(
-            modelo_padrao_primeiro_imovel(),
+            modelo_configurado("modelo_05"),
             "app/assets/templates/1 IMOVEL.pdf não foi encontrado.",
         )
 
@@ -41,7 +41,7 @@ class TestCamposBatemComOMapeamento(unittest.TestCase):
     existem nos PDFs oficiais — ou seja, nenhum campo ficaria em branco."""
 
     def test_campos_do_ppe(self):
-        campos_no_pdf = obter_campos_do_formulario(modelo_padrao_ppe())
+        campos_no_pdf = obter_campos_do_formulario(modelo_configurado("modelo_04"))
         campos_esperados = {
             "NOME COMPLETO",
             "CPF",
@@ -56,7 +56,7 @@ class TestCamposBatemComOMapeamento(unittest.TestCase):
         )
 
     def test_campos_do_primeiro_imovel(self):
-        campos_no_pdf = obter_campos_do_formulario(modelo_padrao_primeiro_imovel())
+        campos_no_pdf = obter_campos_do_formulario(modelo_configurado("modelo_05"))
         campos_esperados = {
             "NOME COMPLETO",
             "CPF",
@@ -81,11 +81,11 @@ class TestGeracaoPontaAPontaComPdfsReais(unittest.TestCase):
             nome="Padrão",
             formularios=[
                 FormularioModelo(
-                    nome="PPE", caminho=str(modelo_padrao_ppe()), geracao="por_participante",
+                    nome="PPE", caminho=str(modelo_configurado("modelo_04")), geracao="por_participante",
                     mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "DIA": "data.dia", "MES": "data.mes", "ANO": "data.ano", "LOCAL ASSINATURA": "participante.local_assinatura"}
                 ),
                 FormularioModelo(
-                    nome="1 IMOVEL", caminho=str(modelo_padrao_primeiro_imovel()), geracao="por_participante",
+                    nome="1 IMOVEL", caminho=str(modelo_configurado("modelo_05")), geracao="por_participante",
                     mapeamento={"NOME COMPLETO": "participante.nome_completo", "CPF": "participante.cpf_formatado", "ENDERECO": "participante.endereco", "DATA ASSINATURA": "participante.data_assinatura", "LOCAL ASSINATURA": "participante.local_assinatura"}
                 )
             ]

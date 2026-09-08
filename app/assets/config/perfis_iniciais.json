@@ -1,0 +1,1914 @@
+{
+  "modelos": {
+    "modelo_01": "novos/MO29300-039 (DAMP).pdf",
+    "modelo_02": "novos/MO30844-012 (form cliente).pdf",
+    "modelo_03": "novos/MO30825-005 (seguro).pdf",
+    "modelo_04": "PPE.pdf",
+    "modelo_05": "1 IMOVEL.pdf",
+    "modelo_06": "DECLARACAO PARA PAGAMENTO DO ITBI.pdf",
+    "modelo_07": "REQUERIMENTO ISENÇÃO DE TRIBUTOS MUNICIPAIS.pdf"
+  },
+  "mapeamentos": {
+    "modelo_04": {
+      "NOME COMPLETO": "participante.nome_completo",
+      "CPF": "participante.cpf_formatado",
+      "DIA": "data.dia",
+      "MES": "data.mes",
+      "ANO": "data.ano",
+      "LOCAL ASSINATURA": "participante.local_assinatura"
+    },
+    "modelo_05": {
+      "NOME COMPLETO": "participante.nome_completo",
+      "CPF": "participante.cpf_formatado",
+      "ENDERECO": "participante.endereco",
+      "DATA ASSINATURA": "participante.data_assinatura",
+      "LOCAL ASSINATURA": "participante.local_assinatura"
+    },
+    "modelo_06": {
+      "NOME_VENDEDOR": "global.nome_vendedor",
+      "CPF_CNPJ_VENDEDOR": "global.cpf_cnpj_vendedor",
+      "MATRICULA": "global.matricula",
+      "CARTORIO_OFICIO": "global.cartorio_oficio",
+      "CARTORIO_LOCAL": "global.cartorio_local",
+      "IPTU": "global.iptu",
+      "AREA_TERRENO": "global.area_terreno",
+      "AREA_CONSTRUIDA": {
+        "origem": "global.area_construida",
+        "valor_padrao": "00,00"
+      },
+      "FRACAO_IDEAL": "global.fracao_ideal",
+      "COMPRADOR_NOME": "participante.nome_completo",
+      "COMPRADOR_CPF": "participante.cpf_formatado",
+      "COMPRADOR_ENDERECO": "participante.endereco",
+      "COMPRADOR_TELEFONE": "participante.comprador_telefone",
+      "COMPRADOR_EMAIL": "participante.comprador_email",
+      "ENDERECO_IMOVEL": "global.endereco_imovel",
+      "VALOR_COMPRA": "global.valor_compra",
+      "VALOR_AVALIACAO": "global.valor_avaliacao",
+      "VALOR_FINANCIADO": "global.valor_financiado",
+      "VALOR SUBSIDIO": {
+        "origem": "global.valor_subsidio",
+        "valor_padrao": "0,00"
+      },
+      "VALOR_RECURSOS": {
+        "origem": "global.valor_recursos",
+        "valor_padrao": "0,00"
+      },
+      "VALOR_FGTS": {
+        "origem": "global.valor_fgts",
+        "valor_padrao": "0,00"
+      },
+      "LOCAL_ASSINATURA": "participante.local_assinatura",
+      "DIA": "data.dia",
+      "MES": "data.mes",
+      "ANO": "data.ano",
+      "TEXTO_ISENCAO": {
+        "constante": "            Conforme  Lei  Municipal  nº  1648/2023,  de  29  de dezembro de 2023,  bem  como  a  Lei  Federal  nº 14620/2023. Declaro que cumpro os requisitos para ser contemplado com os benefícios da Lei supracitada.",
+        "condicoes": [
+          {
+            "global.enquadramento_isencao": ["Sim", ""]
+          }
+        ],
+        "valor_falso": ""
+      }
+    },
+    "modelo_07": {
+      "NOME COMPLETO": "participante.nome_completo",
+      "CPF": "participante.cpf_formatado",
+      "RG": "participante.rg",
+      "ESTADO CIVIL": "participante.estado_civil",
+      "ENDERECO": "participante.endereco",
+      "MATRICULA": "global.matricula",
+      "NOME_COMPLETO2": "participante.nome_completo",
+      "2CPF": "participante.cpf_formatado",
+      "LOCAL": "participante.local_assinatura",
+      "DIA": "data.dia",
+      "MES": "data.mes",
+      "ANO": "data.ano"
+    }
+  },
+  "perfis": [
+    {
+      "perfil": {
+        "nome": "MO 29300 (DAMP)",
+        "formularios": [
+          {
+            "nome": "MO 29300 (DAMP)",
+            "caminho": "",
+            "geracao": "por_processo",
+            "mapeamento": {
+              "proponente_nome_completo_principal": {
+                "origem": "participante.nome_completo"
+              },
+              "proponente_data_nascimento": {
+                "origem": "participante.dataNascimento"
+              },
+              "proponente_cpf": {
+                "origem": "participante.cpf",
+                "formato": "CPF"
+              },
+              "proponente_pis_pasep": {
+                "origem": "participante.pisPasep",
+                "formato": "PIS_PASEP"
+              },
+              "estado_civil": {
+                "origem": "participante.estadoCivil"
+              },
+              "regime_bens_casamento": {
+                "origem": "participante.regimeCasamento",
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "CASADO(A)"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "data_casamento": {
+                "origem": "participante.dataCasamentoOuUniaoEstavel",
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "CASADO(A)"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "data_inicio_uniao_estavel": {
+                "origem": "participante.dataCasamentoOuUniaoEstavel",
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "SOLTEIRO(A)",
+                      "DIVORCIADO(A)",
+                      "SEPARADO(A) JUDICIALMENTE",
+                      "VIÚVO(A)"
+                    ],
+                    "participante.mantemUniaoEstavel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "uniao_estavel_sim": {
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "SOLTEIRO(A)",
+                      "DIVORCIADO(A)",
+                      "SEPARADO(A) JUDICIALMENTE",
+                      "VIÚVO(A)"
+                    ],
+                    "participante.mantemUniaoEstavel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "uniao_estavel_nao": {
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "SOLTEIRO(A)",
+                      "DIVORCIADO(A)",
+                      "SEPARADO(A) JUDICIALMENTE",
+                      "VIÚVO(A)"
+                    ],
+                    "participante.mantemUniaoEstavel": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "profissao_maior_rendimento": {
+                "origem": "participante.profissaoMaiorRendimento"
+              },
+              "municipio_ocupacao_principal": {
+                "origem": "participante.municipioUfOcupacaoPrincipal"
+              },
+              "situacao_desempregado": {
+                "condicoes": [
+                  {
+                    "participante.situacaoOcupacional": [
+                      "DESEMPREGADO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "situacao_aposentado_pensionista": {
+                "condicoes": [
+                  {
+                    "participante.situacaoOcupacional": [
+                      "APOSENTADO_OU_PENSIONISTA"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "municipio_residencia_atual": {
+                "origem": "participante.municipioUfResidencia"
+              },
+              "tempo_residencia_anos": {
+                "origem": "participante.tempoResidenciaAnos"
+              },
+              "tempo_residencia_meses": {
+                "origem": "participante.tempoResidenciaMeses"
+              },
+              "residencia_possui_imovel": {
+                "condicoes": [
+                  {
+                    "participante.possuiImovel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "residencia_nao_possui_imovel": {
+                "condicoes": [
+                  {
+                    "participante.possuiImovel": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "municipio_imovel_possuido": {
+                "origem": "participante.municipioUfImovelPossuido",
+                "condicoes": [
+                  {
+                    "participante.possuiImovel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ir_isento": {
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "ISENTO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ir_isento_ano_base": {
+                "origem": "participante.irAnoBase",
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "ISENTO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ir_isento_exercicio": {
+                "origem": "participante.irExercicio",
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "ISENTO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ir_declaracao_entregue": {
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "DECLARACAO_ENTREGUE"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ir_entregue_ano_base": {
+                "origem": "participante.irAnoBase",
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "DECLARACAO_ENTREGUE"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ir_entregue_exercicio": {
+                "origem": "participante.irExercicio",
+                "condicoes": [
+                  {
+                    "participante.situacaoImpostoRenda": [
+                      "DECLARACAO_ENTREGUE"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "endereco_imovel_financiado": {
+                "origem": "participante.enderecoImovelFinanciado"
+              },
+              "usufruto_nao": {
+                "condicoes": [
+                  {
+                    "participante.usufruto": [
+                      "NAO_SOU_USUFRUTUARIO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "usufruto_renunciado": {
+                "condicoes": [
+                  {
+                    "participante.usufruto": [
+                      "RENUNCIEI_AO_USUFRUTO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "fgts_futuro_sim": {
+                "condicoes": [
+                  {
+                    "participante.fgtsFuturo": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "fgts_futuro_nao": {
+                "condicoes": [
+                  {
+                    "participante.fgtsFuturo": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "utiliza_conta_fgts_sim": {
+                "condicoes": [
+                  {
+                    "participante.utilizaContaFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "utiliza_conta_fgts_nao": {
+                "condicoes": [
+                  {
+                    "participante.utilizaContaFgts": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "numero_operacao_fgts": {
+                "origem": "participante.numeroOperacaoFgts",
+                "condicoes": [
+                  {
+                    "participante.utilizaContaFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "autoriza_saque_fgts": {
+                "condicoes": [
+                  {
+                    "participante.utilizaContaFgts": [
+                      "SIM"
+                    ],
+                    "participante.autorizaSaqueFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "local_assinatura_titular": {
+                "origem": "participante.local_assinatura"
+              },
+              "data_assinatura_titular": {
+                "origem": "participante.data_assinatura",
+                "formato": "DATA_EXTENSO"
+              },
+              "modalidade_imovel_concluido": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_CONCLUIDO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_imovel_concluido": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_CONCLUIDO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_imovel_construcao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_imovel_construcao": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_terreno_construcao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_terreno_construcao": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_construcao_terreno_proprio": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_construcao_terreno_proprio": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_reforma_ampliacao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_REFORMA_OU_AMPLIACAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_reforma_ampliacao": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_REFORMA_OU_AMPLIACAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_conclusao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_CONCLUSAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_conclusao": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_CONCLUSAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "modalidade_material_construcao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "valor_material_construcao": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "enquadramento_a_vista": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_OU_CONSTRUCAO_A_VISTA"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "enquadramento_ccfgts_pmcmv": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "enquadramento_pro_cotista": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "PRO_COTISTA"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "enquadramento_sbpe_uso_fgts": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "SBPE_COM_USO_DO_FGTS"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "enquadramento_sbpe_conjuge_fgts": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "SBPE_CONJUGE_OU_COMPANHEIRO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "enquadramento_amc": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_possui_36_meses_fgts_sim": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_ja_recebeu_subsidio_sim": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.jaRecebeuSubsidio": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "amc_possui_36_meses_fgts_sim": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_possui_36_meses_fgts_nao": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_ja_recebeu_subsidio_nao": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.jaRecebeuSubsidio": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "amc_possui_36_meses_fgts_nao": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              }
+            },
+            "identificador": "principal"
+          }
+        ],
+        "documentos_extras": [],
+        "campos_entrada": [
+          {
+            "id": "dataNascimento",
+            "rotulo": "Data de nascimento",
+            "tipo": "DATA",
+            "obrigatorio": true,
+            "placeholder": "DD/MM/AAAA",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "pisPasep",
+            "rotulo": "PIS/PASEP",
+            "tipo": "PIS_PASEP",
+            "obrigatorio": true,
+            "placeholder": "000.00000.00-0",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "document",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "estadoCivil",
+            "rotulo": "Estado civil",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SOLTEIRO(A)",
+              "DIVORCIADO(A)",
+              "SEPARADO(A) JUDICIALMENTE",
+              "VIÚVO(A)",
+              "CASADO(A)"
+            ],
+            "valor_padrao": "",
+            "icone": "person",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "regimeCasamento",
+            "rotulo": "Regime de casamento",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "COMUNHÃO TOTAL DE BENS",
+              "SEPARAÇÃO DE BENS",
+              "COMUNHÃO PARCIAL DE BENS"
+            ],
+            "valor_padrao": "",
+            "icone": "person",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "estadoCivil": [
+                  "CASADO(A)"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "mantemUniaoEstavel",
+            "rotulo": "Mantém união estável",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "person",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "estadoCivil": [
+                  "SOLTEIRO(A)",
+                  "DIVORCIADO(A)",
+                  "SEPARADO(A) JUDICIALMENTE",
+                  "VIÚVO(A)"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "dataCasamentoOuUniaoEstavel",
+            "rotulo": "Data do casamento/união",
+            "tipo": "DATA",
+            "obrigatorio": true,
+            "placeholder": "DD/MM/AAAA",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Identificação e estado civil",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "estadoCivil": [
+                  "CASADO(A)"
+                ]
+              },
+              {
+                "estadoCivil": [
+                  "SOLTEIRO(A)",
+                  "DIVORCIADO(A)",
+                  "SEPARADO(A) JUDICIALMENTE",
+                  "VIÚVO(A)"
+                ],
+                "mantemUniaoEstavel": [
+                  "SIM"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "profissaoMaiorRendimento",
+            "rotulo": "Profissão de maior rendimento",
+            "tipo": "TEXTO_LONGO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "briefcase",
+            "aba": "Situação ocupacional",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "municipioUfOcupacaoPrincipal",
+            "rotulo": "Município/UF da ocupação",
+            "tipo": "TEXTO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "location",
+            "aba": "Situação ocupacional",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "situacaoOcupacional",
+            "rotulo": "Situação ocupacional",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "ATIVO",
+              "DESEMPREGADO",
+              "APOSENTADO_OU_PENSIONISTA"
+            ],
+            "valor_padrao": "",
+            "icone": "briefcase",
+            "aba": "Situação ocupacional",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "municipioUfResidencia",
+            "rotulo": "Município/UF da residência",
+            "tipo": "TEXTO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "home",
+            "aba": "Residência",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "tempoResidenciaAnos",
+            "rotulo": "Tempo de residência (anos)",
+            "tipo": "INTEIRO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Residência",
+            "ajuda": "",
+            "minimo": 0,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "tempoResidenciaMeses",
+            "rotulo": "Meses adicionais",
+            "tipo": "INTEIRO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Residência",
+            "ajuda": "",
+            "minimo": 0,
+            "maximo": 11,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "possuiImovel",
+            "rotulo": "Possui imóvel",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "home",
+            "aba": "Residência",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "municipioUfImovelPossuido",
+            "rotulo": "Município/UF do imóvel",
+            "tipo": "TEXTO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "location",
+            "aba": "Residência",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "possuiImovel": [
+                  "SIM"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "situacaoImpostoRenda",
+            "rotulo": "Situação do Imposto de Renda",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "ISENTO",
+              "DECLARACAO_ENTREGUE"
+            ],
+            "valor_padrao": "",
+            "icone": "document",
+            "aba": "Imposto de Renda",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "irAnoBase",
+            "rotulo": "Ano-base",
+            "tipo": "ANO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Imposto de Renda",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "irExercicio",
+            "rotulo": "Exercício",
+            "tipo": "ANO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Imposto de Renda",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "enderecoImovelFinanciado",
+            "rotulo": "Endereço completo do imóvel",
+            "tipo": "TEXTO_LONGO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "home",
+            "aba": "Imóvel",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "usufruto",
+            "rotulo": "Usufruto",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "NAO_SOU_USUFRUTUARIO",
+              "RENUNCIEI_AO_USUFRUTO"
+            ],
+            "valor_padrao": "",
+            "icone": "document",
+            "aba": "Usufruto",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "modalidade",
+            "rotulo": "Modalidade",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "AQUISICAO_IMOVEL_CONCLUIDO",
+              "AQUISICAO_IMOVEL_EM_CONSTRUCAO",
+              "AQUISICAO_TERRENO_E_CONSTRUCAO",
+              "CONSTRUCAO_EM_TERRENO_PROPRIO",
+              "CCFGTS_REFORMA_OU_AMPLIACAO",
+              "CCFGTS_CONCLUSAO",
+              "CCFGTS_MATERIAL_DE_CONSTRUCAO"
+            ],
+            "valor_padrao": "",
+            "icone": "home",
+            "aba": "Modalidade",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "valorModalidade",
+            "rotulo": "Valor da modalidade",
+            "tipo": "MOEDA",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calculator",
+            "aba": "Modalidade",
+            "ajuda": "Informe apenas o valor; o PDF já contém R$.",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "enquadramento",
+            "rotulo": "Enquadramento",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "AQUISICAO_OU_CONSTRUCAO_A_VISTA",
+              "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS",
+              "PRO_COTISTA",
+              "SBPE_COM_USO_DO_FGTS",
+              "SBPE_CONJUGE_OU_COMPANHEIRO",
+              "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+            ],
+            "valor_padrao": "",
+            "icone": "document",
+            "aba": "Enquadramento",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "possui36MesesFgts",
+            "rotulo": "Possui 36 meses de FGTS",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "FGTS",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "enquadramento": [
+                  "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS",
+                  "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "jaRecebeuSubsidio",
+            "rotulo": "Já recebeu desconto/subsídio",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "FGTS",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "enquadramento": [
+                  "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "fgtsFuturo",
+            "rotulo": "Operação com FGTS Futuro",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "FGTS",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "utilizaContaFgts",
+            "rotulo": "Utiliza conta vinculada",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "FGTS",
+            "ajuda": "As contas vinculadas devem ser tratadas pelo CIWEB.",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "numeroOperacaoFgts",
+            "rotulo": "Número da operação",
+            "tipo": "TEXTO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "document",
+            "aba": "FGTS",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "utilizaContaFgts": [
+                  "SIM"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "autorizaSaqueFgts",
+            "rotulo": "Autoriza saque do FGTS",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "SIM",
+              "NÃO"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "FGTS",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [
+              {
+                "utilizaContaFgts": [
+                  "SIM"
+                ]
+              }
+            ],
+            "limpar_quando_oculto": true
+          }
+        ],
+        "formato_saida": "PDF",
+        "modo_fluxo": "formulario_simples",
+        "max_participantes": 1,
+        "identificador": "inicial_01",
+        "ordem": 0,
+        "usar_paginacao": true
+      },
+      "modelo": "modelo_01",
+      "identificadores_anteriores": [
+        "damp_mo29300_036"
+      ]
+    },
+    {
+      "perfil": {
+        "nome": "Form Cliente",
+        "formularios": [
+          {
+            "nome": "Form Cliente",
+            "caminho": "",
+            "geracao": "por_processo",
+            "mapeamento": {
+              "1NOME": {
+                "origem": "participante.1.nome_completo"
+              },
+              "1CPF": {
+                "origem": "participante.1.cpf",
+                "formato": "CPF"
+              },
+              "AGENCIA": {
+                "origem": "global.agencia"
+              },
+              "CONTA": {
+                "origem": "global.conta_caixa"
+              },
+              "PARCELA AUT": {
+                "condicoes": [
+                  {
+                    "global.formaPagamentoParcela": [
+                      "AUTORIZAR_OU_ALTERAR_DEBITO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ftsk",
+                "valor_falso": "/Off"
+              },
+              "CANCELO DEB": {
+                "condicoes": [
+                  {
+                    "global.formaPagamentoParcela": [
+                      "CANCELAR_DEBITO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ftsk",
+                "valor_falso": "/Off"
+              },
+              "BOLETO AUT": {
+                "condicoes": [
+                  {
+                    "global.autorizaBoletoWhatsapp": [
+                      "Sim"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ftsk",
+                "valor_falso": "/Off"
+              },
+              "AVALIACAO AUT COB": {
+                "condicoes": [
+                  {
+                    "global.autorizaCobrancaAvaliacao": [
+                      "Sim"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ftsk",
+                "valor_falso": "/Off"
+              },
+              "LOCAL": {
+                "origem": "participante.local_assinatura"
+              },
+              "DATA ABREV": {
+                "origem": "participante.data_assinatura"
+              },
+              "1PARTICIPANTE": {
+                "origem": "participante.1.nome_completo"
+              },
+              "CPF1": {
+                "origem": "participante.1.cpf",
+                "formato": "CPF"
+              },
+              "2PARTICIPANTE": {
+                "origem": "participante.2.nome_completo"
+              },
+              "CPF2": {
+                "origem": "participante.2.cpf",
+                "formato": "CPF"
+              },
+              "3PARTICIPANTE": {
+                "origem": "participante.3.nome_completo"
+              },
+              "CPF3": {
+                "origem": "participante.3.cpf",
+                "formato": "CPF"
+              },
+              "4PARTICIPANTE": {
+                "origem": "participante.4.nome_completo"
+              },
+              "CPF4": {
+                "origem": "participante.4.cpf",
+                "formato": "CPF"
+              }
+            },
+            "identificador": "principal"
+          }
+        ],
+        "documentos_extras": [],
+        "campos_entrada": [
+          {
+            "id": "agencia",
+            "rotulo": "Agência",
+            "tipo": "TEXTO",
+            "obrigatorio": false,
+            "placeholder": "Ex: 1234",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "briefcase",
+            "aba": "Conta CAIXA",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "conta_caixa",
+            "rotulo": "Conta CAIXA",
+            "tipo": "TEXTO",
+            "obrigatorio": false,
+            "placeholder": "Ex: 00012345-6",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "briefcase",
+            "aba": "Conta CAIXA",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "formaPagamentoParcela",
+            "rotulo": "Forma de pagamento da parcela",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "global",
+            "opcoes": [
+              "AUTORIZAR_OU_ALTERAR_DEBITO",
+              "CANCELAR_DEBITO"
+            ],
+            "valor_padrao": "AUTORIZAR_OU_ALTERAR_DEBITO",
+            "icone": "check",
+            "aba": "Autorizações e Débitos em Conta",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "autorizaBoletoWhatsapp",
+            "rotulo": "Boleto e comunicações por WhatsApp",
+            "tipo": "CHECKBOX",
+            "obrigatorio": false,
+            "placeholder": "",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "Não",
+            "icone": "check",
+            "aba": "Autorizações e Débitos em Conta",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "autorizaCobrancaAvaliacao",
+            "rotulo": "Cobrança da tarifa de avaliação",
+            "tipo": "CHECKBOX",
+            "obrigatorio": false,
+            "placeholder": "",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "Sim",
+            "icone": "check",
+            "aba": "Autorizações e Débitos em Conta",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "data_assinatura",
+            "rotulo": "Data da assinatura",
+            "tipo": "DATA",
+            "obrigatorio": true,
+            "placeholder": "DD/MM/AAAA",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "calendar",
+            "aba": "Local e Data",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          },
+          {
+            "id": "local_assinatura",
+            "rotulo": "Local da assinatura",
+            "tipo": "TEXTO",
+            "obrigatorio": true,
+            "placeholder": "Ex: CAMOCIM-CE",
+            "escopo": "global",
+            "opcoes": [],
+            "valor_padrao": "",
+            "icone": "location",
+            "aba": "Local e Data",
+            "ajuda": "",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          }
+        ],
+        "formato_saida": "PDF",
+        "modo_fluxo": "formulario_simples",
+        "max_participantes": 4,
+        "identificador": "inicial_02",
+        "ordem": 1
+      },
+      "modelo": "modelo_02",
+      "identificadores_anteriores": [
+        "form_cliente_mo30844_012"
+      ],
+      "nomes_anteriores": [
+        "Formulário CAIXA",
+        "MO 30.844"
+      ]
+    },
+    {
+      "perfil": {
+        "nome": "Seguro",
+        "formularios": [
+          {
+            "nome": "Seguro",
+            "caminho": "",
+            "geracao": "por_processo",
+            "mapeamento": {
+              "LOCAL": {
+                "origem": "participante.local_assinatura"
+              },
+              "DATA ABREV": {
+                "origem": "participante.data_assinatura"
+              },
+              "PROP1": {
+                "origem": "participante.1.nome_completo"
+              },
+              "CPF1": {
+                "origem": "participante.1.cpf",
+                "formato": "CPF"
+              },
+              "DESC1": {
+                "condicoes": [
+                  {
+                    "participante.1.declaracaoSaudeSeguro": [
+                      "DESCONHECO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "POS1": {
+                "condicoes": [
+                  {
+                    "participante.1.declaracaoSaudeSeguro": [
+                      "DECLARO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "PARTICIPANTE1": {
+                "origem": "participante.1.nome_completo"
+              },
+              "1CPF": {
+                "origem": "participante.1.cpf",
+                "formato": "CPF"
+              },
+              "PROP2": {
+                "origem": "participante.2.nome_completo"
+              },
+              "CPF2": {
+                "origem": "participante.2.cpf",
+                "formato": "CPF"
+              },
+              "DESC2": {
+                "condicoes": [
+                  {
+                    "participante.2.declaracaoSaudeSeguro": [
+                      "DESCONHECO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "POS2": {
+                "condicoes": [
+                  {
+                    "participante.2.declaracaoSaudeSeguro": [
+                      "DECLARO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "PARTICIPANTE2": {
+                "origem": "participante.2.nome_completo"
+              },
+              "2CPF": {
+                "origem": "participante.2.cpf",
+                "formato": "CPF"
+              },
+              "PROP3": {
+                "origem": "participante.3.nome_completo"
+              },
+              "CPF3": {
+                "origem": "participante.3.cpf",
+                "formato": "CPF"
+              },
+              "DESC3": {
+                "condicoes": [
+                  {
+                    "participante.3.declaracaoSaudeSeguro": [
+                      "DESCONHECO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "POS3": {
+                "condicoes": [
+                  {
+                    "participante.3.declaracaoSaudeSeguro": [
+                      "DECLARO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "PARTICIPANTE3": {
+                "origem": "participante.3.nome_completo"
+              },
+              "3CPF": {
+                "origem": "participante.3.cpf",
+                "formato": "CPF"
+              },
+              "PROP4": {
+                "origem": "participante.4.nome_completo"
+              },
+              "CPF4": {
+                "origem": "participante.4.cpf",
+                "formato": "CPF"
+              },
+              "DESC4": {
+                "condicoes": [
+                  {
+                    "participante.4.declaracaoSaudeSeguro": [
+                      "DESCONHECO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "POS4": {
+                "condicoes": [
+                  {
+                    "participante.4.declaracaoSaudeSeguro": [
+                      "DECLARO_POSSUIR"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes_ejfc",
+                "valor_falso": "/Off"
+              },
+              "PARTICIPANTE4": {
+                "origem": "participante.4.nome_completo"
+              },
+              "4CPF": {
+                "origem": "participante.4.cpf",
+                "formato": "CPF"
+              }
+            },
+            "identificador": "principal"
+          }
+        ],
+        "documentos_extras": [],
+        "campos_entrada": [
+          {
+            "id": "declaracaoSaudeSeguro",
+            "rotulo": "Declaração de saúde",
+            "tipo": "SELECAO",
+            "obrigatorio": true,
+            "placeholder": "",
+            "escopo": "participante",
+            "opcoes": [
+              "DESCONHECO_POSSUIR",
+              "DECLARO_POSSUIR"
+            ],
+            "valor_padrao": "",
+            "icone": "check",
+            "aba": "Seguro Habitacional",
+            "ajuda": "Escolha uma opção para cada participante.",
+            "minimo": null,
+            "maximo": null,
+            "visivel_quando": [],
+            "limpar_quando_oculto": true
+          }
+        ],
+        "formato_saida": "PDF",
+        "modo_fluxo": "formulario_simples",
+        "max_participantes": 4,
+        "identificador": "inicial_03",
+        "ordem": 2
+      },
+      "modelo": "modelo_03",
+      "identificadores_anteriores": [
+        "seguro_mo30825_005"
+      ]
+    },
+    {
+      "perfil": {
+        "nome": "MCMV",
+        "formularios": [
+          {"nome": "PPE", "caminho": "", "geracao": "por_participante", "mapeamento": {}, "recurso": "modelo_04"},
+          {"nome": "1º Imóvel", "caminho": "", "geracao": "por_participante", "mapeamento": {}, "recurso": "modelo_05"}
+        ],
+        "documentos_extras": [
+          {"rotulo": "Contrato", "nome_padrao": "CONTRATO"},
+          {"rotulo": "Planilha de Evolução", "nome_padrao": "PLANILHA DE EVOLUCAO"},
+          {"rotulo": "Protocolo da Planilha", "nome_padrao": "PROTOCOLO DA PLANILHA"},
+          {"rotulo": "Aviso de Crédito", "nome_padrao": "AVISO DE CREDITO"},
+          {"rotulo": "Origem de Recursos", "nome_padrao": "ORIGEM DE RECURSOS"}
+        ],
+        "campos_entrada": [
+          {"id": "endereco", "rotulo": "Endereço", "tipo": "TEXTO", "placeholder": "Ex: Rua das Flores, 123 - Centro, Camocim - CE", "escopo": "participante", "icone": "location", "aba": "Geral"},
+          {"id": "data_assinatura", "rotulo": "Data da assinatura", "tipo": "DATA", "placeholder": "DD/MM/AAAA", "escopo": "global", "icone": "calendar", "aba": "Geral"},
+          {"id": "local_assinatura", "rotulo": "Local da assinatura", "tipo": "TEXTO", "placeholder": "Ex: CAMOCIM-CE", "escopo": "global", "icone": "location", "aba": "Geral"}
+        ],
+        "formato_saida": "PDF/A-2b",
+        "modo_fluxo": "contrato",
+        "max_participantes": 4,
+        "identificador": "mcmv",
+        "ordem": 10
+      },
+      "modelos": ["modelo_04", "modelo_05"],
+      "nomes_anteriores": ["Padrão"]
+    },
+    {
+      "perfil": {
+        "nome": "SBPE",
+        "formularios": [
+          {"nome": "PPE", "caminho": "", "geracao": "por_participante", "mapeamento": {}, "recurso": "modelo_04"},
+          {"nome": "1º Imóvel", "caminho": "", "geracao": "por_participante", "mapeamento": {}, "recurso": "modelo_05"}
+        ],
+        "documentos_extras": [
+          {"rotulo": "Contrato", "nome_padrao": "CONTRATO"},
+          {"rotulo": "Planilha de Evolução", "nome_padrao": "PLANILHA DE EVOLUCAO"},
+          {"rotulo": "Protocolo da Planilha", "nome_padrao": "PROTOCOLO DA PLANILHA"},
+          {"rotulo": "Aviso de Crédito", "nome_padrao": "AVISO DE CREDITO"},
+          {"rotulo": "Origem de Recursos", "nome_padrao": "ORIGEM DE RECURSOS"},
+          {"rotulo": "Cédula de Crédito", "nome_padrao": "CEDULA DE CREDITO"}
+        ],
+        "campos_entrada": [
+          {"id": "endereco", "rotulo": "Endereço", "tipo": "TEXTO", "placeholder": "Ex: Rua das Flores, 123 - Centro, Camocim - CE", "escopo": "participante", "icone": "location", "aba": "Geral"},
+          {"id": "data_assinatura", "rotulo": "Data da assinatura", "tipo": "DATA", "placeholder": "DD/MM/AAAA", "escopo": "global", "icone": "calendar", "aba": "Geral"},
+          {"id": "local_assinatura", "rotulo": "Local da assinatura", "tipo": "TEXTO", "placeholder": "Ex: CAMOCIM-CE", "escopo": "global", "icone": "location", "aba": "Geral"}
+        ],
+        "formato_saida": "PDF/A-2b",
+        "modo_fluxo": "contrato",
+        "max_participantes": 4,
+        "identificador": "sbpe",
+        "ordem": 11
+      },
+      "modelos": ["modelo_04", "modelo_05"]
+    },
+    {
+      "perfil": {
+        "nome": "ITBI",
+        "formularios": [
+          {"nome": "Declaração ITBI", "caminho": "", "geracao": "por_processo", "mapeamento": {}, "recurso": "modelo_06"}
+        ],
+        "documentos_extras": [],
+        "campos_entrada": [
+          {"id": "endereco", "rotulo": "Endereço", "tipo": "TEXTO", "placeholder": "Ex: Rua das Flores, 123 - Centro", "escopo": "participante", "icone": "location", "aba": "Dados do Comprador"},
+          {"id": "comprador_telefone", "rotulo": "Telefone", "tipo": "TELEFONE", "obrigatorio": false, "placeholder": "Ex: (88) 99999-9999", "escopo": "participante", "icone": "help", "aba": "Dados do Comprador"},
+          {"id": "comprador_email", "rotulo": "E-mail", "tipo": "EMAIL", "obrigatorio": false, "placeholder": "Ex: comprador@email.com", "escopo": "participante", "icone": "globe", "aba": "Dados do Comprador"},
+          {"id": "nome_vendedor", "rotulo": "Nome Vendedor", "tipo": "TEXTO", "placeholder": "Ex: CONSTRUTORA EXEMPLO LTDA", "escopo": "global", "icone": "person", "aba": "Dados do Vendedor"},
+          {"id": "cpf_cnpj_vendedor", "rotulo": "CPF/CNPJ Vendedor", "tipo": "CPF_CNPJ", "placeholder": "Ex: 00.000.000/0001-00", "escopo": "global", "icone": "document", "aba": "Dados do Vendedor"},
+          {"id": "matricula", "rotulo": "Matrícula", "tipo": "TEXTO", "placeholder": "Ex: 12.345", "escopo": "global", "icone": "document", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "cartorio_oficio", "rotulo": "Ofício Cartório", "tipo": "TEXTO", "placeholder": "Ex: 2", "escopo": "global", "valor_padrao": "2", "icone": "briefcase", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "cartorio_local", "rotulo": "Comarca Cartório", "tipo": "TEXTO", "placeholder": "Ex: CAMOCIM-CE", "escopo": "global", "valor_padrao": "CAMOCIM-CE", "icone": "location", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "iptu", "rotulo": "Inscrição IPTU", "tipo": "TEXTO", "obrigatorio": false, "placeholder": "Ex: 01.02.003.0004.001", "escopo": "global", "icone": "document", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "area_terreno", "rotulo": "Área Terreno (m²)", "tipo": "AREA", "placeholder": "Ex: 200,00", "escopo": "global", "icone": "ratio", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "area_construida", "rotulo": "Área Constr. (m²)", "tipo": "AREA", "obrigatorio": false, "placeholder": "Ex: 65,50", "escopo": "global", "icone": "ratio", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "fracao_ideal", "rotulo": "Fração Ideal (%)", "tipo": "TEXTO", "placeholder": "Ex: 100", "escopo": "global", "valor_padrao": "100", "icone": "ratio", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "enquadramento_isencao", "rotulo": "Enquadramento na Isenção", "tipo": "CHECKBOX", "obrigatorio": false, "escopo": "global", "valor_padrao": "Sim", "icone": "check", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "endereco_imovel", "rotulo": "Endereço Imóvel", "tipo": "TEXTO", "placeholder": "Ex: Rua das Flores, 123 - Centro, Camocim-CE", "escopo": "global", "icone": "location", "aba": "Dados do Imóvel e Cartório"},
+          {"id": "valor_compra", "rotulo": "Compra e Venda", "tipo": "MOEDA", "placeholder": "Ex: 180.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação"},
+          {"id": "valor_avaliacao", "rotulo": "Avaliação CAIXA", "tipo": "MOEDA", "placeholder": "Ex: 185.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação"},
+          {"id": "valor_financiado", "rotulo": "Financiamento", "tipo": "MOEDA", "placeholder": "Ex: 140.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação"},
+          {"id": "valor_subsidio", "rotulo": "Subsídio", "tipo": "MOEDA", "obrigatorio": false, "placeholder": "Ex: 20.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação"},
+          {"id": "valor_fgts", "rotulo": "FGTS", "tipo": "MOEDA", "obrigatorio": false, "placeholder": "Ex: 10.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação"},
+          {"id": "valor_recursos", "rotulo": "Recursos Próprios", "tipo": "MOEDA", "obrigatorio": false, "placeholder": "Ex: 10.000,00", "escopo": "global", "icone": "calculator", "aba": "Valores da Operação", "calculo": "valor_compra - valor_financiado - valor_subsidio - valor_fgts"},
+          {"id": "data_assinatura", "rotulo": "Data da assinatura", "tipo": "DATA", "placeholder": "DD/MM/AAAA", "escopo": "global", "icone": "calendar", "aba": "Local e Data"},
+          {"id": "local_assinatura", "rotulo": "Local da assinatura", "tipo": "TEXTO", "placeholder": "Ex: CAMOCIM-CE", "escopo": "global", "icone": "location", "aba": "Local e Data"}
+        ],
+        "formato_saida": "PDF",
+        "modo_fluxo": "formulario_simples",
+        "max_participantes": 1,
+        "identificador": "itbi",
+        "ordem": 12,
+        "usar_paginacao": true
+      },
+      "modelos": ["modelo_06"]
+    },
+    {
+      "perfil": {
+        "nome": "Isenção de Tributos",
+        "formularios": [
+          {"nome": "Requerimento de Isenção", "caminho": "", "geracao": "por_participante", "mapeamento": {}, "recurso": "modelo_07"}
+        ],
+        "documentos_extras": [],
+        "campos_entrada": [
+          {"id": "rg", "rotulo": "RG do Requerente", "tipo": "TEXTO", "placeholder": "Ex: 2008123456-7 SSP/CE", "escopo": "participante", "icone": "document", "aba": "Qualificação do Requerente"},
+          {"id": "estado_civil", "rotulo": "Estado Civil", "tipo": "SELECAO", "opcoes": ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"], "valor_padrao": "Solteiro(a)", "escopo": "participante", "icone": "person", "aba": "Qualificação do Requerente"},
+          {"id": "endereco", "rotulo": "Endereço", "tipo": "TEXTO", "placeholder": "Ex: Rua das Flores, 123 - Centro, Camocim - CE", "escopo": "participante", "icone": "location", "aba": "Qualificação do Requerente"},
+          {"id": "matricula", "rotulo": "Matrícula do Imóvel", "tipo": "TEXTO", "placeholder": "Ex: 12.345", "escopo": "global", "icone": "document", "aba": "Dados do Imóvel"},
+          {"id": "data_assinatura", "rotulo": "Data da assinatura", "tipo": "DATA", "placeholder": "DD/MM/AAAA", "escopo": "global", "icone": "calendar", "aba": "Local e Data"},
+          {"id": "local_assinatura", "rotulo": "Local da assinatura", "tipo": "TEXTO", "placeholder": "Ex: CAMOCIM-CE", "escopo": "global", "icone": "location", "aba": "Local e Data"}
+        ],
+        "formato_saida": "PDF",
+        "modo_fluxo": "formulario_simples",
+        "max_participantes": 1,
+        "identificador": "isencao_tributos",
+        "ordem": 13
+      },
+      "modelos": ["modelo_07"],
+      "nomes_anteriores": ["Isenção de Tributos Municipais"]
+    }
+  ]
+}

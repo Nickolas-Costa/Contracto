@@ -14,7 +14,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from utils.ghostscript_setup import localizar_ghostscript, obter_versao_ghostscript
-from utils.resource_path import caminho_recurso, modelo_padrao_ppe, modelo_padrao_primeiro_imovel
+from utils.resource_path import caminho_recurso, listar_modelos_configurados
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("reparo")
 
 
 @dataclass
@@ -26,7 +30,7 @@ class ResultadoReparo:
 
 
 def executar_diagnostico_e_reparo() -> ResultadoReparo:
-    """Executa a rotina completa de diagnóstico e reparo do backend."""
+    """Executa a rotina completa de diagnóstico e reparo."""
     detalhes: list[str] = []
     alertas: list[str] = []
     sucesso_geral = True
@@ -54,7 +58,7 @@ def executar_diagnostico_e_reparo() -> ResultadoReparo:
     # 4. Verificação de modelos de formulário padrão
     modelos_ok = _verificar_modelos_padrao()
     if modelos_ok:
-        detalhes.append("Modelos padrão de documentos (PPE e Primeiro Imóvel) verificados com sucesso.")
+        detalhes.append("Modelos incluídos no aplicativo verificados com sucesso.")
     else:
         alertas.append("Um ou mais modelos padrão de documentos não foram encontrados na pasta de assets.")
         sucesso_geral = False
@@ -100,8 +104,8 @@ def _encerrar_processos_orfaos() -> int:
             )
             if res.returncode == 0:
                 encerrados += 1
-        except Exception:
-            pass
+        except (OSError, subprocess.SubprocessError):
+            _logger.warning("Não foi possível encerrar o processo '%s'.", proc, exc_info=True)
 
     return encerrados
 
@@ -125,11 +129,9 @@ def _limpar_arquivos_temporarios() -> int:
 
 
 def _verificar_modelos_padrao() -> bool:
-    """Verifica se os modelos oficiais essenciais existem no pacote/disco."""
-    ppe = modelo_padrao_ppe()
-    primeiro_imovel = modelo_padrao_primeiro_imovel()
-
-    return ppe.exists() and primeiro_imovel.exists()
+    """Verifica se os modelos cadastrados existem no pacote."""
+    modelos = listar_modelos_configurados()
+    return bool(modelos) and all(modelo.exists() for modelo in modelos)
 
 
 def _atualizar_atalho_desktop() -> bool:
@@ -183,5 +185,6 @@ def _atualizar_atalho_desktop() -> bool:
             shortcut.IconLocation = f"{exe_path},0"
         shortcut.save()
         return True
-    except Exception:
+    except (OSError, AttributeError):
+        _logger.warning("Não foi possível atualizar o atalho do aplicativo.", exc_info=True)
         return False

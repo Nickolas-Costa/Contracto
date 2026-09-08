@@ -20,6 +20,10 @@ from services.pdfa_converter import (
 from utils.ghostscript_setup import esta_disponivel
 from services.process_folder_service import criar_estrutura_pastas
 from utils.filename_utils import nome_documento_processo
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("organizacao")
 
 
 class ResultadoEtapa2(TypedDict):
@@ -74,7 +78,8 @@ def executar_etapa2(
     # 1. Criar estrutura de pastas
     try:
         pasta_pdfa = criar_estrutura_pastas(pasta_base)
-    except Exception as exc:
+    except OSError as exc:
+        _logger.error("Não foi possível criar a estrutura em '%s'.", pasta_base, exc_info=True)
         return {
             "sucesso": False,
             "pasta_pdfa": pasta_base,
@@ -100,7 +105,7 @@ def executar_etapa2(
             caminho_saida = pasta_pdfa / arquivo_gerado.name
             lote_conversao.append((arquivo_gerado, caminho_saida))
 
-    from services.rtf_converter import converter_rtf_para_pdf
+    from services.rtf_converter import RtfConversionError, converter_rtf_para_pdf
     import tempfile
     
     # 3. Preparar documentos externos selecionados
@@ -122,7 +127,8 @@ def executar_etapa2(
                         converter_rtf_para_pdf(caminho_origem, caminho_tmp)
                         caminho_para_gs = caminho_tmp
                         arquivos_temporarios_rtf.append(caminho_tmp)
-                    except Exception as exc:
+                    except (OSError, RtfConversionError) as exc:
+                        _logger.error("Falha ao converter o arquivo RTF '%s'.", caminho_origem, exc_info=True)
                         return {
                             "sucesso": False,
                             "pasta_pdfa": pasta_pdfa,
@@ -167,7 +173,8 @@ def executar_etapa2(
                     resultado_lote.convertidos.append(
                         ResultadoConversao(caminho_saida=destino, perfil="PDF", validado=True)
                     )
-                except Exception as exc:
+                except OSError as exc:
+                    _logger.error("Falha ao copiar '%s' para '%s'.", origem, destino, exc_info=True)
                     resultado_lote.erros.append(str(exc))
 
     except ProcessoCanceladoError:

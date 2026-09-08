@@ -10,14 +10,14 @@ import pypdf
 from app.models.participant import Participant
 from app.services.generator_service import gerar_documentos
 from app.utils.profile_manager import obter_perfil, carregar_perfis
-from app.utils.resource_path import modelo_padrao_itbi
+from app.utils.resource_path import modelo_configurado
 
 
 class TestFormularioITBI(unittest.TestCase):
     """Valida o modelo, perfil e preenchimento dos campos da Declaração de ITBI."""
 
     def test_modelo_oficial_itbi_existe(self):
-        caminho = modelo_padrao_itbi()
+        caminho = modelo_configurado("modelo_06")
         self.assertIsNotNone(caminho)
         self.assertTrue(caminho.exists())
 

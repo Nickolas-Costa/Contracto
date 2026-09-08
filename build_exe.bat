@@ -20,6 +20,8 @@ echo  Build do Contracto - Preparacao de Docs
 echo ==========================================
 echo.
 
+for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'app'); import version; print(version.__version__)"') do set APP_VERSION=%%v
+
 REM Verificar se o ambiente virtual esta ativo
 if not defined VIRTUAL_ENV (
     echo [AVISO] Ambiente virtual nao detectado.
@@ -29,7 +31,6 @@ if not defined VIRTUAL_ENV (
 
 echo [1/5] Limpando builds anteriores e processos abertos...
 taskkill /F /IM Contracto_v%APP_VERSION%.exe /FI "USERNAME eq %USERNAME%" 2>nul
-taskkill /F /IM Contracto_v4.5.5.exe /FI "USERNAME eq %USERNAME%" 2>nul
 taskkill /F /IM Contracto.exe /FI "USERNAME eq %USERNAME%" 2>nul
 if exist app\build rmdir /s /q app\build
 if exist app\dist rmdir /s /q app\dist
@@ -45,7 +46,6 @@ if errorlevel 1 (
 echo.
 
 echo [3/5] Lendo versao e gerando executavel com PyInstaller...
-for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'app'); import version; print(version.__version__)"') do set APP_VERSION=%%v
 echo Versao detectada: %APP_VERSION%
 
 cd app
@@ -54,6 +54,7 @@ cd app
     --onefile ^
     --name "Contracto_v%APP_VERSION%" ^
     --icon "assets/icons/app_icon.ico" ^
+    --add-data "assets/config;assets/config" ^
     --add-data "assets/templates;assets/templates" ^
     --add-data "assets/gs;assets/gs" ^
     --add-data "assets/icons;assets/icons" ^

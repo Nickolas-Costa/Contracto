@@ -1,0 +1,101 @@
+"""Reúne os requisitos de vários perfis selecionados no modo básico."""
+
+import copy
+from dataclasses import dataclass
+
+from utils.profile_manager import CampoEntrada, Perfil
+
+
+@dataclass
+class ResultadoComposicao:
+    perfil: Perfil | None
+    erros: list[str]
+
+
+def _unir_condicoes(
+    primeira: list[dict[str, list[str]]],
+    segunda: list[dict[str, list[str]]],
+) -> list[dict[str, list[str]]]:
+    if not primeira or not segunda:
+        return []
+    resultado = copy.deepcopy(primeira)
+    for alternativa in segunda:
+        if alternativa not in resultado:
+            resultado.append(copy.deepcopy(alternativa))
+    return resultado
+
+
+def _unir_campo(atual: CampoEntrada, novo: CampoEntrada) -> str | None:
+    if atual.escopo != novo.escopo:
+        return "é usado uma vez em um perfil e por participante em outro"
+    if atual.tipo != novo.tipo:
+        return f"usa os tipos {atual.tipo} e {novo.tipo}"
+
+    atual.obrigatorio = atual.obrigatorio or novo.obrigatorio
+    atual.opcoes = list(dict.fromkeys([*atual.opcoes, *novo.opcoes]))
+    atual.visivel_quando = _unir_condicoes(atual.visivel_quando, novo.visivel_quando)
+    atual.limpar_quando_oculto = atual.limpar_quando_oculto and novo.limpar_quando_oculto
+
+    limites = [valor for valor in (atual.ate_participante, novo.ate_participante) if valor]
+    atual.ate_participante = max(limites) if limites else None
+
+    if atual.minimo is None:
+        atual.minimo = novo.minimo
+    elif novo.minimo is not None:
+        atual.minimo = max(atual.minimo, novo.minimo)
+    if atual.maximo is None:
+        atual.maximo = novo.maximo
+    elif novo.maximo is not None:
+        atual.maximo = min(atual.maximo, novo.maximo)
+    if atual.minimo is not None and atual.maximo is not None and atual.minimo > atual.maximo:
+        return "possui limites numéricos incompatíveis"
+
+    if atual.calculo and novo.calculo and atual.calculo != novo.calculo:
+        return "possui cálculos automáticos diferentes"
+    if not atual.calculo:
+        atual.calculo = novo.calculo
+    return None
+
+
+def combinar_perfis(perfis: list[Perfil]) -> ResultadoComposicao:
+    """Cria a tela combinada sem alterar os perfis originais."""
+    if not perfis:
+        return ResultadoComposicao(None, ["Selecione ao menos um formulário."])
+
+    campos: list[CampoEntrada] = []
+    campos_por_id: dict[str, CampoEntrada] = {}
+    erros: list[str] = []
+
+    for perfil in perfis:
+        for campo_original in perfil.campos_entrada:
+            campo = copy.deepcopy(campo_original)
+            if campo.escopo == "participante":
+                campo.ate_participante = campo.ate_participante or perfil.max_participantes
+
+            existente = campos_por_id.get(campo.id)
+            if existente is None:
+                campos_por_id[campo.id] = campo
+                campos.append(campo)
+                continue
+            motivo = _unir_campo(existente, campo)
+            if motivo:
+                erros.append(
+                    f"O campo interno '{campo.id}' {motivo}. "
+                    "Altere um dos nomes internos nas configurações dos perfis."
+                )
+
+    if erros:
+        return ResultadoComposicao(None, list(dict.fromkeys(erros)))
+
+    nomes = [perfil.nome for perfil in perfis]
+    perfil_combinado = Perfil(
+        nome=nomes[0] if len(nomes) == 1 else f"{len(nomes)} formulários selecionados",
+        formularios=[copy.deepcopy(formulario) for perfil in perfis for formulario in perfil.formularios],
+        documentos_extras=[],
+        campos_entrada=campos,
+        formato_saida="PDF",
+        modo_fluxo="formulario_simples",
+        max_participantes=max(perfil.max_participantes for perfil in perfis),
+        usar_paginacao=any(perfil.usar_paginacao for perfil in perfis) or len(perfis) > 1,
+    )
+    return ResultadoComposicao(perfil_combinado, [])

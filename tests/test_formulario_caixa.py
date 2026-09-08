@@ -1,6 +1,4 @@
-"""
-Testes unitários para o Formulário Cliente CAIXA (MO 30.844 v011) e seu perfil dedicado.
-"""
+"""Testes do Formulário Cliente CAIXA MO 30.844 v012."""
 
 import unittest
 from pathlib import Path
@@ -14,14 +12,14 @@ from services.generator_service import (
     obter_mapeamento_formulario,
 )
 from utils.profile_manager import obter_perfil, carregar_perfis
-from utils.resource_path import modelo_padrao_formulario_caixa
+from utils.resource_path import modelo_configurado
 
 
 class TestFormularioCaixa(unittest.TestCase):
-    """Valida o carregamento do modelo, perfil e preenchimento dos 28 campos do MO 30.844."""
+    """Valida o carregamento e preenchimento dos 18 campos do MO 30.844 v012."""
 
     def test_modelo_oficial_formulario_caixa_existe(self):
-        caminho = modelo_padrao_formulario_caixa()
+        caminho = modelo_configurado("modelo_02")
         self.assertIsNotNone(caminho)
         self.assertTrue(caminho.exists())
 
@@ -50,8 +48,9 @@ class TestFormularioCaixa(unittest.TestCase):
             campos_dinamicos={
                 "agencia": "1234",
                 "conta_caixa": "00012345-6",
-                "autorizo_debito_parcela": "Sim",
-                "autorizo_tarifa_avaliacao": "Sim",
+                "formaPagamentoParcela": "AUTORIZAR_OU_ALTERAR_DEBITO",
+                "autorizaBoletoWhatsapp": "Sim",
+                "autorizaCobrancaAvaliacao": "Sim",
             }
         )
         p2 = Participant(
@@ -79,22 +78,20 @@ class TestFormularioCaixa(unittest.TestCase):
             reader = pypdf.PdfReader(str(pdf_gerado))
             campos = reader.get_fields() or {}
 
-            self.assertEqual(campos["NOME_CLIENTE_1"].get("/V"), "JOAO DA SILVA")
-            self.assertEqual(campos["CPF1"].get("/V"), "529.982.247-25")
+            self.assertEqual(campos["1NOME"].get("/V"), "JOAO DA SILVA")
+            self.assertEqual(campos["1CPF"].get("/V"), "529.982.247-25")
             self.assertEqual(campos["AGENCIA"].get("/V"), "1234")
-            self.assertEqual(campos["CONTA_CAIXA"].get("/V"), "00012345-6")
-            self.assertEqual(campos["NOMEPROP1PROPOSTA"].get("/V"), "JOAO DA SILVA")
-            self.assertEqual(campos["CPFPROP1"].get("/V"), "529.982.247-25")
-            self.assertEqual(campos["NOMEPROP2PROPOSTA"].get("/V"), "MARIA DE SOUZA")
-            self.assertEqual(campos["CPFPROP2"].get("/V"), "111.444.777-35")
-            self.assertEqual(campos["MIP1"].get("/V"), "/Yes_uonn")
-            self.assertEqual(campos["MIP2"].get("/V"), "/Yes_uonn")
+            self.assertEqual(campos["CONTA"].get("/V"), "00012345-6")
+            self.assertEqual(campos["PARCELA AUT"].get("/V"), "/Yes_ftsk")
+            self.assertEqual(campos["CANCELO DEB"].get("/V"), "/Off")
+            self.assertEqual(campos["BOLETO AUT"].get("/V"), "/Yes_ftsk")
+            self.assertEqual(campos["AVALIACAO AUT COB"].get("/V"), "/Yes_ftsk")
             self.assertEqual(campos["LOCAL"].get("/V"), "CAMOCIM-CE")
-            self.assertEqual(campos["DATA DD/MM/AAAA"].get("/V"), "29/08/2026")
-            self.assertEqual(campos["PARTICIP1NOME"].get("/V"), "JOAO DA SILVA")
-            self.assertEqual(campos["PARTICIP1CPF"].get("/V"), "529.982.247-25")
-            self.assertEqual(campos["PARTICIP2NOME"].get("/V"), "MARIA DE SOUZA")
-            self.assertEqual(campos["PARTICIP2CPF"].get("/V"), "111.444.777-35")
+            self.assertEqual(campos["DATA ABREV"].get("/V"), "29/08/2026")
+            self.assertEqual(campos["1PARTICIPANTE"].get("/V"), "JOAO DA SILVA")
+            self.assertEqual(campos["CPF1"].get("/V"), "529.982.247-25")
+            self.assertEqual(campos["2PARTICIPANTE"].get("/V"), "MARIA DE SOUZA")
+            self.assertEqual(campos["CPF2"].get("/V"), "111.444.777-35")
 
 
 if __name__ == "__main__":

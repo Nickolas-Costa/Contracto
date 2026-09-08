@@ -2,23 +2,35 @@
 Serviço responsável exclusivamente pela leitura e preenchimento de PDFs
 com campos de formulário (AcroForm), utilizando pypdf.
 
-Este módulo opera de forma agnóstica em relação às regras de negócio da aplicação:
-ele não processa lógica de participantes ou documentos específicos. Ele recebe
+Este módulo não processa regras de participantes ou documentos. Ele recebe
 um PDF modelo e um dicionário {nome_do_campo: valor} e devolve um PDF preenchido.
-Toda regra de negócio vive em `generator_service.py`.
+As regras declarativas ficam na configuração do perfil e são avaliadas pelo
+motor genérico de mapeamento.
 
 Isso mantém baixo acoplamento: se no futuro o formato dos PDFs mudar, ou
 se novos tipos de documentos forem adicionados, apenas o mapeamento precisa ser atualizado.
 """
 
 from pathlib import Path
+from typing import Optional
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
+from pypdf.generic import DictionaryObject, NameObject
 
 
 class PdfServiceError(Exception):
     """Erro amigável relacionado à leitura, preenchimento ou escrita de um PDF."""
+
+
+_detalhes_cache: dict[tuple[str, int, int], dict[str, dict[str, object]]] = {}
+
+
+def _copiar_detalhes(detalhes: dict[str, dict[str, object]]) -> dict[str, dict[str, object]]:
+    return {
+        nome: {"tipo": item.get("tipo", ""), "estados": list(item.get("estados", []) or [])}
+        for nome, item in detalhes.items()
+    }
 
 
 def obter_campos_do_formulario(caminho_pdf: Path) -> set[str]:
@@ -31,6 +43,45 @@ def obter_campos_do_formulario(caminho_pdf: Path) -> set[str]:
     reader = _abrir_pdf(caminho_pdf)
     campos = reader.get_fields()
     return set(campos.keys()) if campos else set()
+
+
+def obter_detalhes_campos(caminho_pdf: Path) -> dict[str, dict[str, object]]:
+    """Retorna tipo e estados de exportação para configurar mapeamentos pela UI."""
+    try:
+        estado = caminho_pdf.stat()
+        chave_cache = (str(caminho_pdf.resolve()), estado.st_mtime_ns, estado.st_size)
+    except OSError:
+        chave_cache = (str(caminho_pdf), 0, 0)
+    if chave_cache in _detalhes_cache:
+        return _copiar_detalhes(_detalhes_cache[chave_cache])
+
+    reader = _abrir_pdf(caminho_pdf)
+    campos = reader.get_fields() or {}
+    detalhes = {
+        nome: {
+            "tipo": str(campo.get("/FT", "")),
+            "estados": [str(estado) for estado in (campo.get("/_States_") or [])],
+        }
+        for nome, campo in campos.items()
+    }
+    # Alguns PDFs guardam as aparências somente nos widgets filhos.
+    for pagina in reader.pages:
+        for ref in pagina.get("/Annots") or []:
+            widget = ref.get_object()
+            parent_ref = widget.get("/Parent")
+            parent = parent_ref.get_object() if parent_ref else None
+            nome = (parent.get("/T") if parent else widget.get("/T"))
+            tipo = (parent.get("/FT") if parent else widget.get("/FT"))
+            if not nome or str(tipo) != "/Btn":
+                continue
+            estados = list(((widget.get("/AP") or {}).get("/N") or {}).keys())
+            if estados:
+                detalhes.setdefault(str(nome), {"tipo": "/Btn", "estados": []})
+                detalhes[str(nome)]["estados"] = [str(estado) for estado in estados]
+    if len(_detalhes_cache) >= 24:
+        _detalhes_cache.pop(next(iter(_detalhes_cache)))
+    _detalhes_cache[chave_cache] = _copiar_detalhes(detalhes)
+    return detalhes
 
 
 def carregar_template_reader(caminho_pdf: Path) -> PdfReader:
@@ -70,12 +121,31 @@ def preencher_formulario(
         raise PdfServiceError(
             f"Nenhum dos campos esperados foi encontrado no PDF "
             f"'{caminho_template.name}'. Verifique se este é o modelo "
-            f"correto ou ajuste os nomes dos campos em generator_service.py "
+            f"correto ou ajuste o mapeamento nas configurações do perfil "
             f"(campos disponíveis no PDF: {sorted(campos_existentes.keys())})."
         )
 
     try:
         writer = PdfWriter(clone_from=reader)
+
+        acroform_ref = writer.root_object.get("/AcroForm")
+        if acroform_ref:
+            acroform = acroform_ref.get_object()
+            recursos = acroform.get("/DR")
+            if not isinstance(recursos, DictionaryObject):
+                recursos = DictionaryObject()
+                acroform[NameObject("/DR")] = recursos
+            fontes = recursos.get("/Font")
+            if not isinstance(fontes, DictionaryObject):
+                fontes = DictionaryObject()
+                recursos[NameObject("/Font")] = fontes
+            if "/Helv" not in fontes:
+                fontes[NameObject("/Helv")] = DictionaryObject({
+                    NameObject("/Type"): NameObject("/Font"),
+                    NameObject("/Subtype"): NameObject("/Type1"),
+                    NameObject("/BaseFont"): NameObject("/Helvetica"),
+                    NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+                })
 
         for pagina in writer.pages:
             writer.update_page_form_field_values(pagina, valores, auto_regenerate=False)

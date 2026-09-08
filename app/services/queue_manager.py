@@ -1,7 +1,7 @@
 """
 Gerenciador de Fila de Execução em Segundo Plano (Background Queue Manager).
 
-Permite que o processamento de geração e conversão de documentos seja desacoplado
+Permite executar a geração e a conversão de documentos em segundo plano
 da interface gráfica, possibilitando:
 1. Execução contínua em segundo plano mesmo se o aplicativo perder foco, for minimizado ou com Alt+Tab.
 2. Enfileiramento de múltiplos lotes/processos sequencialmente.
@@ -20,6 +20,10 @@ from services.generator_service import gerar_documentos
 from services.pdfa_converter import ProcessoCanceladoError
 from services.stage2_service import ResultadoEtapa2, executar_etapa2
 from utils.profile_manager import Perfil
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("fila")
 
 
 @dataclass
@@ -251,6 +255,12 @@ class QueueManager:
             if self.on_job_cancelled:
                 self.on_job_cancelled(job)
         except Exception as exc:
+            _logger.error(
+                "Falha ao processar o item %s (%s).",
+                job.id,
+                job.titulo,
+                exc_info=True,
+            )
             job.status = "erro"
             job.erro = str(exc)
             if self.on_job_failed:
@@ -261,11 +271,11 @@ class QueueManager:
             try:
                 self.on_job_progress(job, etapa, total, submsg)
             except Exception:
-                pass
+                _logger.exception("Falha no retorno de progresso do item %s.", job.id)
 
     def _notificar_mudanca_fila(self) -> None:
         if self.on_queue_changed:
             try:
                 self.on_queue_changed()
             except Exception:
-                pass
+                _logger.exception("Falha ao atualizar o estado visual da fila.")

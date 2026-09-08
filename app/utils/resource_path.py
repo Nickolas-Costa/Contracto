@@ -8,7 +8,9 @@ executável com PyInstaller (`--onefile` ou `--onedir`), onde os arquivos de
 dados precisam ser localizados de forma diferente (`sys._MEIPASS`).
 """
 
+import json
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -24,48 +26,36 @@ def caminho_recurso(*partes: str) -> Path:
     return base_path.joinpath(*partes)
 
 
-def modelo_padrao_ppe() -> Path | None:
-    """Caminho do modelo oficial da Declaração PPE incluído com a aplicação.
+@lru_cache(maxsize=1)
+def carregar_configuracao_inicial() -> dict:
+    """Lê uma vez a configuração que acompanha o aplicativo."""
+    caminho = caminho_recurso("assets", "config", "perfis_iniciais.json")
+    try:
+        with open(caminho, "r", encoding="utf-8") as arquivo:
+            return json.load(arquivo)
+    except (OSError, json.JSONDecodeError, TypeError):
+        return {}
 
-    Retorna None se o arquivo não estiver presente (o usuário precisará
-    selecionar um manualmente).
-    """
-    caminho = caminho_recurso("assets", "templates", "PPE.pdf")
+
+def modelo_configurado(chave: str) -> Path | None:
+    """Localiza um modelo informado na configuração que acompanha o aplicativo."""
+    if not chave:
+        return None
+    caminho_relativo = (carregar_configuracao_inicial().get("modelos") or {}).get(chave, "")
+    if not caminho_relativo:
+        return None
+    caminho = caminho_recurso("assets", "templates", *Path(caminho_relativo).parts)
     return caminho if caminho.exists() else None
 
 
-def modelo_padrao_primeiro_imovel() -> Path | None:
-    """Caminho do modelo oficial da Declaração de Primeiro Imóvel incluído
-    com a aplicação.
-
-    Retorna None se o arquivo não estiver presente (o usuário precisará
-    selecionar um manualmente).
-    """
-    caminho = caminho_recurso("assets", "templates", "1 IMOVEL.pdf")
-    return caminho if caminho.exists() else None
+def mapeamento_configurado(chave: str) -> dict:
+    """Lê o mapeamento inicial de um modelo."""
+    if not chave:
+        return {}
+    return (carregar_configuracao_inicial().get("mapeamentos") or {}).get(chave, {}).copy()
 
 
-def modelo_padrao_form_cliente() -> Path | None:
-    """Caminho do modelo oficial do Form Cliente Crédito Imobiliário (FORM CLIENTE.pdf)."""
-    caminho = caminho_recurso("assets", "templates", "FORM CLIENTE.pdf")
-    if caminho.exists():
-        return caminho
-    caminho_legado = caminho_recurso("assets", "templates", "MO30844011 (PREENCHIVEL).pdf")
-    return caminho_legado if caminho_legado.exists() else None
-
-
-def modelo_padrao_formulario_caixa() -> Path | None:
-    """Alias para compatibilidade com modelo_padrao_form_cliente."""
-    return modelo_padrao_form_cliente()
-
-
-def modelo_padrao_itbi() -> Path | None:
-    """Caminho do modelo oficial da Declaração para Pagamento do ITBI."""
-    caminho = caminho_recurso("assets", "templates", "DECLARACAO PARA PAGAMENTO DO ITBI.pdf")
-    return caminho if caminho.exists() else None
-
-
-def modelo_padrao_isencao_tributos() -> Path | None:
-    """Caminho do modelo oficial do Requerimento de Isenção de Tributos Municipais."""
-    caminho = caminho_recurso("assets", "templates", "REQUERIMENTO ISENÇÃO DE TRIBUTOS MUNICIPAIS.pdf")
-    return caminho if caminho.exists() else None
+def listar_modelos_configurados() -> list[Path]:
+    """Retorna os modelos que acompanham o aplicativo."""
+    chaves = list((carregar_configuracao_inicial().get("modelos") or {}).keys())
+    return [caminho for chave in chaves if (caminho := modelo_configurado(chave)) is not None]

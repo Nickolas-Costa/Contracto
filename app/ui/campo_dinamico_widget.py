@@ -14,6 +14,7 @@ from ui.theme import (
     COLOR_SURFACE,
     COLOR_SURFACE_VARIANT,
     COLOR_TEXT,
+    COLOR_TEXT_SECONDARY,
     FONT_SIZE_BODY,
     RADIUS_BUTTON,
     RADIUS_INPUT,
@@ -21,6 +22,7 @@ from ui.theme import (
     SPACING_MEDIUM,
     SPACING_SMALL,
     SPACING_XSMALL,
+    adicionar_tooltip,
     get_color_primary,
     get_color_primary_hover,
     get_font,
@@ -43,6 +45,7 @@ from utils.document_validator import (
     validar_telefone,
 )
 from utils.profile_manager import CampoEntrada
+from utils.pis_pasep_validator import formatar_pis_pasep, validar_pis_pasep
 
 LARGURA_PADRAO_ROTULO = 145
 
@@ -62,6 +65,8 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         self.campo = campo
         self.on_change = on_change
         self.on_open_datepicker = on_open_datepicker
+        self.ativo = True
+        self.pagina_visivel = True
 
         self.grid_columnconfigure(0, minsize=LARGURA_PADRAO_ROTULO)
         self.grid_columnconfigure(1, weight=1)
@@ -84,8 +89,10 @@ class CampoDinamicoWidget(ctk.CTkFrame):
 
         # Label do campo com largura fixa padronizada
         obrigatorio_sufixo = " *" if self.campo.obrigatorio else ""
+        area_rotulo = ctk.CTkFrame(self, fg_color="transparent", width=LARGURA_PADRAO_ROTULO)
+        area_rotulo.grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
         self.label = ctk.CTkLabel(
-            self,
+            area_rotulo,
             text=f" {self.campo.rotulo}{obrigatorio_sufixo}",
             image=get_icon(icone_nome, (16, 16)),
             compound="left",
@@ -94,7 +101,15 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             font=get_font(FONT_SIZE_BODY),
             text_color=COLOR_TEXT,
         )
-        self.label.grid(row=0, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w")
+        self.label.pack(side="left")
+        if self.campo.ajuda:
+            info = ctk.CTkLabel(
+                area_rotulo, text=" ⓘ", width=20,
+                font=get_font(14), text_color=COLOR_TEXT_SECONDARY,
+                cursor="hand2",
+            )
+            info.pack(side="left")
+            adicionar_tooltip(info, self.campo.ajuda)
 
         # Container do controle (coluna 1)
         if tipo == "CHECKBOX":
@@ -109,8 +124,11 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.widget_input.grid(row=0, column=1, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="w")
 
         elif tipo == "SELECAO":
-            valores = self.campo.opcoes if self.campo.opcoes else ["Padrão"]
-            valor_inicial = self.campo.valor_padrao if self.campo.valor_padrao in valores else valores[0]
+            opcoes = self.campo.opcoes if self.campo.opcoes else ["Padrão"]
+            valores = [self._rotulo_opcao(opcao) for opcao in opcoes]
+            self._rotulo_para_opcao = dict(zip(valores, opcoes))
+            self._opcao_para_rotulo = dict(zip(opcoes, valores))
+            valor_inicial = self._opcao_para_rotulo.get(self.campo.valor_padrao, "")
             self.widget_input = ctk.CTkComboBox(
                 self,
                 values=valores,
@@ -120,6 +138,18 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             )
             self.widget_input.set(valor_inicial)
             self.widget_input.grid(row=0, column=1, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+
+        elif tipo == "TEXTO_LONGO":
+            self.textbox = ctk.CTkTextbox(
+                self, height=66, corner_radius=RADIUS_INPUT,
+                border_width=1, border_color=COLOR_BORDER, wrap="word",
+            )
+            if self.campo.valor_padrao:
+                self.textbox.insert("1.0", self.campo.valor_padrao)
+            self.textbox.grid(row=0, column=1, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+            self.textbox.bind("<KeyRelease>", self._ao_digitar_texto_longo)
+            self.textbox.bind("<FocusOut>", self._ao_perder_foco)
+            self.widget_input = self.textbox
 
         elif tipo == "DATA":
             # Frame horizontal com Entry + botão do DatePicker
@@ -169,7 +199,11 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 elif tipo == "CPF_CNPJ":
                     placeholder = "CPF ou CNPJ (ex: 000.000.000-00)"
                 elif tipo == "MOEDA":
-                    placeholder = "R$ 0,00"
+                    placeholder = "0,00"
+                elif tipo == "PIS_PASEP":
+                    placeholder = "000.00000.00-0"
+                elif tipo == "ANO":
+                    placeholder = "AAAA"
                 elif tipo == "AREA" or ("area" in self.campo.id.lower() or "área" in self.campo.rotulo.lower()):
                     placeholder = "Ex: 200,00"
                 elif tipo == "TELEFONE" or ("telefone" in self.campo.id.lower()):
@@ -195,6 +229,24 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.entry.bind("<FocusIn>", self._ao_receber_foco)
             self.entry.bind("<FocusOut>", self._ao_perder_foco)
             self.widget_input = self.entry
+
+    @staticmethod
+    def _rotulo_opcao(valor: str) -> str:
+        """Transforma valores internos em textos mais fáceis de ler."""
+        if "_" not in valor:
+            return valor
+        ajustes = {
+            "NAO": "Não", "OU": "ou", "DE": "de", "DO": "do", "DA": "da",
+            "E": "e", "A": "a", "COM": "com", "EM": "em",
+            "DECLARACAO": "Declaração", "AQUISICAO": "Aquisição",
+            "CONSTRUCAO": "Construção", "IMOVEL": "Imóvel",
+            "AMPLIACAO": "Ampliação", "OPERACOES": "Operações",
+            "CONJUGE": "Cônjuge", "PRO": "Pró", "COTISTA": "Cotista",
+        }
+        siglas = {"FGTS", "CCFGTS", "PMCMV", "SBPE", "AMC"}
+        partes = [token if token in siglas else ajustes.get(token, token.lower()) for token in valor.split("_")]
+        texto = " ".join(partes)
+        return texto[:1].upper() + texto[1:]
 
     def _encontrar_scrollable_parent(self) -> Optional[ctk.CTkScrollableFrame]:
         """Procura o CTkScrollableFrame ancestral mais próximo."""
@@ -255,6 +307,21 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                     self.entry.delete(0, "end")
                     self.entry.insert(0, novo_val)
                     val = novo_val
+            elif tipo == "PIS_PASEP":
+                novo_val = formatar_pis_pasep(val)
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
+            elif tipo in ("INTEIRO", "ANO"):
+                limite = 4 if tipo == "ANO" else None
+                novo_val = "".join(ch for ch in val if ch.isdigit())
+                if limite:
+                    novo_val = novo_val[:limite]
+                if novo_val != val:
+                    self.entry.delete(0, "end")
+                    self.entry.insert(0, novo_val)
+                    val = novo_val
             elif tipo == "AREA" or ("area" in self.campo.id.lower() or "área" in self.campo.rotulo.lower()):
                 novo_val = formatar_area_progressiva(val)
                 if novo_val != val:
@@ -278,9 +345,17 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         if self.on_change:
             self.on_change(val)
 
+    def _ao_digitar_texto_longo(self, event=None) -> None:
+        valor = self.obter_valor()
+        self.validar_campo(mostrar_erro=False)
+        if self.on_change:
+            self.on_change(valor)
+
     def _ao_perder_foco(self, event=None) -> None:
         if hasattr(self, "entry"):
             self.entry.configure(border_width=1)
+        elif hasattr(self, "textbox"):
+            self.textbox.configure(border_width=1)
         self.validar_campo(mostrar_erro=True)
 
     def _ao_alterar_combobox(self, escolha: str) -> None:
@@ -301,7 +376,10 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         if tipo == "CHECKBOX":
             return "Sim" if getattr(self, "var_check", None) and self.var_check.get() else "Não"
         elif tipo == "SELECAO":
-            return self.widget_input.get() if hasattr(self, "widget_input") else ""
+            exibido = self.widget_input.get() if hasattr(self, "widget_input") else ""
+            return getattr(self, "_rotulo_para_opcao", {}).get(exibido, exibido)
+        elif hasattr(self, "textbox"):
+            return self.textbox.get("1.0", "end-1c").strip()
         elif hasattr(self, "entry"):
             return self.entry.get().strip()
         return ""
@@ -313,7 +391,11 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 self.var_check.set(valor.lower() in ("sim", "true", "1", "yes"))
         elif tipo == "SELECAO":
             if hasattr(self, "widget_input"):
-                self.widget_input.set(valor)
+                self.widget_input.set(getattr(self, "_opcao_para_rotulo", {}).get(valor, valor))
+        elif hasattr(self, "textbox"):
+            self.textbox.delete("1.0", "end")
+            if valor is not None and str(valor).strip():
+                self.textbox.insert("1.0", str(valor).strip())
         elif hasattr(self, "entry"):
             val_str = str(valor).strip() if valor is not None else ""
             self.entry.delete(0, "end")
@@ -332,6 +414,8 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         tipo = self.campo.tipo.upper()
         is_valid = True
 
+        if not self.ativo:
+            return True
         if self.campo.obrigatorio and not val and tipo != "CHECKBOX":
             is_valid = False
         elif val:
@@ -343,6 +427,16 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 is_valid, _ = validar_cpf_ou_cnpj(val)
             elif tipo == "DATA":
                 is_valid = validar_data(val)
+            elif tipo == "PIS_PASEP":
+                is_valid = validar_pis_pasep(val)
+            elif tipo == "ANO":
+                is_valid = len(val) == 4 and val.isdigit()
+            elif tipo == "INTEIRO":
+                is_valid = val.isdigit()
+                if is_valid and self.campo.minimo is not None:
+                    is_valid = int(val) >= self.campo.minimo
+                if is_valid and self.campo.maximo is not None:
+                    is_valid = int(val) <= self.campo.maximo
             elif tipo == "TELEFONE" or ("telefone" in self.campo.id.lower()):
                 is_valid = validar_telefone(val)
             elif tipo == "EMAIL" or ("email" in self.campo.id.lower()):
@@ -353,12 +447,16 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 self.entry.configure(border_color=COLOR_BORDER)
             else:
                 self.entry.configure(border_color=COLOR_BORDER_ERROR)
+        elif hasattr(self, "textbox"):
+            self.textbox.configure(border_color=COLOR_BORDER if is_valid or not mostrar_erro else COLOR_BORDER_ERROR)
 
         return is_valid
 
     def validar(self, prefixo: str = "") -> list[str]:
         """Retorna lista de mensagens de erro se o campo for inválido."""
         erros = []
+        if not self.ativo:
+            return erros
         val = self.obter_valor()
         tipo = self.campo.tipo.upper()
         rotulo_completo = f"{prefixo}: {self.campo.rotulo}" if prefixo else self.campo.rotulo
@@ -386,6 +484,15 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 erros.append(f"{rotulo_completo}: Data inválida (use o formato DD/MM/AAAA).")
                 if hasattr(self, "entry"):
                     self.entry.configure(border_color=COLOR_BORDER_ERROR)
+            elif tipo == "PIS_PASEP" and not validar_pis_pasep(val):
+                erros.append(f"{rotulo_completo}: PIS/PASEP inválido.")
+            elif tipo == "ANO" and (len(val) != 4 or not val.isdigit()):
+                erros.append(f"{rotulo_completo}: informe quatro dígitos.")
+            elif tipo == "INTEIRO" and not self.validar_campo(mostrar_erro=True):
+                faixa = ""
+                if self.campo.minimo is not None or self.campo.maximo is not None:
+                    faixa = f" ({self.campo.minimo if self.campo.minimo is not None else 0} a {self.campo.maximo if self.campo.maximo is not None else '∞'})"
+                erros.append(f"{rotulo_completo}: informe um número inteiro válido{faixa}.")
             elif (tipo == "TELEFONE" or "telefone" in self.campo.id.lower()) and not validar_telefone(val):
                 erros.append(f"{rotulo_completo}: Telefone inválido (use o formato (00) 00000-0000).")
                 if hasattr(self, "entry"):
@@ -398,6 +505,11 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 if hasattr(self, "entry"):
                     self.entry.configure(border_color=COLOR_BORDER)
 
+        cor = COLOR_BORDER_ERROR if erros else COLOR_BORDER
+        if hasattr(self, "entry"):
+            self.entry.configure(border_color=cor)
+        elif hasattr(self, "textbox"):
+            self.textbox.configure(border_color=cor)
         return erros
 
     def limpar(self) -> None:
@@ -408,7 +520,11 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                 self.var_check.set(self.campo.valor_padrao.lower() in ("true", "1", "sim"))
         elif tipo == "SELECAO":
             if hasattr(self, "widget_input") and self.campo.opcoes:
-                self.widget_input.set(self.campo.valor_padrao or self.campo.opcoes[0])
+                self.widget_input.set(self.campo.valor_padrao or "")
+        elif hasattr(self, "textbox"):
+            self.textbox.delete("1.0", "end")
+            if self.campo.valor_padrao:
+                self.textbox.insert("1.0", self.campo.valor_padrao)
         elif hasattr(self, "entry"):
             self.entry.delete(0, "end")
             if self.campo.valor_padrao and self.campo.valor_padrao.strip():
@@ -420,6 +536,24 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                     except Exception:
                         pass
             self.entry.configure(border_color=COLOR_BORDER)
+
+    def definir_ativo(self, ativo: bool, limpar: bool = False) -> None:
+        """Mostra/oculta o campo e o exclui da validação quando não aplicável."""
+        self.ativo = ativo
+        if ativo and self.pagina_visivel:
+            self.grid()
+        else:
+            if limpar:
+                self.definir_valor("")
+            self.grid_remove()
+
+    def definir_pagina_visivel(self, visivel: bool) -> None:
+        """Troca a página sem limpar o valor e sem alterar a validação."""
+        self.pagina_visivel = visivel
+        if visivel and self.ativo:
+            self.grid()
+        else:
+            self.grid_remove()
 
     def atualizar_cores(self) -> None:
         """Atualiza cores dinâmicas dos controles internos."""

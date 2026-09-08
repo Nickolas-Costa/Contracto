@@ -30,6 +30,10 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from utils.ghostscript_setup import localizar_ghostscript
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("pdfa")
 
 
 class ProcessoCanceladoError(Exception):
@@ -222,10 +226,7 @@ def validar_pdfa(caminho_pdf: Path) -> bool:
         return True
 
     # 2. Validação detalhada via pikepdf caso a rápida não encontre marcação direta
-    try:
-        return _validar_via_pikepdf(caminho_pdf)
-    except Exception:
-        return False
+    return _validar_via_pikepdf(caminho_pdf)
 
 
 def _validar_via_pikepdf(caminho_pdf: Path) -> bool:
@@ -242,16 +243,23 @@ def _validar_via_pikepdf(caminho_pdf: Path) -> bool:
                 if "pdfaid:part" in xmp_str or "pdfa:part" in xmp_str:
                     return True
         return False
-    except Exception:
+    except (pikepdf.PdfError, OSError, ValueError):
+        _logger.warning("Não foi possível validar os metadados de '%s'.", caminho_pdf, exc_info=True)
         return False
 
 
 def _validar_basica(caminho_pdf: Path) -> bool:
     """Validação básica sem pikepdf — busca marcações PDF/A nos bytes do arquivo."""
     try:
-        conteudo = caminho_pdf.read_bytes()
         marcadores = [b"pdfaid:part", b"pdfa:part", b"PDF/A"]
-        return any(marcador in conteudo for marcador in marcadores)
+        anterior = b""
+        with caminho_pdf.open("rb") as arquivo:
+            while bloco := arquivo.read(1024 * 1024):
+                conteudo = anterior + bloco
+                if any(marcador in conteudo for marcador in marcadores):
+                    return True
+                anterior = conteudo[-32:]
+        return False
     except OSError:
         return False
 

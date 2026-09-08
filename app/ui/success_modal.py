@@ -170,6 +170,9 @@ class SuccessModal:
 
     def _abrir_arquivo(self, caminho: Path) -> None:
         try:
+            caminho = Path(caminho).resolve()
+            if not caminho.exists() or not caminho.is_file():
+                return
             if os.name == "nt":
                 os.startfile(str(caminho))
             else:
@@ -180,7 +183,9 @@ class SuccessModal:
 
     def _abrir_pasta_destino(self) -> None:
         try:
-            pasta = self.pasta_destino
+            pasta = Path(self.pasta_destino).resolve()
+            if not pasta.exists() or not pasta.is_dir():
+                return
             if os.name == "nt":
                 os.startfile(str(pasta))
             else:

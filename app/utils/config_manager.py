@@ -8,6 +8,8 @@ para que sobrevivam a atualizações do executável.
 import json
 import os
 from pathlib import Path
+
+from utils.json_storage import salvar_json
 from typing import Any
 
 
@@ -19,6 +21,7 @@ _DEFAULTS = {
     "cor_destaque": "#005CA9",      # Azul Institucional
     "formato_saida": "PDF/A-2b",    # "PDF/A-2b" ou "PDF"
     "perfil_ativo": "MCMV",
+    "formularios_basicos_selecionados": [],
     "local_padrao": "CAMOCIM-CE",
     "tamanho_quadros": "Médio",     # "Pequeno", "Médio", "Grande"
     "primeira_execucao": True,
@@ -82,8 +85,7 @@ def salvar_config(config: dict[str, Any]) -> None:
     global _config_cache
 
     caminho = _caminho_config()
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+    salvar_json(caminho, config)
 
     _config_cache = dict(config)
 

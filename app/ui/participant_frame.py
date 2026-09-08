@@ -43,6 +43,8 @@ class ParticipantFrame(ctk.CTkFrame):
         self.on_open_datepicker = on_open_datepicker
         self._local_padrao = local_padrao
         self.widgets_dinamicos: dict[str, CampoDinamicoWidget] = {}
+        self._paginas_widgets: dict[str, list[CampoDinamicoWidget]] = {}
+        self._paginas_secoes: dict[str, list[ctk.CTkFrame]] = {}
 
         self.grid_columnconfigure(0, minsize=145)
         self.grid_columnconfigure(1, weight=1)
@@ -88,6 +90,8 @@ class ParticipantFrame(ctk.CTkFrame):
             for campo in self.campos_customizados:
                 if campo.id in ("nome_completo", "nome", "cpf"):
                     continue
+                if campo.ate_participante and self.indice > campo.ate_participante:
+                    continue
                 # Em perfis normais, se for endereço e não for o principal, só exibe se o perfil exigir por participante
                 if campo.id == "endereco" and not principal and campo.escopo != "participante":
                     continue
@@ -95,21 +99,26 @@ class ParticipantFrame(ctk.CTkFrame):
                 nome_secao = campo.aba.strip() if campo.aba else ""
                 if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
                     frame_sub = self._criar_subtitulo_secao(nome_secao)
-                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                     self._frames_subtitulos_part.append(frame_sub)
+                    self._paginas_secoes.setdefault(nome_secao, []).append(frame_sub)
                     linha += 1
                     secao_anterior = nome_secao
 
                 widget_campo = CampoDinamicoWidget(
                     self,
                     campo=campo,
+                    on_change=lambda valor, campo_id=campo.id: self._ao_alterar_campo_dinamico(campo_id, valor),
                     on_open_datepicker=self.on_open_datepicker,
                 )
-                widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+                widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
                 self.widgets_dinamicos[campo.id] = widget_campo
+                self._paginas_widgets.setdefault(campo.aba or "Geral", []).append(widget_campo)
                 if campo.id == "endereco" and hasattr(widget_campo, "entry"):
                     self.entry_endereco = widget_campo.entry
                 linha += 1
+
+        self._atualizar_campos_condicionais()
 
         # Pequeno respiro na última linha do frame
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
@@ -120,15 +129,7 @@ class ParticipantFrame(ctk.CTkFrame):
         frame = ctk.CTkFrame(self, fg_color="transparent")
         frame.grid_columnconfigure(0, weight=1)
 
-        t_low = titulo.lower()
-        if "conta" in t_low or "banco" in t_low or "agência" in t_low or "agencia" in t_low:
-            icone = "briefcase"
-        elif "qualifica" in t_low or "requerente" in t_low or "rg" in t_low:
-            icone = "document"
-        elif "contato" in t_low or "telefone" in t_low or "comprador" in t_low:
-            icone = "help"
-        else:
-            icone = "person"
+        icone = icone_para_secao(titulo)
 
         header_box = ctk.CTkFrame(frame, fg_color="transparent")
         header_box.grid(row=0, column=0, sticky="ew", padx=SPACING_LARGE, pady=(SPACING_SMALL, 2))
@@ -161,6 +162,8 @@ class ParticipantFrame(ctk.CTkFrame):
             except Exception:
                 pass
         self.widgets_dinamicos.clear()
+        self._paginas_widgets.clear()
+        self._paginas_secoes.clear()
         self.entry_endereco = None
 
         if hasattr(self, "_frames_subtitulos_part"):
@@ -186,24 +189,29 @@ class ParticipantFrame(ctk.CTkFrame):
             for campo in self.campos_customizados:
                 if campo.id in ("nome_completo", "nome", "cpf"):
                     continue
+                if campo.ate_participante and self.indice > campo.ate_participante:
+                    continue
                 if campo.id == "endereco" and not self.principal and campo.escopo != "participante":
                     continue
 
                 nome_secao = campo.aba.strip() if campo.aba else ""
                 if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
                     frame_sub = self._criar_subtitulo_secao(nome_secao)
-                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                    frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                     self._frames_subtitulos_part.append(frame_sub)
+                    self._paginas_secoes.setdefault(nome_secao, []).append(frame_sub)
                     linha += 1
                     secao_anterior = nome_secao
 
                 widget_campo = CampoDinamicoWidget(
                     self,
                     campo=campo,
+                    on_change=lambda valor, campo_id=campo.id: self._ao_alterar_campo_dinamico(campo_id, valor),
                     on_open_datepicker=self.on_open_datepicker,
                 )
-                widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+                widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
                 self.widgets_dinamicos[campo.id] = widget_campo
+                self._paginas_widgets.setdefault(campo.aba or "Geral", []).append(widget_campo)
 
                 if campo.id in valores_atuais:
                     widget_campo.definir_valor(valores_atuais[campo.id])
@@ -212,8 +220,49 @@ class ParticipantFrame(ctk.CTkFrame):
                     self.entry_endereco = widget_campo.entry
                 linha += 1
 
+        self._atualizar_campos_condicionais()
+
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
         self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
+
+    def _ao_alterar_campo_dinamico(self, campo_id: str, valor: str) -> None:
+        self._atualizar_campos_condicionais()
+
+    def aplicar_pagina(self, pagina: str | None, primeira: bool = False) -> None:
+        """Mostra somente os campos da página escolhida."""
+        for nome, widgets in self._paginas_widgets.items():
+            mostrar = pagina is None or nome == pagina
+            for widget in widgets:
+                widget.definir_pagina_visivel(mostrar)
+        for nome, secoes in self._paginas_secoes.items():
+            for secao in secoes:
+                if pagina is None or nome == pagina:
+                    secao.grid()
+                else:
+                    secao.grid_remove()
+        for linha in (1, 2):
+            for controle in self.grid_slaves(row=linha):
+                if pagina is None or primeira:
+                    controle.grid()
+                else:
+                    controle.grid_remove()
+
+    def _atualizar_campos_condicionais(self) -> None:
+        """Aplica condições declarativas e limpa valores que deixaram de valer."""
+        valores = {campo_id: widget.obter_valor() for campo_id, widget in self.widgets_dinamicos.items()}
+        for widget in self.widgets_dinamicos.values():
+            alternativas = getattr(widget.campo, "visivel_quando", []) or []
+            visivel = True
+            if alternativas:
+                visivel = any(
+                    all(valores.get(dependencia, "") in aceitos for dependencia, aceitos in condicao.items())
+                    for condicao in alternativas
+                )
+            estava_ativo = widget.ativo
+            widget.definir_ativo(
+                visivel,
+                limpar=(estava_ativo and not visivel and widget.campo.limpar_quando_oculto),
+            )
 
     def _titulo(self, indice: int) -> str:
         return f"Participante {indice}" + ("  (Principal)" if self.principal else "")

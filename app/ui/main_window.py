@@ -20,12 +20,15 @@ import customtkinter as ctk
 from PIL import Image
 
 from models.participant import Participant
+from services.field_calculator import calcular
 from services.generator_service import gerar_documentos, validar_antes_de_gerar
+from services.profile_composer import combinar_perfis
 from services.pdf_service import PdfServiceError
 from services.pdfa_converter import ProcessoCanceladoError
 from services.queue_manager import ProcessJob, QueueManager
 from services.stage2_service import ResultadoEtapa2, executar_etapa2
 from ui.animated_loader import CanvasSpinner
+from ui.alert_modal import AlertModal
 from ui.campo_dinamico_widget import CampoDinamicoWidget
 from ui.date_picker import DatePickerPopup
 from ui.document_frame import DocumentFrame
@@ -45,6 +48,7 @@ from ui.theme import (
     aplicar_gradiente, configurar_autoscroll, configure_appearance, get_color_primary,
     get_color_primary_dark_gradient, get_color_primary_hover, get_color_primary_light,
     get_color_primary_text, get_font, get_icon, reload_theme, rolar_para_widget_se_necessario,
+    icone_para_secao, configurar_janela_modal,
 )
 from utils import config_manager
 from utils.date_formatter import validar_data
@@ -54,10 +58,6 @@ from utils.logger import configurar_logger
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis,
     listar_perfis_por_modo, listar_nomes_perfis_por_modo, obter_perfil,
-)
-from utils.resource_path import (
-    modelo_padrao_ppe, modelo_padrao_primeiro_imovel,
-    modelo_padrao_form_cliente, modelo_padrao_itbi, modelo_padrao_isencao_tributos,
 )
 from version import __version__
 
@@ -75,7 +75,7 @@ class MainWindow(ctk.CTk):
 
         # Maximizar aplicativo por padrão imediatamente ao iniciar
         self._maximizar_janela()
-        self.after(10, lambda: self._maximizar_janela())
+        self._maximizar_timer = self.after(10, self._maximizar_janela)
         try:
             import sys
             from utils.resource_path import caminho_recurso
@@ -114,9 +114,6 @@ class MainWindow(ctk.CTk):
         except Exception:
             pass
 
-        # Maximizar aplicativo por padrão ao iniciar
-        self.after(10, lambda: self._maximizar_janela())
-
         # =============================================================
         # Gerenciador de Fila em Segundo Plano & Canal Thread-Safe
         # =============================================================
@@ -139,6 +136,10 @@ class MainWindow(ctk.CTk):
         self.pasta_saida: Path | None = None
         self.participant_frames: list[ParticipantFrame] = []
         self.widgets_dinamicos_globais: dict[str, CampoDinamicoWidget] = {}
+        selecao_salva = config_manager.obter("formularios_basicos_selecionados") or []
+        self._perfis_simples_selecionados: list[str] = (
+            list(selecao_salva) if isinstance(selecao_salva, list) else []
+        )
 
         self.participantes_etapa1: list[Participant] = []
         self.arquivos_gerados_etapa1: list[Path] = []
@@ -196,7 +197,7 @@ class MainWindow(ctk.CTk):
         # Tela de Boas Vindas
         if config_manager.obter("primeira_execucao"):
             from ui.welcome_modal import WelcomeModal
-            self.after(500, lambda: WelcomeModal(self))
+            self._boas_vindas_timer = self.after(500, lambda: WelcomeModal(self))
 
     def _maximizar_janela(self) -> None:
         """Maximiza a janela do aplicativo por padrão no Windows."""
@@ -204,6 +205,23 @@ class MainWindow(ctk.CTk):
             self.state("zoomed")
         except Exception:
             pass
+
+    def destroy(self) -> None:
+        """Encerra tarefas da interface antes de fechar a janela."""
+        for janela in list(self.winfo_children()):
+            if isinstance(janela, tk.Toplevel):
+                try:
+                    janela.destroy()
+                except Exception:
+                    pass
+        for nome in ("_maximizar_timer", "_boas_vindas_timer", "_gradiente_timer", "_fila_timer", "_resize_timer"):
+            timer = getattr(self, nome, None)
+            if timer:
+                try:
+                    self.after_cancel(timer)
+                except Exception:
+                    pass
+        super().destroy()
 
     # ==================================================================
     # TOOLBAR & STATUS DE FILA
@@ -350,7 +368,7 @@ class MainWindow(ctk.CTk):
         self.canvas_gradient = tk.Canvas(self, highlightthickness=0)
         self.canvas_gradient.grid(row=1, column=0, rowspan=2, sticky="nsew")
         self.canvas_gradient.tk.call('lower', self.canvas_gradient._w)
-        self.after(20, self._pintar_gradiente)
+        self._gradiente_timer = self.after(20, self._pintar_gradiente)
 
     _bg_photo = None
     _bg_cache_key = None
@@ -481,11 +499,12 @@ class MainWindow(ctk.CTk):
         frame_perfil_row = ctk.CTkFrame(self.frame_stepper, fg_color="transparent")
         frame_perfil_row.grid(row=1, column=0, columnspan=3, pady=(0, SPACING_SMALL))
 
-        ctk.CTkLabel(
+        self.label_seletor_perfil = ctk.CTkLabel(
             frame_perfil_row, text=" Perfil:",
             image=get_icon("profiles", (15, 15)), compound="left",
             font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
-        ).pack(side="left", padx=(0, SPACING_XSMALL))
+        )
+        self.label_seletor_perfil.pack(side="left", padx=(0, SPACING_XSMALL))
 
         self.dropdown_perfil = ctk.CTkComboBox(
             frame_perfil_row,
@@ -508,6 +527,20 @@ class MainWindow(ctk.CTk):
             state="readonly"
         )
         self.dropdown_perfil.pack(side="left")
+
+        self.btn_selecionar_formularios = ctk.CTkButton(
+            frame_perfil_row,
+            text="✓ Selecionar formulários",
+            image=get_icon("check", (14, 14), light_only=True),
+            compound="left",
+            width=190,
+            height=28,
+            corner_radius=RADIUS_BUTTON,
+            fg_color=get_color_primary(),
+            hover_color=get_color_primary_hover(),
+            command=self._abrir_seletor_formularios_basicos,
+        )
+        self.btn_selecionar_formularios.pack_forget()
 
     def _atualizar_botoes_modo(self, modo: str) -> None:
         """Atualiza o estilo visual dos botões do seletor de modo com o quadro arredondado ativo."""
@@ -549,6 +582,120 @@ class MainWindow(ctk.CTk):
                 border_width=0,
                 corner_radius=RADIUS_BUTTON,
             )
+
+    def _obter_perfis_basicos_selecionados(self) -> list[Perfil]:
+        disponiveis = listar_perfis_por_modo("simples")
+        por_nome = {perfil.nome: perfil for perfil in disponiveis}
+        selecionados = [
+            por_nome[nome]
+            for nome in self._perfis_simples_selecionados
+            if nome in por_nome
+        ]
+        if not selecionados and disponiveis:
+            nome_ativo = config_manager.obter("perfil_ativo") or ""
+            selecionados = [por_nome.get(nome_ativo) or disponiveis[0]]
+            self._perfis_simples_selecionados = [selecionados[0].nome]
+        return selecionados
+
+    def _obter_perfil_em_uso(self) -> Optional[Perfil]:
+        modo = config_manager.obter("modo_operacao") or "avancado"
+        if modo == "simples":
+            resultado = combinar_perfis(self._obter_perfis_basicos_selecionados())
+            return resultado.perfil
+        nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
+        return obter_perfil(nome)
+
+    def _atualizar_seletor_formularios_basicos(self) -> None:
+        if not hasattr(self, "btn_selecionar_formularios"):
+            return
+        quantidade = len(self._obter_perfis_basicos_selecionados())
+        texto = "✓ Selecionar formulários" if not quantidade else f"✓ Formulários selecionados: {quantidade}"
+        self.btn_selecionar_formularios.configure(text=texto)
+
+    def _abrir_seletor_formularios_basicos(self) -> None:
+        perfis = listar_perfis_por_modo("simples")
+        if not perfis:
+            AlertModal(self, "Nenhum Formulário", "Não há formulários no modo simples.")
+            return
+
+        overlay = ctk.CTkToplevel(self)
+        modal = ctk.CTkToplevel(self)
+        altura = min(680, max(360, 210 + len(perfis) * 52))
+        configurar_janela_modal(self, modal, overlay, 560, altura)
+
+        painel = ctk.CTkFrame(
+            modal, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
+            border_width=1, border_color=COLOR_BORDER,
+        )
+        painel.pack(fill="both", expand=True, padx=2, pady=2)
+
+        ctk.CTkLabel(
+            painel, text="Selecionar formulários", font=get_font(FONT_SIZE_H2, "bold"),
+            text_color=COLOR_TEXT,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, 2))
+        ctk.CTkLabel(
+            painel,
+            text="Marque os documentos que deseja preencher nesta operação.",
+            font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
+        ).pack(anchor="w", padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
+
+        lista = ctk.CTkScrollableFrame(painel, fg_color=COLOR_SURFACE_VARIANT)
+        lista.pack(fill="both", expand=True, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
+        lista.grid_columnconfigure(0, weight=1)
+        nomes_atuais = set(self._perfis_simples_selecionados)
+        variaveis: dict[str, ctk.BooleanVar] = {}
+        for linha, perfil in enumerate(perfis):
+            var = ctk.BooleanVar(value=perfil.nome in nomes_atuais)
+            variaveis[perfil.nome] = var
+            texto = perfil.nome
+            if len(perfil.formularios) > 1:
+                texto += f"  •  {len(perfil.formularios)} documentos"
+            ctk.CTkCheckBox(
+                lista, text=texto, variable=var, font=get_font(FONT_SIZE_BODY),
+                fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
+            ).grid(row=linha, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="w")
+
+        def fechar():
+            try:
+                modal.destroy()
+            except Exception:
+                pass
+            try:
+                overlay.destroy()
+            except Exception:
+                pass
+
+        def aplicar():
+            nomes = [perfil.nome for perfil in perfis if variaveis[perfil.nome].get()]
+            escolhidos = [perfil for perfil in perfis if perfil.nome in nomes]
+            resultado = combinar_perfis(escolhidos)
+            if resultado.erros:
+                AlertModal(
+                    modal, "Configurações Incompatíveis",
+                    "Alguns campos precisam ser ajustados antes de combinar os formulários.",
+                    resultado.erros,
+                )
+                return
+            self._perfis_simples_selecionados = nomes
+            config_manager.definir("formularios_basicos_selecionados", nomes)
+            config_manager.definir("perfil_ativo", nomes[0])
+            self._atualizar_seletor_formularios_basicos()
+            self._aplicar_perfil_ativo()
+            fechar()
+            show_toast(self, f"{len(nomes)} formulário(s) selecionado(s).", "success")
+
+        botoes = ctk.CTkFrame(painel, fg_color="transparent")
+        botoes.pack(fill="x", padx=SPACING_LARGE, pady=(0, SPACING_LARGE))
+        botoes.grid_columnconfigure(1, weight=1)
+        ctk.CTkButton(
+            botoes, text="Cancelar", fg_color=COLOR_SURFACE_VARIANT,
+            text_color=COLOR_TEXT, hover_color=COLOR_BORDER, command=fechar,
+        ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
+        ctk.CTkButton(botoes, text="Aplicar seleção", command=aplicar).grid(
+            row=0, column=1, sticky="ew"
+        )
+        overlay.bind("<Button-1>", lambda _evento: fechar())
+        modal.bind("<Escape>", lambda _evento: fechar())
 
     def _ao_alterar_modo_operacao(self, modo_str: str) -> None:
         """Alterna entre o modo Avançado (Contratos) e Simples (Formulários Únicos)."""
@@ -609,6 +756,15 @@ class MainWindow(ctk.CTk):
         if nomes_perfis:
             self.dropdown_perfil.configure(values=nomes_perfis)
         self.dropdown_perfil.set(perfil_nome)
+        if is_simples:
+            self.dropdown_perfil.pack_forget()
+            self.label_seletor_perfil.configure(text=" Formulários:")
+            self.btn_selecionar_formularios.pack(side="left")
+            self._atualizar_seletor_formularios_basicos()
+        else:
+            self.btn_selecionar_formularios.pack_forget()
+            self.label_seletor_perfil.configure(text=" Perfil:")
+            self.dropdown_perfil.pack(side="left")
 
     # ==================================================================
     # NAVEGAÇÃO ENTRE TELAS
@@ -867,8 +1023,7 @@ class MainWindow(ctk.CTk):
 
     def _aplicar_perfil_ativo(self) -> None:
         """Atualiza a UI da Etapa 1 e Etapa 2 para refletir o perfil ativo."""
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
+        perfil = self._obter_perfil_em_uso()
         modo = config_manager.obter("modo_operacao") or "avancado"
         is_simples = (modo == "simples")
 
@@ -879,6 +1034,7 @@ class MainWindow(ctk.CTk):
 
         # 2. Reconstruir campos globais na Seção de Destino
         self._reconstruir_campos_globais_saida(perfil)
+        self._configurar_paginacao(perfil)
 
         # 3. Controlar visibilidade do botão de adicionar participante baseado em perfil.max_participantes
         max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
@@ -925,19 +1081,7 @@ class MainWindow(ctk.CTk):
         frame = ctk.CTkFrame(master, fg_color="transparent")
         frame.grid_columnconfigure(0, weight=1)
 
-        t_low = titulo.lower()
-        if "vendedor" in t_low:
-            icone = "person"
-        elif "imóvel" in t_low or "imovel" in t_low or "cartório" in t_low or "cartorio" in t_low:
-            icone = "location"
-        elif "valor" in t_low or "pagamento" in t_low or "operação" in t_low or "operacao" in t_low or "financiamento" in t_low:
-            icone = "calculator"
-        elif "autoriza" in t_low or "débito" in t_low or "debito" in t_low or "conta" in t_low:
-            icone = "check"
-        elif "qualifica" in t_low or "requerente" in t_low:
-            icone = "document"
-        else:
-            icone = "briefcase"
+        icone = icone_para_secao(titulo)
 
         header_box = ctk.CTkFrame(frame, fg_color="transparent")
         header_box.grid(row=0, column=0, sticky="ew", padx=SPACING_LARGE, pady=(SPACING_MEDIUM, 2))
@@ -976,6 +1120,8 @@ class MainWindow(ctk.CTk):
             except Exception:
                 pass
         self.widgets_dinamicos_globais.clear()
+        self._paginas_widgets_globais = {}
+        self._paginas_secoes_globais = {}
 
         if hasattr(self, "_frames_subtitulos_globais"):
             for f in self._frames_subtitulos_globais:
@@ -1004,63 +1150,141 @@ class MainWindow(ctk.CTk):
             nome_secao = campo.aba.strip() if campo.aba else ""
             if nome_secao and nome_secao != "Geral" and nome_secao != secao_anterior:
                 frame_sub = self._criar_subtitulo_secao(self.container_campos_globais, nome_secao)
-                frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=(SPACING_SMALL, 0))
+                frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                 self._frames_subtitulos_globais.append(frame_sub)
+                self._paginas_secoes_globais.setdefault(nome_secao, []).append(frame_sub)
                 linha += 1
                 secao_anterior = nome_secao
 
             widget_campo = CampoDinamicoWidget(
                 self.container_campos_globais,
                 campo=campo,
+                on_change=lambda valor, campo_id=campo.id: self._ao_alterar_campo_global(campo_id, valor),
                 on_open_datepicker=lambda entry: DatePickerPopup(self, entry),
             )
-            widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+            widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
             self.widgets_dinamicos_globais[campo.id] = widget_campo
+            self._paginas_widgets_globais.setdefault(campo.aba or "Geral", []).append(widget_campo)
 
             if campo.id in valores_atuais:
                 widget_campo.definir_valor(valores_atuais[campo.id])
             linha += 1
 
+        self._aplicar_calculos_globais()
+        self._atualizar_campos_globais_condicionais()
+
         if linha > 0:
             self.container_campos_globais.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(0, SPACING_SMALL))
-            # Se for formulário ITBI com campo de recursos próprios, vincular cálculo automático
-            if "valor_recursos" in self.widgets_dinamicos_globais:
-                for trigger_id in ("valor_compra", "valor_financiado", "valor_subsidio", "valor_fgts"):
-                    if trigger_id in self.widgets_dinamicos_globais:
-                        w_trig = self.widgets_dinamicos_globais[trigger_id]
-                        w_trig.on_change = lambda val: self._calcular_recursos_proprios_itbi()
         else:
             self.container_campos_globais.grid_remove()
 
-    def _calcular_recursos_proprios_itbi(self) -> None:
-        """Calcula automaticamente Recursos Próprios = Compra - (Financiado + Subsídio + FGTS)."""
-        if "valor_recursos" not in self.widgets_dinamicos_globais:
+    def _construir_navegacao_paginas(self) -> None:
+        self.frame_paginas = ctk.CTkFrame(
+            self.scroll_etapa1, fg_color=COLOR_SURFACE,
+            corner_radius=RADIUS_CARD, border_width=1, border_color=COLOR_BORDER,
+        )
+        self.frame_paginas.grid(row=0, column=0, padx=SPACING_MEDIUM, pady=(SPACING_MEDIUM, 0), sticky="ew")
+        self.frame_paginas.grid_columnconfigure(1, weight=1)
+        self.btn_pagina_anterior = ctk.CTkButton(
+            self.frame_paginas, text="← Anterior", width=100,
+            fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
+            hover_color=COLOR_BORDER, command=lambda: self._mudar_pagina(-1),
+        )
+        self.btn_pagina_anterior.grid(row=0, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL)
+        self.label_pagina = ctk.CTkLabel(
+            self.frame_paginas, text="", font=get_font(FONT_SIZE_BODY, "bold"),
+            text_color=get_color_primary_text(),
+        )
+        self.label_pagina.grid(row=0, column=1, padx=SPACING_SMALL, pady=SPACING_SMALL)
+        self.btn_proxima_pagina = ctk.CTkButton(
+            self.frame_paginas, text="Próxima →", width=100,
+            command=lambda: self._mudar_pagina(1),
+        )
+        self.btn_proxima_pagina.grid(row=0, column=2, padx=SPACING_SMALL, pady=SPACING_SMALL)
+        self.frame_paginas.grid_remove()
+        self._paginas_perfil: list[str] = []
+        self._indice_pagina = 0
+
+    def _configurar_paginacao(self, perfil: Optional[Perfil]) -> None:
+        paginas = perfil.obter_abas_disponiveis() if perfil else []
+        if not perfil or not perfil.usar_paginacao or len(paginas) < 2:
+            self._paginas_perfil = []
+            self.frame_paginas.grid_remove()
+            for participante in self.participant_frames:
+                participante.aplicar_pagina(None)
+            self._aplicar_pagina_global(None)
             return
+        self._paginas_perfil = paginas
+        self._indice_pagina = 0
+        self.frame_paginas.grid()
+        self._mostrar_pagina_atual()
 
-        def _parse_moeda(val_str: str) -> float:
-            if not val_str:
-                return 0.0
-            limpo = val_str.replace("R$", "").replace(" ", "").replace(".", "").replace(",", ".")
-            try:
-                return float(limpo)
-            except ValueError:
-                return 0.0
+    def _mudar_pagina(self, deslocamento: int) -> None:
+        if not self._paginas_perfil:
+            return
+        novo_indice = max(0, min(len(self._paginas_perfil) - 1, self._indice_pagina + deslocamento))
+        if novo_indice == self._indice_pagina:
+            return
+        self._indice_pagina = novo_indice
+        self._mostrar_pagina_atual()
 
-        w_compra = self.widgets_dinamicos_globais.get("valor_compra")
-        w_fin = self.widgets_dinamicos_globais.get("valor_financiado")
-        w_sub = self.widgets_dinamicos_globais.get("valor_subsidio")
-        w_fgts = self.widgets_dinamicos_globais.get("valor_fgts")
+    def _mostrar_pagina_atual(self) -> None:
+        pagina = self._paginas_perfil[self._indice_pagina]
+        total = len(self._paginas_perfil)
+        self.label_pagina.configure(text=f"{self._indice_pagina + 1} de {total}  •  {pagina}")
+        self.btn_pagina_anterior.configure(state="normal" if self._indice_pagina > 0 else "disabled")
+        self.btn_proxima_pagina.configure(state="normal" if self._indice_pagina < total - 1 else "disabled")
+        for participante in self.participant_frames:
+            participante.aplicar_pagina(pagina, primeira=self._indice_pagina == 0)
+        self._aplicar_pagina_global(pagina)
+        try:
+            self.scroll_etapa1._parent_canvas.yview_moveto(0)
+        except Exception:
+            pass
 
-        v_compra = _parse_moeda(w_compra.obter_valor() if w_compra else "")
-        v_fin = _parse_moeda(w_fin.obter_valor() if w_fin else "")
-        v_sub = _parse_moeda(w_sub.obter_valor() if w_sub else "")
-        v_fgts = _parse_moeda(w_fgts.obter_valor() if w_fgts else "")
+    def _aplicar_pagina_global(self, pagina: str | None) -> None:
+        for nome, widgets in getattr(self, "_paginas_widgets_globais", {}).items():
+            for widget in widgets:
+                widget.definir_pagina_visivel(pagina is None or nome == pagina)
+        for nome, secoes in getattr(self, "_paginas_secoes_globais", {}).items():
+            for secao in secoes:
+                if pagina is None or nome == pagina:
+                    secao.grid()
+                else:
+                    secao.grid_remove()
 
-        if v_compra > 0:
-            recursos = max(0.0, v_compra - (v_fin + v_sub + v_fgts))
-            fmt_recursos = f"{recursos:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            w_rec = self.widgets_dinamicos_globais["valor_recursos"]
-            w_rec.definir_valor(fmt_recursos)
+    def _ao_alterar_campo_global(self, campo_id: str, valor: str) -> None:
+        self._aplicar_calculos_globais()
+        self._atualizar_campos_globais_condicionais()
+
+    def _aplicar_calculos_globais(self) -> None:
+        """Atualiza os campos que possuem um cálculo salvo no perfil."""
+        valores = {
+            campo_id: widget.obter_valor()
+            for campo_id, widget in self.widgets_dinamicos_globais.items()
+        }
+        for widget in self.widgets_dinamicos_globais.values():
+            expressao = getattr(widget.campo, "calculo", "").strip()
+            if expressao:
+                novo_valor = calcular(expressao, valores)
+                widget.definir_valor(novo_valor)
+                valores[widget.campo.id] = novo_valor
+
+    def _atualizar_campos_globais_condicionais(self) -> None:
+        valores = {campo_id: widget.obter_valor() for campo_id, widget in self.widgets_dinamicos_globais.items()}
+        for widget in self.widgets_dinamicos_globais.values():
+            alternativas = getattr(widget.campo, "visivel_quando", []) or []
+            visivel = True
+            if alternativas:
+                visivel = any(
+                    all(valores.get(dependencia, "") in aceitos for dependencia, aceitos in condicao.items())
+                    for condicao in alternativas
+                )
+            estava_ativo = widget.ativo
+            widget.definir_ativo(
+                visivel,
+                limpar=(estava_ativo and not visivel and widget.campo.limpar_quando_oculto),
+            )
 
     def _limpar_campos_etapa1(self) -> None:
         """Limpa os campos preenchidos da Etapa 1."""
@@ -1106,6 +1330,7 @@ class MainWindow(ctk.CTk):
         self.scroll_etapa1.grid_columnconfigure(0, weight=1)
         configurar_autoscroll(self.scroll_etapa1)
 
+        self._construir_navegacao_paginas()
         self._construir_secao_participantes()
         self._construir_secao_saida()
 
@@ -1146,7 +1371,7 @@ class MainWindow(ctk.CTk):
 
     def _construir_secao_participantes(self) -> None:
         self.secao_participantes = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
-        self.secao_participantes.grid(row=0, column=0, padx=SPACING_MEDIUM,
+        self.secao_participantes.grid(row=1, column=0, padx=SPACING_MEDIUM,
                    pady=(SPACING_MEDIUM, SPACING_SMALL), sticky="nsew")
         self.secao_participantes.grid_columnconfigure(0, weight=1)
 
@@ -1175,7 +1400,7 @@ class MainWindow(ctk.CTk):
 
     def _construir_secao_saida(self) -> None:
         secao = ctk.CTkFrame(self.scroll_etapa1, fg_color="transparent")
-        secao.grid(row=1, column=0, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, SPACING_MEDIUM), sticky="ew")
+        secao.grid(row=2, column=0, padx=SPACING_MEDIUM, pady=(SPACING_SMALL, SPACING_MEDIUM), sticky="ew")
         secao.grid_columnconfigure(0, minsize=145)
         secao.grid_columnconfigure(1, weight=1)
 
@@ -1304,8 +1529,7 @@ class MainWindow(ctk.CTk):
             return True
 
     def _adicionar_participante(self, principal: bool = False) -> None:
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
+        perfil = self._obter_perfil_em_uso()
         max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
 
         if not principal and len(self.participant_frames) >= max_part:
@@ -1330,6 +1554,12 @@ class MainWindow(ctk.CTk):
                    pady=SPACING_SMALL, sticky="ew")
         self.participant_frames.append(frame)
 
+        if getattr(self, "_paginas_perfil", []):
+            frame.aplicar_pagina(
+                self._paginas_perfil[self._indice_pagina],
+                primeira=self._indice_pagina == 0,
+            )
+
         if not principal:
             frame.piscar_destaque()
 
@@ -1343,11 +1573,12 @@ class MainWindow(ctk.CTk):
         frame.destroy()
         if frame in self.participant_frames:
             self.participant_frames.remove(frame)
+        perfil = self._obter_perfil_em_uso()
+        campos_participante = perfil.obter_campos_participante() if perfil else []
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
+            restante.reconstruir_campos_customizados(campos_participante)
 
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
         max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
         if hasattr(self, "botao_adicionar"):
             if len(self.participant_frames) < max_part:
@@ -1387,10 +1618,9 @@ class MainWindow(ctk.CTk):
             erros.append("Local da assinatura é obrigatório.")
 
         # 4. Validar perfil e modelos
-        perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-        perfil = obter_perfil(perfil_nome)
+        perfil = self._obter_perfil_em_uso()
         if not perfil:
-            erros.append(f"O perfil ativo '{perfil_nome}' não foi encontrado.")
+            erros.append("Os formulários selecionados não puderam ser carregados.")
         elif not perfil.formularios:
             erros.append(f"O perfil '{perfil.nome}' não possui nenhum formulário configurado.")
         else:
@@ -1445,19 +1675,21 @@ class MainWindow(ctk.CTk):
         """Gera o formulário simples diretamente sem passar pela Etapa 2."""
         try:
             from ui.loading_modal import LoadingModal
-            from services.generator_service import gerar_documentos
+            from services.generator_service import gerar_documentos_de_perfis
+
+            perfis = self._obter_perfis_basicos_selecionados()
 
             modal = LoadingModal(
                 self,
-                message=f"Gerando {perfil.nome}...",
+                message="Gerando formulários...",
                 submessage="Preenchendo e salvando o documento...",
             )
 
             def _tarefa():
                 try:
-                    res = gerar_documentos(
+                    res = gerar_documentos_de_perfis(
                         participantes=participantes,
-                        perfil=perfil,
+                        perfis=perfis,
                         pasta_saida=self.pasta_saida,
                     )
                     self.after(0, lambda: self._pos_geracao_simples(modal, res, perfil))
@@ -1487,8 +1719,8 @@ class MainWindow(ctk.CTk):
             from ui.success_modal import SuccessModal
             SuccessModal(
                 self,
-                titulo=f"{perfil.nome} Gerado com Sucesso!",
-                subtitulo="O formulário foi preenchido e salvo com sucesso:",
+                titulo="Formulários Gerados com Sucesso!",
+                subtitulo="Os documentos selecionados foram preenchidos e salvos:",
                 arquivos_gerados=resultado.arquivos_gerados,
                 pasta_destino=self.pasta_saida,
             )
@@ -1808,11 +2040,11 @@ class MainWindow(ctk.CTk):
                 pass
             try:
                 if self.winfo_exists():
-                    self.after(40, _poll)
+                    self._fila_timer = self.after(40, _poll)
             except Exception:
                 pass
 
-        self.after(40, _poll)
+        self._fila_timer = self.after(40, _poll)
 
     def _ao_iniciar_job_fila(self, job: ProcessJob) -> None:
         self._ui_event_queue.put((self._ui_job_iniciado, (job,)))
@@ -1969,8 +2201,6 @@ class MainWindow(ctk.CTk):
         """Abre o diretório informado no gerenciador de arquivos com validação estrita de segurança."""
         p = Path(caminho) if isinstance(caminho, str) else caminho
         if not p.exists() or not p.is_dir():
-            import logging
-            logging.getLogger("Contracto").warning(f"Tentativa de abrir caminho inválido ou não-diretório: '{p}'")
             return
 
         if os.name == "nt":

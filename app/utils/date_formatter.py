@@ -69,3 +69,9 @@ def separar_data_por_extenso(data_str: str) -> tuple[str, str, str]:
     mes = MESES_POR_EXTENSO[data.month]
     ano = str(data.year)
     return dia, mes, ano
+
+
+def formatar_data_completa_por_extenso(data_str: str) -> str:
+    """Converte DD/MM/AAAA para ``DD de MMMM de AAAA``."""
+    dia, mes, ano = separar_data_por_extenso(data_str)
+    return f"{dia} de {mes} de {ano}"

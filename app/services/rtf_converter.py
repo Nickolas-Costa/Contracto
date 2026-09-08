@@ -13,6 +13,11 @@ import threading
 from pathlib import Path
 from typing import Optional
 
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("rtf")
+
 
 class RtfConversionError(Exception):
     """Erro ao tentar converter um arquivo RTF para PDF."""
@@ -100,7 +105,7 @@ def _executar_conversao_word_com(caminho_rtf: Path, caminho_pdf: Path) -> None:
         try:
             word.FeatureInstall = 0
         except Exception:
-            pass
+            _logger.debug("O Word não aceitou a configuração de instalação de recursos.", exc_info=True)
 
         # Abrir explicitamente em ReadOnly e sem confirmação de conversão para não conflitar com arquivos abertos
         doc = word.Documents.Open(
@@ -123,16 +128,16 @@ def _executar_conversao_word_com(caminho_rtf: Path, caminho_pdf: Path) -> None:
             try:
                 doc.Close(SaveChanges=0)
             except Exception:
-                pass
+                _logger.warning("Não foi possível fechar o documento aberto pelo Word.", exc_info=True)
         if word is not None:
             try:
                 word.Quit()
             except Exception:
-                pass
+                _logger.warning("Não foi possível encerrar a instância do Word.", exc_info=True)
         try:
             pythoncom.CoUninitialize()
         except Exception:
-            pass
+            _logger.debug("Não foi possível liberar o acesso COM desta thread.", exc_info=True)
 
 
 def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path, timeout_segundos: int = 25) -> Path:
@@ -158,7 +163,7 @@ def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path, timeout_segundo
     try:
         with open(caminho_rtf, "rb") as f:
             f.read(1024)
-    except Exception as exc:
+    except OSError as exc:
         raise RtfConversionError(
             f"O arquivo RTF '{caminho_rtf.name}' está bloqueado ou inacessível no sistema:\n{exc}"
         ) from exc
@@ -173,6 +178,7 @@ def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path, timeout_segundo
         try:
             _executar_conversao_word_com(caminho_rtf, caminho_pdf)
         except Exception as exc:
+            _logger.error("Falha do Word ao converter '%s'.", caminho_rtf, exc_info=True)
             erro_thread.append(exc)
         finally:
             concluido.set()
@@ -186,8 +192,8 @@ def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path, timeout_segundo
         # Tentar fallback com LibreOffice antes de falhar
         try:
             return _converter_via_libreoffice(caminho_rtf, caminho_pdf, timeout=20)
-        except Exception:
-            pass
+        except (OSError, subprocess.SubprocessError, RtfConversionError):
+            _logger.warning("O LibreOffice também falhou ao converter '%s'.", caminho_rtf, exc_info=True)
 
         raise RtfConversionError(
             f"O Microsoft Word não respondeu a tempo na conversão de '{caminho_rtf.name}'.\n\n"
@@ -200,8 +206,8 @@ def converter_rtf_para_pdf(caminho_rtf: Path, caminho_pdf: Path, timeout_segundo
         # Tentar fallback via LibreOffice se o Word falhou
         try:
             return _converter_via_libreoffice(caminho_rtf, caminho_pdf, timeout=25)
-        except Exception:
-            pass
+        except (OSError, subprocess.SubprocessError, RtfConversionError):
+            _logger.warning("O LibreOffice também falhou ao converter '%s'.", caminho_rtf, exc_info=True)
 
         raise RtfConversionError(
             f"Falha ao converter '{caminho_rtf.name}' para PDF: {erro_word}\n"

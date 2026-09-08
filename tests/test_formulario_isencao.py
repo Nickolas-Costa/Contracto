@@ -10,14 +10,14 @@ import pypdf
 from app.models.participant import Participant
 from app.services.generator_service import gerar_documentos
 from app.utils.profile_manager import obter_perfil, carregar_perfis
-from app.utils.resource_path import modelo_padrao_isencao_tributos
+from app.utils.resource_path import modelo_configurado
 
 
 class TestFormularioIsencao(unittest.TestCase):
     """Valida o modelo, perfil e preenchimento com herança de assinatura na Isenção."""
 
     def test_modelo_oficial_isencao_existe(self):
-        caminho = modelo_padrao_isencao_tributos()
+        caminho = modelo_configurado("modelo_07")
         self.assertIsNotNone(caminho)
         self.assertTrue(caminho.exists())
 

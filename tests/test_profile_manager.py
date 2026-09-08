@@ -7,12 +7,12 @@ from unittest.mock import patch
 from app.utils.profile_manager import (
     PERFIL_PADRAO_NOME,
     DocumentoExtra,
+    CampoEntrada,
     Perfil,
     carregar_perfis,
+    invalidar_cache,
     obter_perfil,
     salvar_perfis,
-    _documentos_extras_padrao,
-    _documentos_extras_sbpe,
 )
 from app.utils import config_manager
 
@@ -36,6 +36,7 @@ class TestProfileManager(unittest.TestCase):
 
             mcmv = next(p for p in perfis if p.nome == "MCMV")
             sbpe = next(p for p in perfis if p.nome == "SBPE")
+            itbi = next(p for p in perfis if p.nome == "ITBI")
 
             # MCMV deve ter 5 documentos extras padrão
             self.assertEqual(len(mcmv.documentos_extras), 5)
@@ -43,6 +44,8 @@ class TestProfileManager(unittest.TestCase):
             self.assertEqual(len(sbpe.documentos_extras), 6)
             rotulos_sbpe = [d.rotulo.upper() for d in sbpe.documentos_extras]
             self.assertTrue(any("CÉDULA DE CRÉDITO" in r or "CEDULA DE CREDITO" in r for r in rotulos_sbpe))
+            self.assertTrue(itbi.usar_paginacao)
+            self.assertGreater(len(itbi.obter_abas_disponiveis()), 2)
 
     def test_migration_from_legacy_padrao(self):
         """Verifica se perfil antigo com nome 'Padrão' é migrado para 'MCMV'."""
@@ -97,6 +100,23 @@ class TestProfileManager(unittest.TestCase):
             copia_custom = duplicar_perfil("SBPE", "Meu Perfil Especial")
             self.assertEqual(copia_custom.nome, "Meu Perfil Especial")
             self.assertEqual(len(copia_custom.documentos_extras), 6)
+
+    def test_edicao_de_perfil_inicial_nao_e_desfeita_ao_reabrir(self):
+        with patch("app.utils.profile_manager._caminho_perfis", return_value=self.profiles_path):
+            invalidar_cache()
+            perfis = carregar_perfis(forcar_disco=True)
+            perfil = next(item for item in perfis if item.nome == "ITBI")
+            perfil.max_participantes = 3
+            perfil.campos_entrada.append(
+                CampoEntrada(id="campo_do_usuario", rotulo="Campo do usuário")
+            )
+            salvar_perfis(perfis)
+
+            invalidar_cache()
+            reaberto = carregar_perfis(forcar_disco=True)
+            perfil_reaberto = next(item for item in reaberto if item.nome == "ITBI")
+            self.assertEqual(perfil_reaberto.max_participantes, 3)
+            self.assertIn("campo_do_usuario", {campo.id for campo in perfil_reaberto.campos_entrada})
 
 
 if __name__ == "__main__":

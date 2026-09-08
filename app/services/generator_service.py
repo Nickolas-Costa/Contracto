@@ -16,23 +16,25 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from models.participant import Participant
-from services.pdf_service import carregar_template_reader, preencher_formulario
+from services.mapping_engine import resolver_especificacao
+from services.pdf_service import PdfServiceError, carregar_template_reader, preencher_formulario
 from services.pdfa_converter import ProcessoCanceladoError
 from utils.cpf_validator import formatar_cpf, validar_cpf
+from utils.cpf_validator import CpfInvalidoError
+from utils.cnpj_validator import CnpjInvalidoError, formatar_cnpj
 from utils.date_formatter import DataInvalidaError, separar_data_por_extenso, validar_data
-from utils.filename_utils import nome_documento_individual
 from utils.profile_manager import Perfil
 
 
 from utils.resource_path import (
-    modelo_padrao_ppe,
-    modelo_padrao_primeiro_imovel,
-    modelo_padrao_form_cliente,
-    modelo_padrao_formulario_caixa,
-    modelo_padrao_itbi,
-    modelo_padrao_isencao_tributos,
+    mapeamento_configurado,
+    modelo_configurado,
 )
 from utils.filename_utils import nome_documento_individual, nome_documento_processo
+from utils.logger import obter_logger
+
+
+_logger = obter_logger("geracao")
 
 
 @dataclass
@@ -42,155 +44,33 @@ class ResultadoGeracao:
     avisos: list[str] = field(default_factory=list)
 
 
-_caminho_modelo_cache: dict[tuple[str, str], Path | None] = {}
+_caminho_modelo_cache: dict[tuple[str, str, str, str], Path | None] = {}
 
 
 def resolver_caminho_formulario(f) -> Path | None:
     """Resolve o caminho de um formulário com cache em memória."""
-    key = (getattr(f, "nome", ""), getattr(f, "caminho", ""))
+    key = (
+        getattr(f, "nome", ""), getattr(f, "caminho", ""),
+        getattr(f, "identificador", ""), getattr(f, "recurso", ""),
+    )
     if key in _caminho_modelo_cache:
         return _caminho_modelo_cache[key]
 
     caminho_resolvido: Path | None = None
     if f.caminho and Path(f.caminho).exists():
         caminho_resolvido = Path(f.caminho)
-    else:
-        nome = f.nome.lower()
-        if "ppe" in nome:
-            caminho_resolvido = modelo_padrao_ppe()
-        elif "imóvel" in nome or "imovel" in nome or "1" in nome:
-            caminho_resolvido = modelo_padrao_primeiro_imovel()
-        elif "itbi" in nome:
-            caminho_resolvido = modelo_padrao_itbi()
-        elif "isenção" in nome or "isencao" in nome or "tributos" in nome:
-            caminho_resolvido = modelo_padrao_isencao_tributos()
-        elif "cliente" in nome or "form" in nome or "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome:
-            caminho_resolvido = modelo_padrao_form_cliente()
+    elif getattr(f, "recurso", ""):
+        caminho_resolvido = modelo_configurado(f.recurso)
 
     _caminho_modelo_cache[key] = caminho_resolvido
     return caminho_resolvido
 
 
-def mapeamento_padrao_form_cliente() -> dict[str, str]:
-    """Mapeamento padrão oficial para o Form Cliente Crédito Imobiliário (FORM CLIENTE.pdf)."""
-    return {
-        "NOME_CLIENTE_1": "participante.1.nome_completo",
-        "CPF1": "participante.1.cpf_formatado",
-        "AGENCIA": "global.agencia",
-        "CONTA_CAIXA": "global.conta_caixa",
-        "checkbox_AUTORIZO_PARCELA": "global.checkbox_autorizo_parcela",
-        "checkbox_GARANTIA": "global.checkbox_garantia",
-        "NOMEPROP1PROPOSTA": "participante.1.nome_completo",
-        "CPFPROP1": "participante.1.cpf_formatado",
-        "NOMEPROP2PROPOSTA": "participante.2.nome_completo",
-        "CPFPROP2": "participante.2.cpf_formatado",
-        "NOMEPROP3PROPOSTA": "participante.3.nome_completo",
-        "CPFPROP3": "participante.3.cpf_formatado",
-        "NOMEPROP4PROPOSTA": "participante.4.nome_completo",
-        "CPFPROP4": "participante.4.cpf_formatado",
-        "MIP1": "participante.1.mip",
-        "MIP2": "participante.2.mip",
-        "MIP3": "participante.3.mip",
-        "MIP4": "participante.4.mip",
-        "LOCAL": "participante.local_assinatura",
-        "DATA DD/MM/AAAA": "participante.data_assinatura",
-        "PARTICIP1NOME": "participante.1.nome_completo",
-        "PARTICIP1CPF": "participante.1.cpf_formatado",
-        "PARTICIP2NOME": "participante.2.nome_completo",
-        "PARTICIP2CPF": "participante.2.cpf_formatado",
-        "PARTICIP3NOME": "participante.3.nome_completo",
-        "PARTICIP3CPF": "participante.3.cpf_formatado",
-        "PARTICIP4NOME": "participante.4.nome_completo",
-        "PARTICIP4CPF": "participante.4.cpf_formatado",
-    }
-
-
-def mapeamento_padrao_mo30844011() -> dict[str, str]:
-    """Alias para compatibilidade."""
-    return mapeamento_padrao_form_cliente()
-
-
-def mapeamento_padrao_itbi() -> dict[str, str]:
-    """Mapeamento padrão oficial para a Declaração para Pagamento do ITBI."""
-    return {
-        "NOME_VENDEDOR": "global.nome_vendedor",
-        "CPF_CNPJ_VENDEDOR": "global.cpf_cnpj_vendedor",
-        "MATRICULA": "global.matricula",
-        "CARTORIO_OFICIO": "global.cartorio_oficio",
-        "CARTORIO_LOCAL": "global.cartorio_local",
-        "IPTU": "global.iptu",
-        "AREA_TERRENO": "global.area_terreno",
-        "AREA_CONSTRUIDA": "global.area_construida",
-        "FRACAO_IDEAL": "global.fracao_ideal",
-        "COMPRADOR_NOME": "participante.nome_completo",
-        "COMPRADOR_CPF": "participante.cpf_formatado",
-        "COMPRADOR_ENDERECO": "participante.endereco",
-        "COMPRADOR_TELEFONE": "participante.comprador_telefone",
-        "COMPRADOR_EMAIL": "participante.comprador_email",
-        "ENDERECO_IMOVEL": "global.endereco_imovel",
-        "VALOR_COMPRA": "global.valor_compra",
-        "VALOR_AVALIACAO": "global.valor_avaliacao",
-        "VALOR_FINANCIADO": "global.valor_financiado",
-        "VALOR SUBSIDIO": "global.valor_subsidio",
-        "VALOR_RECURSOS": "global.valor_recursos",
-        "VALOR_FGTS": "global.valor_fgts",
-        "LOCAL_ASSINATURA": "participante.local_assinatura",
-        "DIA": "data.dia",
-        "MES": "data.mes",
-        "ANO": "data.ano",
-        "TEXTO_ISENCAO": "global.texto_isencao",
-    }
-
-
-def mapeamento_padrao_isencao_tributos() -> dict[str, str]:
-    """Mapeamento padrão oficial para o Requerimento de Isenção de Tributos Municipais."""
-    return {
-        "NOME COMPLETO": "participante.nome_completo",
-        "CPF": "participante.cpf_formatado",
-        "RG": "participante.rg",
-        "ESTADO CIVIL": "participante.estado_civil",
-        "ENDERECO": "participante.endereco",
-        "MATRICULA": "global.matricula",
-        "NOME_COMPLETO2": "participante.nome_completo",
-        "2CPF": "participante.cpf_formatado",
-        "LOCAL": "participante.local_assinatura",
-        "DIA": "data.dia",
-        "MES": "data.mes",
-        "ANO": "data.ano",
-    }
-
-
-def obter_mapeamento_formulario(f) -> dict[str, str]:
+def obter_mapeamento_formulario(f) -> dict[str, str | dict]:
     """Retorna o mapeamento de campos do formulário, ou o mapeamento padrão caso esteja vazio."""
     if f.mapeamento:
         return f.mapeamento
-
-    nome = f.nome.lower()
-    if "ppe" in nome:
-        return {
-            "NOME COMPLETO": "participante.nome_completo",
-            "CPF": "participante.cpf_formatado",
-            "DIA": "data.dia",
-            "MES": "data.mes",
-            "ANO": "data.ano",
-            "LOCAL ASSINATURA": "participante.local_assinatura",
-        }
-    elif "imóvel" in nome or "imovel" in nome or "1" in nome:
-        return {
-            "NOME COMPLETO": "participante.nome_completo",
-            "CPF": "participante.cpf_formatado",
-            "ENDERECO": "participante.endereco",
-            "DATA ASSINATURA": "participante.data_assinatura",
-            "LOCAL ASSINATURA": "participante.local_assinatura",
-        }
-    elif "itbi" in nome:
-        return mapeamento_padrao_itbi()
-    elif "isenção" in nome or "isencao" in nome or "tributos" in nome:
-        return mapeamento_padrao_isencao_tributos()
-    elif "cliente" in nome or "form" in nome or "caixa" in nome or "30844" in nome or "30.844" in nome or "mo" in nome:
-        return mapeamento_padrao_form_cliente()
-
-    return {}
+    return mapeamento_configurado(getattr(f, "recurso", ""))
 
 
 def validar_antes_de_gerar(
@@ -256,7 +136,7 @@ def resolver_variavel(
         
     try:
         cpf_formatado = formatar_cpf(participante.cpf) if participante.cpf else ""
-    except Exception:
+    except CpfInvalidoError:
         cpf_formatado = participante.cpf
     
     # Extração de data de assinatura se disponível
@@ -284,9 +164,8 @@ def resolver_variavel(
     cnpj_raw = participante.obter_campo("cnpj", "")
     if cnpj_raw:
         try:
-            from utils.cnpj_validator import formatar_cnpj
             cnpj_fmt = formatar_cnpj(cnpj_raw)
-        except Exception:
+        except CnpjInvalidoError:
             cnpj_fmt = cnpj_raw
         variaveis["participante.cnpj"] = cnpj_raw
         variaveis["participante.cnpj_formatado"] = cnpj_fmt
@@ -307,15 +186,14 @@ def resolver_variavel(
                 variaveis[f"{campo_id}.dia"] = d_dia
                 variaveis[f"{campo_id}.mes"] = d_mes
                 variaveis[f"{campo_id}.ano"] = d_ano
-            except Exception:
+            except DataInvalidaError:
                 pass
         # Se for campo de CNPJ dinâmico, gerar versão formatada
         elif ("cnpj" in campo_id.lower()) and len(str_val.replace(".", "").replace("/", "").replace("-", "")) == 14:
             try:
-                from utils.cnpj_validator import formatar_cnpj
                 variaveis[f"{campo_id}_formatado"] = formatar_cnpj(str_val)
                 variaveis[f"participante.{campo_id}_formatado"] = formatar_cnpj(str_val)
-            except Exception:
+            except CnpjInvalidoError:
                 pass
 
     # Suporte a múltiplos participantes indexados (ex: participante.1.nome_completo, participante.2.cpf_formatado, etc.)
@@ -325,7 +203,7 @@ def resolver_variavel(
             p_idx = lista_parts[idx - 1]
             try:
                 p_cpf_fmt = formatar_cpf(p_idx.cpf) if p_idx.cpf else ""
-            except Exception:
+            except CpfInvalidoError:
                 p_cpf_fmt = p_idx.cpf
             variaveis[f"participante.{idx}.nome_completo"] = p_idx.nome_completo
             variaveis[f"participante.{idx}.nome"] = p_idx.nome_completo
@@ -343,31 +221,6 @@ def resolver_variavel(
             variaveis[f"participante.{idx}.mip"] = ""
             variaveis[f"participante.{idx}.endereco"] = ""
 
-    # Resolução de checkboxes com nomes técnicos ou globais
-    val_debito_parcela = str(participante.obter_campo("autorizo_debito_parcela", "Sim")).lower()
-    chk_parcela = "/Yes_uonn" if val_debito_parcela in ("sim", "true", "1", "yes", "") else "/Off"
-    variaveis["global.checkbox_autorizo_parcela"] = chk_parcela
-    variaveis["checkbox_autorizo_parcela"] = chk_parcela
-    variaveis["checkbox_AUTORIZO_PARCELA"] = chk_parcela
-
-    val_tarifa_aval = str(participante.obter_campo("autorizo_tarifa_avaliacao", "Não")).lower()
-    chk_garantia = "/Yes_uonn" if val_tarifa_aval in ("sim", "true", "1", "yes") else "/Off"
-    variaveis["global.checkbox_garantia"] = chk_garantia
-    variaveis["checkbox_garantia"] = chk_garantia
-    variaveis["checkbox_GARANTIA"] = chk_garantia
-
-    # Suporte a enquadramento de isenção no ITBI
-    val_isencao = str(participante.obter_campo("enquadramento_isencao", "Sim")).lower()
-    if val_isencao in ("sim", "true", "1", "yes", ""):
-        texto_isencao = (
-            "            Conforme  Lei  Municipal  nº  1648/2023,  de  29  de  dezembro  de  2023,  bem  como  a  Lei  Federal  nº 14620/2023. Declaro que cumpro os requisitos para ser contemplado com os benefícios da Lei supracitada."
-        )
-    else:
-        texto_isencao = ""
-    variaveis["global.texto_isencao"] = texto_isencao
-    variaveis["texto_isencao"] = texto_isencao
-    variaveis["TEXTO_ISENCAO"] = texto_isencao
-
     # Retorna o valor mapeado ou a própria string literal caso não seja uma variável conhecida
     return variaveis.get(mapeamento_str, mapeamento_str)
 
@@ -379,10 +232,11 @@ def gerar_documentos(
     formularios_ativos: Optional[list[str] | set[str]] = None,
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
+    nomes_de_arquivo_usados: Optional[set[str]] = None,
 ) -> ResultadoGeracao:
     """Gera os PDFs configurados no Perfil dinamicamente."""
     resultado = ResultadoGeracao()
-    nomes_de_arquivo_usados: set[str] = set()
+    nomes_de_arquivo_usados = nomes_de_arquivo_usados if nomes_de_arquivo_usados is not None else set()
 
     formularios_para_gerar = [
         f for f in perfil.formularios 
@@ -408,32 +262,35 @@ def gerar_documentos(
         mapeamento = obter_mapeamento_formulario(formulario)
         
         # Decide se gera 1 para todos ou 1 para cada participante
-        is_por_processo = (formulario.geracao == "por_processo")
+        is_por_processo = formulario.geracao in ("por_processo", "unico")
         alvos = [participantes[0]] if is_por_processo else participantes
         
         try:
             reader_modelo = carregar_template_reader(caminho_modelo)
-        except Exception:
+        except PdfServiceError as exc:
+            _logger.error(
+                "Não foi possível abrir o formulário '%s' em '%s'.",
+                formulario.nome,
+                caminho_modelo,
+                exc_info=True,
+            )
+            resultado.avisos.append(
+                f"O formulário '{formulario.nome}' não pôde ser aberto: {exc}"
+            )
             reader_modelo = None
 
         for participante in alvos:
             if cancel_event is not None and cancel_event.is_set():
                 raise ProcessoCanceladoError("Operação cancelada pelo usuário.")
 
-            # Constrói o dicionário de valores baseado no mapeamento do formulário
             valores_pdf = {}
-            for campo_pdf, var_sistema in mapeamento.items():
-                val = resolver_variavel(
-                    var_sistema,
+            for campo_pdf, especificacao in mapeamento.items():
+                resolver = lambda origem: resolver_variavel(
+                    origem,
                     participante,
                     todos_participantes=participantes if is_por_processo else None,
                 )
-                # Fallbacks para campos específicos do ITBI quando vazios
-                if "itbi" in formulario.nome.lower():
-                    if campo_pdf == "AREA_CONSTRUIDA" and not val:
-                        val = "00,00"
-                    elif campo_pdf in ("VALOR SUBSIDIO", "VALOR_FGTS", "VALOR_RECURSOS") and not val:
-                        val = "0,00"
+                val = resolver_especificacao(especificacao, resolver)
                 valores_pdf[campo_pdf] = val
                 
             if is_por_processo:
@@ -456,11 +313,45 @@ def gerar_documentos(
     return resultado
 
 
+def gerar_documentos_de_perfis(
+    participantes: list[Participant],
+    perfis: list[Perfil],
+    pasta_saida: Path,
+    cancel_event: Optional[threading.Event] = None,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
+) -> ResultadoGeracao:
+    """Gera todos os formulários dos perfis escolhidos em uma única operação."""
+    resultado = ResultadoGeracao()
+    nomes_usados: set[str] = set()
+    total = sum(len(perfil.formularios) for perfil in perfis)
+    deslocamento = 0
+
+    for perfil in perfis:
+        quantidade = len(perfil.formularios)
+
+        def progresso(indice: int, _total_perfil: int, nome: str, base=deslocamento) -> None:
+            if on_progress:
+                on_progress(base + indice, total, nome)
+
+        parcial = gerar_documentos(
+            participantes=participantes,
+            perfil=perfil,
+            pasta_saida=pasta_saida,
+            cancel_event=cancel_event,
+            on_progress=progresso,
+            nomes_de_arquivo_usados=nomes_usados,
+        )
+        resultado.arquivos_gerados.extend(parcial.arquivos_gerados)
+        resultado.avisos.extend(parcial.avisos)
+        deslocamento += quantidade
+    return resultado
+
+
 def _proximo_caminho_disponivel(pasta: Path, nome_arquivo: str, usados: set[str]) -> Path:
     candidato = nome_arquivo
     contador = 2
     caminho_candidato = Path(nome_arquivo)
-    while candidato in usados:
+    while candidato in usados or (pasta / candidato).exists():
         candidato = f"{caminho_candidato.stem} ({contador}){caminho_candidato.suffix}"
         contador += 1
     usados.add(candidato)
