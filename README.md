@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/LOGO_OFICIAL_CONTRACTO.png" alt="Contracto" width="120"/>
+
 # 📑 Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conformidade PDF/A-2b
 
