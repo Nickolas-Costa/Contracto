@@ -51,6 +51,7 @@ from ui.theme import (
     icone_para_secao, configurar_janela_modal,
 )
 from utils import config_manager
+from utils.caminhos import pasta_downloads
 from utils.date_formatter import validar_data
 from utils.document_validator import formatar_data_progressiva
 from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
@@ -1553,12 +1554,8 @@ class MainWindow(ctk.CTk):
         self.entry_local.bind("<FocusIn>", lambda e: self._ao_foco_widget(self.entry_local))
         self.entry_local.bind("<FocusOut>", lambda e: self._ao_desfoco_widget(self.entry_local, self._validar_local_realtime))
 
-        # Pasta padrão Downloads
-        if os.name == "nt":
-            downloads_path = Path(os.environ["USERPROFILE"]) / "Downloads"
-        else:
-            downloads_path = Path.home() / "Downloads"
-        self.pasta_saida = downloads_path
+        # Pasta padrão Downloads (com fallbacks seguros)
+        self.pasta_saida = pasta_downloads()
 
         # Seletor de diretório
         ctk.CTkLabel(
@@ -1578,7 +1575,7 @@ class MainWindow(ctk.CTk):
             border_color=COLOR_BORDER,
         )
         self.entry_pasta_saida.grid(row=0, column=0, sticky="ew")
-        self.entry_pasta_saida.insert(0, str(downloads_path))
+        self.entry_pasta_saida.insert(0, str(self.pasta_saida))
         self.entry_pasta_saida.bind("<KeyRelease>", lambda e: self._ao_editar_pasta_saida())
         self.entry_pasta_saida.bind("<FocusOut>", lambda e: self._ao_editar_pasta_saida())
 
@@ -2350,16 +2347,21 @@ class MainWindow(ctk.CTk):
         self.document_frame.limpar()
 
     @staticmethod
-    def _abrir_pasta(caminho: Path | str) -> None:
-        """Abre o diretório informado no gerenciador de arquivos com validação estrita de segurança."""
+    def _abrir_pasta(caminho: Path | str) -> bool:
+        """Abre o diretório no gerenciador de arquivos; devolve False se falhar."""
         p = Path(caminho) if isinstance(caminho, str) else caminho
         if not p.exists() or not p.is_dir():
-            return
+            return False
 
-        if os.name == "nt":
-            os.startfile(str(p.resolve()))
-        else:
-            subprocess.run(["xdg-open", str(p.resolve())])
+        try:
+            if os.name == "nt":
+                os.startfile(str(p.resolve()))
+            else:
+                subprocess.run(["xdg-open", str(p.resolve())], timeout=15)
+        except OSError:
+            obter_logger("ui").warning("Não foi possível abrir a pasta '%s'.", p)
+            return False
+        return True
 
     # ------------------------------------------------------------------
     # Utilitários de Seleção (Etapa 1)

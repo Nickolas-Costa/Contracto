@@ -9,12 +9,12 @@ Os perfis são salvos em %APPDATA%/Contracto/contracto_profiles.json.
 
 import copy
 import json
-import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from utils.caminhos import diretorio_dados_local, guardar_copia_corrompida
 from utils.resource_path import carregar_configuracao_inicial
 from utils.json_storage import salvar_json
 
@@ -146,13 +146,8 @@ class Perfil:
 
 
 def _diretorio_perfis() -> Path:
-    appdata = os.environ.get("APPDATA")
-    if appdata:
-        config_dir = Path(appdata) / "Contracto"
-    else:
-        config_dir = Path(__file__).resolve().parent.parent / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    return config_dir
+    """Retorna o diretório de perfis (primeiro local gravável)."""
+    return diretorio_dados_local("Contracto")
 
 
 def _caminho_perfis() -> Path:
@@ -280,7 +275,10 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 setattr(perfil_carregado, "_documentos_definidos", documentos_definidos)
                 setattr(perfil_carregado, "_maximo_definido", maximo_definido)
                 perfis.append(perfil_carregado)
-        except (json.JSONDecodeError, OSError, TypeError):
+        except json.JSONDecodeError:
+            guardar_copia_corrompida(caminho)
+            perfis = []
+        except (OSError, TypeError):
             perfis = []
 
     # Inclui os perfis entregues com o aplicativo sem apagar alterações do usuário.
