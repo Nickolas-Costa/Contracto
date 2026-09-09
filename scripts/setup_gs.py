@@ -42,7 +42,8 @@ def main(argumentos: list | None = None) -> int:
             print("Seguindo sem o Ghostscript embutido (--allow-without-gs).")
             print("O executável gerado NÃO converterá para PDF/A.")
             return 0
-        print("[ERRO] Build interrompido: o executável sairia sem o motor de PDF/A.")
+        print("[ERRO] Causa da interrupção do build: Ghostscript não encontrado.")
+        print("Sem ele, o executável sairia sem o motor de conversão para PDF/A.")
         print("Instale o Ghostscript ou use --allow-without-gs para seguir mesmo assim.")
         return 1
 
