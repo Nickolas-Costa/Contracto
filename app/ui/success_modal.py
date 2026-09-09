@@ -7,9 +7,10 @@ import os
 from pathlib import Path
 import customtkinter as ctk
 from ui import theme
+from ui.base_modal import BaseModal
 
 
-class SuccessModal:
+class SuccessModal(BaseModal):
     """Modal de sucesso com overlay translúcido e ações rápidas (abrir arquivo / pasta)."""
 
     _instancia_ativa = None
@@ -23,15 +24,6 @@ class SuccessModal:
         pasta_destino: str | Path,
         on_close=None,
     ):
-        if SuccessModal._instancia_ativa is not None:
-            try:
-                SuccessModal._instancia_ativa.dismiss()
-            except Exception:
-                pass
-        SuccessModal._instancia_ativa = self
-
-        root = master.winfo_toplevel()
-        self.master = root
         self.arquivos_gerados = [Path(a) for a in arquivos_gerados]
         self.pasta_destino = Path(pasta_destino)
         self.on_close_cb = on_close
@@ -39,25 +31,8 @@ class SuccessModal:
         w = 580
         h = min(360 + len(self.arquivos_gerados) * 36, 560)
 
-        # 1. Overlay escuro translúcido
-        self.overlay = ctk.CTkToplevel(root)
-        # 2. Cartão de sucesso
-        self.card = ctk.CTkToplevel(root)
-
-        theme.configurar_janela_modal(root, self.card, self.overlay, w, h)
-
-        self.overlay.bind("<Button-1>", lambda e: self.dismiss())
-        self.card.bind("<Escape>", lambda e: self.dismiss())
-
-        self.frame = ctk.CTkFrame(
-            self.card,
-            fg_color=theme.COLOR_SURFACE,
-            corner_radius=theme.RADIUS_CARD,
-            border_width=1,
-            border_color=theme.COLOR_BORDER,
-        )
-        self.frame.pack(fill="both", expand=True, padx=2, pady=2)
-        self.frame.grid_columnconfigure(0, weight=1)
+        # Sem trava de teclado (comportamento original: janelas externas abrem por aqui).
+        super().__init__(master, w, h, usar_grab=False)
         self.frame.grid_rowconfigure(1, weight=1)
 
         # Header (Ícone verde de Sucesso + Títulos)
@@ -195,16 +170,7 @@ class SuccessModal:
             pass
 
     def dismiss(self) -> None:
-        if SuccessModal._instancia_ativa is self:
-            SuccessModal._instancia_ativa = None
-        try:
-            self.overlay.destroy()
-        except Exception:
-            pass
-        try:
-            self.card.destroy()
-        except Exception:
-            pass
+        super().dismiss()
         if self.on_close_cb:
             try:
                 self.on_close_cb()
