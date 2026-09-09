@@ -51,6 +51,7 @@ class DatePickerPopup(ctk.CTkToplevel):
 
         self.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
         self.grab_set()
+        self.bind("<Escape>", lambda _event: self.destroy())
 
         # Frame Card com borda elevada
         self.card = ctk.CTkFrame(
@@ -176,5 +177,22 @@ class DatePickerPopup(ctk.CTkToplevel):
                 self.on_select(data_str)
             except Exception:
                 pass
-        self.grab_release()
         self.destroy()
+
+    def destroy(self) -> None:
+        """Libera a captura global do mouse antes de fechar o calendário."""
+        target = getattr(self, "target_entry", None)
+        try:
+            if self.grab_current() is self:
+                self.grab_release()
+        except Exception:
+            pass
+        try:
+            super().destroy()
+        finally:
+            if target is not None:
+                try:
+                    if target.winfo_exists():
+                        target.after_idle(target.focus_set)
+                except Exception:
+                    pass

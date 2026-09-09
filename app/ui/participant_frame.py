@@ -327,7 +327,13 @@ class ParticipantFrame(ctk.CTkFrame):
         label.grid(
             row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
-        entry = ctk.CTkEntry(self, placeholder_text=placeholder, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
+        entry = ctk.CTkEntry(
+            self,
+            placeholder_text=placeholder,
+            corner_radius=RADIUS_INPUT,
+            border_color=COLOR_BORDER,
+            state="normal",
+        )
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
         self._controles_campos_padrao.extend((label, entry))
         

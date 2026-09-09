@@ -30,8 +30,8 @@ class TestVisualAssets(unittest.TestCase):
         theme._ICONS_CACHE.clear()
 
     def test_version_is_current(self):
-        """Verifica se a versão centralizada está definida como 4.5.10."""
-        self.assertEqual(version.__version__, "4.5.10")
+        """Verifica se a versão centralizada está definida como 4.5.11."""
+        self.assertEqual(version.__version__, "4.5.11")
 
     def test_simple_loader_instantiation(self):
         """Verifica se o componente SimpleLoader pode ser instanciado sem erros."""
@@ -210,6 +210,43 @@ class TestVisualAssets(unittest.TestCase):
             self.assertEqual(win.label_formulario_nome.cget("text"), "DAMP")
             self.assertEqual(win.label_pagina_contador.cget("text"), "PÁGINA 1/2")
             self.assertEqual(win.label_pagina.cget("text"), "Dados pessoais")
+        finally:
+            win.destroy()
+
+    def test_calendario_libera_captura_ao_fechar(self):
+        import customtkinter as ctk
+        from ui.date_picker import DatePickerPopup
+
+        root = ctk.CTk()
+        root.withdraw()
+        try:
+            entry = ctk.CTkEntry(root)
+            entry.pack()
+            popup = DatePickerPopup(root, entry)
+            self.assertIs(root.grab_current(), popup)
+
+            popup.destroy()
+            root.update_idletasks()
+
+            self.assertIsNone(root.grab_current())
+            self.assertEqual(entry.cget("state"), "normal")
+        finally:
+            root.destroy()
+
+    def test_janela_recupera_campos_de_texto_bloqueados(self):
+        from ui.main_window import MainWindow
+
+        win = MainWindow()
+        win.withdraw()
+        try:
+            participante = win.participant_frames[0]
+            participante.entry_nome.configure(state="disabled")
+            participante.entry_cpf.configure(state="disabled")
+
+            win._recuperar_interacao_campos()
+
+            self.assertEqual(participante.entry_nome.cget("state"), "normal")
+            self.assertEqual(participante.entry_cpf.cget("state"), "normal")
         finally:
             win.destroy()
 

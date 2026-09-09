@@ -1,5 +1,14 @@
 # Contracto - Release Notes
 
+## 🔓 Correção de foco e entradas de texto (v4.5.11)
+
+* **Liberação segura do calendário:** a captura global de mouse/teclado é liberada antes de fechar o seletor de data, inclusive pelo botão fechar ou pela tecla `Esc`.
+* **Recuperação defensiva de edição:** ao retornar ao aplicativo, Nome, CPF, data, local e diretório voltam automaticamente ao estado editável caso um popup do Windows/Tk tenha deixado algum controle bloqueado.
+* **Fluxo mais claro:** distinção visual entre formulário e página, limites de proponentes por documento e notificações compactas sem sobreposição.
+* **Redesenho estável:** listas e quadros são atualizados fora da tela para reduzir rastros visuais durante trocas de perfil e navegação.
+
+---
+
 ## 🎯 Centralização de Modais, Responsividade dos Quadros e Otimizações de Interface (v4.5)
 
 * **Centralização Geométrica Perfeita dos Modais com Compensação DPI:**
