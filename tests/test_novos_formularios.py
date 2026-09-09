@@ -70,6 +70,20 @@ class TestPisPasep(unittest.TestCase):
 
 
 class TestDampConfiguracao(unittest.TestCase):
+    def test_pis_opcional_e_ocupacao_exibida_apos_a_situacao(self):
+        perfil = profile_manager.obter_perfil("MO 29300 (DAMP)")
+        campos = perfil.obter_campos_participante()
+        por_id = {campo.id: campo for campo in campos}
+        self.assertFalse(por_id["pisPasep"].obrigatorio)
+        self.assertLess(
+            [campo.id for campo in campos].index("situacaoOcupacional"),
+            [campo.id for campo in campos].index("profissaoMaiorRendimento"),
+        )
+        self.assertEqual(
+            por_id["profissaoMaiorRendimento"].visivel_quando,
+            [{"situacaoOcupacional": ["ATIVO"]}],
+        )
+
     def test_casado_com_comunhao_parcial(self):
         p = participante_damp(
             estadoCivil="CASADO(A)",
@@ -219,6 +233,26 @@ class TestCatalogoENovosPdfs(unittest.TestCase):
             caminho = resolver_caminho_formulario(formulario)
             campos_pdf = set((PdfReader(str(caminho)).get_fields() or {}).keys())
             self.assertEqual(set(formulario.mapeamento) - campos_pdf, set(), nome)
+
+    def test_campos_de_valor_nao_cobrem_o_simbolo_monetario(self):
+        perfil = profile_manager.obter_perfil("MO 29300 (DAMP)")
+        from services.generator_service import resolver_caminho_formulario
+        reader = PdfReader(str(resolver_caminho_formulario(perfil.formularios[0])))
+        nomes_esperados = {
+            "valor_imovel_concluido", "valor_imovel_construcao", "valor_terreno_construcao",
+            "valor_construcao_terreno_proprio", "valor_reforma_ampliacao", "valor_conclusao",
+            "valor_material_construcao",
+        }
+        retangulos = {}
+        for pagina in reader.pages:
+            for referencia in pagina.get("/Annots") or []:
+                widget = referencia.get_object()
+                pai = widget.get("/Parent") or widget
+                nome = str(pai.get("/T", ""))
+                if nome in nomes_esperados:
+                    retangulos[nome] = list(widget.get("/Rect", []))
+        self.assertEqual(len(retangulos), 7)
+        self.assertGreater(min(float(retangulo[0]) for retangulo in retangulos.values()), 250)
 
     def test_configuracao_de_mapeamento_persiste_sem_ser_sobrescrita(self):
         with tempfile.TemporaryDirectory() as tmp:

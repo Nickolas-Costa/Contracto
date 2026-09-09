@@ -24,6 +24,24 @@ class PdfServiceError(Exception):
 
 
 _detalhes_cache: dict[tuple[str, int, int], dict[str, dict[str, object]]] = {}
+_LIMITE_TAMANHO_PDF = 50 * 1024 * 1024
+_LIMITE_PAGINAS_PDF = 100
+_LIMITE_CAMPOS_PDF = 1000
+
+
+def validar_pdf_para_configuracao(caminho_pdf: Path) -> None:
+    """Confere limites seguros antes de aceitar um PDF configurado pelo usuário."""
+    try:
+        tamanho = caminho_pdf.stat().st_size
+    except OSError as exc:
+        raise PdfServiceError(f"Não foi possível acessar o arquivo selecionado: {exc}") from exc
+    if tamanho > _LIMITE_TAMANHO_PDF:
+        raise PdfServiceError("O PDF selecionado ultrapassa o limite de 50 MB.")
+    reader = _abrir_pdf(caminho_pdf)
+    if len(reader.pages) > _LIMITE_PAGINAS_PDF:
+        raise PdfServiceError("O PDF selecionado ultrapassa o limite de 100 páginas.")
+    if len(reader.get_fields() or {}) > _LIMITE_CAMPOS_PDF:
+        raise PdfServiceError("O PDF selecionado ultrapassa o limite de 1.000 campos.")
 
 
 def _copiar_detalhes(detalhes: dict[str, dict[str, object]]) -> dict[str, dict[str, object]]:
@@ -47,6 +65,7 @@ def obter_campos_do_formulario(caminho_pdf: Path) -> set[str]:
 
 def obter_detalhes_campos(caminho_pdf: Path) -> dict[str, dict[str, object]]:
     """Retorna tipo e estados de exportação para configurar mapeamentos pela UI."""
+    validar_pdf_para_configuracao(caminho_pdf)
     try:
         estado = caminho_pdf.stat()
         chave_cache = (str(caminho_pdf.resolve()), estado.st_mtime_ns, estado.st_size)

@@ -338,10 +338,11 @@ def _configurar_rolagem() -> None:
                 intensidade = max(1, round(abs(delta) / 120))
                 passos = -intensidade if delta > 0 else intensidade
             canvas = self._parent_canvas
+            canvas.configure(yscrollincrement=8, xscrollincrement=8)
             if self._shift_pressed and canvas.xview() != (0.0, 1.0):
-                canvas.xview_scroll(passos * 3, "units")
+                canvas.xview_scroll(passos * 6, "units")
             elif canvas.yview() != (0.0, 1.0):
-                canvas.yview_scroll(passos * 3, "units")
+                canvas.yview_scroll(passos * 6, "units")
         except Exception:
             pass
 
@@ -391,6 +392,60 @@ def _configurar_fechamento_janelas() -> None:
 _configurar_fechamento_janelas()
 
 
+def _configurar_cache_de_modais(root, card, overlay) -> None:
+    """Esconde modais ao perder o foco e os restaura ao retornar ao aplicativo."""
+    modais = getattr(root, "_contracto_modais", None)
+    if modais is None:
+        modais = []
+        root._contracto_modais = modais
+
+        def ocultar_se_necessario():
+            try:
+                if not root.winfo_exists() or root.focus_displayof() is not None:
+                    return
+                for item in list(root._contracto_modais):
+                    for janela in item:
+                        if janela.winfo_exists():
+                            janela._contracto_oculta_por_foco = True
+                            janela.withdraw()
+            except Exception:
+                pass
+
+        def agendar_ocultacao(event=None):
+            try:
+                root.after(100, ocultar_se_necessario)
+            except Exception:
+                pass
+
+        def restaurar(event=None):
+            try:
+                for item in list(root._contracto_modais):
+                    for janela in item:
+                        if janela.winfo_exists() and getattr(janela, "_contracto_oculta_por_foco", False):
+                            janela.deiconify()
+                            janela.lift()
+                            janela._contracto_oculta_por_foco = False
+            except Exception:
+                pass
+
+        root.bind("<FocusOut>", agendar_ocultacao, add="+")
+        root.bind("<FocusIn>", restaurar, add="+")
+        root._contracto_restaurar_modais = restaurar
+
+    modais.append((overlay, card))
+
+    def remover_modal(event=None):
+        try:
+            if (overlay, card) in root._contracto_modais:
+                root._contracto_modais.remove((overlay, card))
+        except Exception:
+            pass
+
+    for janela in (overlay, card):
+        janela.bind("<Destroy>", remover_modal, add="+")
+        janela.bind("<FocusIn>", getattr(root, "_contracto_restaurar_modais"), add="+")
+
+
 def configurar_janela_modal(
     master,
     card: ctk.CTkToplevel,
@@ -427,8 +482,13 @@ def configurar_janela_modal(
     # 1. Configuração do Overlay translúcido
     if overlay is not None:
         overlay.withdraw()
+        overlay.transient(root)
         overlay.overrideredirect(True)
         overlay.configure(fg_color="#000000")
+        try:
+            overlay.attributes("-toolwindow", True)
+        except Exception:
+            pass
         try:
             overlay.attributes("-alpha", 0.60)
         except Exception:
@@ -442,11 +502,20 @@ def configurar_janela_modal(
     # 2. Configuração do Cartão do modal
     if card is not None:
         card.withdraw()
+        card.transient(root)
         card.overrideredirect(True)
         card.configure(fg_color=COLOR_SURFACE)
+        try:
+            card.attributes("-toolwindow", True)
+        except Exception:
+            pass
         card.geometry(f"{w}x{h}+{x}+{y}")
         card.deiconify()
         card.lift()
+        card.focus_force()
+
+    if card is not None and overlay is not None:
+        _configurar_cache_de_modais(root, card, overlay)
 
 
 def configurar_autoscroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
