@@ -2,16 +2,39 @@
 Logger centralizado da aplicação.
 
 Configura logging para arquivo e console com formatação padronizada.
+CPF, CNPJ e e-mail são mascarados antes da gravação.
 Em produção (executável), o log é salvo ao lado do executável.
 Em desenvolvimento, é salvo na pasta do projeto.
 """
 
 import logging
+import re
 import sys
 from pathlib import Path
 
 
 _logger_configurado = False
+
+# CPF formatado (000.000.000-00) ou sequência isolada de 11 dígitos.
+_PADRAO_CPF = re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}|\b\d{11}\b")
+# CNPJ formatado (00.000.000/0000-00) ou sequência isolada de 14 dígitos.
+_PADRAO_CNPJ = re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\b\d{14}\b")
+# E-mail (preserva o domínio para depuração).
+_PADRAO_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+
+
+def mascarar_dados_pessoais(texto: str) -> str:
+    """Oculta CPF, CNPJ e e-mail antes de registrar no log."""
+    texto = _PADRAO_CPF.sub("***.***.***-**", texto)
+    texto = _PADRAO_CNPJ.sub("**.***.***/****-**", texto)
+    return _PADRAO_EMAIL.sub(r"***@\1", texto)
+
+
+class FormatadorPrivado(logging.Formatter):
+    """Aplica o mascaramento ao texto final (mensagem + traceback)."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return mascarar_dados_pessoais(super().format(record))
 
 
 def configurar_logger() -> logging.Logger:
@@ -29,8 +52,8 @@ def configurar_logger() -> logging.Logger:
     
     logger.setLevel(logging.DEBUG)
     
-    # Formato compacto com timestamp
-    formato = logging.Formatter(
+    # Formato compacto com timestamp e mascaramento de dados pessoais
+    formato = FormatadorPrivado(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
