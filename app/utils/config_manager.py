@@ -6,9 +6,9 @@ para que sobrevivam a atualizações do executável.
 """
 
 import json
-import os
 from pathlib import Path
 
+from utils.caminhos import diretorio_dados_local, guardar_copia_corrompida
 from utils.json_storage import salvar_json
 from typing import Any
 
@@ -32,15 +32,8 @@ _config_cache: dict[str, Any] | None = None
 
 
 def _diretorio_config() -> Path:
-    """Retorna o diretório de configuração (%APPDATA%/Contracto/)."""
-    appdata = os.environ.get("APPDATA")
-    if appdata:
-        config_dir = Path(appdata) / _CONFIG_DIR_NAME
-    else:
-        # Fallback: ao lado do executável
-        config_dir = Path(__file__).resolve().parent.parent / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    return config_dir
+    """Retorna o diretório de configuração (primeiro local gravável)."""
+    return diretorio_dados_local(_CONFIG_DIR_NAME)
 
 
 def _caminho_config() -> Path:
@@ -67,7 +60,14 @@ def carregar_config(forcar_disco: bool = False) -> dict[str, Any]:
             with open(caminho, "r", encoding="utf-8") as f:
                 salvo = json.load(f)
             config.update(salvo)
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError:
+            copia = guardar_copia_corrompida(caminho)
+            import logging
+
+            logging.getLogger("contracto.config").warning(
+                "Configuração ilegível; padrões restaurados (cópia: %s).", copia
+            )
+        except OSError:
             pass
 
     # Migração: perfil "Padrão" renomeado para "MCMV"
