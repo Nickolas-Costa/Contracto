@@ -5,8 +5,8 @@
 > mudança visual/arquitetural.
 
 **Status:** Em definição
-**Versão:** 1.0 (Contracto v4.5.9)
-**Última atualização:** 2026-09-08
+**Versão:** 1.1 (Contracto v4.5.10)
+**Última atualização:** 2026-09-09
 
 ## 1. Propósito
 
@@ -22,12 +22,14 @@ cláusulas legais. Reduzir digitação, erro e tempo de dossiê.
 gestor de perfis MCMV/SBPE/custom.
 Não é: editor jurídico, CRM/ERP, substituto bancário/governamental, SaaS.
 
-## 3. Modos e multi-seleção (v4.5.9)
+## 3. Modos e multi-seleção (v4.5.9+)
 
 Modo Avançado = contrato completo 2 etapas. Modo Simples = emissão rápida
 com **multi-seleção por checkboxes** (`combinar_perfis`); incompatibilidade
 de `id/tipo/escopo` bloqueia com `AlertModal` explicativo, sem merge
 silencioso. `formularios_basicos_selecionados` persiste em config.
+Desde v4.5.10: paginação fixa acima do botão gerar, quadros vazios se
+ocultam sozinhos e contador de pendências trava o botão até tudo pronto.
 
 ## 4. Local-first e LGPD
 
@@ -37,22 +39,25 @@ sanitização `CON/PRN/AUX/NUL/COM1-9/LPT1-9`. Dados em
 
 ## 5. RTF/Word — Windows-only temporário
 
-`rtf_converter` exige MS Word via COM. Decisão: **manter Windows-only**,
-detectar e falhar com mensagem amigável se ausente. Evolução futura:
-sidecar LibreOffice (`soffice`) ou serviço headless — registrado, não
-implementado. Não bloquear pywebview por isso.
+`rtf_converter` exige MS Word via COM. Decisão: **manter Windows-only**.
+Se o Word estiver instalado e travar: avisar com contagem regressiva,
+depois encerrar só o processo filho. Se ausente: mensagem direta
+pedindo o Word instalado (sem oferecer LibreOffice). Não bloquear
+pywebview por isso.
 
 ## 6. Ghostscript
 
 Embutido em `assets/gs/bin`, headless `CREATE_NO_WINDOW`, `-dSAFER`.
 Futuro: `externalBin`/sidecar + allowlist `capabilities shell`.
 
-## 7. Direção UI: pywebview intermediário → Tauri V2
+## 7. Direção UI: pywebview agora, Tauri V2 como futuro opcional
 
-Tauri foi avaliado (mesmo dilema OSSYNC: toolchain Rust/Node cara).
-Decisão: **Fase A pywebview + FastAPI loopback** (reuso `services/`),
-**Fase B Tauri V2 + React+TS+Vite + sidecar Python** (updater assinado).
-Nada de Fase A/B implementado — ver `ARCHITECTURE.md`.
+Decisão (v4.5.10): seguir pelo **pywebview + FastAPI loopback** (reuso
+`services/`), que resolve a dor atual sem Rust/Node. **Tauri V2 segue
+como plano futuro** — será reavaliado quando o app estiver estável e
+se updater/instalador/tamanho virarem necessidade real. Nada de Fase
+A/B implementado — ver `ARCHITECTURE.md`. Sem atualizador automático
+até a migração de shell (decisão consciente).
 
 ## 8. Regras para agentes IA
 
@@ -61,7 +66,19 @@ Nada de Fase A/B implementado — ver `ARCHITECTURE.md`.
 - `clareza > confiabilidade > simplicidade > performance > estética`.
 - Todo novo perfil precisa de teste em `tests/test_*formulario*.py`.
 
-## 9. Decisões abertas
+## 9. Reuso e acessibilidade por teclado (regra permanente, v4.5.10)
 
-Protocolo pywebview↔Python, estrutura sidecar Tauri, updater, logging/
-backup, port `pdf_service` p/ Rust vs manter Python (bundle ~100MB+).
+- **Toda função/componente reutilizável nasce genérica:** sem dependência
+  de tela específica, com docstring de 1 linha, parâmetros explícitos e
+  retorno documentado. Config específica herda/estende o genérico —
+  nunca copia-e-cola (ex: futuros modais herdam `BaseModal`).
+- **App inteiro navegável por teclado, com lógica clara:** ordem de foco =
+  ordem visual (cima→baixo, esquerda→direita); foco sempre visível;
+  `Esc` fecha, `Enter` confirma/ativa; atalhos documentados; nenhuma ação
+  essencial exige mouse. Toda tela nova é testada só com teclado antes
+  de liberada.
+
+## 10. Decisões abertas
+
+Protocolo pywebview↔Python, logging/backup, port `pdf_service`
+p/ Rust vs manter Python.

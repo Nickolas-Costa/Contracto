@@ -20,7 +20,8 @@ app/utils/              → cpf/cnpj/pis/document/date/filename/profile/config/
                           resource_path (sys._MEIPASS)/json_storage/logger/
                           file_picker (ÚNICO com tkinter.filedialog — isolar)
 app/models/participant  → dataclass puro, JSON-serializável
-app/assets/             → config/perfis_iniciais.json, templates/*.pdf + novos/,
+app/assets/             → config/perfis_iniciais.json, templates/*.pdf (todos os
+                          modelos oficiais juntos, sem subpastas),
                           icons/*_dark/_light.png, gs/bin (embutido)
 dados usuário            → %APPDATA%/Contracto/ (gitignored; sobrevive a updates)
                           contracto_config.json, perfis, logs/app.log
