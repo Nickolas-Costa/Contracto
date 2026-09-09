@@ -18,6 +18,7 @@ if sys.platform == "win32":
 
 import customtkinter as ctk
 
+from utils.instancia_unica import InstanciaJaEmExecucao, InstanciaUnica
 from utils.logger import configurar_logger
 
 
@@ -60,6 +61,25 @@ def main() -> None:
     # Configurar logger antes de tudo
     logger = configurar_logger()
     logger.info("Iniciando aplicação Contracto")
+
+    # Segunda cópia? Avisa e encerra sem abrir outra janela.
+    try:
+        guarda_instancia = InstanciaUnica()
+        guarda_instancia.adquirir()
+    except InstanciaJaEmExecucao:
+        logger.info("Segunda instância bloqueada pelo mutex.")
+        from tkinter import messagebox
+        try:
+            messagebox.showinfo(
+                "Contracto",
+                "O Contracto já está aberto. Use a janela existente.",
+            )
+        except Exception:
+            pass
+        sys.exit(0)
+    except OSError:
+        logger.warning("Mutex indisponível; seguindo sem trava de instância.")
+        guarda_instancia = None
     
     # Instalar tratamento global de exceções
     sys.excepthook = _tratar_excecao_global
@@ -71,7 +91,11 @@ def main() -> None:
     
     app = MainWindow()
     logger.info("Janela principal criada")
-    app.mainloop()
+    try:
+        app.mainloop()
+    finally:
+        if guarda_instancia is not None:
+            guarda_instancia.liberar()
     logger.info("Aplicação encerrada")
 
 
