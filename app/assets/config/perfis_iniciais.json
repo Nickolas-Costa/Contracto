@@ -1,8 +1,8 @@
 {
   "modelos": {
-    "modelo_01": "novos/MO29300-039 (DAMP).pdf",
-    "modelo_02": "novos/MO30844-012 (form cliente).pdf",
-    "modelo_03": "novos/MO30825-005 (seguro).pdf",
+    "modelo_01": "MO29300-039 (DAMP).pdf",
+    "modelo_02": "MO30844-012 (form cliente).pdf",
+    "modelo_03": "MO30825-005 (seguro).pdf",
     "modelo_04": "PPE.pdf",
     "modelo_05": "1 IMOVEL.pdf",
     "modelo_06": "DECLARACAO PARA PAGAMENTO DO ITBI.pdf",
@@ -762,7 +762,7 @@
             "id": "pisPasep",
             "rotulo": "PIS/PASEP",
             "tipo": "PIS_PASEP",
-            "obrigatorio": true,
+            "obrigatorio": false,
             "placeholder": "000.00000.00-0",
             "escopo": "participante",
             "opcoes": [],
@@ -902,7 +902,13 @@
             "ajuda": "",
             "minimo": null,
             "maximo": null,
-            "visivel_quando": [],
+            "visivel_quando": [
+              {
+                "situacaoOcupacional": [
+                  "ATIVO"
+                ]
+              }
+            ],
             "limpar_quando_oculto": true
           },
           {
@@ -919,7 +925,13 @@
             "ajuda": "",
             "minimo": null,
             "maximo": null,
-            "visivel_quando": [],
+            "visivel_quando": [
+              {
+                "situacaoOcupacional": [
+                  "ATIVO"
+                ]
+              }
+            ],
             "limpar_quando_oculto": true
           },
           {
@@ -1347,6 +1359,36 @@
       "modelo": "modelo_01",
       "identificadores_anteriores": [
         "damp_mo29300_036"
+      ],
+      "correcoes": [
+        {
+          "chave": "campos_ocupacionais_condicionais",
+          "campos": {
+            "pisPasep": {
+              "obrigatorio": false
+            },
+            "profissaoMaiorRendimento": {
+              "visivel_quando": [
+                {
+                  "situacaoOcupacional": [
+                    "ATIVO"
+                  ]
+                }
+              ],
+              "limpar_quando_oculto": true
+            },
+            "municipioUfOcupacaoPrincipal": {
+              "visivel_quando": [
+                {
+                  "situacaoOcupacional": [
+                    "ATIVO"
+                  ]
+                }
+              ],
+              "limpar_quando_oculto": true
+            }
+          }
+        }
       ]
     },
     {

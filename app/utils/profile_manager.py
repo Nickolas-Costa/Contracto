@@ -10,6 +10,7 @@ Os perfis são salvos em %APPDATA%/Contracto/contracto_profiles.json.
 import copy
 import json
 import os
+import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -48,6 +49,30 @@ TIPOS_CAMPO_ENTRADA = [
     "DATA", "MOEDA", "AREA", "INTEIRO", "ANO", "TELEFONE", "EMAIL",
     "SELECAO", "CHECKBOX",
 ]
+
+
+def ordenar_campos_para_exibicao(campos: list["CampoEntrada"]) -> list["CampoEntrada"]:
+    """Mantém a ordem do perfil, colocando controles antes dos campos dependentes."""
+    pendentes = list(campos)
+    resultado: list[CampoEntrada] = []
+    ids_incluidos: set[str] = set()
+    while pendentes:
+        avancou = False
+        for campo in list(pendentes):
+            dependencias = {
+                chave
+                for alternativa in (campo.visivel_quando or [])
+                for chave in alternativa
+            }
+            if not dependencias or dependencias.issubset(ids_incluidos):
+                resultado.append(campo)
+                ids_incluidos.add(campo.id)
+                pendentes.remove(campo)
+                avancou = True
+        if not avancou:
+            resultado.extend(pendentes)
+            break
+    return resultado
 
 
 @dataclass
@@ -90,6 +115,7 @@ class Perfil:
     identificador: str = ""
     ordem: int = 100
     usar_paginacao: bool = False
+    correcoes_aplicadas: list[str] = field(default_factory=list)
 
     def usa_modelos_embutidos(self) -> bool:
         """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
@@ -102,11 +128,11 @@ class Perfil:
 
     def obter_campos_participante(self) -> list[CampoEntrada]:
         """Retorna os campos configurados no escopo de cada participante."""
-        return [c for c in self.campos_entrada if c.escopo == "participante"]
+        return ordenar_campos_para_exibicao([c for c in self.campos_entrada if c.escopo == "participante"])
 
     def obter_campos_globais(self) -> list[CampoEntrada]:
         """Retorna os campos configurados no escopo global (compartilhado)."""
-        return [c for c in self.campos_entrada if c.escopo == "global"]
+        return ordenar_campos_para_exibicao([c for c in self.campos_entrada if c.escopo == "global"])
 
     def obter_abas_disponiveis(self) -> list[str]:
         """Retorna a lista ordenada de abas/páginas definidas para este perfil."""
@@ -166,6 +192,7 @@ def _carregar_perfis_iniciais() -> list[dict]:
                 "identificadores_anteriores": entrada.get("identificadores_anteriores", []),
                 "nomes_anteriores": entrada.get("nomes_anteriores", []),
                 "substituir_sem_identificador": bool(entrada.get("identificadores_anteriores")),
+                "correcoes": entrada.get("correcoes", []),
             })
         except (KeyError, TypeError):
             continue
@@ -201,6 +228,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 identificador=p.identificador,
                 ordem=p.ordem,
                 usar_paginacao=p.usar_paginacao,
+                correcoes_aplicadas=list(p.correcoes_aplicadas),
             )
             for p in _perfis_cache
         ]
@@ -295,6 +323,16 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 existente.formularios[indice].identificador = formulario_inicial.identificador
                 if not existente.formularios[indice].recurso:
                     existente.formularios[indice].recurso = formulario_inicial.recurso
+        for correcao in entrada.get("correcoes", []):
+            chave = str(correcao.get("chave", "")).strip()
+            if not chave or chave in existente.correcoes_aplicadas:
+                continue
+            ajustes = correcao.get("campos", {}) or {}
+            for campo in existente.campos_entrada:
+                for atributo, valor in (ajustes.get(campo.id, {}) or {}).items():
+                    if hasattr(campo, atributo):
+                        setattr(campo, atributo, copy.deepcopy(valor))
+            existente.correcoes_aplicadas.append(chave)
 
     perfis.sort(key=lambda perfil: (getattr(perfil, "ordem", 100), perfil.nome.casefold()))
     _perfis_cache = perfis
@@ -318,6 +356,7 @@ def salvar_perfis(perfis: list[Perfil]) -> None:
     """Salva todos os perfis no disco e atualiza o cache imediatamente."""
     global _perfis_cache
 
+    validar_perfis(perfis)
     caminho = _caminho_perfis()
     dados = [asdict(p) for p in perfis]
     salvar_json(caminho, dados)
@@ -344,11 +383,42 @@ def listar_nomes_perfis() -> list[str]:
     return [p.nome for p in _perfis_cache]
 
 
+def validar_perfis(perfis: list[Perfil]) -> None:
+    """Impede que uma configuração incompleta seja gravada e usada na geração."""
+    nomes: set[str] = set()
+    identificadores: set[str] = set()
+    for perfil in perfis:
+        nome = perfil.nome.strip()
+        if not nome or nome in nomes:
+            raise ValueError("Cada perfil precisa ter um nome único.")
+        nomes.add(nome)
+        if perfil.identificador:
+            if perfil.identificador in identificadores:
+                raise ValueError("Cada perfil precisa ter um identificador único.")
+            identificadores.add(perfil.identificador)
+        campos: set[str] = set()
+        for campo in perfil.campos_entrada:
+            if not campo.id or campo.id in campos:
+                raise ValueError(f"Os campos do perfil '{perfil.nome}' precisam ter identificadores únicos.")
+            campos.add(campo.id)
+            if campo.tipo not in TIPOS_CAMPO_ENTRADA:
+                raise ValueError(f"O tipo do campo '{campo.rotulo}' não é suportado.")
+            if campo.tipo == "SELECAO" and not campo.opcoes:
+                raise ValueError(f"O campo de seleção '{campo.rotulo}' precisa de opções.")
+        for formulario in perfil.formularios:
+            if formulario.geracao not in ("por_participante", "por_processo", "unico"):
+                raise ValueError(f"A forma de geração de '{formulario.nome}' não é suportada.")
+            if not isinstance(formulario.mapeamento, dict):
+                raise ValueError(f"O mapeamento de '{formulario.nome}' precisa ser uma lista de campos válida.")
+
+
 def adicionar_perfil(perfil: Perfil) -> None:
     """Adiciona um novo perfil. Erro se já existir um com o mesmo nome."""
     perfis = carregar_perfis()
     if any(p.nome == perfil.nome for p in perfis):
         raise ValueError(f"Já existe um perfil com o nome '{perfil.nome}'.")
+    if not perfil.identificador:
+        perfil.identificador = uuid.uuid4().hex
     perfis.append(perfil)
     salvar_perfis(perfis)
 
@@ -451,9 +521,10 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         formato_saida=origem.formato_saida,
         modo_fluxo=origem.modo_fluxo,
         max_participantes=origem.max_participantes,
-        identificador="",
+        identificador=uuid.uuid4().hex,
         ordem=100,
         usar_paginacao=origem.usar_paginacao,
+        correcoes_aplicadas=list(origem.correcoes_aplicadas),
     )
     perfis.append(novo_perfil)
     salvar_perfis(perfis)
