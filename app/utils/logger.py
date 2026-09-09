@@ -1,19 +1,23 @@
 """
 Logger centralizado da aplicação.
 
-Configura logging para arquivo e console com formatação padronizada.
+Arquivo com rotação (5 × 2 MB) em `%APPDATA%/Contracto/logs/app.log`,
+nível detalhado em desenvolvimento e resumido no executável.
 CPF, CNPJ e e-mail são mascarados antes da gravação.
-Em produção (executável), o log é salvo ao lado do executável.
-Em desenvolvimento, é salvo na pasta do projeto.
 """
 
 import logging
 import re
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
 _logger_configurado = False
+
+# Arquivo de log: 2 MB por arquivo, mantendo os 5 mais recentes.
+_TAMANHO_MAXIMO_LOG = 2 * 1024 * 1024
+_ARQUIVOS_LOG_GUARDADOS = 5
 
 # CPF formatado (000.000.000-00) ou sequência isolada de 11 dígitos.
 _PADRAO_CPF = re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}|\b\d{11}\b")
@@ -39,18 +43,19 @@ class FormatadorPrivado(logging.Formatter):
 
 def configurar_logger() -> logging.Logger:
     """Configura e retorna o logger principal da aplicação.
-    
-    O log é salvo em `app.log` no diretório do executável (produção)
-    ou no diretório de trabalho atual (desenvolvimento).
+
+    O log é salvo em `%APPDATA%/Contracto/logs/app.log`, com rotação
+    automática ao atingir 2 MB (guarda os 5 arquivos mais recentes).
     """
     global _logger_configurado
-    
+
+    em_producao = bool(getattr(sys, "_MEIPASS", None))
     logger = logging.getLogger("contracto")
-    
+
     if _logger_configurado:
         return logger
-    
-    logger.setLevel(logging.DEBUG)
+
+    logger.setLevel(logging.INFO if em_producao else logging.DEBUG)
     
     # Formato compacto com timestamp e mascaramento de dados pessoais
     formato = FormatadorPrivado(
@@ -67,16 +72,21 @@ def configurar_logger() -> logging.Logger:
     
     log_path = log_dir / "app.log"
     try:
-        file_handler = logging.FileHandler(log_path, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
+        file_handler = RotatingFileHandler(
+            log_path,
+            maxBytes=_TAMANHO_MAXIMO_LOG,
+            backupCount=_ARQUIVOS_LOG_GUARDADOS,
+            encoding="utf-8",
+        )
+        file_handler.setLevel(logging.INFO if em_producao else logging.DEBUG)
         file_handler.setFormatter(formato)
         logger.addHandler(file_handler)
     except OSError:
         # Se não conseguir criar o arquivo de log, segue sem ele
         pass
-    
+
     # Handler para console (apenas em desenvolvimento)
-    if not getattr(sys, "_MEIPASS", None):
+    if not em_producao:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formato)
