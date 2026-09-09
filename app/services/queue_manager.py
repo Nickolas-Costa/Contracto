@@ -68,6 +68,10 @@ class QueueManager:
         self.on_job_failed: Optional[Callable[[ProcessJob, str], None]] = None
         self.on_job_cancelled: Optional[Callable[[ProcessJob], None]] = None
         self.on_queue_changed: Optional[Callable[[], None]] = None
+        # Aviso de Word travado: (nome_arquivo, prazo_s, encerrar_agora)
+        self.on_word_travado: Optional[
+            Callable[[str, int, Callable[[], None]], None]
+        ] = None
 
     def adicionar_job(
         self,
@@ -228,6 +232,7 @@ class QueueManager:
                 formato_saida=job.formato_saida,
                 cancel_event=job.cancel_event,
                 on_progress=_on_progresso_etapa2,
+                ao_travar=self.on_word_travado,
             )
 
             # 3. Conclusão

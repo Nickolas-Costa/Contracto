@@ -85,7 +85,7 @@ def _encerrar_processos_orfaos() -> int:
         return 0
 
     encerrados = 0
-    processos_alvo = ["gswin64c.exe", "gswin32c.exe", "gs.exe"]
+    processos_alvo = ["gswin64c.exe", "gswin32c.exe", "gs.exe", "WINWORD.EXE"]
     usuario_atual = os.environ.get("USERNAME", "")
     filtro_usuario = ["/FI", f"USERNAME eq {usuario_atual}"] if usuario_atual else []
 

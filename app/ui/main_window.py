@@ -128,6 +128,7 @@ class MainWindow(ctk.CTk):
         self.queue_manager.on_job_failed = self._ao_erro_job_fila
         self.queue_manager.on_job_cancelled = self._ao_cancelado_job_fila
         self.queue_manager.on_queue_changed = self._ao_mudar_fila
+        self.queue_manager.on_word_travado = self._ao_word_travar_na_fila
 
         self._modal_fila_ativo: Optional[LoadingModal] = None
 
@@ -2198,6 +2199,16 @@ class MainWindow(ctk.CTk):
 
     def _ao_iniciar_job_fila(self, job: ProcessJob) -> None:
         self._ui_event_queue.put((self._ui_job_iniciado, (job,)))
+
+    def _ao_word_travar_na_fila(self, nome_arquivo: str, prazo: int, encerrar) -> None:
+        """Recebe o aviso da thread de fundo e agenda o modal na thread da UI."""
+        self._ui_event_queue.put((self._mostrar_aviso_word, (nome_arquivo, prazo, encerrar)))
+
+    def _mostrar_aviso_word(self, nome_arquivo: str, prazo: int, encerrar) -> None:
+        """Exibe a contagem regressiva antes do encerramento do Word travado."""
+        from ui.word_travado_modal import WordTravadoModal
+
+        WordTravadoModal(self, nome_arquivo, prazo, on_fechar_agora=encerrar)
 
     def _ui_job_iniciado(self, job: ProcessJob) -> None:
         self._atualizar_botao_fila_status()

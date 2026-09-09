@@ -42,6 +42,7 @@ def executar_etapa2(
     formato_saida: str = "PDF/A-2b",
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
+    ao_travar: Optional[Callable[[str, int, Callable[[], None]], None]] = None,
 ) -> ResultadoEtapa2:
     """
     Executa a segunda etapa do processo:
@@ -50,6 +51,8 @@ def executar_etapa2(
     3. Prepara a lista de conversão com os nomes padronizados.
     4. Executa a conversão em lote para PDF/A-2b ou copia os arquivos (modo PDF).
     5. Remove os arquivos originais da Etapa 1 em caso de sucesso (limpeza).
+
+    `ao_travar` é repassado à conversão RTF: `(arquivo, prazo_s, encerrar)`.
     """
     if cancel_event is not None and cancel_event.is_set():
         return {
@@ -124,7 +127,7 @@ def executar_etapa2(
                 if caminho_origem.suffix.lower() == ".rtf":
                     caminho_tmp = Path(tempfile.gettempdir()) / f"temp_{nome_padronizado}"
                     try:
-                        converter_rtf_para_pdf(caminho_origem, caminho_tmp)
+                        converter_rtf_para_pdf(caminho_origem, caminho_tmp, ao_travar=ao_travar)
                         caminho_para_gs = caminho_tmp
                         arquivos_temporarios_rtf.append(caminho_tmp)
                     except (OSError, RtfConversionError) as exc:
