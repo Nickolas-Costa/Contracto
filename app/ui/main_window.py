@@ -54,7 +54,7 @@ from utils import config_manager
 from utils.date_formatter import validar_data
 from utils.document_validator import formatar_data_progressiva
 from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
-from utils.logger import configurar_logger
+from utils.logger import configurar_logger, obter_logger
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis,
     listar_perfis_por_modo, listar_nomes_perfis_por_modo, obter_perfil,
@@ -963,8 +963,7 @@ class MainWindow(ctk.CTk):
             self.update_idletasks()
             show_toast(self, "Configurações salvas e aplicadas com sucesso!", "success")
         except Exception as e:
-            import logging
-            logging.getLogger("Contracto").error(f"Erro ao aplicar configurações: {e}", exc_info=True)
+            obter_logger("ui").error(f"Erro ao aplicar configurações: {e}", exc_info=True)
 
     def _calcular_margem_responsiva(self) -> int:
         """Calcula a margem lateral (padx) proporcional e responsiva para os quadros."""
