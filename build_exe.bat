@@ -10,8 +10,8 @@ REM
 REM Uso:
 REM   build_exe.bat
 REM
-REM O executavel sera gerado em: app\dist\Contracto.exe
-REM O pacote de distribuicao sera gerado em: dist\Contracto.zip
+REM O executavel sera gerado em: app\dist\Contracto_v<VERSAO>.exe
+REM O pacote de distribuicao sera gerado em: dist\Contracto_v<VERSAO>.zip (+ .sha256.txt)
 REM =========================================================================
 
 echo.
@@ -71,8 +71,17 @@ echo [4/5] Criando atalho na Area de Trabalho...
 .\.venv\Scripts\python.exe scripts\create_shortcut.py
 echo.
 
-echo [5/5] Gerando pacote de distribuicao (Contracto.zip)...
+echo [5/5] Gerando pacote de distribuicao (Contracto_v%APP_VERSION%.zip + SHA-256)...
 .\.venv\Scripts\python.exe scripts\create_dist_package.py
+if errorlevel 1 (
+    echo [ERRO] Falha ao gerar o pacote de distribuicao.
+    exit /b 1
+)
+PowerShell -NoProfile -Command "Get-FileHash 'dist\Contracto_v%APP_VERSION%.zip' -Algorithm SHA256 | Select-Object Algorithm,Hash,Path | Format-List | Out-File -Encoding utf8 'dist\Contracto_v%APP_VERSION%.zip.sha256.txt'"
+if errorlevel 1 (
+    echo [ERRO] Falha ao gerar a verificacao SHA-256 do pacote.
+    exit /b 1
+)
 echo.
 
 echo ==========================================
@@ -83,11 +92,12 @@ echo Executavel gerado em:
 echo   app\dist\Contracto_v%APP_VERSION%.exe
 echo.
 echo Pacote de distribuicao:
-echo   dist\Contracto.zip
+echo   dist\Contracto_v%APP_VERSION%.zip
+echo   dist\Contracto_v%APP_VERSION%.zip.sha256.txt
 echo.
 echo IMPORTANTE:
 echo   - O Usuario final Nao necessita ter o Python instalado na maquina.
 echo   - Ghostscript e todas as dependencias estao embutidas no arquivo .exe.
-echo   - Para distribuir, envie o arquivo Contracto.zip.
+echo   - Para distribuir, envie o arquivo Contracto_v%APP_VERSION%.zip com o .sha256.txt.
 echo.
 pause
