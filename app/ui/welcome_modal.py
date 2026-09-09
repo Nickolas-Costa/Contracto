@@ -5,48 +5,18 @@ Apresenta os 4 passos essenciais de forma limpa, sem barra de rolagem desnecess�
 
 import customtkinter as ctk
 from ui import theme
+from ui.base_modal import BaseModal
 from utils import config_manager
 
 
-class WelcomeModal:
+class WelcomeModal(BaseModal):
     """Modal de instrução e guia de uso do aplicativo com overlay escuro translúcido e cartão alinhado."""
 
     _instancia_ativa = None
 
     def __init__(self, master):
-        # Fechar qualquer modal de boas-vindas anterior para evitar acúmulo
-        if WelcomeModal._instancia_ativa is not None:
-            try:
-                WelcomeModal._instancia_ativa.dismiss()
-            except Exception:
-                pass
-        WelcomeModal._instancia_ativa = self
-
-        root = master.winfo_toplevel()
-        self.master = root
-
-        w, h = 680, 560
-
-        # 1. Overlay escuro translúcido
-        self.overlay = ctk.CTkToplevel(root)
-        # 2. Cartão de instrução sólido
-        self.card = ctk.CTkToplevel(root)
-
-        theme.configurar_janela_modal(root, self.card, self.overlay, w, h)
-
-        # Fechar ao clicar no overlay escuro ou pressionar Escape
-        self.overlay.bind("<Button-1>", lambda e: self.dismiss())
-        self.card.bind("<Escape>", lambda e: self.dismiss())
-
-        self.frame = ctk.CTkFrame(
-            self.card,
-            fg_color=theme.COLOR_SURFACE,
-            corner_radius=theme.RADIUS_CARD,
-            border_width=1,
-            border_color=theme.COLOR_BORDER,
-        )
-        self.frame.pack(fill="both", expand=True, padx=2, pady=2)
-        self.frame.grid_columnconfigure(0, weight=1)
+        # Sem trava de teclado (comportamento original: guia inicial não bloqueante).
+        super().__init__(master, 680, 560, usar_grab=False)
         self.frame.grid_rowconfigure(1, weight=1)
 
         # Header
@@ -180,20 +150,5 @@ class WelcomeModal:
         ).grid(row=0, column=0, sticky="ew")
 
     def dismiss(self):
-        if WelcomeModal._instancia_ativa is self:
-            WelcomeModal._instancia_ativa = None
-        try:
-            if hasattr(self, "card") and self.card and self.card.winfo_exists():
-                self.card.destroy()
-        except Exception:
-            pass
-        try:
-            if hasattr(self, "overlay") and self.overlay and self.overlay.winfo_exists():
-                self.overlay.destroy()
-        except Exception:
-            pass
-        try:
-            self.master.update_idletasks()
-        except Exception:
-            pass
+        super().dismiss()
         config_manager.definir("primeira_execucao", False)

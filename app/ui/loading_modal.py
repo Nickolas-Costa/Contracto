@@ -8,9 +8,10 @@ from typing import Callable, Optional
 import customtkinter as ctk
 from ui.theme import *
 from ui.animated_loader import CanvasSpinner
+from ui.base_modal import BaseModal
 
 
-class LoadingModal:
+class LoadingModal(BaseModal):
     """Modal de carregamento reutilizável com overlay escuro translúcido, indicação de etapas,
     spinner circular vetorial nativo e botões de controle (Parar / Minimizar para fila)."""
 
@@ -32,15 +33,6 @@ class LoadingModal:
         if subtitulo is not None:
             submessage = subtitulo
 
-        if LoadingModal._instancia_ativa is not None:
-            try:
-                LoadingModal._instancia_ativa.dismiss()
-            except Exception:
-                pass
-        LoadingModal._instancia_ativa = self
-
-        root = master.winfo_toplevel()
-        self.master = root
         self.on_cancel = on_cancel
         self.on_minimize = on_minimize
         self._cancel_requested = False
@@ -54,21 +46,12 @@ class LoadingModal:
         else:
             w, h = 340, 175
 
-        # 1. Overlay escuro translúcido
-        self.overlay = ctk.CTkToplevel(root)
-        # 2. Cartão de carregamento sólido
-        self.card = ctk.CTkToplevel(root)
-
-        configurar_janela_modal(root, self.card, self.overlay, w, h)
-
-        self.frame = ctk.CTkFrame(
-            self.card,
-            fg_color=COLOR_SURFACE,
-            corner_radius=RADIUS_CARD,
-            border_width=1,
-            border_color=COLOR_BORDER,
+        # Comportamento original preservado: sem trava de teclado nem
+        # tecla Escape (o trabalho continua em segundo plano).
+        super().__init__(
+            master, w, h,
+            fechar_no_overlay=False, tecla_escape=False, usar_grab=False,
         )
-        self.frame.pack(fill="both", expand=True, padx=2, pady=2)
 
         # Spinner circular vetorial 100% nativo em Canvas
         self.spinner = CanvasSpinner(self.frame, size=38, line_width=3)
@@ -201,8 +184,6 @@ class LoadingModal:
 
     def dismiss(self) -> None:
         self._is_dismissed = True
-        if LoadingModal._instancia_ativa is self:
-            LoadingModal._instancia_ativa = None
         try:
             if hasattr(self, "spinner") and self.spinner:
                 self.spinner.stop_animation()
@@ -213,17 +194,4 @@ class LoadingModal:
                 self.progress_bar.stop()
         except Exception:
             pass
-        try:
-            if hasattr(self, "card") and self.card and self.card.winfo_exists():
-                self.card.destroy()
-        except Exception:
-            pass
-        try:
-            if hasattr(self, "overlay") and self.overlay and self.overlay.winfo_exists():
-                self.overlay.destroy()
-        except Exception:
-            pass
-        try:
-            self.master.update_idletasks()
-        except Exception:
-            pass
+        super().dismiss()
