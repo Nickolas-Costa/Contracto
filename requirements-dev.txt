@@ -4,9 +4,9 @@
 # (a aplicação em si não depende de reportlab)
 reportlab==5.0.0
 
-# Build do executável
-altgraph==0.17.5
-pefile==2024.8.26
+# Build do executável (dependências transitivas resolvidas pelo PyInstaller)
 pyinstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
-pywin32-ctypes==0.2.3
+
+# Auditoria de vulnerabilidades (pip-audit)
+pip-audit==2.10.1
