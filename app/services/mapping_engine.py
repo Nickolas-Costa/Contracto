@@ -41,6 +41,8 @@ def _aplicar_formato(valor: str, formato: str) -> str:
             return ""
     if formato == "MOEDA_SEM_SIMBOLO":
         return valor.replace("R$", "").strip()
+    if formato == "MAIUSCULAS":
+        return valor.upper()
     return valor
 
 

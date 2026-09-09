@@ -67,11 +67,7 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
-## Atualizações da Versão 4.5.11
-
-Manutenção da série 4.5.x: mascaramento de dados pessoais no log, bloqueio de segunda instância, fallbacks de pastas com cópia de segurança, rotação do log, aviso com prazo para o Word travado e build que informa a causa da interrupção. Detalhes em [CHANGELOG.md](CHANGELOG.md).
-
-## Principais Recursos da Versão 4.5.10 (estável)
+## 🚀 Principais Recursos da Versão 4.5.11 (estável)
 
 - **Paginação fixa e quadros inteligentes**: barra `← Anterior / Próxima →` sempre visível acima do botão gerar; páginas sem campo ocultam o quadro vazio; dados finais só na última página.
 - **Contador de pendências**: o botão de gerar trava até tudo pronto e mostra *"X pendência(s) em Y página(s)"* com botão **Ver pendências** (validação sem trocar de página).
@@ -80,6 +76,8 @@ Manutenção da série 4.5.x: mascaramento de dados pessoais no log, bloqueio de
 - **PDFs blindados**: limite de 50 MB / 100 páginas / 1.000 campos para modelos configurados pelo usuário.
 - **Modais que acompanham o foco**: pop-ups se escondem ao alternar de janela e voltam ao retornar.
 - **Pacote com verificação SHA-256**: o ZIP da distribuição acompanha `.sha256.txt` para conferir integridade.
+
+Manutenção da série 4.5.x: mascaramento de dados pessoais no log, bloqueio de segunda instância, fallbacks de pastas com cópia de segurança, rotação do log, aviso com prazo para o Word travado e build que informa a causa da interrupção. Detalhes em [CHANGELOG.md](CHANGELOG.md).
 
 ## 🧾 Recursos da Versão 4.5.9
 

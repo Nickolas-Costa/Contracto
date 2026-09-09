@@ -11,7 +11,7 @@ from reportlab.pdfgen import canvas
 from models.participant import Participant
 from services.generator_service import gerar_documentos_de_perfis
 from services.mapping_audit import conferir_mapeamento, renderizar_pagina_destacada
-from services.profile_composer import combinar_perfis
+from services.profile_composer import combinar_perfis, limite_participantes_para_pagina
 from utils.profile_manager import CampoEntrada, FormularioModelo, Perfil
 
 
@@ -50,6 +50,38 @@ class TestComposicaoPerfis(unittest.TestCase):
 
         self.assertIsNone(resultado.perfil)
         self.assertTrue(any("tipos TEXTO e DATA" in erro for erro in resultado.erros))
+
+    def test_identifica_paginas_com_o_nome_de_cada_formulario(self):
+        primeiro = Perfil(
+            nome="ITBI",
+            campos_entrada=[CampoEntrada(id="vendedor", rotulo="Vendedor", aba="Dados do Vendedor")],
+            agrupamento_paginas={"Dados do Vendedor": "Partes da operação"},
+        )
+        segundo = Perfil(
+            nome="DAMP",
+            campos_entrada=[CampoEntrada(id="modalidade", rotulo="Modalidade", aba="Operação")],
+        )
+
+        resultado = combinar_perfis([primeiro, segundo])
+
+        self.assertEqual(
+            resultado.perfil.obter_abas_disponiveis(),
+            ["ITBI • Partes da operação", "DAMP • Operação"],
+        )
+
+    def test_respeita_limite_de_proponentes_do_formulario_da_pagina(self):
+        damp = Perfil(nome="DAMP", max_participantes=1)
+        cliente = Perfil(nome="Form Cliente", max_participantes=4)
+
+        self.assertEqual(
+            limite_participantes_para_pagina([damp, cliente], "DAMP • Dados pessoais"),
+            1,
+        )
+        self.assertEqual(
+            limite_participantes_para_pagina([damp, cliente], "Form Cliente • Identificação"),
+            4,
+        )
+        self.assertEqual(limite_participantes_para_pagina([damp]), 1)
 
     def test_gera_todos_os_formularios_sem_sobrescrever_nomes_iguais(self):
         with tempfile.TemporaryDirectory() as diretorio:

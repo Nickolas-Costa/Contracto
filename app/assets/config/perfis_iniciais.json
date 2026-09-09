@@ -420,9 +420,15 @@
               "local_assinatura_titular": {
                 "origem": "participante.local_assinatura"
               },
-              "data_assinatura_titular": {
-                "origem": "participante.data_assinatura",
-                "formato": "DATA_EXTENSO"
+              "data_assinatura_dia": {
+                "origem": "data.dia"
+              },
+              "data_assinatura_mes": {
+                "origem": "data.mes",
+                "formato": "MAIUSCULAS"
+              },
+              "data_assinatura_ano": {
+                "origem": "data.ano"
               },
               "modalidade_imovel_concluido": {
                 "condicoes": [
@@ -1354,7 +1360,18 @@
         "max_participantes": 1,
         "identificador": "inicial_01",
         "ordem": 0,
-        "usar_paginacao": true
+        "usar_paginacao": true,
+        "agrupamento_paginas": {
+          "Identificação e estado civil": "Dados pessoais e ocupacionais",
+          "Situação ocupacional": "Dados pessoais e ocupacionais",
+          "Residência": "Residência, renda e imóvel",
+          "Imposto de Renda": "Residência, renda e imóvel",
+          "Imóvel": "Residência, renda e imóvel",
+          "Usufruto": "Residência, renda e imóvel",
+          "Modalidade": "Modalidade e enquadramento",
+          "Enquadramento": "Modalidade e enquadramento",
+          "FGTS": "FGTS"
+        }
       },
       "modelo": "modelo_01",
       "identificadores_anteriores": [
@@ -1924,7 +1941,13 @@
         "max_participantes": 1,
         "identificador": "itbi",
         "ordem": 12,
-        "usar_paginacao": true
+        "usar_paginacao": true,
+        "agrupamento_paginas": {
+          "Dados do Comprador": "Partes da operação",
+          "Dados do Vendedor": "Partes da operação",
+          "Dados do Imóvel e Cartório": "Dados do Imóvel e Cartório",
+          "Valores da Operação": "Valores da Operação"
+        }
       },
       "modelos": ["modelo_06"]
     },

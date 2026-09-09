@@ -260,6 +260,9 @@ class ProfilesFrame(ctk.CTkFrame):
         pass
 
     def _carregar_lista(self) -> None:
+        estava_visivel = self.scroll_perfis.winfo_manager() == "grid"
+        if estava_visivel:
+            self.scroll_perfis.grid_remove()
         for widget in self.scroll_perfis.winfo_children():
             widget.destroy()
 
@@ -342,6 +345,8 @@ class ProfilesFrame(ctk.CTkFrame):
                               ).pack(side="left", padx=2)
 
         configurar_autoscroll(self.scroll_perfis)
+        if estava_visivel:
+            self.scroll_perfis.grid()
 
     def _ativar_perfil(self, nome: str) -> None:
         config_manager.definir("perfil_ativo", nome)
@@ -413,6 +418,9 @@ class ProfilesFrame(ctk.CTkFrame):
             self.on_expand(True)
 
     def _atualizar_lista_formularios_editando(self):
+        estava_visivel = self.scroll_forms.winfo_manager() == "grid"
+        if estava_visivel:
+            self.scroll_forms.grid_remove()
         for widget in self.scroll_forms.winfo_children():
             widget.destroy()
             
@@ -442,6 +450,8 @@ class ProfilesFrame(ctk.CTkFrame):
             ctk.CTkButton(f_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=COLOR_ERROR, hover_color="#8c1b1b",
                           command=lambda idx=i: self._remover_formulario(idx)).grid(row=0, column=4, padx=SPACING_SMALL)
+        if estava_visivel:
+            self.scroll_forms.grid()
 
     def _fechar_editor(self) -> None:
         self.frame_editor.grid_remove()
@@ -458,6 +468,9 @@ class ProfilesFrame(ctk.CTkFrame):
         self._carregar_lista()
 
     def _atualizar_lista_documentos_editando(self):
+        estava_visivel = self.scroll_extras.winfo_manager() == "grid"
+        if estava_visivel:
+            self.scroll_extras.grid_remove()
         for widget in self.scroll_extras.winfo_children():
             widget.destroy()
             
@@ -476,8 +489,13 @@ class ProfilesFrame(ctk.CTkFrame):
             ctk.CTkButton(d_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=COLOR_ERROR, hover_color="#8c1b1b",
                           command=lambda idx=i: self._remover_documento_extra(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
+        if estava_visivel:
+            self.scroll_extras.grid()
 
     def _atualizar_lista_campos_editando(self):
+        estava_visivel = self.scroll_campos.winfo_manager() == "grid"
+        if estava_visivel:
+            self.scroll_campos.grid_remove()
         for widget in self.scroll_campos.winfo_children():
             widget.destroy()
             
@@ -499,6 +517,8 @@ class ProfilesFrame(ctk.CTkFrame):
             ctk.CTkButton(c_frame, text="Remover", width=60, corner_radius=RADIUS_BUTTON,
                           fg_color=COLOR_ERROR, hover_color="#8c1b1b",
                           command=lambda idx=i: self._remover_campo_entrada(idx)).grid(row=0, column=2, padx=SPACING_SMALL)
+        if estava_visivel:
+            self.scroll_campos.grid()
     def _adicionar_campo_entrada(self) -> None:
         self._abrir_modal_campo_entrada()
 
@@ -1456,6 +1476,7 @@ class ProfilesFrame(ctk.CTkFrame):
             ordem=getattr(self._perfil_editando, "ordem", 100) if self._perfil_editando else 100,
             usar_paginacao=bool(self.edit_usar_paginacao.get()),
             correcoes_aplicadas=list(getattr(self._perfil_editando, "correcoes_aplicadas", [])),
+            agrupamento_paginas=dict(getattr(self._perfil_editando, "agrupamento_paginas", {})),
         )
 
         try:

@@ -5,6 +5,8 @@ Testes de desempenho e benchmarking para a suite de otimizações de performance
 import sys
 import time
 import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 from pathlib import Path
 
 app_dir = Path(__file__).resolve().parent.parent / "app"
@@ -60,6 +62,24 @@ class TestPerformance(unittest.TestCase):
         duracao = time.perf_counter() - inicio
 
         self.assertLess(duracao, 0.10, f"Tempo excessivo em theme cache: {duracao:.4f}s")
+
+    def test_scroll_do_mouse_avanca_oito_unidades_por_giro(self):
+        import customtkinter as ctk
+
+        theme._configurar_rolagem()
+        canvas = MagicMock()
+        canvas.yview.return_value = (0.0, 0.5)
+        scroll = SimpleNamespace(
+            _check_if_valid_scroll=lambda _widget: True,
+            _shift_pressed=False,
+            _parent_canvas=canvas,
+        )
+
+        ctk.CTkScrollableFrame._mouse_wheel_all(
+            scroll, SimpleNamespace(widget=object(), delta=-120)
+        )
+
+        canvas.yview_scroll.assert_called_once_with(8, "units")
 
     def test_loading_modal_lifecycle_is_instant(self):
         """Valida criação e destruição instantânea do LoadingModal ultraleve sem travamentos."""
