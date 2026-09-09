@@ -51,6 +51,24 @@ class TestComposicaoPerfis(unittest.TestCase):
         self.assertIsNone(resultado.perfil)
         self.assertTrue(any("tipos TEXTO e DATA" in erro for erro in resultado.erros))
 
+    def test_identifica_paginas_com_o_nome_de_cada_formulario(self):
+        primeiro = Perfil(
+            nome="ITBI",
+            campos_entrada=[CampoEntrada(id="vendedor", rotulo="Vendedor", aba="Dados do Vendedor")],
+            agrupamento_paginas={"Dados do Vendedor": "Partes da operação"},
+        )
+        segundo = Perfil(
+            nome="DAMP",
+            campos_entrada=[CampoEntrada(id="modalidade", rotulo="Modalidade", aba="Operação")],
+        )
+
+        resultado = combinar_perfis([primeiro, segundo])
+
+        self.assertEqual(
+            resultado.perfil.obter_abas_disponiveis(),
+            ["ITBI • Partes da operação", "DAMP • Operação"],
+        )
+
     def test_gera_todos_os_formularios_sem_sobrescrever_nomes_iguais(self):
         with tempfile.TemporaryDirectory() as diretorio:
             pasta = Path(diretorio)

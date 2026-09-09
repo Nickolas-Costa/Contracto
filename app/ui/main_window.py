@@ -138,6 +138,9 @@ class MainWindow(ctk.CTk):
         self.pasta_saida: Path | None = None
         self.participant_frames: list[ParticipantFrame] = []
         self.widgets_dinamicos_globais: dict[str, CampoDinamicoWidget] = {}
+        self._pendencias_reveladas = False
+        self._toast_pendencias_ativo = False
+        self._tentativa_pendencias_id = 0
         selecao_salva = config_manager.obter("formularios_basicos_selecionados") or []
         self._perfis_simples_selecionados: list[str] = (
             list(selecao_salva) if isinstance(selecao_salva, list) else []
@@ -169,8 +172,9 @@ class MainWindow(ctk.CTk):
             border_color=COLOR_BORDER,
         )
         self.container_etapa1.grid_columnconfigure(0, weight=1)
-        self.container_etapa1.grid_rowconfigure(0, weight=1)
-        self.container_etapa1.grid_rowconfigure(1, weight=0)
+        # Paginação fixa (row 0), conteúdo rolável (row 1) e ações fixas (row 2).
+        self.container_etapa1.grid_rowconfigure(0, weight=0)
+        self.container_etapa1.grid_rowconfigure(1, weight=1)
         self.container_etapa1.grid_rowconfigure(2, weight=0)
 
         # Etapa 2: container estruturado responsivo com botões fixos
@@ -620,9 +624,15 @@ class MainWindow(ctk.CTk):
         """Atualiza o rótulo do botão com a quantidade de formulários marcados."""
         if not hasattr(self, "btn_selecionar_formularios"):
             return
-        quantidade = len(self._obter_perfis_basicos_selecionados())
-        texto = "Selecionar formulários" if not quantidade else f"Formulários selecionados: {quantidade}"
-        self.btn_selecionar_formularios.configure(text=texto)
+        perfis = self._obter_perfis_basicos_selecionados()
+        nomes = [perfil.nome for perfil in perfis]
+        if not nomes:
+            texto = "✓ Selecionar formulários"
+        elif len(nomes) <= 2:
+            texto = "✓ " + " + ".join(nomes)
+        else:
+            texto = f"✓ {len(nomes)} formulários: {nomes[0]}, {nomes[1]} e mais"
+        self.btn_selecionar_formularios.configure(text=texto, width=260)
 
     def _abrir_seletor_formularios_basicos(self) -> None:
         """Abre o modal de checkboxes para marcar os formulários do modo simples."""
@@ -633,8 +643,8 @@ class MainWindow(ctk.CTk):
 
         overlay = ctk.CTkToplevel(self)
         modal = ctk.CTkToplevel(self)
-        altura = min(680, max(360, 210 + len(perfis) * 52))
-        configurar_janela_modal(self, modal, overlay, 560, altura)
+        altura = min(720, max(430, 270 + len(perfis) * 62))
+        configurar_janela_modal(self, modal, overlay, 620, altura)
 
         painel = ctk.CTkFrame(
             modal, fg_color=COLOR_SURFACE, corner_radius=RADIUS_CARD,
@@ -648,26 +658,43 @@ class MainWindow(ctk.CTk):
         ).pack(anchor="w", padx=SPACING_LARGE, pady=(SPACING_LARGE, 2))
         ctk.CTkLabel(
             painel,
-            text="Marque os documentos que deseja preencher nesta operação.",
+            text="Escolha um ou mais documentos. Os campos serão agrupados por formulário.",
             font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
         ).pack(anchor="w", padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
+
+        barra_selecao = ctk.CTkFrame(painel, fg_color="transparent")
+        barra_selecao.pack(fill="x", padx=SPACING_LARGE, pady=(0, SPACING_SMALL))
+        label_quantidade = ctk.CTkLabel(
+            barra_selecao, text="", font=get_font(FONT_SIZE_CAPTION, "bold"),
+            text_color=get_color_primary_text(),
+        )
+        label_quantidade.pack(side="left")
 
         lista = ctk.CTkScrollableFrame(painel, fg_color=COLOR_SURFACE_VARIANT)
         lista.pack(fill="both", expand=True, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
         lista.grid_columnconfigure(0, weight=1)
+        configurar_autoscroll(lista)
         nomes_atuais = set(self._perfis_simples_selecionados)
         variaveis: dict[str, ctk.BooleanVar] = {}
         for linha, perfil in enumerate(perfis):
             chave = perfil.identificador or perfil.nome
             var = ctk.BooleanVar(value=chave in nomes_atuais or perfil.nome in nomes_atuais)
             variaveis[chave] = var
-            texto = perfil.nome
-            if len(perfil.formularios) > 1:
-                texto += f"  •  {len(perfil.formularios)} documentos"
+            item = ctk.CTkFrame(lista, fg_color="transparent")
+            item.grid(row=linha, column=0, padx=SPACING_SMALL, pady=SPACING_XSMALL, sticky="ew")
+            item.grid_columnconfigure(0, weight=1)
             ctk.CTkCheckBox(
-                lista, text=texto, variable=var, font=get_font(FONT_SIZE_BODY),
+                item, text=perfil.nome, variable=var, font=get_font(FONT_SIZE_BODY, "bold"),
                 fg_color=get_color_primary(), hover_color=get_color_primary_hover(),
-            ).grid(row=linha, column=0, padx=SPACING_MEDIUM, pady=SPACING_SMALL, sticky="w")
+                command=lambda: atualizar_resumo(),
+            ).grid(row=0, column=0, padx=SPACING_SMALL, pady=(SPACING_SMALL, 1), sticky="w")
+            total_campos = len(perfil.campos_entrada)
+            total_paginas = len(perfil.obter_abas_disponiveis()) if perfil.usar_paginacao else 1
+            ctk.CTkLabel(
+                item,
+                text=f"{total_campos} campos  •  {total_paginas} página(s)",
+                font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
+            ).grid(row=1, column=0, padx=(42, SPACING_SMALL), pady=(0, SPACING_SMALL), sticky="w")
 
         def fechar():
             try:
@@ -705,14 +732,41 @@ class MainWindow(ctk.CTk):
 
         botoes = ctk.CTkFrame(painel, fg_color="transparent")
         botoes.pack(fill="x", padx=SPACING_LARGE, pady=(0, SPACING_LARGE))
-        botoes.grid_columnconfigure(1, weight=1)
+        botoes.grid_columnconfigure(2, weight=1)
+        ctk.CTkButton(
+            barra_selecao, text="Selecionar todos", width=110,
+            fg_color="transparent", text_color=get_color_primary_text(),
+            hover_color=COLOR_SURFACE_VARIANT,
+            command=lambda: alterar_todos(True),
+        ).pack(side="right", padx=(SPACING_SMALL, 0))
+        ctk.CTkButton(
+            barra_selecao, text="Limpar", width=70,
+            fg_color="transparent", text_color=COLOR_TEXT_SECONDARY,
+            hover_color=COLOR_SURFACE_VARIANT,
+            command=lambda: alterar_todos(False),
+        ).pack(side="right")
         ctk.CTkButton(
             botoes, text="Cancelar", fg_color=COLOR_SURFACE_VARIANT,
             text_color=COLOR_TEXT, hover_color=COLOR_BORDER, command=fechar,
         ).grid(row=0, column=0, padx=(0, SPACING_SMALL))
-        ctk.CTkButton(botoes, text="Aplicar seleção", command=aplicar).grid(
-            row=0, column=1, sticky="ew"
+        btn_aplicar = ctk.CTkButton(botoes, text="Aplicar seleção", command=aplicar)
+        btn_aplicar.grid(
+            row=0, column=2, sticky="ew"
         )
+
+        def atualizar_resumo() -> None:
+            quantidade = sum(1 for var in variaveis.values() if var.get())
+            label_quantidade.configure(
+                text=f"{quantidade} formulário(s) selecionado(s)"
+            )
+            btn_aplicar.configure(state="normal" if quantidade else "disabled")
+
+        def alterar_todos(selecionar: bool) -> None:
+            for var in variaveis.values():
+                var.set(selecionar)
+            atualizar_resumo()
+
+        atualizar_resumo()
         overlay.bind("<Button-1>", lambda _evento: fechar())
         modal.bind("<Escape>", lambda _evento: fechar())
 
@@ -1041,6 +1095,7 @@ class MainWindow(ctk.CTk):
 
     def _aplicar_perfil_ativo(self) -> None:
         """Atualiza a UI da Etapa 1 e Etapa 2 para refletir o perfil ativo."""
+        self._ocultar_analise_pendencias()
         perfil = self._obter_perfil_em_uso()
         modo = config_manager.obter("modo_operacao") or "avancado"
         is_simples = (modo == "simples")
@@ -1048,7 +1103,10 @@ class MainWindow(ctk.CTk):
         # 1. Atualizar campos customizados dos participantes na Etapa 1
         campos_participante = perfil.obter_campos_participante() if perfil else []
         for pf in self.participant_frames:
-            pf.reconstruir_campos_customizados(campos_participante)
+            pf.reconstruir_campos_customizados(
+                campos_participante,
+                perfil.agrupamento_paginas if perfil else None,
+            )
 
         # 2. Reconstruir campos globais na Seção de Destino
         self._reconstruir_campos_globais_saida(perfil)
@@ -1171,7 +1229,8 @@ class MainWindow(ctk.CTk):
                 frame_sub = self._criar_subtitulo_secao(self.container_campos_globais, nome_secao)
                 frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                 self._frames_subtitulos_globais.append(frame_sub)
-                self._paginas_secoes_globais.setdefault(nome_secao, []).append(frame_sub)
+                pagina = perfil.obter_pagina_do_campo(campo)
+                self._paginas_secoes_globais.setdefault(pagina, []).append(frame_sub)
                 linha += 1
                 secao_anterior = nome_secao
 
@@ -1183,7 +1242,8 @@ class MainWindow(ctk.CTk):
             )
             widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
             self.widgets_dinamicos_globais[campo.id] = widget_campo
-            self._paginas_widgets_globais.setdefault(campo.aba or "Geral", []).append(widget_campo)
+            pagina = perfil.obter_pagina_do_campo(campo)
+            self._paginas_widgets_globais.setdefault(pagina, []).append(widget_campo)
 
             if campo.id in valores_atuais:
                 widget_campo.definir_valor(valores_atuais[campo.id])
@@ -1202,7 +1262,10 @@ class MainWindow(ctk.CTk):
             self.container_etapa1, fg_color=COLOR_SURFACE,
             corner_radius=RADIUS_CARD, border_width=1, border_color=COLOR_BORDER,
         )
-        self.frame_paginas.grid(row=1, column=0, padx=SPACING_LARGE, pady=(SPACING_SMALL, 0), sticky="ew")
+        self.frame_paginas.grid(
+            row=0, column=0, padx=SPACING_LARGE,
+            pady=(SPACING_MEDIUM, 0), sticky="ew",
+        )
         self.frame_paginas.grid_columnconfigure(1, weight=1)
         self.btn_pagina_anterior = ctk.CTkButton(
             self.frame_paginas, text="← Anterior", width=96,
@@ -1253,7 +1316,26 @@ class MainWindow(ctk.CTk):
     def _mostrar_pagina_atual(self) -> None:
         pagina = self._paginas_perfil[self._indice_pagina]
         total = len(self._paginas_perfil)
-        self.label_pagina.configure(text=f"{self._indice_pagina + 1} de {total}  •  {pagina}")
+        if " • " in pagina:
+            formulario, secao = pagina.split(" • ", 1)
+            formularios = list(dict.fromkeys(
+                item.split(" • ", 1)[0]
+                for item in self._paginas_perfil
+                if " • " in item
+            ))
+            paginas_formulario = [
+                item for item in self._paginas_perfil
+                if item.startswith(f"{formulario} • ")
+            ]
+            indice_formulario = formularios.index(formulario) + 1
+            indice_secao = paginas_formulario.index(pagina) + 1
+            texto_pagina = (
+                f"Formulário {indice_formulario} de {len(formularios)}  •  {formulario}\n"
+                f"Página {indice_secao} de {len(paginas_formulario)}  •  {secao}"
+            )
+        else:
+            texto_pagina = f"Página {self._indice_pagina + 1} de {total}  •  {pagina}"
+        self.label_pagina.configure(text=texto_pagina, justify="center")
         self.btn_pagina_anterior.configure(state="normal" if self._indice_pagina > 0 else "disabled")
         self.btn_proxima_pagina.configure(state="normal" if self._indice_pagina < total - 1 else "disabled")
         for participante in self.participant_frames:
@@ -1277,6 +1359,21 @@ class MainWindow(ctk.CTk):
                     secao.grid()
                 else:
                     secao.grid_remove()
+        self._atualizar_visibilidade_container_campos_globais()
+
+    def _atualizar_visibilidade_container_campos_globais(self) -> None:
+        """Remove o espaço reservado quando a página não possui campos globais visíveis."""
+        if not hasattr(self, "container_campos_globais"):
+            return
+
+        possui_campo_visivel = any(
+            widget.ativo and widget.pagina_visivel
+            for widget in self.widgets_dinamicos_globais.values()
+        )
+        if possui_campo_visivel:
+            self.container_campos_globais.grid()
+        else:
+            self.container_campos_globais.grid_remove()
 
     def _atualizar_visibilidade_secao_saida(self) -> None:
         """Oculta blocos vazios e deixa os dados finais apenas na última página."""
@@ -1308,7 +1405,9 @@ class MainWindow(ctk.CTk):
         """Evita que uma página sem campos do participante mantenha um quadro vazio."""
         if not hasattr(self, "secao_participantes"):
             return
-        ha_participante_visivel = any(frame.winfo_ismapped() for frame in self.participant_frames)
+        ha_participante_visivel = any(
+            frame.winfo_manager() == "grid" for frame in self.participant_frames
+        )
         if ha_participante_visivel:
             self.secao_participantes.grid()
         else:
@@ -1390,11 +1489,11 @@ class MainWindow(ctk.CTk):
     # ETAPA 1: Preenchimento e Validação (Estrutura Responsiva e Flexível)
     # ------------------------------------------------------------------
     def _construir_etapa1(self) -> None:
-        # Área rolável da Etapa 1 (row 0 com weight=1)
+        # Área rolável da Etapa 1, entre a paginação e as ações fixas.
         self.scroll_etapa1 = ctk.CTkScrollableFrame(
             self.container_etapa1, fg_color="transparent", label_text=""
         )
-        self.scroll_etapa1.grid(row=0, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="nsew")
+        self.scroll_etapa1.grid(row=1, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL, sticky="nsew")
         self.scroll_etapa1.grid_columnconfigure(0, weight=1)
         configurar_autoscroll(self.scroll_etapa1)
 
@@ -1420,25 +1519,54 @@ class MainWindow(ctk.CTk):
         )
         self.chk_preservar_dados.grid(row=0, column=0, padx=SPACING_XSMALL, pady=(0, SPACING_XSMALL), sticky="w")
 
-        self.label_pendencias = ctk.CTkLabel(
+        self.frame_pendencias = ctk.CTkFrame(
             frame_botoes,
+            fg_color=COLOR_SURFACE_VARIANT,
+            corner_radius=RADIUS_INPUT,
+            border_width=1,
+            border_color=COLOR_WARNING,
+        )
+        self.frame_pendencias.grid(
+            row=1, column=0, pady=(SPACING_XSMALL, SPACING_SMALL), sticky="ew"
+        )
+        self.frame_pendencias.grid_columnconfigure(0, weight=1)
+
+        self.label_pendencias_titulo = ctk.CTkLabel(
+            self.frame_pendencias,
+            text="Pendências do preenchimento",
+            font=get_font(FONT_SIZE_BODY, "bold"),
+            text_color=COLOR_WARNING,
+            anchor="w",
+        )
+        self.label_pendencias_titulo.grid(
+            row=0, column=0, padx=(SPACING_MEDIUM, SPACING_SMALL),
+            pady=(SPACING_SMALL, 0), sticky="ew",
+        )
+        self.label_pendencias = ctk.CTkLabel(
+            self.frame_pendencias,
             text="",
             font=get_font(FONT_SIZE_CAPTION),
             text_color=COLOR_TEXT_SECONDARY,
             anchor="w",
         )
-        self.label_pendencias.grid(row=1, column=0, padx=SPACING_XSMALL, pady=(0, SPACING_XSMALL), sticky="w")
+        self.label_pendencias.grid(
+            row=1, column=0, padx=(SPACING_MEDIUM, SPACING_SMALL),
+            pady=(0, SPACING_SMALL), sticky="ew",
+        )
         self.btn_ver_pendencias = ctk.CTkButton(
-            frame_botoes,
-            text="Ver pendências",
-            width=112,
-            height=26,
-            fg_color="transparent",
-            text_color=get_color_primary_text(),
-            hover_color=COLOR_SURFACE_VARIANT,
+            self.frame_pendencias,
+            text="Ver e corrigir",
+            width=120,
+            height=32,
+            fg_color=COLOR_WARNING,
+            text_color="#FFFFFF",
+            hover_color="#D96C00",
             command=self._mostrar_pendencias,
         )
-        self.btn_ver_pendencias.grid(row=1, column=1, padx=(SPACING_SMALL, 0), pady=(0, SPACING_XSMALL), sticky="e")
+        self.btn_ver_pendencias.grid(
+            row=0, column=1, rowspan=2, padx=SPACING_SMALL,
+            pady=SPACING_SMALL, sticky="e",
+        )
 
         self.botao_avancar = ctk.CTkButton(
             frame_botoes,
@@ -1637,6 +1765,7 @@ class MainWindow(ctk.CTk):
             on_open_datepicker=lambda entry: DatePickerPopup(self, entry),
             on_change=self._atualizar_estado_geracao,
             local_padrao=local_padrao,
+            agrupamento_paginas=perfil.agrupamento_paginas if perfil else None,
         )
         frame.grid(row=indice - 1, column=0, padx=SPACING_SMALL,
                    pady=SPACING_SMALL, sticky="ew")
@@ -1667,7 +1796,10 @@ class MainWindow(ctk.CTk):
         campos_participante = perfil.obter_campos_participante() if perfil else []
         for novo_indice, restante in enumerate(self.participant_frames, start=1):
             restante.atualizar_indice(novo_indice)
-            restante.reconstruir_campos_customizados(campos_participante)
+            restante.reconstruir_campos_customizados(
+                campos_participante,
+                perfil.agrupamento_paginas if perfil else None,
+            )
 
         max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
         if hasattr(self, "botao_adicionar"):
@@ -1714,25 +1846,75 @@ class MainWindow(ctk.CTk):
         return erros
 
     def _atualizar_estado_geracao(self) -> None:
-        """Trava/destrava o botão de gerar e atualiza o contador de pendências."""
+        """Mantém a ação acessível e atualiza o destaque das pendências."""
         if not hasattr(self, "botao_avancar"):
             return
         pendencias = self._listar_pendencias_etapa1()
         pronto = not pendencias
-        self.botao_avancar.configure(state="normal" if pronto else "disabled")
+        # O clique continua disponível: a validação mostra ao usuário o que
+        # falta, em vez de deixar um botão aparentemente quebrado/desabilitado.
+        self.botao_avancar.configure(state="normal")
+        if hasattr(self, "frame_pendencias"):
+            if self._pendencias_reveladas:
+                self.frame_pendencias.grid()
+            else:
+                self.frame_pendencias.grid_remove()
         if hasattr(self, "label_pendencias"):
             if pronto:
-                self.label_pendencias.configure(text="Pronto para gerar os formulários.", text_color=COLOR_SUCCESS)
+                self.frame_pendencias.configure(border_color=COLOR_SUCCESS)
+                self.label_pendencias_titulo.configure(
+                    text="Tudo certo para gerar", text_color=COLOR_SUCCESS
+                )
+                self.label_pendencias.configure(
+                    text="Todos os campos obrigatórios foram preenchidos.",
+                    text_color=COLOR_TEXT_SECONDARY,
+                )
                 if hasattr(self, "btn_ver_pendencias"):
                     self.btn_ver_pendencias.grid_remove()
             else:
                 paginas = len(self._paginas_perfil) if getattr(self, "_paginas_perfil", []) else 1
+                self.frame_pendencias.configure(border_color=COLOR_WARNING)
+                self.label_pendencias_titulo.configure(
+                    text=f"Faltam {len(pendencias)} campos para gerar",
+                    text_color=COLOR_WARNING,
+                )
                 self.label_pendencias.configure(
-                    text=f"{len(pendencias)} pendência(s) em {paginas} página(s).",
+                    text=f"Pendências distribuídas em {paginas} página(s). Veja a lista para localizar cada campo.",
                     text_color=COLOR_TEXT_SECONDARY,
                 )
                 if hasattr(self, "btn_ver_pendencias"):
                     self.btn_ver_pendencias.grid()
+
+    def _ocultar_analise_pendencias(self) -> None:
+        """Reinicia o aviso ao trocar de perfil; antes da tentativa a tela fica limpa."""
+        self._tentativa_pendencias_id += 1
+        self._pendencias_reveladas = False
+        self._toast_pendencias_ativo = False
+        if hasattr(self, "frame_pendencias"):
+            self.frame_pendencias.grid_remove()
+
+    def _avisar_pendencias_antes_de_exibir(self, quantidade: int) -> None:
+        """Mostra o toast e revela o quadro somente depois que ele desaparecer."""
+        if self._toast_pendencias_ativo:
+            return
+        self._toast_pendencias_ativo = True
+        self._tentativa_pendencias_id += 1
+        tentativa_id = self._tentativa_pendencias_id
+
+        def revelar() -> None:
+            if tentativa_id != self._tentativa_pendencias_id:
+                return
+            self._toast_pendencias_ativo = False
+            self._pendencias_reveladas = True
+            self._atualizar_estado_geracao()
+
+        show_toast(
+            self,
+            f"Ainda faltam {quantidade} campos. Veja os detalhes logo abaixo.",
+            "warning",
+            on_dismiss=revelar,
+            duration_ms=3000,
+        )
 
     def _mostrar_pendencias(self) -> None:
         """Exibe o modal com a lista completa de campos pendentes."""
@@ -1788,13 +1970,7 @@ class MainWindow(ctk.CTk):
             erros.append(f"Sem permissão de escrita na pasta de saída: {self.pasta_saida}")
 
         if erros:
-            from ui.alert_modal import AlertModal
-            AlertModal(
-                self,
-                titulo="Campos Pendentes ou Inválidos",
-                subtitulo="Não foi possível avançar. Verifique os seguintes itens:",
-                erros=erros,
-            )
+            self._avisar_pendencias_antes_de_exibir(len(erros))
             return
 
         principal = self.participant_frames[0].obter_participante()

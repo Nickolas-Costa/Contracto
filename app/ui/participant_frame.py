@@ -25,6 +25,7 @@ class ParticipantFrame(ctk.CTkFrame):
         on_open_datepicker: Optional[Callable[[ctk.CTkEntry], None]] = None,
         on_change: Optional[Callable[[], None]] = None,
         local_padrao: str = "CAMOCIM-CE",
+        agrupamento_paginas: Optional[dict[str, str]] = None,
         **kwargs,
     ):
         kwargs.pop("local_padrao", None)
@@ -44,9 +45,11 @@ class ParticipantFrame(ctk.CTkFrame):
         self.on_open_datepicker = on_open_datepicker
         self.on_change = on_change
         self._local_padrao = local_padrao
+        self.agrupamento_paginas = dict(agrupamento_paginas or {})
         self.widgets_dinamicos: dict[str, CampoDinamicoWidget] = {}
         self._paginas_widgets: dict[str, list[CampoDinamicoWidget]] = {}
         self._paginas_secoes: dict[str, list[ctk.CTkFrame]] = {}
+        self._controles_campos_padrao: list[ctk.CTkBaseClass] = []
 
         self.grid_columnconfigure(0, minsize=145)
         self.grid_columnconfigure(1, weight=1)
@@ -103,7 +106,8 @@ class ParticipantFrame(ctk.CTkFrame):
                     frame_sub = self._criar_subtitulo_secao(nome_secao)
                     frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                     self._frames_subtitulos_part.append(frame_sub)
-                    self._paginas_secoes.setdefault(nome_secao, []).append(frame_sub)
+                    pagina = self.agrupamento_paginas.get(nome_secao, nome_secao)
+                    self._paginas_secoes.setdefault(pagina, []).append(frame_sub)
                     linha += 1
                     secao_anterior = nome_secao
 
@@ -115,7 +119,8 @@ class ParticipantFrame(ctk.CTkFrame):
                 )
                 widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
                 self.widgets_dinamicos[campo.id] = widget_campo
-                self._paginas_widgets.setdefault(campo.aba or "Geral", []).append(widget_campo)
+                pagina = self.agrupamento_paginas.get(campo.aba or "Geral", campo.aba or "Geral")
+                self._paginas_widgets.setdefault(pagina, []).append(widget_campo)
                 if campo.id == "endereco" and hasattr(widget_campo, "entry"):
                     self.entry_endereco = widget_campo.entry
                 linha += 1
@@ -152,7 +157,11 @@ class ParticipantFrame(ctk.CTkFrame):
 
         return frame
 
-    def reconstruir_campos_customizados(self, novos_campos: Optional[list[CampoEntrada]]) -> None:
+    def reconstruir_campos_customizados(
+        self,
+        novos_campos: Optional[list[CampoEntrada]],
+        agrupamento_paginas: Optional[dict[str, str]] = None,
+    ) -> None:
         """Reconstrói dinamicamente os campos customizados mantendo os valores já preenchidos."""
         valores_atuais = {cid: widget.obter_valor() for cid, widget in self.widgets_dinamicos.items()}
         if self.entry_endereco is not None:
@@ -184,6 +193,7 @@ class ParticipantFrame(ctk.CTkFrame):
                 pass
 
         self.campos_customizados = novos_campos or []
+        self.agrupamento_paginas = dict(agrupamento_paginas or {})
         linha = 3  # Linha 0: Título, Linha 1: Nome, Linha 2: CPF
         secao_anterior = None
 
@@ -201,7 +211,8 @@ class ParticipantFrame(ctk.CTkFrame):
                     frame_sub = self._criar_subtitulo_secao(nome_secao)
                     frame_sub.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=(SPACING_SMALL, 0))
                     self._frames_subtitulos_part.append(frame_sub)
-                    self._paginas_secoes.setdefault(nome_secao, []).append(frame_sub)
+                    pagina = self.agrupamento_paginas.get(nome_secao, nome_secao)
+                    self._paginas_secoes.setdefault(pagina, []).append(frame_sub)
                     linha += 1
                     secao_anterior = nome_secao
 
@@ -213,7 +224,8 @@ class ParticipantFrame(ctk.CTkFrame):
                 )
                 widget_campo.grid(row=linha, column=0, columnspan=3, sticky="ew", padx=2, pady=0)
                 self.widgets_dinamicos[campo.id] = widget_campo
-                self._paginas_widgets.setdefault(campo.aba or "Geral", []).append(widget_campo)
+                pagina = self.agrupamento_paginas.get(campo.aba or "Geral", campo.aba or "Geral")
+                self._paginas_widgets.setdefault(pagina, []).append(widget_campo)
 
                 if campo.id in valores_atuais:
                     widget_campo.definir_valor(valores_atuais[campo.id])
@@ -233,8 +245,8 @@ class ParticipantFrame(ctk.CTkFrame):
         if self.on_change:
             self.on_change()
 
-    def aplicar_pagina(self, pagina: str | None, primeira: bool = False) -> None:
-        """Mostra somente os campos da página escolhida."""
+    def aplicar_pagina(self, pagina: str | None, primeira: bool = False) -> bool:
+        """Mostra somente os campos da página e oculta o cartão quando ele fica vazio."""
         for nome, widgets in self._paginas_widgets.items():
             mostrar = pagina is None or nome == pagina
             for widget in widgets:
@@ -245,21 +257,21 @@ class ParticipantFrame(ctk.CTkFrame):
                     secao.grid()
                 else:
                     secao.grid_remove()
-        for linha in (1, 2):
-            for controle in self.grid_slaves(row=linha):
-                if pagina is None or primeira:
-                    controle.grid()
-                else:
-                    controle.grid_remove()
+        for controle in self._controles_campos_padrao:
+            if pagina is None or primeira:
+                controle.grid()
+            else:
+                controle.grid_remove()
 
-        campos_visiveis = [
-            widget for widget in self._paginas_widgets.get(pagina or "", [])
-            if widget.ativo
-        ]
-        if pagina is not None and not primeira and not campos_visiveis:
-            self.grid_remove()
-        else:
+        possui_conteudo = pagina is None or primeira or any(
+            widget.ativo and widget.pagina_visivel
+            for widget in self.widgets_dinamicos.values()
+        )
+        if possui_conteudo:
             self.grid()
+        else:
+            self.grid_remove()
+        return possui_conteudo
 
     def _atualizar_campos_condicionais(self) -> None:
         """Aplica condições declarativas e limpa valores que deixaram de valer."""
@@ -289,7 +301,7 @@ class ParticipantFrame(ctk.CTkFrame):
                   else ("12.345.678/0001-90" if tipo == "cnpj"
                         else "Ex: Rua das Flores, 123 - Centro, Camocim - CE"))
         )
-        ctk.CTkLabel(
+        label = ctk.CTkLabel(
             self,
             text=f" {rotulo}",
             image=get_icon(icone_nome, (16, 16)),
@@ -298,11 +310,13 @@ class ParticipantFrame(ctk.CTkFrame):
             anchor="w",
             font=get_font(FONT_SIZE_BODY),
             text_color=COLOR_TEXT,
-        ).grid(
+        )
+        label.grid(
             row=linha, column=0, padx=(SPACING_LARGE, SPACING_MEDIUM), pady=SPACING_SMALL, sticky="w"
         )
         entry = ctk.CTkEntry(self, placeholder_text=placeholder, corner_radius=RADIUS_INPUT, border_color=COLOR_BORDER)
         entry.grid(row=linha, column=1, columnspan=2, padx=(0, SPACING_LARGE), pady=SPACING_SMALL, sticky="ew")
+        self._controles_campos_padrao.extend((label, entry))
         
         entry.bind("<KeyRelease>", lambda e: self._ao_digitar_campo_padrao(entry, tipo, e))
         entry.bind("<FocusIn>", lambda e: self._ao_foco_campo_padrao(entry))

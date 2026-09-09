@@ -187,7 +187,9 @@ class TestDampConfiguracao(unittest.TestCase):
         ))
         self.assertEqual(campos["profissao_maior_rendimento"], texto)
         self.assertEqual(campos["endereco_imovel_financiado"], texto)
-        self.assertEqual(campos["data_assinatura_titular"], "06 de Setembro de 2026")
+        self.assertEqual(campos["data_assinatura_dia"], "06")
+        self.assertEqual(campos["data_assinatura_mes"], "SETEMBRO")
+        self.assertEqual(campos["data_assinatura_ano"], "2026")
         self.assertFalse(any("assinatura_digital" in nome.lower() for nome in campos))
 
 

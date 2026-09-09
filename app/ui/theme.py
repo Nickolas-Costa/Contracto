@@ -340,9 +340,9 @@ def _configurar_rolagem() -> None:
             canvas = self._parent_canvas
             canvas.configure(yscrollincrement=8, xscrollincrement=8)
             if self._shift_pressed and canvas.xview() != (0.0, 1.0):
-                canvas.xview_scroll(passos * 6, "units")
+                canvas.xview_scroll(passos * 8, "units")
             elif canvas.yview() != (0.0, 1.0):
-                canvas.yview_scroll(passos * 6, "units")
+                canvas.yview_scroll(passos * 8, "units")
         except Exception:
             pass
 

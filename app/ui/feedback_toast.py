@@ -1,9 +1,20 @@
 import customtkinter as ctk
+from typing import Callable, Optional
+
 from ui.theme import *
 
 class FeedbackToast(ctk.CTkFrame):
-    def __init__(self, master, message: str, type: str = 'success'):
+    def __init__(
+        self,
+        master,
+        message: str,
+        type: str = 'success',
+        on_dismiss: Optional[Callable[[], None]] = None,
+        duration_ms: int = 4000,
+    ):
         super().__init__(master, fg_color="transparent")
+        self._on_dismiss = on_dismiss
+        self._duration_ms = duration_ms
         
         self.type_config = {
             'success': {'color': COLOR_SUCCESS, 'icon': '✓'},
@@ -35,11 +46,26 @@ class FeedbackToast(ctk.CTkFrame):
         
         self.place(x=x, y=y)
         
-        # Simple auto-dismiss after 4 seconds
-        self.after(4000, self.destroy)
+        self.after(self._duration_ms, self._dismiss)
 
-def show_toast(parent, message: str, type: str = 'success'):
-    toast = FeedbackToast(parent, message, type)
+    def _dismiss(self):
+        callback = self._on_dismiss
+        self._on_dismiss = None
+        try:
+            self.destroy()
+        finally:
+            if callback:
+                callback()
+
+def show_toast(
+    parent,
+    message: str,
+    type: str = 'success',
+    on_dismiss: Optional[Callable[[], None]] = None,
+    duration_ms: int = 4000,
+):
+    toast = FeedbackToast(parent, message, type, on_dismiss, duration_ms)
     # Wait for the widget to be ready
     parent.update_idletasks()
     toast.show(parent.winfo_width(), parent.winfo_height())
+    return toast

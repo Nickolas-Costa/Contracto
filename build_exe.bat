@@ -78,7 +78,7 @@ if errorlevel 1 (
     echo [ERRO] Falha ao gerar o pacote de distribuicao.
     exit /b 1
 )
-PowerShell -NoProfile -Command "Get-FileHash 'dist\Contracto_v%APP_VERSION%.zip' -Algorithm SHA256 | Select-Object Algorithm,Hash,Path | Format-List | Out-File -Encoding utf8 'dist\Contracto_v%APP_VERSION%.zip.sha256.txt'"
+.\.venv\Scripts\python.exe -c "import hashlib,pathlib; p=pathlib.Path(r'dist\Contracto_v%APP_VERSION%.zip'); f=p.open('rb'); h=hashlib.file_digest(f,'sha256').hexdigest().upper(); f.close(); pathlib.Path(str(p)+'.sha256.txt').write_text('SHA256  '+h+'  '+p.name+'\n', encoding='utf-8')"
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar a verificacao SHA-256 do pacote.
     exit /b 1

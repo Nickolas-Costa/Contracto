@@ -7,6 +7,8 @@ similar ao sistema de perfis do PDFCreator.
 Os perfis são salvos em %APPDATA%/Contracto/contracto_profiles.json.
 """
 
+from __future__ import annotations
+
 import copy
 import json
 import uuid
@@ -116,6 +118,8 @@ class Perfil:
     ordem: int = 100
     usar_paginacao: bool = False
     correcoes_aplicadas: list[str] = field(default_factory=list)
+    # Mapeia subtítulos para uma mesma página sem perder a separação visual.
+    agrupamento_paginas: dict[str, str] = field(default_factory=dict)
 
     def usa_modelos_embutidos(self) -> bool:
         """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
@@ -140,9 +144,15 @@ class Perfil:
         for c in self.campos_entrada:
             if c.id in ("data_assinatura", "local_assinatura"):
                 continue
-            if c.aba and c.aba not in abas:
-                abas.append(c.aba)
+            pagina = self.obter_pagina_do_campo(c)
+            if pagina and pagina not in abas:
+                abas.append(pagina)
         return abas if abas else ["Geral"]
+
+    def obter_pagina_do_campo(self, campo: CampoEntrada) -> str:
+        """Resolve a página do campo mantendo `aba` como subtítulo visual."""
+        aba = campo.aba or "Geral"
+        return self.agrupamento_paginas.get(aba, aba)
 
 
 def _diretorio_perfis() -> Path:
@@ -224,6 +234,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 ordem=p.ordem,
                 usar_paginacao=p.usar_paginacao,
                 correcoes_aplicadas=list(p.correcoes_aplicadas),
+                agrupamento_paginas=dict(p.agrupamento_paginas),
             )
             for p in _perfis_cache
         ]
@@ -314,13 +325,37 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             existente.max_participantes = inicial.max_participantes
         if not getattr(existente, "_paginacao_definida", True):
             existente.usar_paginacao = inicial.usar_paginacao
+        if inicial.agrupamento_paginas and not existente.agrupamento_paginas:
+            existente.agrupamento_paginas = copy.deepcopy(inicial.agrupamento_paginas)
         if not existente.formularios:
             existente.formularios = copy.deepcopy(inicial.formularios)
         for indice, formulario_inicial in enumerate(inicial.formularios):
             if indice < len(existente.formularios):
-                existente.formularios[indice].identificador = formulario_inicial.identificador
-                if not existente.formularios[indice].recurso:
-                    existente.formularios[indice].recurso = formulario_inicial.recurso
+                formulario_existente = existente.formularios[indice]
+                formulario_existente.identificador = formulario_inicial.identificador
+                if not formulario_existente.recurso:
+                    formulario_existente.recurso = formulario_inicial.recurso
+
+                # Migra somente a regra oficial antiga do DAMP. Mapeamentos
+                # personalizados pelo usuário permanecem intactos.
+                regra_data_legada = {
+                    "origem": "participante.data_assinatura",
+                    "formato": "DATA_EXTENSO",
+                }
+                if (
+                    inicial.identificador == "inicial_01"
+                    and formulario_existente.mapeamento.get("data_assinatura_titular") == regra_data_legada
+                ):
+                    formulario_existente.mapeamento.pop("data_assinatura_titular", None)
+                    for campo_data in (
+                        "data_assinatura_dia",
+                        "data_assinatura_mes",
+                        "data_assinatura_ano",
+                    ):
+                        formulario_existente.mapeamento[campo_data] = copy.deepcopy(
+                            formulario_inicial.mapeamento[campo_data]
+                        )
+
         for correcao in entrada.get("correcoes", []):
             chave = str(correcao.get("chave", "")).strip()
             if not chave or chave in existente.correcoes_aplicadas:
@@ -523,6 +558,7 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         ordem=100,
         usar_paginacao=origem.usar_paginacao,
         correcoes_aplicadas=list(origem.correcoes_aplicadas),
+        agrupamento_paginas=dict(origem.agrupamento_paginas),
     )
     perfis.append(novo_perfil)
     salvar_perfis(perfis)

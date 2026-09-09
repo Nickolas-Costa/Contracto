@@ -1456,6 +1456,7 @@ class ProfilesFrame(ctk.CTkFrame):
             ordem=getattr(self._perfil_editando, "ordem", 100) if self._perfil_editando else 100,
             usar_paginacao=bool(self.edit_usar_paginacao.get()),
             correcoes_aplicadas=list(getattr(self._perfil_editando, "correcoes_aplicadas", [])),
+            agrupamento_paginas=dict(getattr(self._perfil_editando, "agrupamento_paginas", {})),
         )
 
         try:

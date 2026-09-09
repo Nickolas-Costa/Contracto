@@ -133,7 +133,8 @@ def converter_para_pdfa(
     nivel_pdfa = _PERFIS_PDFA[perfil]
 
     # Criar pasta de saída se não existir
-    caminho_saida.parent.mkdir(parents=True, exist_ok=True)
+    if not caminho_saida.parent.exists():
+        caminho_saida.parent.mkdir(parents=True, exist_ok=True)
 
     # Criar arquivo PostScript auxiliar apenas se não fornecido
     criou_ps_proprio = False

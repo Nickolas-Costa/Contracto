@@ -45,7 +45,21 @@ class TestProfileManager(unittest.TestCase):
             rotulos_sbpe = [d.rotulo.upper() for d in sbpe.documentos_extras]
             self.assertTrue(any("CÉDULA DE CRÉDITO" in r or "CEDULA DE CREDITO" in r for r in rotulos_sbpe))
             self.assertTrue(itbi.usar_paginacao)
-            self.assertGreater(len(itbi.obter_abas_disponiveis()), 2)
+            self.assertEqual(
+                itbi.obter_abas_disponiveis(),
+                ["Partes da operação", "Dados do Imóvel e Cartório", "Valores da Operação"],
+            )
+
+            damp = next(p for p in perfis if p.nome == "MO 29300 (DAMP)")
+            self.assertEqual(
+                damp.obter_abas_disponiveis(),
+                [
+                    "Dados pessoais e ocupacionais",
+                    "Residência, renda e imóvel",
+                    "Modalidade e enquadramento",
+                    "FGTS",
+                ],
+            )
 
     def test_migration_from_legacy_padrao(self):
         """Verifica se perfil antigo com nome 'Padrão' é migrado para 'MCMV'."""

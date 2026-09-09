@@ -65,10 +65,17 @@ def combinar_perfis(perfis: list[Perfil]) -> ResultadoComposicao:
     campos: list[CampoEntrada] = []
     campos_por_id: dict[str, CampoEntrada] = {}
     erros: list[str] = []
+    agrupamento_paginas: dict[str, str] = {}
 
+    separar_por_formulario = len(perfis) > 1
     for perfil in perfis:
         for campo_original in perfil.campos_entrada:
             campo = copy.deepcopy(campo_original)
+            if separar_por_formulario:
+                nome_secao = campo.aba.strip() if campo.aba else "Geral"
+                campo.aba = f"{perfil.nome} • {nome_secao}"
+                pagina = perfil.obter_pagina_do_campo(campo_original)
+                agrupamento_paginas[campo.aba] = f"{perfil.nome} • {pagina}"
             if campo.escopo == "participante":
                 campo.ate_participante = campo.ate_participante or perfil.max_participantes
 
@@ -97,5 +104,9 @@ def combinar_perfis(perfis: list[Perfil]) -> ResultadoComposicao:
         modo_fluxo="formulario_simples",
         max_participantes=max(perfil.max_participantes for perfil in perfis),
         usar_paginacao=any(perfil.usar_paginacao for perfil in perfis) or len(perfis) > 1,
+        agrupamento_paginas=(
+            agrupamento_paginas if separar_por_formulario
+            else dict(perfis[0].agrupamento_paginas)
+        ),
     )
     return ResultadoComposicao(perfil_combinado, [])

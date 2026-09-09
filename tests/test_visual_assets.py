@@ -5,6 +5,7 @@ Testes unitários para o módulo de loaders animados, ciclo de rotação e carre
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 # Adiciona o diretório app ao path
 app_dir = Path(__file__).resolve().parent.parent / "app"
@@ -21,6 +22,12 @@ import version
 
 class TestVisualAssets(unittest.TestCase):
     """Valida a existência dos ícones vetoriais e o componente de carregamento leve."""
+
+    def tearDown(self):
+        # CTkImage guarda internamente PhotoImages vinculadas ao interpretador Tk.
+        # Cada teste cria sua própria raiz, portanto o cache precisa ser renovado.
+        from ui import theme
+        theme._ICONS_CACHE.clear()
 
     def test_version_is_current(self):
         """Verifica se a versão centralizada está definida como 4.5.10."""
@@ -58,6 +65,88 @@ class TestVisualAssets(unittest.TestCase):
             img = get_icon(nome, (20, 20))
             self.assertIsNotNone(img)
 
+    def test_placeholder_nao_vira_texto_editavel_apos_limpar(self):
+        import customtkinter as ctk
+        from ui.campo_dinamico_widget import CampoDinamicoWidget
+        from utils.profile_manager import CampoEntrada
+
+        root = ctk.CTk()
+        root.withdraw()
+        try:
+            widget = CampoDinamicoWidget(
+                root,
+                CampoEntrada(
+                    id="pisPasep", rotulo="PIS/PASEP", tipo="PIS_PASEP",
+                    placeholder="000.00000.00-0",
+                ),
+            )
+            widget.pack()
+            widget.entry.focus_force()
+            root.update()
+            widget.entry.delete(0, "end")
+            widget._ao_digitar(type("Event", (), {"keysym": "BackSpace"})())
+            widget.entry._entry.insert("end", "164.85838.49-0")
+
+            self.assertEqual(widget.entry._entry.get(), "164.85838.49-0")
+        finally:
+            root.destroy()
+
+    def test_cartao_de_participante_some_em_pagina_sem_campos(self):
+        import customtkinter as ctk
+        from ui.participant_frame import ParticipantFrame
+        from utils.profile_manager import CampoEntrada
+
+        root = ctk.CTk()
+        root.withdraw()
+        try:
+            frame = ParticipantFrame(
+                root, indice=1, principal=True,
+                campos_customizados=[
+                    CampoEntrada(id="endereco", rotulo="Endereço", aba="Dados do Comprador")
+                ],
+            )
+            frame.grid()
+
+            self.assertFalse(frame.aplicar_pagina("Dados do Vendedor", primeira=False))
+            self.assertEqual(frame.winfo_manager(), "")
+            self.assertTrue(frame.aplicar_pagina("Dados do Comprador", primeira=True))
+            self.assertEqual(frame.winfo_manager(), "grid")
+        finally:
+            root.destroy()
+
+    def test_campos_padrao_reaparecem_ao_sair_de_perfil_paginado(self):
+        import customtkinter as ctk
+        from ui.participant_frame import ParticipantFrame
+        from utils.profile_manager import CampoEntrada
+
+        root = ctk.CTk()
+        root.withdraw()
+        try:
+            frame = ParticipantFrame(
+                root, indice=1, principal=True,
+                campos_customizados=[
+                    CampoEntrada(id="campo_final", rotulo="Campo final", aba="Página final")
+                ],
+            )
+            frame.grid()
+            frame.aplicar_pagina("Página final", primeira=False)
+            self.assertEqual(frame.entry_nome.winfo_manager(), "")
+            self.assertEqual(frame.entry_cpf.winfo_manager(), "")
+
+            frame.reconstruir_campos_customizados([
+                CampoEntrada(id="endereco", rotulo="Endereço", aba="Geral")
+            ])
+            frame.aplicar_pagina(None)
+
+            self.assertEqual(frame.entry_nome.winfo_manager(), "grid")
+            self.assertEqual(frame.entry_cpf.winfo_manager(), "grid")
+            self.assertTrue(all(
+                controle.winfo_manager() == "grid"
+                for controle in frame._controles_campos_padrao
+            ))
+        finally:
+            root.destroy()
+
     def test_main_window_initialization(self):
         """Verifica se MainWindow inicializa e carrega todas as telas e ícones sem exceções."""
         from ui.main_window import MainWindow
@@ -69,11 +158,37 @@ class TestVisualAssets(unittest.TestCase):
             self.assertIsNotNone(win.icon_settings)
             self.assertIsNotNone(win.icon_calendar)
             self.assertIsNotNone(win.icon_help)
+            self.assertEqual(win.botao_avancar.cget("state"), "normal")
+            self.assertEqual(win.frame_pendencias.winfo_manager(), "")
+
+            win._pendencias_reveladas = True
+            win._atualizar_estado_geracao()
+            self.assertEqual(win.frame_pendencias.winfo_manager(), "grid")
+            self.assertIn("Faltam", win.label_pendencias_titulo.cget("text"))
 
             # Testar navegação entre telas
             win._mostrar_tela("perfis")
             win._mostrar_tela("config")
             win._mostrar_tela("inicio")
+        finally:
+            win.destroy()
+
+    def test_pendencias_aparecem_somente_depois_do_toast(self):
+        from ui.main_window import MainWindow
+
+        win = MainWindow()
+        win.withdraw()
+        try:
+            self.assertEqual(win.frame_pendencias.winfo_manager(), "")
+            with patch("ui.main_window.show_toast") as toast:
+                win._ao_clicar_avancar()
+
+            self.assertEqual(win.frame_pendencias.winfo_manager(), "")
+            self.assertEqual(toast.call_count, 1)
+            self.assertEqual(toast.call_args.args[2], "warning")
+
+            toast.call_args.kwargs["on_dismiss"]()
+            self.assertEqual(win.frame_pendencias.winfo_manager(), "grid")
         finally:
             win.destroy()
 
