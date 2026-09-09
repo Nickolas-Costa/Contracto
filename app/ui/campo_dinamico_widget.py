@@ -336,12 +336,6 @@ class CampoDinamicoWidget(ctk.CTkFrame):
                     val = novo_val
 
         self.validar_campo(mostrar_erro=False)
-        if not val and hasattr(self.entry, "_activate_placeholder"):
-            try:
-                self.entry._activate_placeholder()
-            except Exception:
-                pass
-
         if self.on_change:
             self.on_change(val)
 
@@ -401,12 +395,6 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.entry.delete(0, "end")
             if val_str:
                 self.entry.insert(0, val_str)
-            else:
-                if hasattr(self.entry, "_activate_placeholder"):
-                    try:
-                        self.entry._activate_placeholder()
-                    except Exception:
-                        pass
 
     def validar_campo(self, mostrar_erro: bool = True) -> bool:
         """Valida o valor atual do campo e retorna True se válido."""
@@ -529,12 +517,6 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.entry.delete(0, "end")
             if self.campo.valor_padrao and self.campo.valor_padrao.strip():
                 self.entry.insert(0, self.campo.valor_padrao)
-            else:
-                if hasattr(self.entry, "_activate_placeholder"):
-                    try:
-                        self.entry._activate_placeholder()
-                    except Exception:
-                        pass
             self.entry.configure(border_color=COLOR_BORDER)
 
     def definir_ativo(self, ativo: bool, limpar: bool = False) -> None:

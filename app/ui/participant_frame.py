@@ -23,6 +23,7 @@ class ParticipantFrame(ctk.CTkFrame):
         on_remover: Optional[Callable[["ParticipantFrame"], None]] = None,
         campos_customizados: Optional[list[CampoEntrada]] = None,
         on_open_datepicker: Optional[Callable[[ctk.CTkEntry], None]] = None,
+        on_change: Optional[Callable[[], None]] = None,
         local_padrao: str = "CAMOCIM-CE",
         **kwargs,
     ):
@@ -41,6 +42,7 @@ class ParticipantFrame(ctk.CTkFrame):
         self.on_remover = on_remover
         self.campos_customizados = campos_customizados or []
         self.on_open_datepicker = on_open_datepicker
+        self.on_change = on_change
         self._local_padrao = local_padrao
         self.widgets_dinamicos: dict[str, CampoDinamicoWidget] = {}
         self._paginas_widgets: dict[str, list[CampoDinamicoWidget]] = {}
@@ -226,7 +228,10 @@ class ParticipantFrame(ctk.CTkFrame):
         self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
 
     def _ao_alterar_campo_dinamico(self, campo_id: str, valor: str) -> None:
+        """Reavalia campos condicionais e avisa a janela (contador de pendências)."""
         self._atualizar_campos_condicionais()
+        if self.on_change:
+            self.on_change()
 
     def aplicar_pagina(self, pagina: str | None, primeira: bool = False) -> None:
         """Mostra somente os campos da página escolhida."""
@@ -246,6 +251,15 @@ class ParticipantFrame(ctk.CTkFrame):
                     controle.grid()
                 else:
                     controle.grid_remove()
+
+        campos_visiveis = [
+            widget for widget in self._paginas_widgets.get(pagina or "", [])
+            if widget.ativo
+        ]
+        if pagina is not None and not primeira and not campos_visiveis:
+            self.grid_remove()
+        else:
+            self.grid()
 
     def _atualizar_campos_condicionais(self) -> None:
         """Aplica condições declarativas e limpa valores que deixaram de valer."""
@@ -327,6 +341,8 @@ class ParticipantFrame(ctk.CTkFrame):
                 entry.insert(0, novo_val)
 
         self._validar_campo_especifico(entry, tipo, mostrar_erro=False)
+        if self.on_change:
+            self.on_change()
 
     def _validar_campo_especifico(self, entry: ctk.CTkEntry, tipo: str, mostrar_erro: bool = True) -> bool:
         val = entry.get().strip()
@@ -386,31 +402,36 @@ class ParticipantFrame(ctk.CTkFrame):
 
         return erros
 
+    def listar_pendencias(self) -> list[str]:
+        """Lista pendências sem trocar a página atual nem acender todos os campos."""
+        erros: list[str] = []
+        prefixo = f"Participante {self.indice}" + (" (Principal)" if self.principal else "")
+        if not self.entry_nome.get().strip():
+            erros.append(f"{prefixo}: Nome Completo é obrigatório.")
+        cpf = self.entry_cpf.get().strip()
+        if not cpf:
+            erros.append(f"{prefixo}: CPF é obrigatório.")
+        elif not validar_cpf(cpf):
+            erros.append(f"{prefixo}: CPF inválido.")
+        for widget in self.widgets_dinamicos.values():
+            if widget.ativo and not widget.validar_campo(mostrar_erro=False):
+                valor = widget.obter_valor()
+                if widget.campo.obrigatorio and not valor:
+                    erros.append(f"{prefixo}: {widget.campo.rotulo} é obrigatório.")
+                else:
+                    erros.append(f"{prefixo}: {widget.campo.rotulo} é inválido.")
+        return erros
+
     def limpar_campos(self) -> None:
         """Limpa todos os campos deste quadro."""
         self.entry_nome.delete(0, "end")
-        if hasattr(self.entry_nome, "_activate_placeholder"):
-            try:
-                self.entry_nome._activate_placeholder()
-            except Exception:
-                pass
         self.entry_nome.configure(border_color=COLOR_BORDER)
 
         self.entry_cpf.delete(0, "end")
-        if hasattr(self.entry_cpf, "_activate_placeholder"):
-            try:
-                self.entry_cpf._activate_placeholder()
-            except Exception:
-                pass
         self.entry_cpf.configure(border_color=COLOR_BORDER)
 
         if self.entry_endereco is not None:
             self.entry_endereco.delete(0, "end")
-            if hasattr(self.entry_endereco, "_activate_placeholder"):
-                try:
-                    self.entry_endereco._activate_placeholder()
-                except Exception:
-                    pass
             self.entry_endereco.configure(border_color=COLOR_BORDER)
 
         for widget in self.widgets_dinamicos.values():
