@@ -40,7 +40,8 @@ echo.
 echo [2/5] Preparando dependencias (Ghostscript local)...
 .\.venv\Scripts\python.exe scripts\setup_gs.py
 if errorlevel 1 (
-    echo [ERRO] Falha ao preparar Ghostscript.
+    echo [ERRO] Build interrompido no passo 2/5: preparo do Ghostscript.
+    echo        A causa esta nas mensagens acima desta linha.
     exit /b 1
 )
 echo.
