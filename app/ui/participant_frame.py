@@ -162,7 +162,10 @@ class ParticipantFrame(ctk.CTkFrame):
         novos_campos: Optional[list[CampoEntrada]],
         agrupamento_paginas: Optional[dict[str, str]] = None,
     ) -> None:
-        """Reconstrói dinamicamente os campos customizados mantendo os valores já preenchidos."""
+        """Reconstrói os campos fora da tela, evitando rastros durante a troca de perfil."""
+        estava_visivel = self.winfo_manager() == "grid"
+        if estava_visivel:
+            self.grid_remove()
         valores_atuais = {cid: widget.obter_valor() for cid, widget in self.widgets_dinamicos.items()}
         if self.entry_endereco is not None:
             valores_atuais["endereco"] = self.entry_endereco.get().strip()
@@ -239,13 +242,21 @@ class ParticipantFrame(ctk.CTkFrame):
         self._label_respiro = ctk.CTkLabel(self, text="", height=2)
         self._label_respiro.grid(row=linha, column=0, pady=(0, SPACING_SMALL))
 
+        if estava_visivel:
+            self.grid()
+
     def _ao_alterar_campo_dinamico(self, campo_id: str, valor: str) -> None:
         """Reavalia campos condicionais e avisa a janela (contador de pendências)."""
         self._atualizar_campos_condicionais()
         if self.on_change:
             self.on_change()
 
-    def aplicar_pagina(self, pagina: str | None, primeira: bool = False) -> bool:
+    def aplicar_pagina(
+        self,
+        pagina: str | None,
+        primeira: bool = False,
+        participante_permitido: bool = True,
+    ) -> bool:
         """Mostra somente os campos da página e oculta o cartão quando ele fica vazio."""
         for nome, widgets in self._paginas_widgets.items():
             mostrar = pagina is None or nome == pagina
@@ -258,14 +269,16 @@ class ParticipantFrame(ctk.CTkFrame):
                 else:
                     secao.grid_remove()
         for controle in self._controles_campos_padrao:
-            if pagina is None or primeira:
+            if participante_permitido and (pagina is None or primeira):
                 controle.grid()
             else:
                 controle.grid_remove()
 
-        possui_conteudo = pagina is None or primeira or any(
-            widget.ativo and widget.pagina_visivel
-            for widget in self.widgets_dinamicos.values()
+        possui_conteudo = participante_permitido and (
+            pagina is None or primeira or any(
+                widget.ativo and widget.pagina_visivel
+                for widget in self.widgets_dinamicos.values()
+            )
         )
         if possui_conteudo:
             self.grid()

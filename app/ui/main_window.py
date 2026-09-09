@@ -22,7 +22,7 @@ from PIL import Image
 from models.participant import Participant
 from services.field_calculator import calcular
 from services.generator_service import gerar_documentos, validar_antes_de_gerar
-from services.profile_composer import combinar_perfis
+from services.profile_composer import combinar_perfis, limite_participantes_para_pagina
 from services.pdf_service import PdfServiceError
 from services.pdfa_converter import ProcessoCanceladoError
 from services.queue_manager import ProcessJob, QueueManager
@@ -470,7 +470,9 @@ class MainWindow(ctk.CTk):
     # STEPPER (indicador de etapas)
     # ==================================================================
     def _construir_stepper(self) -> None:
-        self.frame_stepper = ctk.CTkFrame(self, fg_color="transparent",
+        # Fundo opaco: rótulos transparentes do CustomTkinter podem deixar rastros
+        # sobre o canvas ao alternar modo, etapa ou tema.
+        self.frame_stepper = ctk.CTkFrame(self, fg_color=COLOR_BACKGROUND,
                                            corner_radius=0, height=36)
         self.frame_stepper.grid(row=1, column=0, sticky="ew")
         self.frame_stepper.grid_columnconfigure(0, weight=1)
@@ -690,9 +692,17 @@ class MainWindow(ctk.CTk):
             ).grid(row=0, column=0, padx=SPACING_SMALL, pady=(SPACING_SMALL, 1), sticky="w")
             total_campos = len(perfil.campos_entrada)
             total_paginas = len(perfil.obter_abas_disponiveis()) if perfil.usar_paginacao else 1
+            regra_participantes = (
+                "somente proponente principal"
+                if perfil.max_participantes == 1
+                else f"até {perfil.max_participantes} proponentes"
+            )
             ctk.CTkLabel(
                 item,
-                text=f"{total_campos} campos  •  {total_paginas} página(s)",
+                text=(
+                    f"{total_campos} campos  •  {total_paginas} página(s)"
+                    f"  •  {regra_participantes}"
+                ),
                 font=get_font(FONT_SIZE_CAPTION), text_color=COLOR_TEXT_SECONDARY,
             ).grid(row=1, column=0, padx=(42, SPACING_SMALL), pady=(0, SPACING_SMALL), sticky="w")
 
@@ -755,9 +765,22 @@ class MainWindow(ctk.CTk):
         )
 
         def atualizar_resumo() -> None:
-            quantidade = sum(1 for var in variaveis.values() if var.get())
+            escolhidos = [
+                perfil for perfil in perfis
+                if variaveis[perfil.identificador or perfil.nome].get()
+            ]
+            quantidade = len(escolhidos)
+            limites = {perfil.max_participantes for perfil in escolhidos}
+            if len(limites) > 1:
+                detalhe = " • regras de proponentes serão respeitadas em cada formulário"
+            elif limites == {1}:
+                detalhe = " • somente proponente principal"
+            elif limites:
+                detalhe = f" • até {max(limites)} proponentes"
+            else:
+                detalhe = ""
             label_quantidade.configure(
-                text=f"{quantidade} formulário(s) selecionado(s)"
+                text=f"{quantidade} formulário(s) selecionado(s){detalhe}"
             )
             btn_aplicar.configure(state="normal" if quantidade else "disabled")
 
@@ -788,7 +811,12 @@ class MainWindow(ctk.CTk):
         self._atualizar_stepper(1)
         self._aplicar_perfil_ativo()
         modo_lbl = "Simples" if novo_modo == "simples" else "Avançado"
-        show_toast(self, f"Modo alterado para: {modo_lbl}", "info")
+        complemento = (
+            "Escolha um ou mais formulários para preencher."
+            if novo_modo == "simples"
+            else "Selecione um perfil para gerar o conjunto completo de documentos."
+        )
+        show_toast(self, f"Modo {modo_lbl} ativado. {complemento}", "info")
 
     def _ao_trocar_perfil(self, nome_perfil: str) -> None:
         """Callback ao selecionar um perfil no dropdown."""
@@ -822,7 +850,7 @@ class MainWindow(ctk.CTk):
             self.lbl_etapa2.grid(row=0, column=2, columnspan=1, pady=SPACING_MEDIUM, sticky="w", padx=SPACING_MEDIUM)
 
             if hasattr(self, "botao_adicionar"):
-                self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
+                self.botao_adicionar.grid(row=3, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
 
         nomes_perfis = listar_nomes_perfis_por_modo(modo)
         perfil_nome = config_manager.obter("perfil_ativo") or (nomes_perfis[0] if nomes_perfis else PERFIL_PADRAO_NOME)
@@ -844,12 +872,17 @@ class MainWindow(ctk.CTk):
     # ==================================================================
     def _mostrar_tela(self, tela: str) -> None:
         """Alterna entre as telas: inicio, perfis, config."""
+        self.frame_stepper.grid_forget()
         self.container_etapa1.grid_forget()
         self.container_etapa2.grid_forget()
         if self.container_settings:
             self.container_settings.grid_forget()
         if self.container_profiles:
             self.container_profiles.grid_forget()
+
+        # Conclui a remoção da tela anterior antes de desenhar a seguinte. Isso
+        # evita resíduos de frames transparentes sem acrescentar trabalho ao scroll.
+        self.update_idletasks()
 
         normal = {"fg_color": "transparent", "text_color": "#FFFFFF"}
         active = {"fg_color": get_color_primary_hover(), "text_color": "#FFFFFF"}
@@ -1110,7 +1143,6 @@ class MainWindow(ctk.CTk):
 
         # 2. Reconstruir campos globais na Seção de Destino
         self._reconstruir_campos_globais_saida(perfil)
-        self._configurar_paginacao(perfil)
 
         # 3. Controlar visibilidade do botão de adicionar participante baseado em perfil.max_participantes
         max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
@@ -1124,11 +1156,7 @@ class MainWindow(ctk.CTk):
             for novo_indice, restante in enumerate(self.participant_frames, start=1):
                 restante.atualizar_indice(novo_indice)
 
-        if hasattr(self, "botao_adicionar"):
-            if len(self.participant_frames) < max_part:
-                self.botao_adicionar.grid()
-            else:
-                self.botao_adicionar.grid_remove()
+        self._configurar_paginacao(perfil)
 
         # 4. Atualizar texto do botão de ação da Etapa 1
         if hasattr(self, "botao_avancar"):
@@ -1185,6 +1213,10 @@ class MainWindow(ctk.CTk):
         """Reconstrói dinamicamente os campos de escopo global na seção de destino."""
         if not hasattr(self, "container_campos_globais"):
             return
+
+        estava_visivel = self.container_campos_globais.winfo_manager() == "grid"
+        if estava_visivel:
+            self.container_campos_globais.grid_remove()
 
         if hasattr(self, "_subtitulos_labels"):
             self._subtitulos_labels.clear()
@@ -1273,11 +1305,36 @@ class MainWindow(ctk.CTk):
             hover_color=COLOR_BORDER, command=lambda: self._mudar_pagina(-1),
         )
         self.btn_pagina_anterior.grid(row=0, column=0, padx=SPACING_SMALL, pady=SPACING_SMALL)
-        self.label_pagina = ctk.CTkLabel(
-            self.frame_paginas, text="", font=get_font(FONT_SIZE_BODY, "bold"),
-            text_color=get_color_primary_text(),
+        contexto = ctk.CTkFrame(self.frame_paginas, fg_color="transparent")
+        contexto.grid(row=0, column=1, padx=SPACING_SMALL, pady=SPACING_SMALL)
+
+        self.linha_formulario_pagina = ctk.CTkFrame(contexto, fg_color="transparent")
+        self.linha_formulario_pagina.pack(anchor="center", pady=(0, 2))
+        self.label_formulario_contador = ctk.CTkLabel(
+            self.linha_formulario_pagina, text="", width=104, height=22,
+            fg_color=get_color_primary_hover(), corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION, "bold"), text_color="#FFFFFF",
         )
-        self.label_pagina.grid(row=0, column=1, padx=SPACING_SMALL, pady=SPACING_SMALL)
+        self.label_formulario_contador.pack(side="left", padx=(0, SPACING_SMALL))
+        self.label_formulario_nome = ctk.CTkLabel(
+            self.linha_formulario_pagina, text="",
+            font=get_font(FONT_SIZE_H3, "bold"), text_color=get_color_primary_text(),
+        )
+        self.label_formulario_nome.pack(side="left")
+
+        self.linha_pagina_atual = ctk.CTkFrame(contexto, fg_color="transparent")
+        self.linha_pagina_atual.pack(anchor="center")
+        self.label_pagina_contador = ctk.CTkLabel(
+            self.linha_pagina_atual, text="", width=84, height=20,
+            fg_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION, "bold"), text_color=COLOR_TEXT_SECONDARY,
+        )
+        self.label_pagina_contador.pack(side="left", padx=(0, SPACING_SMALL))
+        self.label_pagina = ctk.CTkLabel(
+            self.linha_pagina_atual, text="", font=get_font(FONT_SIZE_BODY, "bold"),
+            text_color=COLOR_TEXT,
+        )
+        self.label_pagina.pack(side="left")
         self.btn_proxima_pagina = ctk.CTkButton(
             self.frame_paginas, text="Próxima →", width=96,
             command=lambda: self._mudar_pagina(1),
@@ -1292,8 +1349,13 @@ class MainWindow(ctk.CTk):
         if not perfil or not perfil.usar_paginacao or len(paginas) < 2:
             self._paginas_perfil = []
             self.frame_paginas.grid_remove()
+            limite = self._limite_participantes_pagina(None)
             for participante in self.participant_frames:
-                participante.aplicar_pagina(None)
+                participante.aplicar_pagina(
+                    None,
+                    participante_permitido=participante.indice <= limite,
+                )
+            self._atualizar_contexto_participantes(None)
             self._atualizar_visibilidade_participantes()
             self._aplicar_pagina_global(None)
             self._atualizar_visibilidade_secao_saida()
@@ -1313,6 +1375,32 @@ class MainWindow(ctk.CTk):
         self._indice_pagina = novo_indice
         self._mostrar_pagina_atual()
 
+    def _limite_participantes_pagina(self, pagina: str | None) -> int:
+        modo = config_manager.obter("modo_operacao") or "avancado"
+        if modo == "simples":
+            return limite_participantes_para_pagina(
+                self._obter_perfis_basicos_selecionados(), pagina
+            )
+        perfil = self._obter_perfil_em_uso()
+        return max(1, getattr(perfil, "max_participantes", 4) if perfil else 4)
+
+    def _pagina_eh_inicial_do_formulario(self, pagina: str | None) -> bool:
+        if not pagina or " • " not in pagina:
+            return not self._paginas_perfil or self._indice_pagina == 0
+        formulario = pagina.split(" • ", 1)[0]
+        paginas = [item for item in self._paginas_perfil if item.startswith(f"{formulario} • ")]
+        return bool(paginas) and pagina == paginas[0]
+
+    def _atualizar_contexto_participantes(self, pagina: str | None) -> None:
+        if not hasattr(self, "label_participantes_contexto"):
+            return
+        limite = self._limite_participantes_pagina(pagina)
+        if limite == 1:
+            texto = "Este formulário utiliza somente os dados do proponente principal."
+        else:
+            texto = f"Este formulário permite até {limite} proponentes."
+        self.label_participantes_contexto.configure(text=texto)
+
     def _mostrar_pagina_atual(self) -> None:
         pagina = self._paginas_perfil[self._indice_pagina]
         total = len(self._paginas_perfil)
@@ -1329,17 +1417,39 @@ class MainWindow(ctk.CTk):
             ]
             indice_formulario = formularios.index(formulario) + 1
             indice_secao = paginas_formulario.index(pagina) + 1
-            texto_pagina = (
-                f"Formulário {indice_formulario} de {len(formularios)}  •  {formulario}\n"
-                f"Página {indice_secao} de {len(paginas_formulario)}  •  {secao}"
+            self.linha_formulario_pagina.pack(anchor="center", pady=(0, 2))
+            self.label_formulario_contador.configure(
+                text=f"FORMULÁRIO {indice_formulario}/{len(formularios)}"
             )
+            self.label_formulario_nome.configure(text=formulario)
+            self.label_pagina_contador.configure(
+                text=f"PÁGINA {indice_secao}/{len(paginas_formulario)}"
+            )
+            texto_pagina = secao
         else:
-            texto_pagina = f"Página {self._indice_pagina + 1} de {total}  •  {pagina}"
-        self.label_pagina.configure(text=texto_pagina, justify="center")
+            modo = config_manager.obter("modo_operacao") or "avancado"
+            if modo == "simples":
+                perfis = self._obter_perfis_basicos_selecionados()
+                nome_formulario = perfis[0].nome if perfis else "Formulário selecionado"
+                self.linha_formulario_pagina.pack(anchor="center", pady=(0, 2))
+                self.label_formulario_contador.configure(text="FORMULÁRIO 1/1")
+                self.label_formulario_nome.configure(text=nome_formulario)
+            else:
+                self.linha_formulario_pagina.pack_forget()
+            self.label_pagina_contador.configure(text=f"PÁGINA {self._indice_pagina + 1}/{total}")
+            texto_pagina = pagina
+        self.label_pagina.configure(text=texto_pagina)
         self.btn_pagina_anterior.configure(state="normal" if self._indice_pagina > 0 else "disabled")
         self.btn_proxima_pagina.configure(state="normal" if self._indice_pagina < total - 1 else "disabled")
+        limite_participantes = self._limite_participantes_pagina(pagina)
+        primeira_do_formulario = self._pagina_eh_inicial_do_formulario(pagina)
         for participante in self.participant_frames:
-            participante.aplicar_pagina(pagina, primeira=self._indice_pagina == 0)
+            participante.aplicar_pagina(
+                pagina,
+                primeira=primeira_do_formulario,
+                participante_permitido=participante.indice <= limite_participantes,
+            )
+        self._atualizar_contexto_participantes(pagina)
         self._atualizar_visibilidade_participantes()
         self._aplicar_pagina_global(pagina)
         self._atualizar_visibilidade_secao_saida()
@@ -1415,10 +1525,13 @@ class MainWindow(ctk.CTk):
 
         if not hasattr(self, "botao_adicionar"):
             return
-        primeira_pagina = not self._paginas_perfil or self._indice_pagina == 0
-        perfil = self._obter_perfil_em_uso()
-        limite = getattr(perfil, "max_participantes", 4) if perfil else 4
-        if primeira_pagina and len(self.participant_frames) < limite:
+        pagina = (
+            self._paginas_perfil[self._indice_pagina]
+            if self._paginas_perfil else None
+        )
+        primeira_pagina = self._pagina_eh_inicial_do_formulario(pagina)
+        limite = self._limite_participantes_pagina(pagina)
+        if primeira_pagina and limite > 1 and len(self.participant_frames) < limite:
             self.botao_adicionar.grid()
         else:
             self.botao_adicionar.grid_remove()
@@ -1596,11 +1709,22 @@ class MainWindow(ctk.CTk):
                               font=get_font(FONT_SIZE_H2, "bold"), text_color=COLOR_TEXT)
         titulo.grid(row=0, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="w")
 
+        self.label_participantes_contexto = ctk.CTkLabel(
+            self.secao_participantes,
+            text="",
+            font=get_font(FONT_SIZE_CAPTION),
+            text_color=COLOR_TEXT_SECONDARY,
+            anchor="w",
+        )
+        self.label_participantes_contexto.grid(
+            row=1, column=0, padx=0, pady=(0, SPACING_SMALL), sticky="ew"
+        )
+
         # Container onde os ParticipantFrames serão empilhados de forma limpa
         self.participantes_container = ctk.CTkFrame(
             self.secao_participantes, fg_color="transparent"
         )
-        self.participantes_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
+        self.participantes_container.grid(row=2, column=0, padx=0, pady=0, sticky="nsew")
         self.participantes_container.grid_columnconfigure(0, weight=1)
 
         self.botao_adicionar = ctk.CTkButton(
@@ -1611,7 +1735,7 @@ class MainWindow(ctk.CTk):
             hover_color=COLOR_SURFACE_VARIANT, corner_radius=RADIUS_BUTTON,
             command=self._adicionar_participante,
         )
-        self.botao_adicionar.grid(row=2, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
+        self.botao_adicionar.grid(row=3, column=0, padx=0, pady=(SPACING_LARGE, 0), sticky="w")
         self.botao_adicionar.bind("<FocusIn>", lambda e: self._ao_foco_widget(self.botao_adicionar, border_color=get_color_primary(), border_width=2))
         self.botao_adicionar.bind("<FocusOut>", lambda e: self._ao_desfoco_widget(self.botao_adicionar, default_border_width=1, default_border_color=get_color_primary_text()))
 
@@ -1772,19 +1896,17 @@ class MainWindow(ctk.CTk):
         self.participant_frames.append(frame)
 
         if getattr(self, "_paginas_perfil", []):
+            pagina_atual = self._paginas_perfil[self._indice_pagina]
+            limite_pagina = self._limite_participantes_pagina(pagina_atual)
             frame.aplicar_pagina(
-                self._paginas_perfil[self._indice_pagina],
-                primeira=self._indice_pagina == 0,
+                pagina_atual,
+                primeira=self._pagina_eh_inicial_do_formulario(pagina_atual),
+                participante_permitido=indice <= limite_pagina,
             )
 
         if not principal:
             frame.piscar_destaque()
 
-        if hasattr(self, "botao_adicionar"):
-            if len(self.participant_frames) < max_part:
-                self.botao_adicionar.grid()
-            else:
-                self.botao_adicionar.grid_remove()
         self._atualizar_visibilidade_participantes()
         self._atualizar_estado_geracao()
 
@@ -1801,12 +1923,6 @@ class MainWindow(ctk.CTk):
                 perfil.agrupamento_paginas if perfil else None,
             )
 
-        max_part = getattr(perfil, "max_participantes", 4) if perfil else 4
-        if hasattr(self, "botao_adicionar"):
-            if len(self.participant_frames) < max_part:
-                self.botao_adicionar.grid()
-            else:
-                self.botao_adicionar.grid_remove()
         self._atualizar_visibilidade_participantes()
         self._atualizar_estado_geracao()
 

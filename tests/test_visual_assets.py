@@ -192,6 +192,27 @@ class TestVisualAssets(unittest.TestCase):
         finally:
             win.destroy()
 
+    def test_navegacao_distingue_formulario_de_pagina(self):
+        from ui.main_window import MainWindow
+
+        win = MainWindow()
+        win.withdraw()
+        try:
+            win._paginas_perfil = [
+                "DAMP • Dados pessoais",
+                "DAMP • Modalidade",
+                "ITBI • Partes da operação",
+            ]
+            win._indice_pagina = 0
+            win._mostrar_pagina_atual()
+
+            self.assertEqual(win.label_formulario_contador.cget("text"), "FORMULÁRIO 1/2")
+            self.assertEqual(win.label_formulario_nome.cget("text"), "DAMP")
+            self.assertEqual(win.label_pagina_contador.cget("text"), "PÁGINA 1/2")
+            self.assertEqual(win.label_pagina.cget("text"), "Dados pessoais")
+        finally:
+            win.destroy()
+
 
 if __name__ == "__main__":
     unittest.main()

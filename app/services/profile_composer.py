@@ -12,6 +12,22 @@ class ResultadoComposicao:
     erros: list[str]
 
 
+def limite_participantes_para_pagina(perfis: list[Perfil], pagina: str | None = None) -> int:
+    """Resolve quantos proponentes se aplicam ao formulário da página atual."""
+    if not perfis:
+        return 1
+
+    if pagina and " • " in pagina:
+        nome_formulario = pagina.split(" • ", 1)[0]
+        perfil_pagina = next((perfil for perfil in perfis if perfil.nome == nome_formulario), None)
+        if perfil_pagina is not None:
+            return max(1, perfil_pagina.max_participantes)
+
+    if len(perfis) == 1:
+        return max(1, perfis[0].max_participantes)
+    return max(1, max(perfil.max_participantes for perfil in perfis))
+
+
 def _unir_condicoes(
     primeira: list[dict[str, list[str]]],
     segunda: list[dict[str, list[str]]],
