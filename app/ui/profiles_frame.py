@@ -14,6 +14,7 @@ from pathlib import Path
 
 from ui.alert_modal import AlertModal
 from ui.confirm_modal import ConfirmModal
+from ui.feedback_toast import show_toast
 from ui.loading_modal import LoadingModal
 from ui.theme import (
     COLOR_BORDER, COLOR_ERROR, COLOR_PRIMARY, COLOR_SURFACE, COLOR_SURFACE_VARIANT,
@@ -28,6 +29,7 @@ from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, FormularioModelo,
     carregar_perfis, salvar_perfis, adicionar_perfil,
     atualizar_perfil, excluir_perfil, duplicar_perfil,
+    exportar_perfil, importar_perfil,
 )
 from utils import config_manager
 from services import pdf_service
@@ -96,6 +98,18 @@ class ProfilesFrame(ctk.CTkFrame):
             command=self._criar_novo,
         )
         self.btn_novo_perfil.grid(row=0, column=1, sticky="e")
+
+        self.btn_importar_perfil = ctk.CTkButton(
+            self.header_perfis, text=" Importar",
+            image=get_icon("folder", (16, 16)), compound="left",
+            width=110,
+            fg_color=COLOR_SURFACE, text_color=COLOR_TEXT,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_SURFACE_VARIANT,
+            corner_radius=RADIUS_BUTTON,
+            command=self._importar,
+        )
+        self.btn_importar_perfil.grid(row=1, column=1, sticky="e")
 
     def _construir_lista_perfis(self) -> None:
         self.scroll_perfis = ctk.CTkScrollableFrame(
@@ -337,6 +351,14 @@ class ProfilesFrame(ctk.CTkFrame):
                           command=lambda n=perfil.nome: self._duplicar(n)
                           ).pack(side="left", padx=2)
 
+            ctk.CTkButton(frame_acoes, text=" Exportar", image=get_icon("save", (13, 13)), compound="left",
+                          width=85,
+                          fg_color=COLOR_SURFACE_VARIANT, text_color=COLOR_TEXT,
+                          hover_color=COLOR_BORDER, corner_radius=RADIUS_BUTTON,
+                          font=get_font(FONT_SIZE_CAPTION),
+                          command=lambda n=perfil.nome: self._exportar(n)
+                          ).pack(side="left", padx=2)
+
             if perfil.nome != PERFIL_PADRAO_NOME:
                 ctk.CTkButton(frame_acoes, text="", image=get_icon("trash", (14, 14)), width=30,
                               fg_color="transparent", text_color=COLOR_ERROR,
@@ -359,6 +381,39 @@ class ProfilesFrame(ctk.CTkFrame):
             self._abrir_editor(novo)
         except Exception as e:
             AlertModal(self.winfo_toplevel(), "Erro ao Duplicar", "Não foi possível duplicar o perfil.", [str(e)])
+
+    def _exportar(self, nome: str) -> None:
+        """Grava o perfil em `.json` no local escolhido."""
+        destino = filedialog.asksaveasfilename(
+            title="Exportar perfil",
+            defaultextension=".json",
+            filetypes=[("Perfil do Contracto", "*.json")],
+            initialfile=f"{nome}.json",
+        )
+        if not destino:
+            return
+        try:
+            exportar_perfil(nome, destino)
+        except Exception as e:
+            AlertModal(self.winfo_toplevel(), "Erro ao Exportar", "Não foi possível exportar o perfil.", [str(e)])
+            return
+        show_toast(self.winfo_toplevel(), f"Perfil '{nome}' exportado.", "success")
+
+    def _importar(self) -> None:
+        """Lê um `.json` de perfil, valida e incorpora com nome único."""
+        origem = filedialog.askopenfilename(
+            title="Importar perfil",
+            filetypes=[("Perfil do Contracto", "*.json")],
+        )
+        if not origem:
+            return
+        try:
+            novo = importar_perfil(origem)
+        except Exception as e:
+            AlertModal(self.winfo_toplevel(), "Erro ao Importar", "Não foi possível importar o perfil.", [str(e)])
+            return
+        self._carregar_lista()
+        self._abrir_editor(novo)
 
     def _criar_novo(self) -> None:
         self._perfil_editando = None
