@@ -405,7 +405,9 @@ def _configurar_cache_de_modais(root, card, overlay) -> None:
                     return
                 for item in list(root._contracto_modais):
                     for janela in item:
-                        if janela.winfo_exists():
+                        if janela.winfo_exists() and not getattr(
+                            janela, "_contracto_fixo", False
+                        ):
                             janela._contracto_oculta_por_foco = True
                             janela.withdraw()
             except Exception:

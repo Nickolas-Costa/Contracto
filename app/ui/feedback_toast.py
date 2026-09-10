@@ -22,6 +22,7 @@ class FeedbackToast(ctk.CTkFrame):
         self._on_dismiss = on_dismiss
         self._duration_ms = duration_ms
         self._dismiss_timer = None
+        self._mensagem = message
 
         # Insígnia com glifo branco: o amarelo do tema (2.70:1) reprova o
         # contraste, por isso o aviso usa um âmbar escuro (5.02:1).
@@ -52,12 +53,45 @@ class FeedbackToast(ctk.CTkFrame):
         self.msg_label.pack(side="left", padx=(0, SPACING_MEDIUM), pady=SPACING_SMALL)
         
     def show(self, parent_width, parent_height):
-        self.update_idletasks()
-        width = self.winfo_reqwidth()
-        x = max(SPACING_MEDIUM, parent_width - width - SPACING_LARGE)
-        self.place(x=x, y=58)
-        self.lift()
+        self._limites = (parent_width, parent_height)
+        self._posicionar()
+        try:
+            self.after_idle(self._posicionar)
+        except Exception:
+            pass
         self._dismiss_timer = self.after(self._duration_ms, self._dismiss)
+
+    def _posicionar(self) -> None:
+        # Borda direita presa à janela (relx + anchor): o X nunca depende
+        # de medida. A largura vem de linha única exata (tk.Label oculto),
+        # limitada, e forçada no rótulo (CTkLabel ignora wraplength).
+        try:
+            if not self.winfo_exists():
+                return
+            parent_width, _parent_height = self._limites
+            margem = SPACING_LARGE
+            alvo = max(200, parent_width - 2 * margem)
+            try:
+                import tkinter as tk
+
+                familia, tamanho = get_font(FONT_SIZE_BODY)[:2]
+                prova = tk.Label(
+                    self, text=self._mensagem, font=(familia, tamanho)
+                )
+                linha_unica = prova.winfo_reqwidth()
+                prova.destroy()
+            except Exception:
+                linha_unica = len(self._mensagem) * 8
+            largura_texto = max(50, min(linha_unica, alvo - 120))
+            self.msg_label.configure(wraplength=largura_texto, width=largura_texto)
+            try:
+                fator = max(1.0, float(self.winfo_fpixels("1i")) / 96.0)
+            except Exception:
+                fator = 1.0
+            self.place(relx=1.0, x=-margem / fator, y=58 / fator, anchor="ne")
+            self.lift()
+        except Exception:
+            pass
 
     def _dismiss(self):
         if not self.winfo_exists():
@@ -78,6 +112,16 @@ class FeedbackToast(ctk.CTkFrame):
             if callback:
                 callback()
 
+def _dispensar_ativo(janela) -> None:
+    """Dispensa o toast ativo da janela (Escape)."""
+    try:
+        ativo = getattr(janela, "_feedback_toast_ativo", None)
+        if ativo is not None and ativo.winfo_exists():
+            ativo._dismiss()
+    except Exception:
+        pass
+
+
 def show_toast(
     parent,
     message: str,
@@ -88,6 +132,12 @@ def show_toast(
     anterior = getattr(parent, "_feedback_toast_ativo", None)
     if anterior is not None and anterior.winfo_exists():
         anterior._dismiss()
+    if not getattr(parent, "_feedback_toast_escape_ligado", False):
+        try:
+            parent.bind("<Escape>", lambda e, alvo=parent: _dispensar_ativo(alvo), add="+")
+            parent._feedback_toast_escape_ligado = True
+        except Exception:
+            pass
     toast = FeedbackToast(parent, message, type, on_dismiss, duration_ms)
     parent._feedback_toast_ativo = toast
     parent.update_idletasks()

@@ -115,7 +115,7 @@ class LoadingModal(BaseModal):
             if on_minimize is not None:
                 self.btn_minimize = ctk.CTkButton(
                     self.frame_botoes,
-                    text="🔽 Minimizar",
+                    text=" Minimizar",
                     width=130,
                     height=32,
                     corner_radius=RADIUS_BUTTON,
@@ -127,7 +127,8 @@ class LoadingModal(BaseModal):
                     font=get_font(FONT_SIZE_CAPTION, "bold"),
                     command=self._ao_clicar_minimizar,
                 )
-                self.btn_minimize.pack(side="left", padx=SPACING_XSMALL)
+                self.btn_minimize.pack(side="left", padx=SPACING_SMALL)
+                self.focar(self.btn_minimize)
             else:
                 self.btn_minimize = None
         else:

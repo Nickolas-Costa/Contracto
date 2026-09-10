@@ -74,9 +74,12 @@ até a migração de shell (decisão consciente).
   nunca copia-e-cola (ex: futuros modais herdam `BaseModal`).
 - **App inteiro navegável por teclado, com lógica clara:** ordem de foco =
   ordem visual (cima→baixo, esquerda→direita); foco sempre visível;
-  `Esc` fecha, `Enter` confirma/ativa; atalhos documentados; nenhuma ação
-  essencial exige mouse. Toda tela nova é testada só com teclado antes
-  de liberada.
+  `Esc` fecha modais e dispensa avisos temporários (toasts);
+  `Enter`/`Espaço` acionam o botão focado; `Tab` percorre os controles;
+  atalhos documentados; nenhuma ação essencial exige mouse. Toda tela
+  nova é testada só com teclado antes de liberada.
+- **Guia inicial (boas-vindas):** abre só na primeira execução, nunca se
+  esconde sozinho e apresenta o fluxo em 4 passos, sem jargão interno.
 
 ## 10. Decisões abertas
 
