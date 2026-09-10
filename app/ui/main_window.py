@@ -7,9 +7,7 @@ em segundo plano (com suporte a minimizar para a toolbar), e a integração
 com o sistema de perfis e configurações.
 """
 
-import os
 import queue
-import subprocess
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -2684,21 +2682,12 @@ class MainWindow(ctk.CTk):
         self.document_frame.limpar()
 
     @staticmethod
+    @staticmethod
     def _abrir_pasta(caminho: Path | str) -> bool:
-        """Abre o diretório no gerenciador de arquivos; devolve False se falhar."""
-        p = Path(caminho) if isinstance(caminho, str) else caminho
-        if not p.exists() or not p.is_dir():
-            return False
+        """Compatibilidade: delega para `utils.files.abrir_pasta`."""
+        from utils.files import abrir_pasta
 
-        try:
-            if os.name == "nt":
-                os.startfile(str(p.resolve()))
-            else:
-                subprocess.run(["xdg-open", str(p.resolve())], timeout=15)
-        except OSError:
-            obter_logger("ui").warning("Não foi possível abrir a pasta '%s'.", p)
-            return False
-        return True
+        return abrir_pasta(caminho)
 
     # ------------------------------------------------------------------
     # Utilitários de Seleção (Etapa 1)
@@ -2725,7 +2714,9 @@ class MainWindow(ctk.CTk):
         self._atualizar_estado_geracao()
 
     @staticmethod
+    @staticmethod
     def _atualizar_entry(entry: ctk.CTkEntry, texto: str) -> None:
-        entry.configure(text_color=COLOR_TEXT)
-        entry.delete(0, "end")
-        entry.insert(0, texto)
+        """Compatibilidade: delega para `utils.files.atualizar_entry`."""
+        from utils.files import atualizar_entry
+
+        atualizar_entry(entry, texto)

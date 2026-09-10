@@ -104,10 +104,10 @@ class DocumentFrame(ctk.CTkFrame):
 
     @staticmethod
     def _atualizar_entry(entry: ctk.CTkEntry, texto: str) -> None:
-        entry.configure(state="normal", text_color=COLOR_TEXT)
-        entry.delete(0, "end")
-        entry.insert(0, texto)
-        entry.configure(state="disabled")
+        """Compatibilidade: delega para `utils.files.atualizar_entry`."""
+        from utils.files import atualizar_entry
+
+        atualizar_entry(entry, texto, somente_leitura=True)
 
     def obter_documentos_selecionados(self) -> dict[str, Path]:
         return {
