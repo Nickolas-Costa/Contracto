@@ -445,6 +445,48 @@ def validar_perfis(perfis: list[Perfil]) -> None:
                 raise ValueError(f"O mapeamento de '{formulario.nome}' precisa ser uma lista de campos válida.")
 
 
+def problemas_estruturais(
+    perfil: Perfil, nomes_existentes: tuple[str, ...] = ()
+) -> list[str]:
+    """Lista todos os problemas estruturais de uma vez, com contexto por campo.
+
+    `nomes_existentes` traz os nomes dos demais perfis (para apontar
+    duplicidade sem precisar salvar antes).
+    """
+    problemas: list[str] = []
+    nome = (perfil.nome or "").strip()
+    if not nome:
+        problemas.append("O perfil está sem nome.")
+    elif nome in nomes_existentes:
+        problemas.append(f"Já existe outro perfil chamado '{nome}'.")
+    vistos_id: set[str] = set()
+    for campo in perfil.campos_entrada:
+        rotulo = campo.rotulo or campo.id or "(sem nome)"
+        if not campo.id:
+            problemas.append(f"Campo '{rotulo}' está sem identificador interno.")
+            continue
+        if campo.id in vistos_id:
+            problemas.append(f"Identificador '{campo.id}' repetido ('{rotulo}').")
+        vistos_id.add(campo.id)
+        if campo.tipo not in TIPOS_CAMPO_ENTRADA:
+            problemas.append(
+                f"Campo '{rotulo}': tipo '{campo.tipo}' não suportado "
+                f"(use: {', '.join(TIPOS_CAMPO_ENTRADA)})."
+            )
+        if campo.tipo == "SELECAO" and not campo.opcoes:
+            problemas.append(f"Campo '{rotulo}': lista de opções vazia.")
+    for formulario in perfil.formularios:
+        if formulario.geracao not in ("por_participante", "por_processo", "unico"):
+            problemas.append(
+                f"Formulário '{formulario.nome}': forma de geração inválida."
+            )
+        if not isinstance(formulario.mapeamento, dict):
+            problemas.append(
+                f"Formulário '{formulario.nome}': mapeamento inválido."
+            )
+    return problemas
+
+
 def adicionar_perfil(perfil: Perfil) -> None:
     """Adiciona um novo perfil. Erro se já existir um com o mesmo nome."""
     perfis = carregar_perfis()
