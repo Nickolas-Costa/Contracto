@@ -834,7 +834,7 @@
           {
             "id": "mantemUniaoEstavel",
             "rotulo": "Mantém união estável",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1015,7 +1015,7 @@
           {
             "id": "possuiImovel",
             "rotulo": "Possui imóvel",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1215,7 +1215,7 @@
           {
             "id": "possui36MesesFgts",
             "rotulo": "Possui 36 meses de FGTS",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1242,7 +1242,7 @@
           {
             "id": "jaRecebeuSubsidio",
             "rotulo": "Já recebeu desconto/subsídio",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1268,7 +1268,7 @@
           {
             "id": "fgtsFuturo",
             "rotulo": "Operação com FGTS Futuro",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1288,7 +1288,7 @@
           {
             "id": "utilizaContaFgts",
             "rotulo": "Utiliza conta vinculada",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",
@@ -1331,7 +1331,7 @@
           {
             "id": "autorizaSaqueFgts",
             "rotulo": "Autoriza saque do FGTS",
-            "tipo": "SELECAO",
+            "tipo": "CHECKBOX",
             "obrigatorio": true,
             "placeholder": "",
             "escopo": "participante",

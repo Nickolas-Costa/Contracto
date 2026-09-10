@@ -5,6 +5,10 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+### Alterado
+- Campos SIM/NÃO do DAMP viraram caixa de seleção (checkbox preserva os
+  valores SIM/NÃO das regras); checkbox aceita par de opções configurável.
+
 ## [4.5.12] — 2026-09-09
 
 ### Corrigido

@@ -73,6 +73,23 @@ class CampoDinamicoWidget(ctk.CTkFrame):
 
         self._construir_widget()
 
+    def _valores_check(self) -> tuple[str, str]:
+        """Par (marcado, desmarcado) do checkbox: usa `opcoes` se houver, senão Sim/Não."""
+        opcoes = [str(opcao) for opcao in (self.campo.opcoes or [])]
+        if len(opcoes) >= 2:
+            return opcoes[0], opcoes[1]
+        return "Sim", "Não"
+
+    def _check_marcado(self, valor: str) -> bool:
+        """Diz se o valor textual corresponde ao estado marcado."""
+        marcado, desmarcado = self._valores_check()
+        normalizado = str(valor or "").strip().lower()
+        if normalizado == desmarcado.lower():
+            return False
+        if normalizado == marcado.lower():
+            return True
+        return normalizado in ("sim", "true", "1", "yes")
+
     def _construir_widget(self) -> None:
         tipo = self.campo.tipo.upper()
         
@@ -113,7 +130,7 @@ class CampoDinamicoWidget(ctk.CTkFrame):
 
         # Container do controle (coluna 1)
         if tipo == "CHECKBOX":
-            self.var_check = ctk.BooleanVar(value=(self.campo.valor_padrao.lower() in ("true", "1", "sim", "yes")))
+            self.var_check = ctk.BooleanVar(value=self._check_marcado(self.campo.valor_padrao))
             self.widget_input = ctk.CTkCheckBox(
                 self,
                 text="",
@@ -357,7 +374,8 @@ class CampoDinamicoWidget(ctk.CTkFrame):
             self.on_change(escolha)
 
     def _ao_alterar_checkbox(self) -> None:
-        val = "Sim" if self.var_check.get() else "Não"
+        marcado, desmarcado = self._valores_check()
+        val = marcado if self.var_check.get() else desmarcado
         if self.on_change:
             self.on_change(val)
 
@@ -368,7 +386,9 @@ class CampoDinamicoWidget(ctk.CTkFrame):
     def obter_valor(self) -> str:
         tipo = self.campo.tipo.upper()
         if tipo == "CHECKBOX":
-            return "Sim" if getattr(self, "var_check", None) and self.var_check.get() else "Não"
+            marcado, desmarcado = self._valores_check()
+            ligado = getattr(self, "var_check", None) and self.var_check.get()
+            return marcado if ligado else desmarcado
         elif tipo == "SELECAO":
             exibido = self.widget_input.get() if hasattr(self, "widget_input") else ""
             return getattr(self, "_rotulo_para_opcao", {}).get(exibido, exibido)
@@ -382,7 +402,7 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         tipo = self.campo.tipo.upper()
         if tipo == "CHECKBOX":
             if hasattr(self, "var_check"):
-                self.var_check.set(valor.lower() in ("sim", "true", "1", "yes"))
+                self.var_check.set(self._check_marcado(valor))
         elif tipo == "SELECAO":
             if hasattr(self, "widget_input"):
                 self.widget_input.set(getattr(self, "_opcao_para_rotulo", {}).get(valor, valor))
@@ -505,7 +525,7 @@ class CampoDinamicoWidget(ctk.CTkFrame):
         tipo = self.campo.tipo.upper()
         if tipo == "CHECKBOX":
             if hasattr(self, "var_check"):
-                self.var_check.set(self.campo.valor_padrao.lower() in ("true", "1", "sim"))
+                self.var_check.set(self._check_marcado(self.campo.valor_padrao))
         elif tipo == "SELECAO":
             if hasattr(self, "widget_input") and self.campo.opcoes:
                 self.widget_input.set(self.campo.valor_padrao or "")
