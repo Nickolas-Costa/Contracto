@@ -28,6 +28,7 @@ from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, FormularioModelo,
     carregar_perfis, salvar_perfis, adicionar_perfil,
     atualizar_perfil, excluir_perfil, duplicar_perfil,
+    problemas_estruturais,
 )
 from utils import config_manager
 from services import pdf_service
@@ -1478,6 +1479,20 @@ class ProfilesFrame(ctk.CTkFrame):
             correcoes_aplicadas=list(getattr(self._perfil_editando, "correcoes_aplicadas", [])),
             agrupamento_paginas=dict(getattr(self._perfil_editando, "agrupamento_paginas", {})),
         )
+
+        outros_nomes = tuple(
+            p.nome for p in carregar_perfis()
+            if not self._perfil_editando or p.nome != self._perfil_editando.nome
+        )
+        problemas = problemas_estruturais(perfil, outros_nomes)
+        if problemas:
+            AlertModal(
+                self.winfo_toplevel(),
+                "Verifique os campos",
+                f"{len(problemas)} ajuste(s) antes de salvar:",
+                problemas,
+            )
+            return
 
         try:
             if self._perfil_editando and self._perfil_editando.nome:
