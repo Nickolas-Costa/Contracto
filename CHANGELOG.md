@@ -5,6 +5,18 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+## [4.5.12] — 2026-09-09
+
+### Corrigido
+- Pré-visualização de mapeamento sem PyMuPDF (pypdfium2, licença permissiva).
+- Avisos de terceiros com fonte do Ghostscript e seção de terceiros no README.
+
+### Adicionado
+- Serviço genérico de geometria de formulários: auditoria (área zerada,
+  fora da página, sobreposição) e correções declarativas por modelo via
+  `geometria_modelos.json` (`scripts/corrigir_geometria.py`); script
+  específico do DAMP removido.
+
 ## [4.5.11] — 2026-09-09
 
 ### Corrigido
