@@ -131,7 +131,7 @@ class SuccessModal(BaseModal):
             command=self._abrir_pasta_destino,
         ).grid(row=0, column=0, padx=(0, 8), sticky="ew")
 
-        ctk.CTkButton(
+        btn_concluir = ctk.CTkButton(
             footer,
             text=" Concluir",
             font=theme.get_font(theme.FONT_SIZE_BODY, "bold"),
@@ -141,7 +141,9 @@ class SuccessModal(BaseModal):
             height=42,
             corner_radius=theme.RADIUS_BUTTON,
             command=self.dismiss,
-        ).grid(row=0, column=1, padx=(8, 0), sticky="ew")
+        )
+        btn_concluir.grid(row=0, column=1, padx=(8, 0), sticky="ew")
+        self.focar(btn_concluir)
 
     def _abrir_arquivo(self, caminho: Path) -> None:
         try:

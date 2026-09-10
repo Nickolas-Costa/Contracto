@@ -29,6 +29,7 @@ class BaseModal:
         fechar_no_overlay: bool = True,
         tecla_escape: bool = True,
         usar_grab: bool = True,
+        ocultar_ao_perder_foco: bool = True,
     ):
         tipo = type(self)
         anterior = getattr(tipo, "_instancia_ativa", None)
@@ -50,6 +51,8 @@ class BaseModal:
         self.card = ctk.CTkToplevel(root)
 
         theme.configurar_janela_modal(root, self.card, self.overlay, largura, altura)
+        self.card._contracto_fixo = not ocultar_ao_perder_foco
+        self.overlay._contracto_fixo = not ocultar_ao_perder_foco
 
         if fechar_no_overlay:
             self.overlay.bind("<Button-1>", lambda e: self.dismiss())

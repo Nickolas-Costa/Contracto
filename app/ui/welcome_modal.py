@@ -15,8 +15,8 @@ class WelcomeModal(BaseModal):
     _instancia_ativa = None
 
     def __init__(self, master):
-        # Sem trava de teclado (comportamento original: guia inicial não bloqueante).
-        super().__init__(master, 680, 560, usar_grab=False)
+        # Guia de primeira vez: nunca se esconde sozinho ao perder o foco.
+        super().__init__(master, 680, 560, usar_grab=False, ocultar_ao_perder_foco=False)
         self.frame.grid_rowconfigure(1, weight=1)
 
         # Header
@@ -61,25 +61,25 @@ class WelcomeModal(BaseModal):
         passos = [
             (
                 "1. Escolha o Modo de Trabalho (Barra Superior)",
-                "Alterne no topo entre 'Avançado' (Contratos completos com Etapa 1 e Etapa 2) ou 'Simples' (Emissão direta de Formulários avulsos: Form Cliente, ITBI, Isenção).",
+                "Use 'Avançado' para contratos completos (Etapa 1 e Etapa 2) ou 'Simples' para formulários avulsos.",
                 "Modos",
                 "profiles",
             ),
             (
                 "2. Preencha os Dados dos Participantes",
-                "Informe Nome e CPF com validação e pontuação automática. Os campos adaptam-se automaticamente ao perfil e modelo selecionados.",
+                "Informe os dados de cada participante, a data e o local de assinatura.",
                 "Etapa 1",
                 "person",
             ),
             (
-                "3. Emissão Rápida e Preservação de Dados",
-                "Gere seus documentos em PDF em poucos segundos. Deixe marcada a opção 'Preservar dados para Reutilizar' para emitir o próximo formulário sem precisar redigitar.",
+                "3. Emita os Documentos",
+                "Gere os PDFs preenchidos. Com 'Preservar dados para Reutilizar', o preenchimento segue para o próximo formulário.",
                 "Geração",
                 "advance",
             ),
             (
-                "4. Organização e Padrão Bancário (PDF/A)",
-                "No modo contrato, anexe os documentos da gerente e converta todo o processo automaticamente para o formato oficial e seguro do banco.",
+                "4. Organize o Processo (PDF/A)",
+                "No modo contrato, anexe os documentos do processo e converta tudo para o formato PDF/A.",
                 "Etapa 2",
                 "folder",
             ),
@@ -148,6 +148,10 @@ class WelcomeModal(BaseModal):
             corner_radius=theme.RADIUS_BUTTON,
             command=self.dismiss,
         ).grid(row=0, column=0, sticky="ew")
+        for filho in footer.winfo_children():
+            if isinstance(filho, ctk.CTkButton):
+                self.focar(filho)
+                break
 
     def dismiss(self):
         super().dismiss()

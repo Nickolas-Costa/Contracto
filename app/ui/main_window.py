@@ -200,10 +200,26 @@ class MainWindow(ctk.CTk):
         self.bind("<Configure>", self._ao_redimensionar)
         self.bind("<FocusIn>", self._recuperar_interacao_campos, add="+")
         
-        # Tela de Boas Vindas
+        # Tela de Boas Vindas (só na primeira execução, com a janela visível)
+        self._boas_vindas_exibido = False
         if config_manager.obter("primeira_execucao"):
-            from ui.welcome_modal import WelcomeModal
-            self._boas_vindas_timer = self.after(500, lambda: WelcomeModal(self))
+            self._boas_vindas_timer = self.after(500, self._abrir_boas_vindas)
+
+    def _abrir_boas_vindas(self, tentativa: int = 0) -> None:
+        """Abre o guia inicial quando a janela estiver visível (até 10 s)."""
+        from ui.welcome_modal import WelcomeModal
+
+        if self._boas_vindas_exibido or not config_manager.obter("primeira_execucao"):
+            return
+        try:
+            visivel = self.winfo_viewable()
+        except Exception:
+            visivel = False
+        if not visivel and tentativa < 20:
+            self._boas_vindas_timer = self.after(500, lambda: self._abrir_boas_vindas(tentativa + 1))
+            return
+        self._boas_vindas_exibido = True
+        WelcomeModal(self)
 
     def _maximizar_janela(self) -> None:
         """Maximiza a janela do aplicativo por padrão no Windows."""
