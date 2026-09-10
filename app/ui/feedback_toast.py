@@ -22,11 +22,14 @@ class FeedbackToast(ctk.CTkFrame):
         self._on_dismiss = on_dismiss
         self._duration_ms = duration_ms
         self._dismiss_timer = None
-        
+
+        # Insígnia com glifo branco: o amarelo do tema (2.70:1) reprova o
+        # contraste, por isso o aviso usa um âmbar escuro (5.02:1).
+        # Demais pares medidos: success 5.13, error 4.98, primary 4.52.
         self.type_config = {
             'success': {'color': COLOR_SUCCESS, 'icon': '✓'},
             'info': {'color': get_color_primary(), 'icon': 'i'},
-            'warning': {'color': COLOR_WARNING, 'icon': '!'},
+            'warning': {'color': "#B45309", 'icon': '!'},
             'error': {'color': COLOR_ERROR, 'icon': '✕'}
         }
         
