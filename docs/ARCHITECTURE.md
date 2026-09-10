@@ -53,6 +53,21 @@ Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 Migração incremental: ports → headless proof → shell pywebview →
 Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
 
+## Contrato de camadas (vale desde já, não só na migração)
+
+- `ui/` desenha e coleta: monta widgets, lê valores, exibe resultados.
+  Não decide regra de negócio nem faz I/O de documentos.
+- `services/` decide por dados: recebe `Path`, `Perfil`, `Participant`
+  e devolve resultados. Nunca importa `tkinter`/`customtkinter`.
+- `utils/` sustenta os dois: caminhos, validadores, arquivos, backup.
+  Exceção documentada: `utils/files.py` conhece widgets só para
+  `atualizar_entry` (ponte fina da interface, sem regra).
+- `ports/` isola o que muda de shell (diálogos, pastas, binários).
+
+Exemplo aplicado: `abrir_pasta` e `atualizar_entry` saíram duplicados
+de `main_window.py`/`document_frame.py` para `utils/files.py`; as telas
+mantêm delegadores finos de compatibilidade.
+
 ## Regras
 
 - Loopback estrito futuro (`127.0.0.1`), zero telemetria, sem CDN/fontes externas.
