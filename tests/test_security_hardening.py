@@ -10,6 +10,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
+
 from services.pdfa_converter import converter_para_pdfa
 from services.system_repair_service import _encerrar_processos_orfaos
 from ui.main_window import MainWindow
@@ -42,8 +44,8 @@ class TestSecurityHardening(unittest.TestCase):
         args_chamada = mock_subprocess_run.call_args[0][0]
         self.assertIn("-dSAFER", args_chamada, "A flag -dSAFER DEVE estar presente nos argumentos do Ghostscript!")
 
-    @patch("ui.main_window.os.startfile")
-    @patch("ui.main_window.subprocess.run")
+    @patch("utils.files.os.startfile", create=True)
+    @patch("utils.files.subprocess.run")
     def test_abrir_pasta_rejects_non_directory_and_executables(self, mock_subp, mock_startfile):
         """Verifica se _abrir_pasta rejeita arquivos comuns ou executáveis."""
         # Testar com arquivo que não é pasta
