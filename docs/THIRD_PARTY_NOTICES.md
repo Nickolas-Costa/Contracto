@@ -10,7 +10,8 @@ Uso interno; revisar licenciamento antes de qualquer distribuição comercial.
 | lxml | 6.1.1 | BSD-3-Clause | Processamento XML |
 | packaging | 26.2 | Apache-2.0 / BSD-2-Clause | Utilitário de versões |
 | Pillow | 12.3.0 | MIT-CMU | Imagens e ícones |
-| PyMuPDF | 1.28.0 | AGPL-3.0 (ou comercial Artifex) | Pré-visualização de mapeamento |
+| PyMuPDF | removido na 4.5.12 (era 1.28.0, AGPL-3.0) | Pré-visualização — substituído por pypdfium2 |
+| pypdfium2 | 5.13.0 | Apache-2.0 | Pré-visualização de mapeamento |
 | pypdf | 6.16.1 | BSD-3-Clause | Preenchimento AcroForm |
 | pikepdf | 10.11.0 | MPL-2.0 | Validação de metadados PDF/A |
 | pywin32 | 312 | PSF | Automação Word / atalhos (Windows) |
@@ -18,6 +19,10 @@ Uso interno; revisar licenciamento antes de qualquer distribuição comercial.
 | reportlab (dev/testes) | 5.0.0 | BSD | PDFs sintéticos dos testes |
 | PyInstaller (build) | 6.21.0 | GPL-2.0+ com exceção p/ bundles | Geração do executável |
 
-Nota: PyMuPDF e Ghostscript usam licenciamento AGPL. A presença deles no
-pacote exige atenção em distribuição comercial (ver termos dos projetos
-e, se necessário, licença comercial da Artifex).
+Código-fonte do Ghostscript 10.07.1 (versão embutida):
+https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/tag/gs10071
+(página oficial: https://www.ghostscript.com/)
+
+Nota: o único componente com copyleft forte no pacote é o Ghostscript,
+executado como processo separado. Para distribuição comercial, confirmar
+os termos com assessoria jurídica ou avaliar a licença comercial da Artifex.

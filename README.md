@@ -227,4 +227,7 @@ O **Contracto** é uma ferramenta independente. Este aplicativo **NÃO possui qu
 - O software é fornecido **"NO ESTADO EM QUE SE ENCONTRA" ("AS IS")**, sem garantias expressas ou implícitas de qualquer tipo.
 - Os desenvolvedores e mantenedores deste projeto **não se responsabilizam** por eventuais recusas de dossiês, erros de digitação ou divergências de dados decorrentes do uso desta ferramenta.
 
+### 4. Componentes de Terceiros
+A lista de componentes distribuídos com o aplicativo está em [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). O motor de conversão PDF/A (Ghostscript 10.07.1, AGPL) tem código-fonte em https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/tag/gs10071.
+
 ---
