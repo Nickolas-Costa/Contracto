@@ -1,0 +1,21 @@
+{
+  "modelo_01": {
+    "ajustar_borda_esquerda": {
+      "valor_imovel_concluido": 300,
+      "valor_imovel_construcao": 412,
+      "valor_terreno_construcao": 420,
+      "valor_construcao_terreno_proprio": 297,
+      "valor_reforma_ampliacao": 310,
+      "valor_conclusao": 252,
+      "valor_material_construcao": 365
+    },
+    "dividir_campo": {
+      "origens": ["data_assinatura_dia", "data_assinatura_titular"],
+      "partes": {
+        "data_assinatura_dia": {"ret": [278, 595.54, 317, 610.54], "tooltip": "Dia"},
+        "data_assinatura_mes": {"ret": [337, 595.54, 468, 610.54], "tooltip": "Mês"},
+        "data_assinatura_ano": {"ret": [486, 595.54, 539, 610.54], "tooltip": "Ano"}
+      }
+    }
+  }
+}
