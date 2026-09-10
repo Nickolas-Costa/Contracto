@@ -693,11 +693,18 @@ class MainWindow(ctk.CTk):
 
         barra_selecao = ctk.CTkFrame(painel, fg_color="transparent")
         barra_selecao.pack(fill="x", padx=SPACING_LARGE, pady=(0, SPACING_SMALL))
+        barra_selecao.grid_columnconfigure(0, weight=1)
+
+        acoes_selecao = ctk.CTkFrame(barra_selecao, fg_color="transparent")
+        acoes_selecao.grid(row=0, column=0, sticky="e")
         label_quantidade = ctk.CTkLabel(
             barra_selecao, text="", font=get_font(FONT_SIZE_CAPTION, "bold"),
-            text_color=get_color_primary_text(),
+            text_color=get_color_primary_text(), justify="left", anchor="w",
+            wraplength=520,
         )
-        label_quantidade.pack(side="left")
+        label_quantidade.grid(
+            row=1, column=0, sticky="ew", pady=(SPACING_XSMALL, 0)
+        )
 
         lista = ctk.CTkScrollableFrame(painel, fg_color=COLOR_SURFACE_VARIANT)
         lista.pack(fill="both", expand=True, padx=SPACING_LARGE, pady=(0, SPACING_MEDIUM))
@@ -771,13 +778,13 @@ class MainWindow(ctk.CTk):
         botoes.pack(fill="x", padx=SPACING_LARGE, pady=(0, SPACING_LARGE))
         botoes.grid_columnconfigure(2, weight=1)
         ctk.CTkButton(
-            barra_selecao, text="Selecionar todos", width=110,
+            acoes_selecao, text="Selecionar todos", width=110,
             fg_color="transparent", text_color=get_color_primary_text(),
             hover_color=COLOR_SURFACE_VARIANT,
             command=lambda: alterar_todos(True),
         ).pack(side="right", padx=(SPACING_SMALL, 0))
         ctk.CTkButton(
-            barra_selecao, text="Limpar", width=70,
+            acoes_selecao, text="Limpar", width=70,
             fg_color="transparent", text_color=COLOR_TEXT_SECONDARY,
             hover_color=COLOR_SURFACE_VARIANT,
             command=lambda: alterar_todos(False),
