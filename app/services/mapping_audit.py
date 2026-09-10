@@ -3,7 +3,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PIL import Image
+import pypdfium2 as pdfium
+from PIL import Image, ImageDraw
 
 
 @dataclass
@@ -43,6 +44,25 @@ def conferir_mapeamento(
     )
 
 
+def retangulos_dos_campos(caminho_pdf: Path, pagina: int) -> dict[str, tuple[float, float, float, float]]:
+    """Retângulos dos widgets AcroForm da página (coordenadas PDF, origem inferior-esquerda)."""
+    from pypdf import PdfReader
+
+    leitor = PdfReader(str(caminho_pdf))
+    paginas = leitor.pages
+    if not paginas:
+        raise ValueError("O PDF não possui páginas para exibir.")
+    indice = max(0, min(pagina, len(paginas) - 1))
+    retangulos: dict[str, tuple[float, float, float, float]] = {}
+    for anotacao in paginas[indice].get("/Annots", []) or []:
+        widget = anotacao.get_object()
+        nome = widget.get("/T")
+        ret = widget.get("/Rect")
+        if nome and ret and len(ret) == 4:
+            retangulos[str(nome)] = tuple(float(v) for v in ret)
+    return retangulos
+
+
 def renderizar_pagina_destacada(
     caminho_pdf: Path,
     pagina: int,
@@ -51,29 +71,38 @@ def renderizar_pagina_destacada(
     altura_maxima: int = 650,
 ) -> tuple[Image.Image, int]:
     """Renderiza uma página e contorna os campos conforme a conferência."""
-    import fitz
-
     cores = {
-        **{nome: (0.10, 0.62, 0.35) for nome in conferencia.ligados},
-        **{nome: (0.92, 0.60, 0.08) for nome in conferencia.sem_ligacao},
-        **{nome: (0.82, 0.18, 0.18) for nome in conferencia.estados_invalidos},
+        **{nome: (26, 158, 89) for nome in conferencia.ligados},
+        **{nome: (235, 153, 20) for nome in conferencia.sem_ligacao},
+        **{nome: (209, 46, 46) for nome in conferencia.estados_invalidos},
     }
-    with fitz.open(caminho_pdf) as documento:
+    documento = pdfium.PdfDocument(str(caminho_pdf))
+    try:
         total = len(documento)
         if total < 1:
             raise ValueError("O PDF não possui páginas para exibir.")
         indice = max(0, min(pagina, total - 1))
         pagina_pdf = documento[indice]
-        for widget in pagina_pdf.widgets() or []:
-            cor = cores.get(widget.field_name)
-            if cor:
-                pagina_pdf.draw_rect(widget.rect, color=cor, width=2.2, overlay=True)
-
+        largura_pt, altura_pt = pagina_pdf.get_size()
         proporcao = min(
-            largura_maxima / pagina_pdf.rect.width,
-            altura_maxima / pagina_pdf.rect.height,
+            largura_maxima / largura_pt,
+            altura_maxima / altura_pt,
         )
-        matriz = fitz.Matrix(max(proporcao, 0.5), max(proporcao, 0.5))
-        imagem = pagina_pdf.get_pixmap(matrix=matriz, alpha=False)
-        pil = Image.frombytes("RGB", (imagem.width, imagem.height), imagem.samples)
-        return pil, total
+        escala = max(proporcao, 0.5)
+        imagem = pagina_pdf.render(scale=escala).to_pil().convert("RGB")
+
+        desenho = ImageDraw.Draw(imagem)
+        espessura = max(2, round(2.2 * escala))
+        for nome, (x0, y0, x1, y1) in retangulos_dos_campos(caminho_pdf, indice).items():
+            cor = cores.get(nome)
+            if not cor:
+                continue
+            desenho.rectangle(
+                [x0 * escala, (altura_pt - y1) * escala,
+                 x1 * escala, (altura_pt - y0) * escala],
+                outline=cor,
+                width=espessura,
+            )
+        return imagem, total
+    finally:
+        documento.close()
