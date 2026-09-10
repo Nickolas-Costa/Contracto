@@ -111,6 +111,29 @@ class ProfilesFrame(ctk.CTkFrame):
         )
         self.btn_importar_perfil.grid(row=1, column=1, sticky="e")
 
+        frame_backup = ctk.CTkFrame(self.header_perfis, fg_color="transparent")
+        frame_backup.grid(row=2, column=1, sticky="e")
+        ctk.CTkButton(
+            frame_backup, text=" Backup",
+            image=get_icon("save", (13, 13)), compound="left",
+            width=95,
+            fg_color="transparent", text_color=COLOR_TEXT_SECONDARY,
+            hover_color=COLOR_SURFACE_VARIANT,
+            corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION),
+            command=self._backup,
+        ).pack(side="left", padx=2)
+        ctk.CTkButton(
+            frame_backup, text=" Restaurar",
+            image=get_icon("back", (13, 13)), compound="left",
+            width=95,
+            fg_color="transparent", text_color=COLOR_TEXT_SECONDARY,
+            hover_color=COLOR_SURFACE_VARIANT,
+            corner_radius=RADIUS_BUTTON,
+            font=get_font(FONT_SIZE_CAPTION),
+            command=self._restaurar,
+        ).pack(side="left", padx=2)
+
     def _construir_lista_perfis(self) -> None:
         self.scroll_perfis = ctk.CTkScrollableFrame(
             self, fg_color="transparent", label_text="",
@@ -414,6 +437,35 @@ class ProfilesFrame(ctk.CTkFrame):
             return
         self._carregar_lista()
         self._abrir_editor(novo)
+
+    def _backup(self) -> None:
+        """Gera o ZIP de segurança de perfis e configurações."""
+        from ui.feedback_toast import show_toast
+        from utils import backup as backup_mod
+
+        try:
+            caminho = backup_mod.criar_backup()
+        except Exception as e:
+            AlertModal(self.winfo_toplevel(), "Erro ao Backup", "Não foi possível gerar o backup.", [str(e)])
+            return
+        show_toast(self.winfo_toplevel(), f"Backup gerado: {caminho.name}.", "success")
+
+    def _restaurar(self) -> None:
+        """Restaura perfis e configurações a partir de um ZIP de backup."""
+        from utils import backup as backup_mod
+
+        origem = filedialog.askopenfilename(
+            title="Restaurar backup",
+            filetypes=[("Backup do Contracto", "*.zip")],
+        )
+        if not origem:
+            return
+        try:
+            backup_mod.restaurar_backup(origem)
+        except Exception as e:
+            AlertModal(self.winfo_toplevel(), "Erro ao Restaurar", "Não foi possível restaurar o backup.", [str(e)])
+            return
+        self._carregar_lista()
 
     def _criar_novo(self) -> None:
         self._perfil_editando = None
