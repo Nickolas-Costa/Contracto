@@ -42,7 +42,7 @@ Fluxo: **Preencher (Etapa 1) → Anexar/Converter PDF/A (Etapa 2) → Pastas pad
 Fase A (próxima): pywebview sobre WebView2 + backend Python loopback 127.0.0.1
 ├── server.py FastAPI (reuso services/ puros como endpoints)
 ├── ui/ HTML/CSS/JS estáticos (tokens de DESIGN_SYSTEM.md → CSS)
-└── build PyInstaller + WebView2 (mesmo padrão ATLAS/OSSYNC)
+└── build PyInstaller + WebView2
 
 Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 ├── Interface: React + TS + Vite (+ Design System)

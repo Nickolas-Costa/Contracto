@@ -32,8 +32,7 @@ Ant Design (datado e pesado p/ este escopo), qualquer coisa
 > **Assinatura obrigatória:** 3 linhas senoidais sutis na cor de destaque
 > (#005CA9, configurável) como fundo — significam o fluxo do dossiê.
 > Opacidade ~12%, atrás do conteúdo, `aria-hidden`, desligável, nunca
-> sobre texto denso. É proposital e intransferível: não use pontilhados
-> de mapa (isso é do ATLAS) nem outra assinatura.
+> sobre texto denso. É proposital e intransferível.
 >
 > **Base:** controles e motion do Fluent 2, padrões de formulário do
 > Carbon, neutralidade do shadcn. Sem Material colorido, sem glassmorphism.
@@ -57,7 +56,7 @@ Ant Design (datado e pesado p/ este escopo), qualquer coisa
 > **Entregar:** tokens CSS (`:root` + `[data-theme="dark"]`), SVG das
 > ondas parametrizável por cor, e as telas Etapa 1 / Etapa 2 / Perfis /
 > Configurações / modais em HTML+CSS estático navegável por teclado.
-> Não invente nova assinatura visual nem copie ATLAS/OSSYNC.
+> Não invente nova assinatura visual.
 
 ## Critério de aceite do resultado
 

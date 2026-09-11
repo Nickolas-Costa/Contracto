@@ -1,7 +1,7 @@
 # Design — Contracto
 
-> Identidade visual própria. Não é variação do ATLAS nem do OSSYNC:
-> cada app tem linguagem declarada e intransferível (ver §2 e §9).
+> Identidade visual própria e intransferível: o que está aqui vale
+> somente para este app.
 
 ## 1. Identidade em uma frase
 
@@ -24,7 +24,7 @@ Regras da assinatura:
 - Nunca sobre conteúdo denso, nunca atrás de texto corrido.
 - Opacidade baixa; 3 linhas acompanham a cor de destaque do tema.
 - Com `reduced-motion` ou no modo Sólido, some sem perda de função.
-- Não copiar para ATLAS (navegação/mapas) nem OSSYNC (a definir).
+- Não copiar para outros projetos: a assinatura é exclusiva deste app.
 
 ## 3. Tokens de cor
 
@@ -118,15 +118,11 @@ Ordem de foco = ordem visual; foco sempre visível; `Esc` fecha/dispensa;
 As ondas na web: SVG com 3 `path` senoidais em `var(--c-primary)`
 a ~12% de opacidade, atrás do conteúdo, `aria-hidden`, desligável.
 
-## 9. Diferenças declaradas entre os apps
+## 9. Assinatura intransferível
 
-| App | Linguagem | Assinatura | Tom |
-|---|---|---|---|
-| Contracto | documental, sóbria | ondas na cor de destaque (fluxo do dossiê) | confiança oficial |
-| ATLAS | orientação/navegação | pontilhados de mapa antigo até um X (jornada da informação) | exploração |
-| OSSYNC | a definir (outro agente) | a definir | — |
-
-Nenhum componente visual migra entre apps sem passar por esta tabela.
+A linguagem deste documento (tokens, ondas, componentes) pertence a
+este app. Nada daqui migra para outros projetos sem redefinição
+própria — e nada de fora entra sem passar pelo checklist §10.
 
 ## 10. Checklist antes de cada tela nova
 
