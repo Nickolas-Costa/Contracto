@@ -5,7 +5,7 @@
 # 📑 Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conformidade PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v4.5.14-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v4.5.15-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Estável](https://img.shields.io/badge/estável-recomendada-2E7D32?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
@@ -67,6 +67,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
+## Atualizações da Versão 4.5.15
+
+Acumulado desde a 4.5.11: privacidade e estabilidade (log, instância única, Word), interface (modais, toast, boas-vindas, DAMP), perfis (import/export, validação, backup), dependências e documentação própria de design. Detalhes em [CHANGELOG.md](CHANGELOG.md).
+
 ## Atualizações da Versão 4.5.14
 
 Identidade visual própria (`docs/DESIGN.md`), guia para o design da versão web e toast contido na janela com dispensa por teclado. Detalhes em [CHANGELOG.md](CHANGELOG.md).
@@ -120,7 +124,7 @@ CONTRACTO/
 ├── build_exe.bat                       # Script de compilação automatizada (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.5.14)
+│   ├── version.py                      # Versão centralizada do sistema (v4.5.15)
 │   ├── ui/                             # Componentes visuais, telas, temas e modais
 │   │   ├── alert_modal.py              # Modal de alertas informativos e de erro
 │   │   ├── animated_loader.py          # Indicador visual leve de carregamento
@@ -216,13 +220,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 4.5.14, execute:
+Para compilar o executável autônomo da versão 4.5.15, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.14.zip` (+ `.sha256.txt`).
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.15.zip` (+ `.sha256.txt`).
 
 ---
 

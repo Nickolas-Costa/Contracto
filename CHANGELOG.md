@@ -5,6 +5,16 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+## [4.5.15] — 2026-09-11
+
+### Adicionado
+- Revisão própria do `docs/DESIGN.md` (12 seções) com linguagem exclusiva do aplicativo.
+- Ícone da pasta do projeto igual ao do app (`desktop.ini`).
+
+### Corrigido
+- Removida a linha órfã do PyMuPDF em `requirements.txt`; trava regenerada.
+- Documentação sem citações cruzadas entre aplicativos.
+
 ## [4.5.14] — 2026-09-11
 
 ### Adicionado
@@ -12,10 +22,20 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
   ondas como assinatura, tokens CSS e checklist por tela.
 - `docs/GUIA_OPEN_DESIGN.md`: direção de design systems e prompt para
   o agente de design da versão web.
+- Importação e exportação de perfis em `.json` validado ( envelope com
+  formato e versão, nome único e identificador novo em colisão).
+- Validação estrutural detalhada no editor (lista todos os problemas
+  com rótulo e identificador antes de salvar).
+- Backup em ZIP com data/hora e restauração validada.
+- `utils/files.py`: abrir pasta e preencher campo unificados.
 
 ### Corrigido
-- Toast preso à janela em qualquer escala, com dispensa por Escape.
+- Toast preso à janela em qualquer escala, com dispensa por Escape;
+  insígnia de aviso com contraste aprovado (âmbar escuro 5.02:1).
 - Boas-vindas abrem só com a janela visível e texto refeito.
+- `AlertModal` aceita lista de erros opcional (corrige crash em chamadas sem lista).
+- Seletor de formulários sem sobreposição de botões.
+- Template DAMP atualizado (86 campos, geometria validada).
 
 ## [4.5.13] — 2026-09-10
 
