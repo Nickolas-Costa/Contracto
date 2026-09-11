@@ -5,6 +5,18 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+## [4.5.14] — 2026-09-11
+
+### Adicionado
+- `docs/DESIGN.md`: identidade própria (sóbrio, leve, focado) com as
+  ondas como assinatura, tokens CSS e checklist por tela.
+- `docs/GUIA_OPEN_DESIGN.md`: direção de design systems e prompt para
+  o agente de design da versão web.
+
+### Corrigido
+- Toast preso à janela em qualquer escala, com dispensa por Escape.
+- Boas-vindas abrem só com a janela visível e texto refeito.
+
 ## [4.5.13] — 2026-09-10
 
 ### Alterado
