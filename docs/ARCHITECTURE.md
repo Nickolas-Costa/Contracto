@@ -1,33 +1,35 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v4.5.9) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v4.5.15) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v4.5.9) — desktop CustomTkinter + PyInstaller
+## Estado atual (v4.5.15) — desktop CustomTkinter + PyInstaller
 
 ```
-app/main.py             → entrypoint (CTk, maximizado, timers rastreados p/ destroy limpo)
-app/version.py          → fonte única (__version__ = "4.5.9", espelho em VERSION)
-app/ui/main_window.py   → monolito 2237+ linhas: toolbar, modos, stepper, fila, geração
+app/main.py             → entrypoint (CTk, maximizado, instância única via mutex)
+app/version.py          → fonte única (__version__ = "4.5.15", espelho em VERSION)
+app/ui/main_window.py   → 2421 linhas: toolbar, modos, stepper, fila, geração
 app/ui/                 → profiles/settings/participant/document/campo_dinamico/
-                          date_picker/modais/toast/animated_loader/theme (tokens + get_icon)
+                          date_picker/base_modal+6 modais/toast/animated_loader/theme
 app/services/           → puros, sem tkinter: generator, pdf_service (AcroForm),
                           pdfa_converter (Ghostscript -dSAFER), rtf_converter
-                          (Word COM, Windows-only), stage2_service, queue_manager,
-                          profile_composer (combinar_perfis multi-seleção v4.5.9),
-                          mapping_engine/audit, field_calculator, system_repair
+                          (Word COM + aviso com prazo), stage2_service, queue_manager,
+                          profile_composer, mapping_engine/audit, field_calculator,
+                          geometria_formulario, system_repair
 app/utils/              → cpf/cnpj/pis/document/date/filename/profile/config/
-                          resource_path (sys._MEIPASS)/json_storage/logger/
-                          file_picker (ÚNICO com tkinter.filedialog — isolar)
+                          resource_path/caminhos/json_storage/logger (PII mascarado,
+                          rotação)/backup/files(+files_fs puro)/instancia_unica
+                          file_picker (implementação Tk do port de diálogos)
+app/ports/              → dialog/storage/binaries (importáveis como app.* ou curto)
 app/models/participant  → dataclass puro, JSON-serializável
-app/assets/             → config/perfis_iniciais.json, templates/*.pdf (todos os
-                          modelos oficiais juntos, sem subpastas),
-                          icons/*_dark/_light.png, gs/bin (embutido)
+app/assets/             → config/perfis_iniciais.json + geometria_modelos.json,
+                          templates/*.pdf, icons/, gs/bin (embutido)
 dados usuário            → %APPDATA%/Contracto/ (gitignored; sobrevive a updates)
-                          contracto_config.json, perfis, logs/app.log
-build                    → build_exe.bat (lê app/version.py) + PyInstaller
-                          --noconsole --onefile --add-data assets/* + scripts/
-                          setup_gs/create_shortcut/create_dist_package
+                          config, perfis, logs/app.log (2 MB x5), backups/
+build                    → build_exe.bat (lê app/version.py, SHA-256 do ZIP)
+                          + PyInstaller + scripts/ (setup_gs com falha explícita)
+testes                   → suíte unittest + prova headless (Etapa 1+2 sem UI)
+deps web                 → pywebview + fastapi + uvicorn travados (Fase A)
 ```
 
 Fluxo: **Preencher (Etapa 1) → Anexar/Converter PDF/A (Etapa 2) → Pastas padronizadas**.

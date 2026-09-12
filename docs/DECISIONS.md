@@ -48,16 +48,18 @@ pywebview por isso.
 ## 6. Ghostscript
 
 Embutido em `assets/gs/bin`, headless `CREATE_NO_WINDOW`, `-dSAFER`.
-Futuro: `externalBin`/sidecar + allowlist `capabilities shell`.
+Na Fase A vai como `externalBin` do bundle (mesmo binário, chamado via
+allowlist do shell); sidecar dedicado só se o bundle exigir. Sem Rust:
+o Python continua dono da conversão.
 
 ## 7. Direção UI: pywebview agora, Tauri V2 como futuro opcional
 
-Decisão (v4.5.10): seguir pelo **pywebview + FastAPI loopback** (reuso
+Decisão: seguir pelo **pywebview + FastAPI loopback** (reuso
 `services/`), que resolve a dor atual sem Rust/Node. **Tauri V2 segue
 como plano futuro** — será reavaliado quando o app estiver estável e
-se updater/instalador/tamanho virarem necessidade real. Nada de Fase
-A/B implementado — ver `ARCHITECTURE.md`. Sem atualizador automático
-até a migração de shell (decisão consciente).
+se updater/instalador/tamanho virarem necessidade real. Preparação
+pronta: ports, contrato de camadas, prova headless e deps travadas.
+Sem atualizador automático até a migração de shell (decisão consciente).
 
 ## 8. Regras para agentes IA
 
@@ -83,5 +85,5 @@ até a migração de shell (decisão consciente).
 
 ## 10. Decisões abertas
 
-Protocolo pywebview↔Python, logging/backup, port `pdf_service`
-p/ Rust vs manter Python.
+Protocolo pywebview↔Python (HTTP loopback + token), `server.py`,
+backup de dossiês (só perfis por enquanto).
