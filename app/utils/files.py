@@ -1,33 +1,15 @@
-"""Operações de arquivo da camada de interface (sem regra de negócio).
+"""Ponte fina da interface (conhece widgets, sem regra de negócio).
 
-Centraliza o que antes vivia duplicado nas telas: abrir pasta no
-gerenciador do sistema e preencher campo de texto somente-leitura.
+- `abrir_pasta`: reexportado de `files_fs` (puro, headless).
+- `atualizar_entry`: único ponto que toca em widget.
 """
-
-import os
-import subprocess
-from pathlib import Path
 
 import customtkinter as ctk
 
-from ui.theme import COLOR_BORDER, COLOR_TEXT
-from utils.logger import obter_logger
+from ui.theme import COLOR_TEXT
+from utils.files_fs import abrir_pasta
 
-
-def abrir_pasta(caminho: Path | str) -> bool:
-    """Abre o diretório no gerenciador de arquivos; devolve False se falhar."""
-    p = Path(caminho) if isinstance(caminho, str) else caminho
-    if not p.exists() or not p.is_dir():
-        return False
-    try:
-        if os.name == "nt":
-            os.startfile(str(p.resolve()))
-        else:
-            subprocess.run(["xdg-open", str(p.resolve())], timeout=15)
-    except OSError:
-        obter_logger("ui").warning("Não foi possível abrir a pasta '%s'.", p)
-        return False
-    return True
+__all__ = ["abrir_pasta", "atualizar_entry"]
 
 
 def atualizar_entry(entry: ctk.CTkEntry, texto: str, somente_leitura: bool = False) -> None:
