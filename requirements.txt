@@ -1,7 +1,4 @@
 customtkinter==6.0.0
-darkdetect==0.8.0
-lxml==6.1.1
-packaging==26.2
 Pillow==12.3.0
 pypdf==6.16.1
 pikepdf==10.11.0
