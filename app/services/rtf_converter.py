@@ -173,7 +173,7 @@ def converter_rtf_para_pdf(
 ) -> Path:
     """
     Converte um arquivo RTF para PDF utilizando o Microsoft Word via COM,
-    com proteção contra loops/conflitos e rota alternativa silenciosa.
+    com proteção contra bloqueios e limite de tempo.
 
     Args:
         caminho_rtf: Caminho do arquivo RTF original.
