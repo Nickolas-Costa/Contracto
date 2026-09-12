@@ -217,10 +217,13 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Arquivos gerados pela própria aplicação (declarações preenchidas)
+# Arquivos gerados pela prï¿½pria aplicaï¿½ï¿½o (declaraï¿½ï¿½es preenchidas)
 saida/
 output/
 
 
 # Auditoria de Seguranca Interna (Scripts, Relatorios e Graficos)
 docs/security-audit/
+
+# ProtÃ³tipo da webview (referÃªncia local, fora do versionamento)
+ProtÃ³tipo-webview-do-sistema.zip
