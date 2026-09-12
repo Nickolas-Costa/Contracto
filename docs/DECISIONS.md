@@ -83,7 +83,8 @@ Sem atualizador automático até a migração de shell (decisão consciente).
 - **Guia inicial (boas-vindas):** abre só na primeira execução, nunca se
   esconde sozinho e apresenta o fluxo em 4 passos, sem jargão interno.
 
-## 10. Decisões abertas
+## 10. Próximas decisões e evolução comercial
 
-Protocolo pywebview↔Python (HTTP loopback + token), `server.py`,
-backup de dossiês (só perfis por enquanto).
+A próxima implementação é o protocolo pywebview↔Python: FastAPI em loopback estrito, token efêmero, contratos Pydantic e trabalhos canceláveis. Os requisitos estão em `SPEC_PRE_WEBVIEW.md` e a decisão futura em ADR 0005.
+
+Uma integração empresarial pode evoluir para agente local Windows conectado a um CRM/ERP. API hospedada e processamento remoto ficam deliberadamente fora da Fase A: dependem de requisitos comerciais, LGPD, operação e licenciamento do Word; ver ADR 0006. Backup de dossiês permanece decisão aberta.

@@ -19,4 +19,6 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0002 | Identidade canônica dos módulos Python | aceita |
 | 0003 | Conversão RTF pelo Microsoft Word | aceita |
 | 0004 | Temporários de RTF isolados por trabalho | aceita |
+| 0005 | API local loopback para o shell WebView | futura |
+| 0006 | API hospedada com agente local para integração empresarial | futura |
 | — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |

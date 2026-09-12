@@ -57,6 +57,8 @@ Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 Migração incremental: ports → headless proof → shell pywebview →
 Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
 
+O shell WebView chama uma API FastAPI apenas em loopback, documentada em `SPEC_PRE_WEBVIEW.md`. Essa fronteira também prepara futura integração empresarial por agente local; não representa uma API pública nem hospedada.
+
 ## Regras do shell web (Fase A)
 
 Valem para qualquer implementação do shell, antes da primeira tela:
