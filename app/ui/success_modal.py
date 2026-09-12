@@ -8,6 +8,7 @@ from pathlib import Path
 import customtkinter as ctk
 from ui import theme
 from ui.base_modal import BaseModal
+from utils.logger import obter_logger
 
 
 class SuccessModal(BaseModal):
@@ -145,31 +146,37 @@ class SuccessModal(BaseModal):
         btn_concluir.grid(row=0, column=1, padx=(8, 0), sticky="ew")
         self.focar(btn_concluir)
 
-    def _abrir_arquivo(self, caminho: Path) -> None:
+    def _abrir_arquivo(self, caminho: Path) -> bool:
+        """Abre o PDF no visualizador padrão; devolve False se falhar."""
         try:
             caminho = Path(caminho).resolve()
             if not caminho.exists() or not caminho.is_file():
-                return
+                return False
             if os.name == "nt":
                 os.startfile(str(caminho))
             else:
                 import subprocess
                 subprocess.run(["xdg-open", str(caminho)], check=False)
         except Exception:
-            pass
+            obter_logger("ui").warning("Não foi possível abrir '%s'.", caminho)
+            return False
+        return True
 
-    def _abrir_pasta_destino(self) -> None:
+    def _abrir_pasta_destino(self) -> bool:
+        """Abre a pasta de destino; devolve False se falhar."""
         try:
             pasta = Path(self.pasta_destino).resolve()
             if not pasta.exists() or not pasta.is_dir():
-                return
+                return False
             if os.name == "nt":
                 os.startfile(str(pasta))
             else:
                 import subprocess
                 subprocess.run(["xdg-open", str(pasta)], check=False)
         except Exception:
-            pass
+            obter_logger("ui").warning("Não foi possível abrir '%s'.", self.pasta_destino)
+            return False
+        return True
 
     def dismiss(self) -> None:
         super().dismiss()
