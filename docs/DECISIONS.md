@@ -64,6 +64,7 @@ Sem atualizador automático até a migração de shell (decisão consciente).
 ## 8. Regras para agentes IA
 
 - Não introduzir dependência sem problema concreto + custo avaliado.
+- Toda dependência nova, atualização relevante ou mudança de ambiente passa pelo checklist em `DEPENDENCY_REVIEW.md`.
 - Não tocar `services/` com imports UI; UI não faz I/O direto de PDF.
 - `clareza > confiabilidade > simplicidade > performance > estética`.
 - Todo novo perfil precisa de teste em `tests/test_*formulario*.py`.

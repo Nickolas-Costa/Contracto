@@ -8,6 +8,8 @@ O resultado é uma aplicação desktop local-first, cujas operações podem ser 
 
 ## Dependências e ambientes suportados
 
+Toda inclusão, remoção ou mudança de execução dessas dependências deve passar pelo gate de `DEPENDENCY_REVIEW.md`.
+
 | Componente | Necessário no desktop WebView | Consequência fora desse ambiente |
 |---|---|---|
 | Python empacotado, FastAPI, Uvicorn e pywebview | Sim, distribuídos com o aplicativo | Não devem ser pré-requisitos para o usuário final |
