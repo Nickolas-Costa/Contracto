@@ -112,7 +112,7 @@ def executar_etapa2(
     import tempfile
     
     # 3. Preparar documentos externos selecionados
-    arquivos_temporarios_rtf = []
+    pasta_temporaria_rtf = None
     try:
         for tipo_documento, caminho_origem in documentos_externos.items():
             if cancel_event is not None and cancel_event.is_set():
@@ -125,11 +125,12 @@ def executar_etapa2(
                 caminho_para_gs = caminho_origem
                 # Se for RTF, converter primeiro para PDF num local temporário
                 if caminho_origem.suffix.lower() == ".rtf":
-                    caminho_tmp = Path(tempfile.gettempdir()) / f"temp_{nome_padronizado}"
+                    if pasta_temporaria_rtf is None:
+                        pasta_temporaria_rtf = tempfile.TemporaryDirectory(prefix="contracto-rtf-")
+                    caminho_tmp = Path(pasta_temporaria_rtf.name) / nome_padronizado
                     try:
                         converter_rtf_para_pdf(caminho_origem, caminho_tmp, ao_travar=ao_travar)
                         caminho_para_gs = caminho_tmp
-                        arquivos_temporarios_rtf.append(caminho_tmp)
                     except (OSError, RtfConversionError) as exc:
                         _logger.error("Falha ao converter o arquivo RTF '%s'.", caminho_origem, exc_info=True)
                         return {
@@ -189,13 +190,11 @@ def executar_etapa2(
             "cancelado": True,
         }
     finally:
-        # Limpar os RTFs convertidos temporariamente
-        for tmp_file in arquivos_temporarios_rtf:
-            if tmp_file.exists():
-                try:
-                    tmp_file.unlink()
-                except OSError:
-                    pass
+        if pasta_temporaria_rtf is not None:
+            try:
+                pasta_temporaria_rtf.cleanup()
+            except OSError:
+                _logger.warning("Não foi possível limpar a pasta temporária de RTF.")
 
     # Se teve sucessos, limpar os arquivos da Etapa 1 que foram convertidos
     if resultado_lote.convertidos:
