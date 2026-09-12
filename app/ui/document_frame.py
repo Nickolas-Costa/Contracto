@@ -3,7 +3,8 @@ Frame reutilizável que representa a seção "Documentos para PDF/A" na interfac
 """
 
 from pathlib import Path
-from tkinter import filedialog
+from ports.dialog import selecionar_arquivo
+from utils.files import atualizar_entry
 import customtkinter as ctk
 
 from ui.theme import *
@@ -85,14 +86,13 @@ class DocumentFrame(ctk.CTkFrame):
         self._widgets_linha.append(padding_lbl)
 
     def _selecionar_documento(self, tipo_padrao: str, rotulo: str) -> None:
-        caminho_str = filedialog.askopenfilename(
-            title=f"Selecionar {rotulo}",
-            filetypes=[("Arquivos PDF e RTF", "*.pdf;*.rtf"), ("Todos os arquivos", "*.*")],
+        caminho = selecionar_arquivo(
+            f"Selecionar {rotulo}",
+            [("Arquivos PDF e RTF", "*.pdf;*.rtf"), ("Todos os arquivos", "*.*")],
         )
-        if caminho_str:
-            caminho = Path(caminho_str)
+        if caminho:
             self._documentos[tipo_padrao] = caminho
-            self._atualizar_entry(self._entries[tipo_padrao], caminho.name)
+            atualizar_entry(self._entries[tipo_padrao], caminho.name, somente_leitura=True)
             self._atualizar_icone(tipo_padrao, True)
 
     def _atualizar_icone(self, tipo_padrao: str, selecionado: bool):
@@ -101,13 +101,6 @@ class DocumentFrame(ctk.CTkFrame):
             icon.configure(text="●", text_color=COLOR_PRIMARY)
         else:
             icon.configure(text="○", text_color=COLOR_TEXT_DISABLED)
-
-    @staticmethod
-    def _atualizar_entry(entry: ctk.CTkEntry, texto: str) -> None:
-        """Compatibilidade: delega para `utils.files.atualizar_entry`."""
-        from utils.files import atualizar_entry
-
-        atualizar_entry(entry, texto, somente_leitura=True)
 
     def obter_documentos_selecionados(self) -> dict[str, Path]:
         return {

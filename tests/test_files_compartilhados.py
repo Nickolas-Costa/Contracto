@@ -59,15 +59,15 @@ class TestAtualizarEntry(unittest.TestCase):
             somente.destroy()
 
     def test_delegadores_mantem_comportamento(self):
-        from ui.document_frame import DocumentFrame
         from ui.main_window import MainWindow
+        from utils.files import atualizar_entry
 
         import customtkinter as ctk
 
         self.assertFalse(MainWindow._abrir_pasta(Path("pasta_que_nao_existe")))
         entrada = ctk.CTkEntry(self.root)
         try:
-            DocumentFrame._atualizar_entry(entrada, "texto")
+            atualizar_entry(entrada, "texto", somente_leitura=True)
             self.assertEqual(entrada.get(), "texto")
             self.assertEqual(str(entrada.cget("state")), "disabled")
         finally:
