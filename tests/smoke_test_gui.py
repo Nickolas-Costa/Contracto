@@ -1,139 +1,112 @@
+"""Janela real -> participantes -> fila -> quatro PDFs validados.
+
+Windows: python tests/smoke_test_gui.py
+Linux: xvfb-run -a python tests/smoke_test_gui.py
+APPDATA e perfil sintéticos; PDF comum independe de Word/Ghostscript.
 """
-Teste de fumaça (smoke test) que instancia a JANELA REAL do CustomTkinter
-(via display virtual Xvfb) e simula a interação de um usuário:
-
-  1. Preenche o participante principal.
-  2. Clica "Adicionar Participante" duas vezes.
-  3. Preenche os participantes 2 e 3 (apenas nome/CPF).
-  4. Remove o participante 3 e confere a renumeração.
-  5. Seleciona modelos PDF sintéticos e pasta de saída.
-  6. Clica "GERAR DOCUMENTOS" e confere os arquivos gerados.
-
-Não faz parte da suíte `unittest` porque depende de um display (Xvfb) e
-não deve rodar em ambientes de CI sem GUI. Executar manualmente com:
-
-    xvfb-run -a python3 tests/smoke_test_gui.py
-"""
-
+import os
 import sys
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
-from reportlab.pdfgen import canvas
 
-import ui.main_window as main_window_module
-
-mensagens_capturadas = []
-
-
-def _capturar(tipo):
-    def _inner(title, message, *_a, **_kw):
-        mensagens_capturadas.append((tipo, title, message))
-        return "ok"
-
-    return _inner
+def criar_modelo(caminho):
+    from reportlab.pdfgen import canvas
+    doc = canvas.Canvas(str(caminho), pagesize=(600, 800))
+    for indice, nome in enumerate(("NOME", "CPF")):
+        doc.acroForm.textfield(name=nome, x=50, y=700 - indice * 50,
+                              width=400, height=20, forceBorder=True)
+    doc.showPage()
+    doc.save()
 
 
-# Evita que caixas de diálogo modais bloqueiem o teste automatizado
-main_window_module.messagebox.showerror = _capturar("error")
-main_window_module.messagebox.showwarning = _capturar("warning")
-main_window_module.messagebox.showinfo = _capturar("info")
-
-from ui.main_window import MainWindow  # noqa: E402  (import após o monkeypatch)
+def preencher(entry, texto):
+    entry.delete(0, "end")
+    entry.insert(0, texto)
 
 
-def criar_modelo(caminho: Path, campos: list[str]) -> None:
-    c = canvas.Canvas(str(caminho), pagesize=(600, 800))
-    form = c.acroForm
-    y = 750
-    for nome in campos:
-        c.drawString(50, y + 15, nome)
-        form.textfield(
-            name=nome, tooltip=nome, x=50, y=y, width=400, height=20,
-            borderStyle="inset", forceBorder=True,
-        )
-        y -= 50
-    c.save()
+def main():
+    with tempfile.TemporaryDirectory(prefix="contracto-smoke-") as temporario:
+        pasta = Path(temporario)
+        with patch.dict(os.environ, {"APPDATA": temporario, "LOCALAPPDATA": temporario}):
+            # Importar somente depois de isolar os caminhos persistentes.
+            from pypdf import PdfReader
+            from utils import config_manager
+            from utils.profile_manager import CampoEntrada, FormularioModelo, Perfil, adicionar_perfil
+            from ui.main_window import MainWindow
 
-
-def main() -> None:
-    app = MainWindow()
-    app.update()
-
-    # 1) Participante principal
-    p1 = app.participant_frames[0]
-    p1.entry_nome.insert(0, "João da Silva")
-    p1.entry_cpf.insert(0, "529.982.247-25")
-    p1.entry_endereco.insert(0, "Rua das Flores, 123")
-    app.entry_data.insert(0, "15/07/2026")
-
-    # 2) Adicionar dois participantes
-    app._adicionar_participante()
-    app._adicionar_participante()
-    app.update()
-    assert len(app.participant_frames) == 3, f"esperado 3 participantes, obteve {len(app.participant_frames)}"
-
-    p2 = app.participant_frames[1]
-    p2.entry_nome.insert(0, "Maria Silva")
-    p2.entry_cpf.insert(0, "111.444.777-35")
-    assert p2.entry_endereco is None, "participante 2 não deveria ter campo de endereço"
-
-    p3 = app.participant_frames[2]
-    p3.entry_nome.insert(0, "Pedro Silva")
-    p3.entry_cpf.insert(0, "222.555.888-46")
-
-    # 3) Remover participante 3 e conferir renumeração do participante 2 (agora não deveria mudar, pois ele continua sendo o 2º)
-    app._remover_participante(p3)
-    app.update()
-    assert len(app.participant_frames) == 2, f"esperado 2 participantes após remoção, obteve {len(app.participant_frames)}"
-    assert p2.label_titulo.cget("text").startswith("Participante 2"), p2.label_titulo.cget("text")
-
-    # 4) Modelos sintéticos + pasta de saída
-    tmp = tempfile.TemporaryDirectory()
-    pasta = Path(tmp.name)
-    modelo_ppe = pasta / "ppe.pdf"
-    modelo_imovel = pasta / "imovel.pdf"
-    saida = pasta / "saida"
-    saida.mkdir()
-
-    criar_modelo(modelo_ppe, ["NOME COMPLETO", "CPF", "DIA", "MES", "ANO"])
-    criar_modelo(modelo_imovel, ["NOME COMPLETO", "CPF", "ENDEREÇO", "DATA"])
-
-    from utils import config_manager
-    from utils.profile_manager import obter_perfil, atualizar_perfil, PERFIL_PADRAO_NOME
-    perfil_nome = config_manager.obter("perfil_ativo") or PERFIL_PADRAO_NOME
-    perfil = obter_perfil(perfil_nome)
-    if perfil and len(perfil.formularios) >= 2:
-        perfil.formularios[0].caminho = str(modelo_ppe)
-        perfil.formularios[1].caminho = str(modelo_imovel)
-        atualizar_perfil(perfil.nome, perfil)
-
-    app.pasta_saida = saida
-
-    # 5) Simular o clique em "AVANÇAR PARA A ETAPA 2" e "FINALIZAR PROCESSO E GERAR DOCUMENTOS"
-    app._ao_clicar_avancar()
-    app._prosseguir_finalizar()
-    
-    pasta_pdfa = saida / "PDF-A"
-    for _ in range(80):
-        app.update()
-        time.sleep(0.05)
-        if pasta_pdfa.exists() and len(list(pasta_pdfa.glob("*.pdf"))) >= 4:
-            break
-
-    alvo = pasta_pdfa if pasta_pdfa.exists() else saida
-    arquivos = sorted(f.name for f in alvo.glob("*.pdf"))
-    print("Mensagens capturadas:", mensagens_capturadas)
-    print("Arquivos gerados na pasta final:", arquivos)
-
-    assert len(arquivos) == 4, f"esperado 4 arquivos (2 participantes x 2 docs), obteve {len(arquivos)}"
-
-    app.destroy()
-    tmp.cleanup()
-    print("\nSMOKE TEST DA GUI: OK — janela real do CustomTkinter funcionou de ponta a ponta.")
+            modelos = [pasta / "a.pdf", pasta / "b.pdf"]
+            for modelo in modelos:
+                criar_modelo(modelo)
+            perfil = Perfil(
+                nome="SMOKE GUI", formato_saida="PDF",
+                formularios=[FormularioModelo(
+                    nome=f"DOC-{indice}", caminho=str(modelo),
+                    mapeamento={"NOME": "participante.nome", "CPF": "participante.cpf"},
+                ) for indice, modelo in enumerate(modelos, start=1)],
+                campos_entrada=[CampoEntrada(id="endereco", rotulo="Endereço")],
+            )
+            adicionar_perfil(perfil)
+            for chave, valor in {"perfil_ativo": perfil.nome, "modo_operacao": "avancado",
+                                 "primeira_execucao": False, "abrir_pasta_ao_concluir": False}.items():
+                config_manager.definir(chave, valor)
+            saida = pasta / "saida"
+            saida.mkdir()
+            app = MainWindow()
+            erros_tk = []
+            app.report_callback_exception = lambda *erro: erros_tk.append(erro)
+            try:
+                app.update()
+                app._adicionar_participante()
+                app._adicionar_participante()
+                app.update()
+                assert len(app.participant_frames) == 3
+                app._remover_participante(app.participant_frames[2])
+                app.update()
+                assert len(app.participant_frames) == 2
+                assert app.participant_frames[1].label_titulo.cget("text").startswith("Participante 2")
+                nomes = ["João da Silva", "Maria Silva"]
+                for frame, nome, cpf in zip(app.participant_frames, nomes,
+                                             ["529.982.247-25", "111.444.777-35"]):
+                    preencher(frame.entry_nome, nome)
+                    preencher(frame.entry_cpf, cpf)
+                    assert frame.entry_endereco is not None  # Declarado pelo perfil.
+                    preencher(frame.entry_endereco, "Rua de Teste, 123")
+                preencher(app.entry_data, "12/09/2026")
+                preencher(app.entry_local, "CAMOCIM-CE")
+                preencher(app.entry_pasta_saida, str(saida))
+                app._ao_editar_pasta_saida()
+                assert not app._listar_pendencias_etapa1(), app._listar_pendencias_etapa1()
+                app.botao_avancar.invoke()
+                app.update()
+                assert len(app.participantes_etapa1) == 2
+                for selecionado in app._vars_forms_dinamicos.values():
+                    selecionado.set(True)
+                app.botao_finalizar.invoke()
+                prazo = time.monotonic() + 30
+                while app.queue_manager.tem_trabalho_ativo() and time.monotonic() < prazo:
+                    app.update()
+                    time.sleep(0.05)
+                app.update()
+                assert not app.queue_manager.tem_trabalho_ativo(), "Fila não concluiu em 30s"
+                arquivos = list(saida.rglob("*.pdf"))
+                assert len(arquivos) == 4, [str(p) for p in arquivos]
+                valores = []
+                for arquivo in arquivos:
+                    with arquivo.open("rb") as stream:
+                        campos = PdfReader(stream).get_fields()
+                        valores.append(campos["NOME"]["/V"])
+                        assert campos["CPF"]["/V"]
+                for nome in nomes:
+                    assert valores.count(nome) == 2, valores
+                assert not erros_tk, erros_tk
+                print("SMOKE GUI: OK — 2 participantes, fila concluída, 4 PDFs preenchidos.")
+            finally:
+                app.destroy()
 
 
 if __name__ == "__main__":
