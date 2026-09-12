@@ -17,4 +17,5 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0000 | Modelo | — |
 | 0001 | Fatiar a UI legada em mixins | aceita |
 | 0002 | Identidade canônica dos módulos Python | aceita |
+| 0003 | Conversão RTF pelo Microsoft Word | aceita |
 | — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |

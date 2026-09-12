@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
@@ -75,6 +76,16 @@ class TestHeadlessBackend(unittest.TestCase):
         import ports.dialog as dialog
 
         self.assertTrue(callable(dialog.selecionar_pasta))
+
+    @unittest.skipUnless(sys.platform == "win32", "Registro COM específico do Windows")
+    def test_word_sem_registro_nao_e_reportado_como_disponivel(self):
+        from ports.binaries import word_status
+
+        with patch("winreg.OpenKey", side_effect=FileNotFoundError):
+            status = word_status()
+
+        self.assertFalse(status.disponivel)
+        self.assertIsNone(status.caminho)
 
 
 if __name__ == "__main__":
