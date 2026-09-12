@@ -8,6 +8,11 @@ amigável), sem espalhar `shutil.which` / `Program Files` pelo código.
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    from app.utils.ghostscript_setup import localizar_ghostscript
+except ImportError:  # executado com app/ direto no path (ex: .exe, dev)
+    from utils.ghostscript_setup import localizar_ghostscript
+
 
 @dataclass
 class BinaryStatus:
@@ -18,8 +23,6 @@ class BinaryStatus:
 
 
 def ghostscript_status() -> BinaryStatus:
-    from utils.ghostscript_setup import localizar_ghostscript
-
     caminho = localizar_ghostscript()
     return BinaryStatus(
         nome="ghostscript",

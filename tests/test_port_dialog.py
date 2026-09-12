@@ -72,6 +72,22 @@ class TestSemTkinterForaDaUI(unittest.TestCase):
             self.assertIsNone(ports.dialog.salvar_arquivo("T", "x.json"))
             self.assertIsNone(ports.dialog.selecionar_pasta())
 
+    def test_import_como_pacote_app(self):
+        raiz = Path(__file__).resolve().parent.parent
+        if str(raiz) not in sys.path:
+            sys.path.insert(0, str(raiz))
+        import app.ports.binaries as binaries_pkg
+        import app.ports.dialog as dialog_pkg
+        import app.ports.storage as storage_pkg
+
+        self.assertTrue(storage_pkg.get_templates_dir().is_dir())
+        self.assertIsInstance(
+            binaries_pkg.ghostscript_status().disponivel, bool
+        )
+        with patch("utils.file_picker.filedialog") as dialogo:
+            dialogo.askdirectory.return_value = ""
+            self.assertIsNone(dialog_pkg.selecionar_pasta())
+
 
 if __name__ == "__main__":
     unittest.main()
