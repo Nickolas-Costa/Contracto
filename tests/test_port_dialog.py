@@ -31,6 +31,7 @@ PERMITIDOS_TKINTER = {
     "ui/base_modal.py",
     "ui/feedback_toast.py",
     "utils/file_picker.py",
+    "utils/files.py",
 }
 
 
