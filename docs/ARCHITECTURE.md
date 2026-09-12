@@ -53,6 +53,19 @@ Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 Migração incremental: ports → headless proof → shell pywebview →
 Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
 
+## Regras do shell web (Fase A)
+
+Valem para qualquer implementação do shell, antes da primeira tela:
+
+- Stepper clicável com rota por etapa (o atual só recolore).
+- Toolbar com colapso abaixo de 1100px (larguras fixas não passam).
+- DPI por monitor no processo; janelas e modais com limite de viewport
+  (nada de tamanho fixo maior que a tela).
+- Diálogos pelo `ports/dialog.py`; abrir-pasta devolve `{ok, erro}`.
+- Referência visual e de fluxos: protótipo fora do versionamento
+  (`Protótipo-webview-do-sistema.zip`: telas, fluxos, PNGs por modelo,
+  handoff e manifesto) + `docs/DESIGN.md` como autoridade.
+
 ## Contrato de camadas (vale desde já, não só na migração)
 
 - `ui/` desenha e coleta: monta widgets, lê valores, exibe resultados.
