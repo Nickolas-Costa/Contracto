@@ -9,8 +9,8 @@ import copy
 import json
 import threading
 import customtkinter as ctk
-from tkinter import filedialog
 from pathlib import Path
+from ports.dialog import salvar_arquivo, selecionar_arquivo
 
 from ui.alert_modal import AlertModal
 from ui.confirm_modal import ConfirmModal
@@ -407,11 +407,11 @@ class ProfilesFrame(ctk.CTkFrame):
 
     def _exportar(self, nome: str) -> None:
         """Grava o perfil em `.json` no local escolhido."""
-        destino = filedialog.asksaveasfilename(
-            title="Exportar perfil",
-            defaultextension=".json",
-            filetypes=[("Perfil do Contracto", "*.json")],
-            initialfile=f"{nome}.json",
+        destino = salvar_arquivo(
+            "Exportar perfil",
+            f"{nome}.json",
+            [("Perfil do Contracto", "*.json")],
+            ".json",
         )
         if not destino:
             return
@@ -424,9 +424,9 @@ class ProfilesFrame(ctk.CTkFrame):
 
     def _importar(self) -> None:
         """Lê um `.json` de perfil, valida e incorpora com nome único."""
-        origem = filedialog.askopenfilename(
-            title="Importar perfil",
-            filetypes=[("Perfil do Contracto", "*.json")],
+        origem = selecionar_arquivo(
+            "Importar perfil",
+            [("Perfil do Contracto", "*.json")],
         )
         if not origem:
             return
@@ -454,9 +454,9 @@ class ProfilesFrame(ctk.CTkFrame):
         """Restaura perfis e configurações a partir de um ZIP de backup."""
         from utils import backup as backup_mod
 
-        origem = filedialog.askopenfilename(
-            title="Restaurar backup",
-            filetypes=[("Backup do Contracto", "*.zip")],
+        origem = selecionar_arquivo(
+            "Restaurar backup",
+            [("Backup do Contracto", "*.zip")],
         )
         if not origem:
             return
@@ -921,9 +921,9 @@ class ProfilesFrame(ctk.CTkFrame):
         ).grid(row=0, column=1, sticky="ew")
 
     def _adicionar_formulario(self) -> None:
-        caminho = filedialog.askopenfilename(
-            title="Selecionar Formulário PDF",
-            filetypes=[("Arquivos PDF", "*.pdf"), ("Todos os arquivos", "*.*")],
+        caminho = selecionar_arquivo(
+            "Selecionar Formulário PDF",
+            [("Arquivos PDF", "*.pdf"), ("Todos os arquivos", "*.*")],
         )
         if caminho:
             self._ler_campos_pdf(
@@ -944,9 +944,9 @@ class ProfilesFrame(ctk.CTkFrame):
 
     def _substituir_pdf_formulario(self, form: FormularioModelo, index: int) -> None:
         """Troca o arquivo do modelo e reaproveita regras dos campos ainda existentes."""
-        caminho = filedialog.askopenfilename(
-            title=f"Substituir PDF de {form.nome}",
-            filetypes=[("Arquivos PDF", "*.pdf"), ("Todos os arquivos", "*.*")],
+        caminho = selecionar_arquivo(
+            f"Substituir PDF de {form.nome}",
+            [("Arquivos PDF", "*.pdf"), ("Todos os arquivos", "*.*")],
         )
         if not caminho:
             return

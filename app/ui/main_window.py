@@ -52,7 +52,7 @@ from utils import config_manager
 from utils.caminhos import pasta_downloads
 from utils.date_formatter import validar_data
 from utils.document_validator import formatar_data_progressiva
-from utils.file_picker import selecionar_arquivo_pdf, selecionar_pasta
+from ports.dialog import selecionar_pasta
 from utils.logger import configurar_logger, obter_logger
 from utils.profile_manager import (
     PERFIL_PADRAO_NOME, Perfil, carregar_perfis, listar_nomes_perfis,
