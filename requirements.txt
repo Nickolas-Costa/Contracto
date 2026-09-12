@@ -7,3 +7,8 @@ pypdf==6.16.1
 pikepdf==10.11.0
 pypdfium2==5.13.0
 pywin32==312; sys_platform == "win32"
+
+# Shell web futuro (Fase A: pywebview + loopback FastAPI)
+pywebview==6.2.1
+fastapi==0.141.1
+uvicorn==0.52.4
