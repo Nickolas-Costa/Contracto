@@ -233,23 +233,6 @@ class TestVisualAssets(unittest.TestCase):
         finally:
             root.destroy()
 
-    def test_janela_recupera_campos_de_texto_bloqueados(self):
-        from ui.main_window import MainWindow
-
-        win = MainWindow()
-        win.withdraw()
-        try:
-            participante = win.participant_frames[0]
-            participante.entry_nome.configure(state="disabled")
-            participante.entry_cpf.configure(state="disabled")
-
-            win._recuperar_interacao_campos()
-
-            self.assertEqual(participante.entry_nome.cget("state"), "normal")
-            self.assertEqual(participante.entry_cpf.cget("state"), "normal")
-        finally:
-            win.destroy()
-
 
 if __name__ == "__main__":
     unittest.main()

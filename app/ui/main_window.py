@@ -198,7 +198,6 @@ class MainWindow(ctk.CTk):
 
         # Recarregar gradiente ao redimensionar
         self.bind("<Configure>", self._ao_redimensionar)
-        self.bind("<FocusIn>", self._recuperar_interacao_campos, add="+")
         
         # Tela de Boas Vindas (só na primeira execução, com a janela visível)
         self._boas_vindas_exibido = False
@@ -227,32 +226,6 @@ class MainWindow(ctk.CTk):
             self.state("zoomed")
         except Exception:
             pass
-
-    def _recuperar_interacao_campos(self, event=None) -> None:
-        """Recupera entradas após um popup do Windows/Tk perder a captura de foco."""
-        try:
-            captura = self.grab_current()
-            if captura is not None:
-                estado = captura.state() if hasattr(captura, "state") else "normal"
-                if not captura.winfo_exists() or estado == "withdrawn":
-                    captura.grab_release()
-        except Exception:
-            pass
-
-        entradas = []
-        for participante in getattr(self, "participant_frames", []):
-            entradas.extend((participante.entry_nome, participante.entry_cpf))
-        for nome in ("entry_data", "entry_local", "entry_pasta_saida"):
-            entrada = getattr(self, nome, None)
-            if entrada is not None:
-                entradas.append(entrada)
-
-        for entrada in entradas:
-            try:
-                if entrada.winfo_exists() and entrada.cget("state") == "disabled":
-                    entrada.configure(state="normal")
-            except Exception:
-                pass
 
     def destroy(self) -> None:
         """Encerra tarefas da interface antes de fechar a janela."""
