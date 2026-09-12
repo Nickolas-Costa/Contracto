@@ -180,7 +180,7 @@ class TestVisualAssets(unittest.TestCase):
         win.withdraw()
         try:
             self.assertEqual(win.frame_pendencias.winfo_manager(), "")
-            with patch("ui.main_window.show_toast") as toast:
+            with patch("ui.mw_etapa1.show_toast") as toast:
                 win._ao_clicar_avancar()
 
             self.assertEqual(win.frame_pendencias.winfo_manager(), "")

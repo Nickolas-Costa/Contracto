@@ -17,30 +17,21 @@ def selecionar_arquivo(
     titulo: str = "Selecione um arquivo",
     tipos: list[tuple[str, str]] | None = None,
 ) -> Path | None:
-    try:
-        from app.utils.file_picker import selecionar_arquivo as _abrir
-    except ImportError:  # executado com app/ direto no path (ex: .exe, dev)
-        from utils.file_picker import selecionar_arquivo as _abrir
+    from utils.file_picker import selecionar_arquivo as abrir
 
-    return _abrir(titulo, tipos)
+    return abrir(titulo, tipos)
 
 
 def selecionar_arquivo_pdf(titulo: str = "Selecione um arquivo PDF") -> Path | None:
-    try:
-        from app.utils.file_picker import selecionar_arquivo_pdf as _tk_pdf
-    except ImportError:
-        from utils.file_picker import selecionar_arquivo_pdf as _tk_pdf
+    from utils.file_picker import selecionar_arquivo_pdf as abrir_pdf
 
-    return _tk_pdf(titulo)
+    return abrir_pdf(titulo)
 
 
 def selecionar_pasta(titulo: str = "Selecione a pasta de saída") -> Path | None:
-    try:
-        from app.utils.file_picker import selecionar_pasta as _tk_pasta
-    except ImportError:
-        from utils.file_picker import selecionar_pasta as _tk_pasta
+    from utils.file_picker import selecionar_pasta as abrir_pasta
 
-    return _tk_pasta(titulo)
+    return abrir_pasta(titulo)
 
 
 def salvar_arquivo(
@@ -49,9 +40,6 @@ def salvar_arquivo(
     tipos: list[tuple[str, str]] | None = None,
     extensao_padrao: str = "",
 ) -> Path | None:
-    try:
-        from app.utils.file_picker import salvar_arquivo as _tk_salvar
-    except ImportError:
-        from utils.file_picker import salvar_arquivo as _tk_salvar
+    from utils.file_picker import salvar_arquivo as salvar
 
-    return _tk_salvar(titulo, nome_inicial, tipos, extensao_padrao)
+    return salvar(titulo, nome_inicial, tipos, extensao_padrao)

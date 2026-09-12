@@ -15,9 +15,7 @@ com o sistema de perfis e configurações.
 
 import queue
 import threading
-import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox
 from typing import Optional
 
 import customtkinter as ctk
