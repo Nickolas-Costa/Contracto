@@ -44,8 +44,8 @@ class TestSecurityHardening(unittest.TestCase):
         args_chamada = mock_subprocess_run.call_args[0][0]
         self.assertIn("-dSAFER", args_chamada, "A flag -dSAFER DEVE estar presente nos argumentos do Ghostscript!")
 
-    @patch("utils.files.os.startfile", create=True)
-    @patch("utils.files.subprocess.run")
+    @patch("utils.files_fs.os.startfile", create=True)
+    @patch("utils.files_fs.subprocess.run")
     def test_abrir_pasta_rejects_non_directory_and_executables(self, mock_subp, mock_startfile):
         """Verifica se _abrir_pasta rejeita arquivos comuns ou executáveis."""
         # Testar com arquivo que não é pasta

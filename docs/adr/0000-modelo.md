@@ -9,3 +9,6 @@
 - **Alternativas consideradas:** opções descartadas e por quê (1 linha cada).
 - **Consequências:** o que muda no código, docs e testes; riscos aceitos.
 - **Arquivos:** lista dos arquivos tocados.
+- **Revisão:** com quais ADRs/docs foi confrontado (sem duplicar decisão alheia).
+- **Aceite:** como saber que está pronto (comportamento observável).
+- **Testes:** automatizados e/ou roteiro manual que protegem a decisão.

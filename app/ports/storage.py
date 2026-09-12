@@ -7,12 +7,8 @@
 import os
 from pathlib import Path
 
-try:
-    from app.utils.config_manager import _diretorio_config
-    from app.utils.resource_path import caminho_recurso
-except ImportError:  # executado com app/ direto no path (ex: .exe, dev)
-    from utils.config_manager import _diretorio_config
-    from utils.resource_path import caminho_recurso
+from utils.config_manager import _diretorio_config
+from utils.resource_path import caminho_recurso
 
 
 def get_config_dir() -> Path:

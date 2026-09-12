@@ -1,17 +1,14 @@
-"""Port de binários externos: Ghostscript + Word/LibreOffice.
+"""Port de binários externos: Ghostscript + Word.
 
 Decisão registrada (DECISIONS §5-6): Windows-only com Word por enquanto.
-Este port expõe capabilities p/ o futuro shell decidir (sidecar vs erro
-amigável), sem espalhar `shutil.which` / `Program Files` pelo código.
+Este port expõe capacidades p/ o futuro shell decidir como informar falhas,
+sem iniciar o Word durante a verificação.
 """
 
 from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    from app.utils.ghostscript_setup import localizar_ghostscript
-except ImportError:  # executado com app/ direto no path (ex: .exe, dev)
-    from utils.ghostscript_setup import localizar_ghostscript
+from utils.ghostscript_setup import localizar_ghostscript
 
 
 @dataclass
@@ -33,19 +30,22 @@ def ghostscript_status() -> BinaryStatus:
 
 
 def word_status() -> BinaryStatus:
-    import shutil
+    import sys
 
-    soffice = shutil.which("soffice")
+    com_ok = False
     try:
-        import win32com.client  # noqa: F401
+        if sys.platform == "win32":
+            import win32com.client  # noqa: F401
+            import winreg
 
-        com_ok = True
-    except Exception:
-        com_ok = False
-    disponivel = com_ok  # Word COM; LibreOffice ainda só fallback documentado
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"Word.Application\CLSID"):
+                com_ok = True
+    except (ImportError, OSError):
+        pass
+    disponivel = com_ok
     return BinaryStatus(
         nome="word",
-        caminho=Path(soffice) if soffice else None,
+        caminho=None,  # a automação COM não expõe um executável estável aqui
         disponivel=disponivel,
-        detalhe="Word COM disponível" if com_ok else "Word não detectado (Windows-only)",
+        detalhe="Word COM registrado" if com_ok else "Word não detectado (Windows-only)",
     )

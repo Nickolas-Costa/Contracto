@@ -1,6 +1,6 @@
 """
-Serviço de conversão de arquivos RTF para PDF utilizando o Microsoft Word via COM
-ou LibreOffice como rota alternativa silenciosa, com proteção contra bloqueios
+Serviço de conversão de arquivos RTF para PDF utilizando o Microsoft Word via COM,
+com proteção contra bloqueios
 de arquivo, supressão de diálogos e timeouts rígidos para evitar travamentos.
 
 Quando o Word para de responder, o chamador pode ser avisado (callback
@@ -8,11 +8,8 @@ Quando o Word para de responder, o chamador pode ser avisado (callback
 apenas a instância filha criada pelo aplicativo é encerrada.
 """
 
-import os
-import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -30,26 +27,6 @@ class RtfConversionError(Exception):
 
 # Chamada ao travar: (nome_do_arquivo, prazo_em_segundos, encerrar_agora).
 AoTravarCallback = Callable[[str, int, Callable[[], None]], None]
-
-
-def _localizar_libreoffice() -> Optional[Path]:
-    """Tenta localizar o executável do LibreOffice (soffice) no Windows ou Linux."""
-    # 1. Procurar no PATH
-    caminho_which = shutil.which("soffice") or shutil.which("soffice.exe")
-    if caminho_which:
-        return Path(caminho_which)
-
-    # 2. Caminhos padrão de instalação no Windows
-    candidatos_windows = [
-        Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "LibreOffice" / "program" / "soffice.exe",
-        Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "LibreOffice" / "program" / "soffice.exe",
-        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LibreOffice" / "program" / "soffice.exe",
-    ]
-    for c in candidatos_windows:
-        if c.exists():
-            return c
-
-    return None
 
 
 def _word_ausente(exc: BaseException) -> bool:
@@ -110,43 +87,6 @@ def _encerrar_word(pid: Optional[int]) -> bool:
     except (OSError, subprocess.SubprocessError):
         _logger.warning("Não foi possível encerrar o Word (PID %s).", pid)
         return False
-
-
-def _converter_via_libreoffice(caminho_rtf: Path, caminho_pdf: Path, timeout: int = 30) -> Path:
-    """Converte RTF para PDF usando o LibreOffice em modo headless."""
-    soffice = _localizar_libreoffice()
-    if not soffice:
-        raise RtfConversionError("LibreOffice não encontrado no sistema.")
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        out_dir = Path(tmp_dir)
-        cmd = [
-            str(soffice),
-            "--headless",
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            str(out_dir),
-            str(caminho_rtf.resolve()),
-        ]
-        flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            stdin=subprocess.DEVNULL,
-            creationflags=flags,
-        )
-        if proc.returncode != 0:
-            raise RtfConversionError(f"LibreOffice retornou código {proc.returncode}: {proc.stderr}")
-
-        esperado = out_dir / (caminho_rtf.stem + ".pdf")
-        if not esperado.exists():
-            raise RtfConversionError("LibreOffice concluiu mas não gerou o arquivo PDF esperado.")
-
-        shutil.copy2(str(esperado), str(caminho_pdf))
-        return caminho_pdf
 
 
 def _executar_conversao_word_com(
@@ -233,7 +173,7 @@ def converter_rtf_para_pdf(
 ) -> Path:
     """
     Converte um arquivo RTF para PDF utilizando o Microsoft Word via COM,
-    com proteção contra loops/conflitos e rota alternativa silenciosa.
+    com proteção contra bloqueios e limite de tempo.
 
     Args:
         caminho_rtf: Caminho do arquivo RTF original.
@@ -312,21 +252,14 @@ def converter_rtf_para_pdf(
     if concluido.is_set() and not erro_thread:
         return caminho_pdf
 
-    if erro_thread and _word_ausente(erro_thread[0]):
-        # Sem Word instalado, a rota alternativa é a única saída.
-        try:
-            return _converter_via_libreoffice(caminho_rtf, caminho_pdf, timeout=25)
-        except (OSError, subprocess.SubprocessError, RtfConversionError):
-            _logger.warning("A rota alternativa falhou ao converter '%s'.", caminho_rtf, exc_info=True)
+    if erro_thread and (
+        _word_ausente(erro_thread[0])
+        or isinstance(erro_thread[0], RtfConversionError)
+        and str(erro_thread[0]) == _mensagem_word_ausente()
+    ):
         raise RtfConversionError(_mensagem_word_ausente()) from erro_thread[0]
 
     if not concluido.is_set() or erro_thread:
-        # Rota alternativa silenciosa antes de falhar
-        try:
-            return _converter_via_libreoffice(caminho_rtf, caminho_pdf, timeout=20)
-        except (OSError, subprocess.SubprocessError, RtfConversionError):
-            _logger.warning("A rota alternativa falhou ao converter '%s'.", caminho_rtf, exc_info=True)
-
         if not concluido.is_set():
             raise RtfConversionError(
                 f"O Microsoft Word parou de responder ao converter '{caminho_rtf.name}' "

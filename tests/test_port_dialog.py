@@ -14,6 +14,7 @@ RAIZ_APP = Path(__file__).resolve().parent.parent / "app"
 PERMITIDOS_TKINTER = {
     "main.py",
     "ui/main_window.py",
+    "ui/mw_layout.py",
     "ui/profiles_frame.py",
     "ui/document_frame.py",
     "ui/participant_frame.py",

@@ -8,8 +8,10 @@
 ```
 app/main.py             → entrypoint (CTk, maximizado, instância única via mutex)
 app/version.py          → fonte única (__version__ = "4.5.15", espelho em VERSION)
-app/ui/main_window.py   → 2421 linhas: toolbar, modos, stepper, fila, geração
-app/ui/                 → profiles/settings/participant/document/campo_dinamico/
+app/ui/main_window.py   → orquestra mixins (toolbar/stepper/modos/telas/
+                          layout/etapa1/etapa2/fila em mw_*.py)
+app/ui/                 → profiles (orquestra pf_lista/pf_editor) + settings/
+                          participant/document/campo_dinamico/
                           date_picker/base_modal+6 modais/toast/animated_loader/theme
 app/services/           → puros, sem tkinter: generator, pdf_service (AcroForm),
                           pdfa_converter (Ghostscript -dSAFER), rtf_converter
@@ -54,6 +56,8 @@ Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 
 Migração incremental: ports → headless proof → shell pywebview →
 Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
+
+O shell WebView chama uma API FastAPI apenas em loopback, documentada em `SPEC_PRE_WEBVIEW.md`. Essa fronteira também prepara futura integração empresarial por agente local; não representa uma API pública nem hospedada.
 
 ## Regras do shell web (Fase A)
 

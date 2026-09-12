@@ -71,10 +71,6 @@ class TestTravamentoComAviso(unittest.TestCase):
 
             with patch.object(
                 modulo, "_executar_conversao_word_com", side_effect=travar_para_sempre
-            ), patch.object(
-                modulo,
-                "_converter_via_libreoffice",
-                side_effect=RtfConversionError("sem rota"),
             ):
                 with self.assertRaisesRegex(RtfConversionError, "parou de responder"):
                     converter_rtf_para_pdf(
@@ -103,10 +99,6 @@ class TestTravamentoComAviso(unittest.TestCase):
 
             with patch.object(
                 modulo, "_executar_conversao_word_com", side_effect=sem_word
-            ), patch.object(
-                modulo,
-                "_converter_via_libreoffice",
-                side_effect=RtfConversionError("sem rota"),
             ):
                 with self.assertRaisesRegex(RtfConversionError, "Microsoft Word"):
                     converter_rtf_para_pdf(

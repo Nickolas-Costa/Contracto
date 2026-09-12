@@ -1,0 +1,9 @@
+# ADR 0005 — API local loopback para o shell WebView
+
+- **Estado:** futura
+- **Data:** 2026-09-12
+- **Contexto:** o núcleo já oferece geração, composição de perfis, conversão e organização sem depender de widgets Tk. O shell WebView precisa chamar essas capacidades sem expor uma porta na rede local e sem mover documentos pessoais para fora da máquina.
+- **Decisão:** implementar um servidor FastAPI local, exclusivo de `127.0.0.1`, iniciado pelo processo desktop. Cada inicialização cria um token criptograficamente aleatório, mantido em memória e entregue apenas ao shell criado pelo aplicativo. A API terá contratos Pydantic, respostas de erro padronizadas e operações assíncronas por trabalho: compor perfil, gerar documentos, processar/organizar documentos, consultar ou cancelar trabalho e consultar capacidades. O servidor não terá rota de escuta em rede, CORS amplo, telemetria nem upload para terceiros.
+- **Alternativas consideradas:** acesso direto da página a serviços Python (acopla a tela ao shell); expor FastAPI em `0.0.0.0` para integrações (amplia desnecessariamente a superfície de dados pessoais); migrar de imediato para Tauri (não resolve a necessidade de contrato de backend e aumenta a mudança inicial).
+- **Consequências:** pywebview, FastAPI e uvicorn passam a compor o produto desktop, mas o processamento continua local. `ports/dialog.py` recebe uma implementação WebView e os serviços seguem sem imports de UI. O token, a origem, o ciclo de vida do servidor, limites de tamanho, diretórios permitidos e cancelamento precisam ser cobertos por testes de integração antes da primeira tela. Esta API não é ainda um produto público ou hospedado.
+- **Arquivos:** futuros `app/server.py`, `app/api/`, `app/ports/dialog_webview.py`, `tests/test_api_local.py`, `docs/SPEC_PRE_WEBVIEW.md`.

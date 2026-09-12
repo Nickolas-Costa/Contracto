@@ -156,7 +156,7 @@ class SuccessModal(BaseModal):
                 os.startfile(str(caminho))
             else:
                 import subprocess
-                subprocess.run(["xdg-open", str(caminho)], check=False)
+                subprocess.run(["xdg-open", str(caminho)], check=False, timeout=15)
         except Exception:
             obter_logger("ui").warning("Não foi possível abrir '%s'.", caminho)
             return False
@@ -172,7 +172,7 @@ class SuccessModal(BaseModal):
                 os.startfile(str(pasta))
             else:
                 import subprocess
-                subprocess.run(["xdg-open", str(pasta)], check=False)
+                subprocess.run(["xdg-open", str(pasta)], check=False, timeout=15)
         except Exception:
             obter_logger("ui").warning("Não foi possível abrir '%s'.", self.pasta_destino)
             return False
