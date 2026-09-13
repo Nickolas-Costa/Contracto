@@ -13,7 +13,12 @@
     outputId: null,
     jobId: null,
     pollTimer: null,
+    ultimo: null,
   };
+
+  function lerParaEtapa2() {
+    return estado.ultimo;
+  }
 
   function texto(el, msg) {
     el.textContent = msg;
@@ -188,6 +193,7 @@
   async function gerar() {
     const { lista, faltas } = validarLocal();
     if (faltas.length || !estado.perfilId) { atualizarPendencias(); return; }
+    estado.ultimaLista = lista;
     const r = await api().request("POST", "/api/v1/jobs/generate", {
       profile_ids: estado.perfilId,
       participants: lista,
@@ -218,6 +224,11 @@
       if (["completed", "failed", "cancelled"].includes(s.status)) {
         clearInterval(estado.pollTimer);
         if (s.status === "completed") {
+          estado.ultimo = {
+            participants: estado.ultimaLista || [],
+            output_id: estado.outputId,
+            file_ids: s.file_ids || [],
+          };
           statusEl.textContent += " Concluído.";
           const btn = document.getElementById("btn-abrir-pasta");
           btn.hidden = false;
@@ -252,5 +263,5 @@
     carregar();
   }
 
-  window.ContractoEtapa1 = { ligar };
+  window.ContractoEtapa1 = { ligar, lerParaEtapa2 };
 })();

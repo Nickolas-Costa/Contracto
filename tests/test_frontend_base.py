@@ -15,7 +15,8 @@ TOKENS_OBRIGATORIOS = [
 class TestFrontendBase(unittest.TestCase):
     def test_arquivos_presentes(self):
         for rel in ["index.html", "css/tokens.css", "css/layout.css",
-                    "js/api.js", "js/ui.js", "js/etapa1.js", "js/app.js"]:
+                    "js/api.js", "js/ui.js", "js/etapa1.js", "js/etapa2.js",
+                    "js/app.js"]:
             self.assertTrue((RAIZ / rel).is_file(), rel)
 
     def test_referencias_resolvem(self):
@@ -33,7 +34,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn('[data-theme="dark"]', css)
 
     def test_sem_rede_externa_e_sem_inline(self):
-        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "etapa1", "app"]]:
+        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "etapa1", "etapa2", "app"]]:
             texto = (RAIZ / nome).read_text(encoding="utf-8")
             self.assertNotIn("http://", texto, nome)
             self.assertNotIn("https://", texto, nome)
@@ -43,7 +44,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("Content-Security-Policy", html)
 
     def test_js_balanceado(self):
-        for nome in ["api.js", "ui.js", "etapa1.js", "app.js"]:
+        for nome in ["api.js", "ui.js", "etapa1.js", "etapa2.js", "app.js"]:
             texto = (RAIZ / "js" / nome).read_text(encoding="utf-8")
             for abre, fecha in [("{", "}"), ("(", ")"), ("[", "]")]:
                 self.assertEqual(
