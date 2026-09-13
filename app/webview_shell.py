@@ -95,14 +95,27 @@ main{max-width:720px}button{font:inherit;padding:12px}pre{white-space:pre-wrap}<
 });</script></html>"""
 
 
-def main(self_test=False):
+def main(self_test=False, ui=False):
     import webview
+    from pathlib import Path
     # Diagnóstico também funciona sem modelos: a carga real ocorre no servidor.
     errors = []
+    frontend_url = None
+    if ui:
+        index = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+        if not index.is_file():
+            raise RuntimeError("Frontend não encontrado em frontend/index.html")
+        frontend_url = index.as_uri()
     with LocalServer(profiles=[] if self_test else None) as server:
         bridge = ShellBridge(server)
-        window = webview.create_window("Contracto — diagnóstico da base", html=DIAGNOSTIC_HTML,
-                                       js_api=bridge, width=900, height=650, hidden=self_test)
+        titulo = "Contracto" if ui else "Contracto — diagnóstico da base"
+        if frontend_url:
+            window = webview.create_window(titulo, url=frontend_url,
+                                           js_api=bridge, width=1200, height=850,
+                                           hidden=self_test)
+        else:
+            window = webview.create_window(titulo, html=DIAGNOSTIC_HTML,
+                                           js_api=bridge, width=900, height=650, hidden=self_test)
         bridge._attach(window)
         # O finally do context manager revoga credenciais e cancela a fila ao fechar.
         def probe():
@@ -132,4 +145,4 @@ def main(self_test=False):
 
 
 if __name__ == "__main__":
-    main(self_test="--self-test" in sys.argv)
+    main(self_test="--self-test" in sys.argv, ui="--ui" in sys.argv)

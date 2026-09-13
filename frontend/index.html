@@ -68,7 +68,23 @@
 
     <section id="tela-etapa2" aria-label="Etapa 2" hidden>
       <div class="card">
+        <h2>Documentos do processo</h2>
+        <div class="field">
+          <label for="anexo-tipo">Tipo do anexo (letras, números, _ ou -)</label>
+          <input id="anexo-tipo" value="ANEXO" maxlength="50" autocomplete="off">
+        </div>
+        <button class="btn btn-secondary" id="btn-anexo" type="button">Anexar PDF ou RTF</button>
+        <div id="lista-anexos"></div>
+      </div>
+      <div class="card">
         <h2>Conversão e Organização</h2>
+        <div class="field">
+          <label for="formato-saida">Formato de saída</label>
+          <select id="formato-saida">
+            <option value="PDF/A-2b">PDF/A-2b</option>
+            <option value="PDF">PDF</option>
+          </select>
+        </div>
         <div id="fila-status" role="status">Nenhum processo em andamento.</div>
         <div class="progresso" hidden><div id="fila-barra"></div></div>
         <div class="acoes">
@@ -106,6 +122,7 @@
 <script src="js/api.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/etapa1.js"></script>
+<script src="js/etapa2.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

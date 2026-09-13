@@ -15,6 +15,7 @@
       return;
     }
     window.ContractoEtapa1.ligar();
+    window.ContractoEtapa2.ligar();
   }
 
   if (document.readyState === "loading") {
