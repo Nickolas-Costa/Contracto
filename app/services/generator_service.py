@@ -139,22 +139,22 @@ def resolver_variavel(
     except CpfInvalidoError:
         cpf_formatado = participante.cpf
     
-    # Extração de data de assinatura se disponível
-    data_raw = participante.data_assinatura or str(participante.campos_dinamicos.get("data_assinatura", ""))
+    # Extração de data de assinatura se disponível (perfil define se existe)
+    data_raw = str(participante.obter_campo("data_assinatura", ""))
     try:
         dia, mes, ano = separar_data_por_extenso(data_raw)
     except DataInvalidaError:
         dia, mes, ano = "", "", ""
 
-    # Dicionário base de variáveis padrão
+    # Dicionário base de variáveis padrão (chaves estáveis; valores via modelo)
     variaveis = {
         "participante.nome_completo": participante.nome_completo,
         "participante.nome": participante.nome_completo,
         "participante.cpf": participante.cpf,
         "participante.cpf_formatado": cpf_formatado,
-        "participante.endereco": participante.endereco,
-        "participante.data_assinatura": participante.data_assinatura,
-        "participante.local_assinatura": participante.local_assinatura,
+        "participante.endereco": str(participante.obter_campo("endereco", "")),
+        "participante.data_assinatura": str(participante.obter_campo("data_assinatura", "")),
+        "participante.local_assinatura": str(participante.obter_campo("local_assinatura", "")),
         "data.dia": dia,
         "data.mes": mes,
         "data.ano": ano,

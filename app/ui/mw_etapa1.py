@@ -1008,9 +1008,10 @@ class Etapa1Mixin:
             principal.definir_campo(campo_id, widget.obter_valor())
 
         participantes = [principal]
+        compartilhados = getattr(perfil, "campos_entrada", None)
         for frame in self.participant_frames[1:]:
             p = frame.obter_participante()
-            p.copiar_dados_compartilhados(principal)
+            p.copiar_dados_compartilhados(principal, compartilhados)
             for campo_id, widget in self.widgets_dinamicos_globais.items():
                 p.definir_campo(campo_id, widget.obter_valor())
             participantes.append(p)
