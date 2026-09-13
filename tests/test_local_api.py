@@ -64,10 +64,18 @@ class TestLocalAPI(unittest.TestCase):
                 h[k] = v
         body = raw if raw is not None else (json.dumps(data).encode() if data is not None else None)
         req = Request(self.server.origin + path, data=body, headers=h, method=method or ("POST" if body is not None else "GET"))
-        try:
-            response = build_opener(ProxyHandler({})).open(req, timeout=5)
-        except HTTPError as exc:
-            response = exc
+        ultimo_erro = None
+        for _ in range(2):
+            try:
+                response = build_opener(ProxyHandler({})).open(req, timeout=5)
+                break
+            except HTTPError as exc:
+                response = exc
+                break
+            except (ConnectionAbortedError, ConnectionResetError) as exc:
+                ultimo_erro = exc
+        else:
+            raise ultimo_erro
         with response:
             return response.status, json.loads(response.read())
 

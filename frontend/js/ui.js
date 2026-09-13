@@ -97,5 +97,29 @@
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
   }
 
-  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, aplicarTema };
+  function aplicarTemaInicial() {
+    let tema = "light";
+    try {
+      const salvo = localStorage.getItem("contracto-tema");
+      if (salvo === "light" || salvo === "dark") {
+        tema = salvo;
+      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        tema = "dark";
+      }
+    } catch (e) { /* sem armazenamento: segue o claro */ }
+    aplicarTema(tema);
+    const sel = document.getElementById("cfg-tema");
+    if (sel) {
+      sel.value = tema;
+      if (!sel.dataset.ligado) {
+        sel.dataset.ligado = "1";
+        sel.addEventListener("change", () => {
+          aplicarTema(sel.value);
+          try { localStorage.setItem("contracto-tema", sel.value); } catch (e) { /* sem armazenamento */ }
+        });
+      }
+    }
+  }
+
+  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, aplicarTema, aplicarTemaInicial };
 })();
