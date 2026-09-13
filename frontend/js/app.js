@@ -1,33 +1,81 @@
-/* Inicialização: tema, etapa 1 e aviso fora do app. */
+/* Inicialização: aguarda DOM e ponte, com estado persistente de conexão. */
 (function () {
   "use strict";
 
-  function iniciar() {
-    let tema = "light";
-    try {
-      const salvo = localStorage.getItem("contracto-tema");
-      if (salvo === "light" || salvo === "dark") {
-        tema = salvo;
-      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        tema = "dark";
-      }
-    } catch (e) { /* sem armazenamento: segue o claro */ }
-    window.ContractoUI.aplicarTema(tema);
-    const sel = document.getElementById("cfg-tema");
-    if (sel) {
-      sel.value = tema;
-      sel.addEventListener("change", () => {
-        window.ContractoUI.aplicarTema(sel.value);
-        try { localStorage.setItem("contracto-tema", sel.value); } catch (e) { /* sem armazenamento */ }
-      });
+  var iniciado = false;
+  var timerFalha = null;
+
+  function setConexao(estado, mensagem) {
+    var el = document.getElementById("conexao");
+    if (el) {
+      el.textContent = mensagem;
+      el.dataset.estado = estado;
     }
-    if (!window.ContractoAPI.disponivel()) {
-      window.ContractoUI.toast("Abra pelo aplicativo: esta página precisa da ponte local.", "warning");
+    ["btn-gerar", "btn-finalizar", "btn-pasta"].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.disabled = estado !== "pronto";
+    });
+  }
+
+  function marcarFalha() {
+    setConexao("falha", "Falha ao conectar. ");
+    var el = document.getElementById("conexao");
+    if (el && !document.getElementById("btn-tentar")) {
+      var btn = document.createElement("button");
+      btn.id = "btn-tentar";
+      btn.type = "button";
+      btn.textContent = "Tentar novamente";
+      btn.addEventListener("click", function () {
+        btn.remove();
+        iniciar();
+      });
+      el.append(btn);
+    }
+  }
+
+  async function verificar() {
+    try {
+      const r = await window.ContractoAPI.request("GET", "/api/v1/health");
+      if (r.status === 200) {
+        if (timerFalha) { clearTimeout(timerFalha); timerFalha = null; }
+        setConexao("pronto", "Pronto.");
+        return true;
+      }
+    } catch (e) { /* segue para falha abaixo */ }
+    marcarFalha();
+    return false;
+  }
+
+  function iniciar() {
+    if (iniciado) return;
+    setConexao("conectando", "Conectando…");
+    if (window.ContractoAPI.disponivel()) {
+      finalizarArranque();
       return;
     }
-    window.ContractoEtapa1.ligar();
-    window.ContractoEtapa2.ligar();
+    const aoPronto = () => {
+      window.removeEventListener("pywebviewready", aoPronto);
+      finalizarArranque();
+    };
+    window.addEventListener("pywebviewready", aoPronto);
+    if (timerFalha) clearTimeout(timerFalha);
+    timerFalha = setTimeout(() => {
+      window.removeEventListener("pywebviewready", aoPronto);
+      marcarFalha();
+    }, 15000);
+    window.ContractoUI.aplicarTemaInicial();
   }
+
+  async function finalizarArranque() {
+    if (iniciado) return;
+    iniciado = true;
+    if (timerFalha) { clearTimeout(timerFalha); timerFalha = null; }
+    window.ContractoUI.aplicarTemaInicial();
+    const ok = await verificar();
+    if (ok) window.ContractoEtapa1.ligar();
+  }
+
+  window.ContractoApp = { iniciar, verificar, reiniciado: () => { iniciado = false; } };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", iniciar);

@@ -54,8 +54,16 @@ class TestFrontendBase(unittest.TestCase):
     def test_acessibilidade_basica(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
         for exigido in ['lang="pt-BR"', "aria-current", 'role="status"',
-                        'aria-modal="true"', "<label", "prefers-reduced-motion"]:
+                        'aria-modal="true"', "<label", "prefers-reduced-motion",
+                        'id="conexao"']:
             self.assertIn(exigido, html + (RAIZ / "css/layout.css").read_text(encoding="utf-8"), exigido)
+
+    def test_boot_aguarda_ponte(self):
+        app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
+        self.assertIn("pywebviewready", app_js)
+        self.assertIn("finalizarArranque", app_js)
+        # Guarda contra dupla inicialização.
+        self.assertIn("if (iniciado) return;", app_js)
 
 
 if __name__ == "__main__":

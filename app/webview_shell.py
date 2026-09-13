@@ -17,6 +17,12 @@ class ShellBridge:
         self._server = server
         self._window = None
         self._dialogs = None
+        self._allowed_urls = {None, "about:blank"}
+
+    def allow_url(self, url):
+        """Registra a URL local exata servida pelo shell (ex: arquivo do frontend)."""
+        if url:
+            self._allowed_urls.add(url)
 
     def _attach(self, window):
         self._window = window
@@ -24,7 +30,7 @@ class ShellBridge:
 
     def _authorized(self):
         return (not self._server.closed and self._window is not None
-                and self._window.get_current_url() in {None, "about:blank"})
+                and self._window.get_current_url() in self._allowed_urls)
 
     def request(self, method, path, payload=None):
         if not self._authorized():
@@ -135,6 +141,7 @@ def main(self_test=False, ui=False):
         bridge = ShellBridge(server)
         titulo = "Contracto" if ui else "Contracto — diagnóstico da base"
         if frontend_url:
+            bridge.allow_url(frontend_url)
             window = webview.create_window(titulo, url=frontend_url,
                                            js_api=bridge, width=1200, height=850,
                                            hidden=self_test)

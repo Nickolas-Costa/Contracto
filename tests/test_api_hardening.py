@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, Request, build_opener
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from reportlab.pdfgen import canvas
@@ -69,10 +68,20 @@ class BaseHardening(unittest.TestCase):
         body = raw if raw is not None else (json.dumps(data).encode() if data is not None else None)
         req = Request(self.server.origin + path, data=body, headers=h,
                       method=method or ("POST" if body is not None else "GET"))
-        try:
-            response = build_opener(ProxyHandler({})).open(req, timeout=5)
-        except HTTPError as exc:
-            response = exc
+        ultimo_erro = None
+        for _ in range(2):
+            try:
+                response = build_opener(ProxyHandler({})).open(req, timeout=5)
+                break
+            except HTTPError as exc:
+                response = exc
+                break
+            except (ConnectionAbortedError, ConnectionResetError) as exc:
+                # Loopback sob carga pode derrubar a conexão; o alvo do
+                # teste é o comportamento HTTP, não o TCP. Uma repetição.
+                ultimo_erro = exc
+        else:
+            raise ultimo_erro
         with response:
             bruto = response.read()
         try:
