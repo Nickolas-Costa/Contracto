@@ -5,6 +5,16 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+## [4.5.16] — 2026-09-13
+
+### Corrigido
+- Robustez na fila de processamento (corrida ao criar/encerrar workers e cancelamento sob lock).
+- Contexto privado de registros da API, inclusive no worker COM.
+- Correção do fechamento de arquivos de ícones no tema.
+
+### Adicionado
+- Base técnica interna para a interface (servidor local, trabalhos e ponte nativa), sem mudança visível no uso.
+
 ## [4.5.15] — 2026-09-11
 
 ### Adicionado
