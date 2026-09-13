@@ -30,7 +30,7 @@ _logger = obter_logger("fila")
 class ProcessJob:
     """Representa uma solicitação de geração e organização de documentos na fila."""
 
-    id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
+    id: str = field(default_factory=lambda: uuid.uuid4().hex)
     titulo: str = ""
     participantes: list[Participant] = field(default_factory=list)
     pasta_saida: Path = field(default_factory=Path)
@@ -48,6 +48,7 @@ class ProcessJob:
     resultado: Optional[ResultadoEtapa2] = None
     erro: Optional[str] = None
     criado_em: float = field(default_factory=time.time)
+    tarefa: Optional[Callable] = field(default=None, repr=False)
 
 
 class QueueManager:
@@ -97,11 +98,40 @@ class QueueManager:
         )
 
         with self._lock:
+            if not self._executando:
+                raise RuntimeError("Fila encerrada")
             self._fila.append(job)
 
         self._notificar_mudanca_fila()
         self._garantir_worker_ativo()
         return job
+
+    def adicionar_tarefa(self, tarefa: Callable, job_id: str) -> ProcessJob:
+        """Agenda uma operação independente das etapas da UI legada."""
+        job = ProcessJob(id=job_id, tarefa=tarefa)
+        with self._lock:
+            if not self._executando:
+                raise RuntimeError("Fila encerrada")
+            self._fila.append(job)
+        self._garantir_worker_ativo()
+        return job
+
+    def encerrar(self, timeout: float = 50) -> bool:
+        """Cancela pendências e aguarda a operação ativa, sem abandonar silenciosamente."""
+        with self._lock:
+            self._executando = False
+            for job in self._fila:
+                job.cancel_event.set()
+                job.status = "cancelado"
+                job.tarefa = None
+            self._historico.extend(self._fila)
+            self._fila.clear()
+            if self._job_ativo:
+                self._job_ativo.cancel_event.set()
+            worker = self._thread_trabalhadora
+        if worker and worker is not threading.current_thread():
+            worker.join(timeout)
+        return worker is None or not worker.is_alive()
 
     def cancelar_job_ativo(self) -> None:
         """Sinaliza cancelamento para o job atualmente em execução."""
@@ -122,10 +152,12 @@ class QueueManager:
             for job in list(self._fila):
                 if job.id == job_id:
                     job.status = "cancelado"
+                    job.cancel_event.set()
+                    job.tarefa = None
                     self._fila.remove(job)
                     self._historico.append(job)
-                    self._notificar_mudanca_fila()
-                    return
+                    break
+        self._notificar_mudanca_fila()
 
     def obter_job_ativo(self) -> Optional[ProcessJob]:
         with self._lock:
@@ -156,31 +188,40 @@ class QueueManager:
             return "FILA: Ociosa"
 
     def _garantir_worker_ativo(self) -> None:
-        if self._thread_trabalhadora is None or not self._thread_trabalhadora.is_alive():
-            self._thread_trabalhadora = threading.Thread(
-                target=self._executar_worker_loop,
-                daemon=True,
-                name="ContractoQueueWorker",
-            )
-            self._thread_trabalhadora.start()
+        with self._lock:
+            if self._executando and self._thread_trabalhadora is None:
+                self._thread_trabalhadora = threading.Thread(
+                    target=self._executar_worker_loop, daemon=True,
+                    name="ContractoQueueWorker",
+                )
+                self._thread_trabalhadora.start()
 
     def _executar_worker_loop(self) -> None:
         """Loop contínuo que retira e executa jobs da fila sequencialmente."""
-        while self._executando:
+        while True:
             proximo_job: Optional[ProcessJob] = None
             with self._lock:
-                if self._fila:
+                if self._executando and self._fila:
                     proximo_job = self._fila.pop(0)
                     self._job_ativo = proximo_job
                     proximo_job.status = "executando"
                 else:
                     self._job_ativo = None
+                    # Publicar o encerramento sob o mesmo lock usado pelo produtor.
+                    self._thread_trabalhadora = None
+                    return
 
             if proximo_job is None:
                 break
 
             self._notificar_mudanca_fila()
-            self._processar_job(proximo_job)
+            try:
+                self._processar_job(proximo_job)
+            except Exception:
+                # Um callback legado não pode matar o worker e prender a fila.
+                proximo_job.status = "erro"
+                proximo_job.erro = "Falha ao concluir o item da fila"
+                _logger.error("Falha no callback do item %s.", proximo_job.id)
 
             with self._lock:
                 self._historico.append(proximo_job)
@@ -190,6 +231,18 @@ class QueueManager:
 
     def _processar_job(self, job: ProcessJob) -> None:
         """Executa a geração e conversão completa de um único ProcessJob."""
+        if job.tarefa is not None:
+            try:
+                job.tarefa(job)
+                job.status = "cancelado" if job.cancel_event.is_set() else "concluido"
+            except ProcessoCanceladoError:
+                job.status = "cancelado"
+            except Exception:
+                job.status = "erro"
+                job.erro = "Falha na operação"
+            finally:
+                job.tarefa = None  # Não reter dados pessoais capturados pela closure.
+            return
         if self.on_job_started:
             self.on_job_started(job)
 

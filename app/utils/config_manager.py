@@ -62,9 +62,9 @@ def carregar_config(forcar_disco: bool = False) -> dict[str, Any]:
             config.update(salvo)
         except json.JSONDecodeError:
             copia = guardar_copia_corrompida(caminho)
-            import logging
+            from utils.logger import obter_logger
 
-            logging.getLogger("contracto.config").warning(
+            obter_logger("config").warning(
                 "Configuração ilegível; padrões restaurados (cópia: %s).", copia
             )
         except OSError:

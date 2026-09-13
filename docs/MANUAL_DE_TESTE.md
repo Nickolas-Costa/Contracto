@@ -1,5 +1,13 @@
 # Manual de Teste — Contracto v4.5.10 (estável)
 
+## Base WebView/API — validação adicional (13/09/2026)
+
+O aplicativo atual segue Tk. Para testar API e shell de diagnóstico, executar os comandos e gates de [BASE_UI_STATUS.md](BASE_UI_STATUS.md). A suíte principal agora inclui HTTP real e não exige dependências extras de cliente HTTP.
+
+Pré-requisitos específicos: WebView2 para `smoke_webview.py`; Word instalado e Ghostscript para `smoke_api_engines.py`. No bundle, rodar `ContractoBase.exe --self-test`. Confirmar que o processo e a porta encerram ao fechar a janela. Para diagnosticar falha de ambiente, distinguir runtime WebView2 ausente, bridge sem resposta e erro de inicialização HTTP; nunca registrar token nem dados de formulários.
+
+Esse bundle é diagnóstico: o instalador de produção, checagem de WebView2 em máquina limpa e homologação visual da nova UI ainda são gates pendentes, detalhados no documento acima.
+
 Roteiro botão-por-botão + testes automatizados. Serve p/ QA manual e p/
 conferir cobertura headless (prova p/ pywebview/Tauri).
 

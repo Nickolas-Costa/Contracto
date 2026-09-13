@@ -15,6 +15,36 @@ from utils.profile_manager import Perfil
 class TestQueueManager(unittest.TestCase):
     def setUp(self):
         self.qm = QueueManager()
+        self.addCleanup(self.qm.encerrar)
+
+    def test_callback_de_cancelamento_pode_consultar_fila(self):
+        with patch.object(self.qm, "_garantir_worker_ativo"):
+            job = self.qm.adicionar_tarefa(lambda _: None, "abc")
+            self.qm.on_queue_changed = lambda: self.qm.obter_total_fila()
+            cancel = threading.Thread(target=lambda: self.qm.cancelar_job(job.id), daemon=True)
+            cancel.start()
+            cancel.join(1)
+            self.assertFalse(cancel.is_alive(), "Callback ficou preso no lock da fila")
+
+    def test_encerramento_cancela_ativo_e_recusa_novos(self):
+        started = threading.Event()
+        def work(job):
+            started.set()
+            job.cancel_event.wait(2)
+        job = self.qm.adicionar_tarefa(work, "shutdown")
+        self.assertTrue(started.wait(1))
+        self.assertTrue(self.qm.encerrar(timeout=3))
+        self.assertEqual(job.status, "cancelado")
+        with self.assertRaises(RuntimeError):
+            self.qm.adicionar_tarefa(lambda _: None, "late")
+
+    def test_callback_com_erro_nao_prende_worker(self):
+        self.qm.on_job_started = lambda _: (_ for _ in ()).throw(ValueError("callback"))
+        job = self.qm.adicionar_job([], Path("tmp"), {}, [], "PDF", Perfil())
+        finished = threading.Event()
+        self.qm.adicionar_tarefa(lambda _: finished.set(), "after-error")
+        self.assertTrue(finished.wait(2))
+        self.assertEqual(job.status, "erro")
 
     def test_adicionar_e_obter_status_fila(self):
         p = Participant(nome_completo="Carlos Lima", cpf="123.456.789-00")

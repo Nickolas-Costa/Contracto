@@ -36,14 +36,16 @@ deps web                 → pywebview + fastapi + uvicorn travados (Fase A)
 
 Fluxo: **Preencher (Etapa 1) → Anexar/Converter PDF/A (Etapa 2) → Pastas padronizadas**.
 
-## Direção futura — pywebview intermediário, depois Tauri V2 (sem implementação)
+## Base da Fase A — implementada em 13/09/2026
 
-> Nenhum código `pywebview/Tauri` existe neste repo hoje — não há
-> `server.py FastAPI`, `package.json`, projeto Rust ou `src-tauri`.
-> Não deve ser lido como estado atual.
+`app/server.py` e `app/api/` implementam a API loopback; `app/webview_shell.py`
+é o bootstrap de diagnóstico com ponte nativa e diálogos WebView. A fila existente
+foi estendida para operações independentes. A UI de produção ainda é Tk.
+Veja `BASE_UI_STATUS.md` e ADR 0011 para o contrato, testes e pendências.
+Não há projeto Rust/Tauri ou frontend de produção implementado.
 
 ```
-Fase A (próxima): pywebview sobre WebView2 + backend Python loopback 127.0.0.1
+Fase A (base implementada, telas pendentes): WebView2 + Python loopback 127.0.0.1
 ├── server.py FastAPI (reuso services/ puros como endpoints)
 ├── ui/ HTML/CSS/JS estáticos (tokens de DESIGN_SYSTEM.md → CSS)
 └── build PyInstaller + WebView2

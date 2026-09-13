@@ -1,5 +1,7 @@
 # Continuidade remota — Contracto
 
+> Atualização em 13/09/2026: a base HTTP e a ponte WebView foram implementadas localmente. Leia primeiro [BASE_UI_STATUS.md](BASE_UI_STATUS.md), que contém o estado atual e as pendências. O plano e o prompt abaixo registram a entrega anterior e não devem reiniciar a implementação já concluída.
+
 Preparado em 12/09/2026. Repositório: `Nickolas-Costa/Contracto`; base: `main`.
 
 ## Estado entregue e validação

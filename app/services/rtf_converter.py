@@ -12,6 +12,7 @@ import subprocess
 import sys
 import threading
 import time
+import contextvars
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -219,7 +220,8 @@ def converter_rtf_para_pdf(
         finally:
             concluido.set()
 
-    t = threading.Thread(target=_worker, daemon=True)
+    contexto = contextvars.copy_context()
+    t = threading.Thread(target=lambda: contexto.run(_worker), daemon=True)
     t.start()
     t.join(timeout=timeout_segundos)
 

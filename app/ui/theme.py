@@ -657,10 +657,14 @@ def get_icon(name: str, size: tuple[int, int] = (20, 20), light_only: bool = Fal
     light_path = caminho_recurso("assets", "icons", f"{name}_light.png")
     standard_path = caminho_recurso("assets", "icons", f"{name}.png")
 
+    def carregar_imagem(path):
+        with Image.open(path) as origem:
+            return origem.copy()
+
     if light_only:
         p = light_path if light_path.exists() else (standard_path if standard_path.exists() else dark_path)
         if p.exists():
-            img = Image.open(p)
+            img = carregar_imagem(p)
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
         else:
             img = Image.new("RGBA", size, (0, 0, 0, 0))
@@ -668,17 +672,17 @@ def get_icon(name: str, size: tuple[int, int] = (20, 20), light_only: bool = Fal
     elif dark_only:
         p = dark_path if dark_path.exists() else (standard_path if standard_path.exists() else light_path)
         if p.exists():
-            img = Image.open(p)
+            img = carregar_imagem(p)
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
         else:
             img = Image.new("RGBA", size, (0, 0, 0, 0))
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
     elif dark_path.exists() and light_path.exists():
-        img_dark = Image.open(dark_path)
-        img_light = Image.open(light_path)
+        img_dark = carregar_imagem(dark_path)
+        img_light = carregar_imagem(light_path)
         ctk_img = ctk.CTkImage(light_image=img_dark, dark_image=img_light, size=size)
     elif standard_path.exists():
-        img = Image.open(standard_path)
+        img = carregar_imagem(standard_path)
         ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=size)
     else:
         img = Image.new("RGBA", size, (0, 0, 0, 0))

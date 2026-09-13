@@ -9,11 +9,38 @@ CPF, CNPJ e e-mail são mascarados antes da gravação.
 import logging
 import re
 import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
 _logger_configurado = False
+_contexto_api = ContextVar("contracto_api", default=False)
+
+
+class _FiltroApi(logging.Filter):
+    def filter(self, record):
+        if _contexto_api.get():
+            # Serviços legados registram nomes e caminhos: na API só o evento.
+            record.msg = "Evento do processamento local."
+            record.args = ()
+            record.exc_info = None
+            record.exc_text = None
+            record.stack_info = None
+        return True
+
+
+_filtro_api = _FiltroApi()
+
+
+@contextmanager
+def contexto_log_api():
+    token = _contexto_api.set(True)
+    try:
+        yield
+    finally:
+        _contexto_api.reset(token)
 
 # Arquivo de log: 2 MB por arquivo, mantendo os 5 mais recentes.
 _TAMANHO_MAXIMO_LOG = 2 * 1024 * 1024
@@ -98,4 +125,7 @@ def configurar_logger() -> logging.Logger:
 
 def obter_logger(nome: str = "contracto") -> logging.Logger:
     """Retorna um logger filho do logger principal."""
-    return logging.getLogger(f"contracto.{nome}")
+    logger = logging.getLogger(f"contracto.{nome}")
+    if _filtro_api not in logger.filters:
+        logger.addFilter(_filtro_api)
+    return logger
