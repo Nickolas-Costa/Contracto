@@ -1,0 +1,33 @@
+/* Tokens do Contracto (docs/DESIGN.md §8). */
+:root {
+  --c-primary: #005CA9;
+  --c-primary-hover: #00467F;
+  --c-primary-light: #99C2E2;
+  --c-bg: #F5F5F5;
+  --c-surface: #FFFFFF;
+  --c-surface-variant: #F0F0F0;
+  --c-border: #E0E0E0;
+  --c-text: #212121;
+  --c-text-secondary: #666666;
+  --c-success: #2E7D32;
+  --c-warning-badge: #B45309;
+  --c-error: #D32F2F;
+  --c-info: #005CA9;
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r-card: 12px;
+  --r-button: 12px;
+  --r-input: 8px;
+  --motion-fast: 150ms;
+  --motion-med: 220ms;
+}
+
+[data-theme="dark"] {
+  --c-bg: #1E1E1E;
+  --c-surface: #2B2B2B;
+  --c-surface-variant: #333333;
+  --c-border: #424242;
+  --c-text: #E0E0E0;
+  --c-text-secondary: #AAAAAA;
+  --c-primary-light: #7FB3D9;
+  --c-info: #7FB3D9;
+}

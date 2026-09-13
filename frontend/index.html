@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Contracto</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+<svg id="ondas" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 1200 800">
+<path d="M0,120 C200,100 400,140 600,120 S1000,100 1200,120" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
+<path d="M0,160 C200,140 400,180 600,160 S1000,140 1200,160" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
+<path d="M0,200 C200,180 400,220 600,200 S1000,180 1200,200" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
+</svg>
+
+<div id="app">
+  <header class="toolbar">
+    <span class="marca">Contracto</span>
+    <div class="modos" role="group" aria-label="Modo">
+      <button id="modo-simples" type="button">Simples</button>
+      <button id="modo-avancado" type="button" aria-current="page">Avançado</button>
+    </div>
+    <nav aria-label="Telas">
+      <button data-tela="inicio" type="button" aria-current="page">Início</button>
+      <button data-tela="perfis" type="button">Perfis</button>
+      <button data-tela="config" type="button">Config</button>
+    </nav>
+  </header>
+
+  <ol class="stepper" id="stepper" aria-label="Etapas">
+    <li><button data-etapa="1" type="button" aria-current="step">1. Geração de Documentos</button></li>
+    <li aria-hidden="true">→</li>
+    <li><button data-etapa="2" type="button">2. Conversão e Organização</button></li>
+  </ol>
+
+  <main id="telas">
+    <section id="tela-inicio" aria-label="Etapa 1">
+      <div class="card">
+        <h2>Formulários</h2>
+        <div id="lista-formularios"></div>
+      </div>
+      <div id="participantes"></div>
+      <div class="card">
+        <h2>Destino</h2>
+        <div class="field">
+          <label for="data-assinatura">Data da assinatura</label>
+          <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="local-assinatura">Local da assinatura</label>
+          <input id="local-assinatura" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pasta-saida">Diretório de saída</label>
+          <input id="pasta-saida" readonly>
+          <button class="btn btn-secondary" id="btn-pasta" type="button">Selecionar pasta</button>
+        </div>
+      </div>
+      <div id="campos-globais"></div>
+      <div class="acoes">
+        <button class="btn btn-primary" id="btn-gerar" type="button">Gerar documentos e avançar</button>
+        <span class="pendencias" id="pendencias" role="status"></span>
+        <button class="btn btn-secondary" id="btn-ver-pendencias" type="button" hidden>Ver pendências</button>
+      </div>
+    </section>
+
+    <section id="tela-etapa2" aria-label="Etapa 2" hidden>
+      <div class="card">
+        <h2>Conversão e Organização</h2>
+        <div id="fila-status" role="status">Nenhum processo em andamento.</div>
+        <div class="progresso" hidden><div id="fila-barra"></div></div>
+        <div class="acoes">
+          <button class="btn btn-primary" id="btn-finalizar" type="button">Finalizar processo</button>
+          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tela-perfis" aria-label="Perfis" hidden>
+      <div class="card"><h2>Perfis</h2><div id="lista-perfis"></div></div>
+    </section>
+
+    <section id="tela-config" aria-label="Configurações" hidden>
+      <div class="card">
+        <h2>Aparência</h2>
+        <div class="field">
+          <label for="cfg-tema">Tema</label>
+          <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <h2 id="modal-titulo"></h2>
+    <div id="modal-corpo"></div>
+    <div class="acoes" id="modal-acoes"></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/etapa1.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
