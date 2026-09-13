@@ -92,6 +92,7 @@
         clearInterval(estado.pollTimer);
         if (s.status === "completed") {
           statusEl.textContent += " Processo concluído.";
+          renderResultados(s.file_ids || []);
           ui().toast("Processo concluído.", "success");
         } else if (s.status === "failed") {
           ui().toast((s.error && s.error.message) || "Falha no processo.", "error");
@@ -100,6 +101,42 @@
     };
     estado.pollTimer = setInterval(sondar, 800);
     sondar();
+  }
+
+  function renderResultados(fileIds) {
+    let caixa = document.getElementById("lista-resultados");
+    if (!caixa) return;
+    caixa.innerHTML = "";
+    fileIds.forEach((id, i) => {
+      const linha = document.createElement("div");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-secondary";
+      btn.textContent = "Ver documento " + (i + 1);
+      btn.addEventListener("click", () => visualizar(id, i + 1));
+      linha.append(btn);
+      caixa.append(linha);
+    });
+  }
+
+  let urlAtual = null;
+
+  async function visualizar(fileId, numero) {
+    const r = await api().getFile(fileId);
+    if (!r.ok) {
+      ui().toast("Não foi possível visualizar.", "error");
+      return;
+    }
+    if (urlAtual) URL.revokeObjectURL(urlAtual);
+    const bytes = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0));
+    urlAtual = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const moldura = document.createElement("iframe");
+    moldura.title = "Documento " + numero;
+    moldura.src = urlAtual;
+    moldura.style.width = "100%";
+    moldura.style.height = "60vh";
+    moldura.style.border = "0";
+    ui().abrirModal("Documento " + numero, moldura, [{ texto: "Fechar", primario: true }]);
   }
 
   async function cancelar() {

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from utils.logger import contexto_log_api
 from version import __version__
@@ -152,6 +152,10 @@ def create_app(session):
     @app.get("/api/v1/jobs/{job_id}", response_model=JobState)
     def state(job_id: str):
         return session.jobs.snapshot(job_id)
+
+    @app.get("/api/v1/files/{file_id}")
+    def read_file(file_id: str):
+        return Response(session.jobs.read_file(file_id), media_type="application/pdf")
 
     @app.post("/api/v1/jobs/{job_id}/cancel", response_model=JobState)
     def cancel(job_id: str, request: EmptyInput):

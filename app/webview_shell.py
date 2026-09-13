@@ -1,4 +1,5 @@
 """Bootstrap de diagnóstico da base WebView; não substitui a UI de produção."""
+import base64
 import json
 import re
 import sys
@@ -64,6 +65,30 @@ class ShellBridge:
             return {"ok": ok, "code": "opened" if ok else "open_failed"}
         except Exception:
             return {"ok": False, "code": "result_unavailable"}
+
+    def get_file(self, file_id):
+        """Devolve um PDF de seleção válida em base64 (visualizador embutido)."""
+        if not self._authorized():
+            return {"ok": False, "code": "unauthorized_page"}
+        if not isinstance(file_id, str) or not file_id:
+            return {"ok": False, "code": "invalid_request"}
+        try:
+            request = Request(
+                self._server.origin + "/api/v1/files/" + file_id,
+                headers={"Authorization": f"Bearer {self._server.token}",
+                         "Origin": self._server.origin},
+            )
+            try:
+                response = build_opener(ProxyHandler({})).open(request, timeout=10)
+            except HTTPError as exc:
+                response = exc
+            with response:
+                if response.status != 200:
+                    return {"ok": False, "code": "file_unavailable"}
+                bruto = response.read()
+            return {"ok": True, "base64": base64.b64encode(bruto).decode("ascii")}
+        except Exception:
+            return {"ok": False, "code": "file_unavailable"}
 
     def _select(self, kind):
         if not self._authorized():
