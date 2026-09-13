@@ -262,6 +262,21 @@ class Jobs:
                 raise ApiError("result_unavailable", "Resultado ainda não disponível", 409)
             return self.selections.resolve(self._outputs[key], "directory")
 
+    def read_file(self, key, limite_bytes=20 * 1024 * 1024):
+        """Lê um PDF de seleção válida para pré-visualização (sem caminho)."""
+        try:
+            path = self.selections.resolve(key, "file")
+        except SelectionError:
+            raise ApiError("file_not_found", "Arquivo não encontrado", 404) from None
+        if path.suffix.lower() != ".pdf":
+            raise ApiError("unsupported_preview", "Pré-visualização só para PDF", 415)
+        try:
+            if path.stat().st_size > limite_bytes:
+                raise ApiError("file_too_large", "Arquivo grande demais para visualizar", 413)
+            return path.read_bytes()
+        except OSError:
+            raise ApiError("file_not_found", "Arquivo não encontrado", 404) from None
+
     def close(self):
         with self._lock:
             self._closed = True

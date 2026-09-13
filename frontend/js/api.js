@@ -27,5 +27,10 @@
     return window.pywebview.api.open_result(jobId);
   }
 
-  window.ContractoAPI = { disponivel, request, selectOutput, openResult };
+  async function getFile(fileId) {
+    if (!disponivel()) return { ok: false, code: "sem_ponte" };
+    return window.pywebview.api.get_file(fileId);
+  }
+
+  window.ContractoAPI = { disponivel, request, selectOutput, openResult, getFile };
 })();

@@ -3,12 +3,23 @@
   "use strict";
 
   function iniciar() {
-    const tema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    let tema = "light";
+    try {
+      const salvo = localStorage.getItem("contracto-tema");
+      if (salvo === "light" || salvo === "dark") {
+        tema = salvo;
+      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        tema = "dark";
+      }
+    } catch (e) { /* sem armazenamento: segue o claro */ }
     window.ContractoUI.aplicarTema(tema);
     const sel = document.getElementById("cfg-tema");
     if (sel) {
       sel.value = tema;
-      sel.addEventListener("change", () => window.ContractoUI.aplicarTema(sel.value));
+      sel.addEventListener("change", () => {
+        window.ContractoUI.aplicarTema(sel.value);
+        try { localStorage.setItem("contracto-tema", sel.value); } catch (e) { /* sem armazenamento */ }
+      });
     }
     if (!window.ContractoAPI.disponivel()) {
       window.ContractoUI.toast("Abra pelo aplicativo: esta página precisa da ponte local.", "warning");

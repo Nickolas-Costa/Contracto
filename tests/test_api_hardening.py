@@ -248,6 +248,58 @@ class TestRoteamentoTrabalhos(BaseHardening):
         self.assertEqual(status, 422)
 
 
+class TestArquivosVisualizacao(BaseHardening):
+    def _file_id(self):
+        pdf = self.root / "ver.pdf"
+        pdf.write_bytes(b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+                        b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+                        b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]>>endobj\n"
+                        b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n"
+                        b"0000000058 00000 n \n0000000115 00000 n \ntrailer\n"
+                        b"<< /Size 4 /Root 1 0 R >>\nstartxref\n200\n%%EOF")
+        return self.server.jobs.selections.register(pdf, "file")
+
+    def test_pdf_valido_devolve_bytes(self):
+        status, _ = self.http(f"/api/v1/files/{self._file_id()}")
+        self.assertEqual(status, 200)
+
+    def test_desconhecido_e_travessia(self):
+        for fid in ["0" * 32, "..%2F..%2Fsegredo", "x" * 300]:
+            status, data = self.http(f"/api/v1/files/{fid}")
+            self.assertEqual(status, 404, fid)
+            self.assertIn(data["code"], {"file_not_found", "invalid_route"})
+            self.assertNotIn("Traceback", json.dumps(data))
+
+    def test_nao_pdf_rejeitado(self):
+        rtf = self.root / "doc.rtf"
+        rtf.write_text("{\\rtf1 teste}", encoding="utf-8")
+        fid = self.server.jobs.selections.register(rtf, "file")
+        status, data = self.http(f"/api/v1/files/{fid}")
+        self.assertEqual(status, 415)
+        self.assertEqual(data["code"], "unsupported_preview")
+
+    def test_sem_token_rejeitado(self):
+        status, _ = self.http(f"/api/v1/files/{self._file_id()}",
+                              headers={"Authorization": None})
+        self.assertEqual(status, 401)
+
+    def test_ponte_get_file(self):
+        from webview_shell import ShellBridge
+
+        class Janela:
+            def get_current_url(self):
+                return None
+
+        ponte = ShellBridge(self.server)
+        ponte._window = Janela()
+        ok = ponte.get_file(self._file_id())
+        self.assertTrue(ok["ok"])
+        self.assertTrue(ok["base64"].startswith("JVBER"))
+        ruim = ponte.get_file("0" * 32)
+        self.assertFalse(ruim["ok"])
+        self.assertFalse(ponte.get_file("")[ "ok"])
+
+
 class TestIsolamentoSessao(BaseHardening):
     def test_tokens_nao_cruzam_servidores(self):
         outro = LocalServer([self.profile]).start()
