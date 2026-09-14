@@ -15,6 +15,7 @@ TOKENS_OBRIGATORIOS = [
 class TestFrontendBase(unittest.TestCase):
     def test_arquivos_presentes(self):
         for rel in ["index.html", "css/tokens.css", "css/layout.css",
+                    "assets/logo.png",
                     "js/api.js", "js/ui.js", "js/etapa1.js", "js/etapa2.js",
                     "js/app.js"]:
             self.assertTrue((RAIZ / rel).is_file(), rel)
@@ -53,10 +54,34 @@ class TestFrontendBase(unittest.TestCase):
 
     def test_acessibilidade_basica(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        css = (RAIZ / "css/layout.css").read_text(encoding="utf-8")
         for exigido in ['lang="pt-BR"', "aria-current", 'role="status"',
                         'aria-modal="true"', "<label", "prefers-reduced-motion",
                         'id="conexao"']:
-            self.assertIn(exigido, html + (RAIZ / "css/layout.css").read_text(encoding="utf-8"), exigido)
+            self.assertIn(exigido, html + css, exigido)
+
+    def test_estrutura_revisao_visual(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        css = (RAIZ / "css/layout.css").read_text(encoding="utf-8")
+        # Logo no lugar do "C" genérico + favicon.
+        self.assertIn('assets/logo.png', html)
+        self.assertIn('rel="icon"', html)
+        # Stepper em 4 etapas: preencher, conferir, revisar, enviar.
+        for n in ["1", "2", "3", "4"]:
+            self.assertIn(f'data-etapa="{n}"', html)
+        # Sem contador de selecionados e sem bloco "antes de gerar".
+        self.assertNotIn("selecao-resumo", html)
+        self.assertNotIn("Antes de gerar", html)
+        self.assertIn('id="btn-selecionar-todos"', html)
+        # Resumo com links para edição.
+        self.assertIn('data-ir="btn-pasta"', html)
+        # Scroll estilizado, faixa do modal e fundo modular.
+        for exigido in ["::-webkit-scrollbar", "scrollbar-width",
+                        "modal-titulo-faixa", "modal-fechar",
+                        "repeating-linear-gradient"]:
+            self.assertIn(exigido, css)
+        # Configurações no topo, fora da navegação.
+        self.assertIn('id="btn-config-topo"', html)
 
     def test_boot_aguarda_ponte(self):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")

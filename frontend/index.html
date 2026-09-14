@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; frame-src blob:; base-uri 'none'; form-action 'none'">
 <title>Contracto</title>
+<link rel="icon" href="assets/logo.png" type="image/png">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 </head>
@@ -12,19 +13,23 @@
 <div id="app">
   <button class="skip-link" id="pular-conteudo" type="button">Pular para o conteúdo</button>
   <header class="toolbar">
-    <span class="marca"><span class="brand-mark" aria-hidden="true">C</span>Contracto</span>
+    <span class="marca"><img class="brand-mark" src="assets/logo.png" alt="Logotipo do Contracto" width="34" height="38">Contracto</span>
     <nav aria-label="Telas">
       <button data-tela="inicio" type="button" aria-current="page">Documentos</button>
       <button data-tela="perfis" type="button">Perfis</button>
-      <button data-tela="config" type="button">Configurações</button>
     </nav>
     <span id="conexao" role="status">Conectando…</span>
+    <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
   </header>
 
   <ol class="stepper" id="stepper" aria-label="Etapas">
     <li><button data-etapa="1" type="button" aria-current="step"><span class="step-number">1</span>Preencher dados</button></li>
     <li class="step-divider" aria-hidden="true"></li>
-    <li><button data-etapa="2" type="button"><span class="step-number">2</span>Revisar documentos</button></li>
+    <li><button data-etapa="2" type="button"><span class="step-number">2</span>Conferir</button></li>
+    <li class="step-divider" aria-hidden="true"></li>
+    <li><button data-etapa="3" type="button"><span class="step-number">3</span>Revisar documentos</button></li>
+    <li class="step-divider" aria-hidden="true"></li>
+    <li><button data-etapa="4" type="button"><span class="step-number">4</span>Enviar</button></li>
   </ol>
 
   <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
@@ -36,7 +41,7 @@
       </div>
       <div class="workspace"><div class="workspace-main">
       <div class="card">
-        <div class="card-header"><div><h2>Quais formulários?</h2><p class="hint">Selecione os modelos que farão parte deste trabalho.</p></div><span class="section-tag" id="selecao-resumo">Carregando</span></div>
+        <div class="card-header"><div><h2>Quais formulários?</h2><p class="hint">Selecione os modelos que farão parte deste trabalho.</p></div><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
         <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
       </div>
       <div id="participantes"></div>
@@ -72,8 +77,7 @@
         <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
       </div>
       </div><aside class="summary" aria-label="Resumo do trabalho">
-        <div class="card"><h2>Seu trabalho</h2><dl><dt>Formulários selecionados</dt><dd id="resumo-formularios">Aguardando seleção</dd><dt>Participantes</dt><dd id="resumo-participantes">1 participante</dd><dt>Pasta de destino</dt><dd id="resumo-destino">Escolha uma pasta</dd></dl></div>
-        <div class="card summary-help"><h2>Antes de gerar</h2><ol><li>Confira os nomes e os documentos de identificação.</li><li>Os dados compartilhados serão usados em todos os formulários.</li><li>Na próxima etapa você poderá conferir os PDFs.</li></ol></div>
+        <div class="card"><h2>Seu trabalho</h2><dl><dt>Formulários selecionados</dt><dd><button class="btn-link" data-ir="lista-formularios" type="button" id="resumo-formularios">Aguardando seleção</button></dd><dt>Participantes</dt><dd><button class="btn-link" data-ir="participantes" type="button" id="resumo-participantes">1 participante</button></dd><dt>Pasta de destino</dt><dd><button class="btn-link" data-ir="btn-pasta" type="button" id="resumo-destino">Escolha uma pasta</button></dd></dl></div>
       </aside></div>
     </section>
 
