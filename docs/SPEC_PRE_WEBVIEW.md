@@ -1,5 +1,11 @@
 # Especificação — preparação para WebView e integração futura
 
+## Extensões implementadas em 14/09/2026
+
+`POST /api/v1/profiles/preview` recebe `profile_ids` e `participants`; retorna `values` por participante e `issues` sem gerar arquivos. Aplica as mesmas regras de preparação da geração. A geração revalida os dados independentemente do preview.
+
+Geração e processamento aceitam `request_id` opcional no formato dos IDs da API. Repetir o mesmo comando com o mesmo ID recupera o trabalho na sessão; conteúdo diferente retorna 409. O registro é apenas em memória e acompanha o limite de trabalhos. A UI sempre fornece esse ID e mantém o snapshot em tentativas de retomada. Ver ADRs 0013–0015.
+
 ## Objetivo e limite da fase
 
 Esta fase entrega o contrato local entre uma interface WebView e o núcleo Python existente. Não entrega site público, API exposta à internet, login corporativo ou armazenamento de documentos em nuvem.

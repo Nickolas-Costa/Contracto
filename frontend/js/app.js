@@ -1,85 +1,55 @@
-/* Inicialização: aguarda DOM e ponte, com estado persistente de conexão. */
+/* Bootstrap recuperável; ligação dos eventos é independente da conexão. */
 (function () {
   "use strict";
-
-  var iniciado = false;
-  var timerFalha = null;
-
-  function setConexao(estado, mensagem) {
-    var el = document.getElementById("conexao");
-    if (el) {
-      el.textContent = mensagem;
-      el.dataset.estado = estado;
-    }
-    ["btn-gerar", "btn-finalizar", "btn-pasta"].forEach(function (id) {
-      var btn = document.getElementById(id);
-      if (btn) btn.disabled = estado !== "pronto";
-    });
+  let ligado = false, conectando = null, timer = null, pronto = false;
+  function conexao(ok, mensagem) {
+    pronto = ok;
+    const el = document.getElementById("conexao");
+    el.textContent = mensagem;
+    el.dataset.estado = ok ? "pronto" : "falha";
+    window.ContractoEtapa1?.atualizar();
+    window.ContractoEtapa2?.atualizar();
   }
-
-  function marcarFalha() {
-    setConexao("falha", "Falha ao conectar. ");
-    var el = document.getElementById("conexao");
-    if (el && !document.getElementById("btn-tentar")) {
-      var btn = document.createElement("button");
-      btn.id = "btn-tentar";
-      btn.type = "button";
-      btn.textContent = "Tentar novamente";
-      btn.addEventListener("click", function () {
-        btn.remove();
-        iniciar();
-      });
-      el.append(btn);
-    }
+  function falha() {
+    conexao(false, "Sem conexão. ");
+    const btn = document.createElement("button");
+    btn.id = "btn-tentar"; btn.type = "button"; btn.textContent = "Tentar novamente";
+    btn.addEventListener("click", iniciar);
+    document.getElementById("conexao").append(btn);
   }
-
-  async function verificar() {
-    try {
-      const r = await window.ContractoAPI.request("GET", "/api/v1/health");
-      if (r.status === 200) {
-        if (timerFalha) { clearTimeout(timerFalha); timerFalha = null; }
-        setConexao("pronto", "Pronto.");
-        return true;
-      }
-    } catch (e) { /* segue para falha abaixo */ }
-    marcarFalha();
-    return false;
-  }
-
-  function iniciar() {
-    if (iniciado) return;
-    setConexao("conectando", "Conectando…");
-    if (window.ContractoAPI.disponivel()) {
-      finalizarArranque();
-      return;
-    }
-    const aoPronto = () => {
-      window.removeEventListener("pywebviewready", aoPronto);
-      finalizarArranque();
-    };
-    window.addEventListener("pywebviewready", aoPronto);
-    if (timerFalha) clearTimeout(timerFalha);
-    timerFalha = setTimeout(() => {
-      window.removeEventListener("pywebviewready", aoPronto);
-      marcarFalha();
-    }, 15000);
-    window.ContractoUI.aplicarTemaInicial();
-  }
-
   async function finalizarArranque() {
-    if (iniciado) return;
-    iniciado = true;
-    if (timerFalha) { clearTimeout(timerFalha); timerFalha = null; }
+    if (conectando) return conectando;
+    clearTimeout(timer);
+    conectando = (async () => {
+      try {
+        const r = await window.ContractoAPI.request("GET", "/api/v1/health");
+        if (r.status !== 200) { falha(); return false; }
+        conexao(true, "Pronto.");
+        if (!ligado) {
+          ligado = true;
+          window.ContractoEtapa2.ligar();
+          window.ContractoEtapa1.ligar();
+        } else {
+          await window.ContractoEtapa1.reconectar();
+          window.ContractoEtapa2.reconectar();
+        }
+        return true;
+      } catch (_) { falha(); return false; }
+    })();
+    try { return await conectando; } finally { conectando = null; }
+  }
+  function iniciar() {
     window.ContractoUI.aplicarTemaInicial();
-    const ok = await verificar();
-    if (ok) window.ContractoEtapa1.ligar();
+    if (conectando) return conectando;
+    conexao(false, "Conectando…");
+    clearTimeout(timer);
+    if (window.ContractoAPI.disponivel()) return finalizarArranque();
+    timer = setTimeout(falha, 15000);
   }
-
-  window.ContractoApp = { iniciar, verificar, reiniciado: () => { iniciado = false; } };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciar);
-  } else {
-    iniciar();
-  }
+  window.ContractoApp = { iniciar, verificar: finalizarArranque, pronto: () => pronto, falha };
+  window.addEventListener("pywebviewready", () => {
+    if (document.readyState !== "loading") finalizarArranque();
+  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
+  else iniciar();
 })();

@@ -26,9 +26,12 @@
   }
 
   let ultimoFoco = null;
+  let aoFechar = null;
 
-  function abrirModal(titulo, corpoHTML, botoes) {
+  function abrirModal(titulo, corpoHTML, botoes, cleanup) {
+    if (!document.getElementById("overlay").hidden) fecharModal();
     ultimoFoco = document.activeElement;
+    aoFechar = cleanup || null;
     const overlay = document.getElementById("overlay");
     document.getElementById("modal-titulo").textContent = titulo;
     const corpo = document.getElementById("modal-corpo");
@@ -51,12 +54,16 @@
       acoes.append(btn);
     });
     overlay.hidden = false;
+    document.getElementById("app").inert = true;
     const primeiro = acoes.querySelector("button");
     if (primeiro) primeiro.focus();
   }
 
   function fecharModal() {
     document.getElementById("overlay").hidden = true;
+    document.getElementById("app").inert = false;
+    document.getElementById("modal-corpo").replaceChildren();
+    if (aoFechar) { aoFechar(); aoFechar = null; }
     if (ultimoFoco && document.contains(ultimoFoco)) ultimoFoco.focus();
     ultimoFoco = null;
   }
@@ -65,7 +72,15 @@
     if (ev.target.id === "overlay") fecharModal();
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && !document.getElementById("overlay").hidden) fecharModal();
+    const overlay = document.getElementById("overlay");
+    if (overlay.hidden) return;
+    if (ev.key === "Escape") { ev.preventDefault(); fecharModal(); }
+    if (ev.key === "Tab") {
+      const focusable = [...overlay.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), iframe, [tabindex="0"]')].filter(el => !el.hidden);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (ev.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) { ev.preventDefault(); last?.focus(); }
+      else if (!ev.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) { ev.preventDefault(); first?.focus(); }
+    }
   });
 
   function mostrarTela(nome) {
@@ -76,6 +91,11 @@
       if (b.dataset.tela === nome) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
+    document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
+      if ((nome === "inicio" && b.dataset.etapa === "1") || (nome === "etapa2" && b.dataset.etapa === "2")) b.setAttribute("aria-current", "step");
+      else b.removeAttribute("aria-current");
+    });
+    window.scrollTo(0, 0);
   }
 
   function irEtapa(n) {

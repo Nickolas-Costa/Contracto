@@ -9,6 +9,7 @@ Estado mais recente e pendências: `docs/BASE_UI_STATUS.md`. A API local, fila e
 - Windows: `.venv/Scripts/python.exe -m unittest discover -s tests -v`.
 - Smoke real: `.venv/Scripts/python.exe tests/smoke_test_gui.py`.
 - WebView2 real: `.venv/Scripts/python.exe tests/smoke_webview.py`.
+- Jornada da nova UI, massa sintética e PDFs conferidos: `.venv/Scripts/python.exe tests/smoke_webview_ui.py` (Windows; `--visible` mantém a janela para revisão).
 - Motores reais via HTTP (exige Word/GS): `.venv/Scripts/python.exe tests/smoke_api_engines.py`.
 - Linux com Tk/Xvfb: `xvfb-run -a .venv/bin/python -m unittest discover -s tests -v` e `xvfb-run -a .venv/bin/python tests/smoke_test_gui.py`.
 - Backend isolado: `python -m unittest discover -s tests -p test_headless_backend.py -v`.

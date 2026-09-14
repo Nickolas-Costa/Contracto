@@ -1,267 +1,179 @@
-/* Etapa 1: perfis, participantes, destino, geração e fila. */
+/* Rascunho preservado por campo e participante; DOM apenas apresenta valores. */
 (function () {
   "use strict";
-
-  const api = () => window.ContractoAPI;
-  const ui = () => window.ContractoUI;
-
-  const estado = {
-    perfis: [],
-    perfilId: null,
-    campos: [],
-    participantes: 1,
-    outputId: null,
-    jobId: null,
-    pollTimer: null,
-    ultimo: null,
-  };
-
-  function lerParaEtapa2() {
-    return estado.ultimo;
+  const $ = id => document.getElementById(id), form = () => window.ContractoForm;
+  const draft = {people: [{nome_completo:"",cpf:""}], globals:{data_assinatura:"",local_assinatura:""}};
+  let catalog = [], selected = [], fields = [], maximum = 1, revision = 0, compositionRevision = 0;
+  let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "avancado";
+  const controls = [];
+  let previewTimer=null, previewPending=false;
+  const busy = () => window.ContractoEtapa2?.ocupado() || false;
+  const online = () => window.ContractoApp?.pronto() || false;
+  function changed() {
+    issues = []; revision++;
+    window.ContractoEtapa2?.invalidar();
+    schedulePreview();
+    atualizar();
   }
-
-  function texto(el, msg) {
-    el.textContent = msg;
+  function values(index) { return {...draft.people[index],...draft.globals,...(draft.computed?.[index] || {})}; }
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewPending=composed && online() && draft.people.every(p=>p.nome_completo && form().cpfValid(p.cpf));
+    if(!previewPending)return;
+    previewTimer=setTimeout(async()=>{
+      const expected=revision;
+      const r=await window.ContractoAPI.request("POST","/api/v1/profiles/preview",{profile_ids:selected,participants:form().participants(draft,fields)});
+      if(expected!==revision)return;
+      previewPending=false;
+      if(r.status===200){
+        issues=r.data.issues || [];
+        draft.computed=(r.data.values || []).map(row=>Object.fromEntries(fields.filter(f=>f.calculo).map(f=>[f.id,row[f.id]])));
+        controls.filter(c=>c.field.calculo).forEach(c=>c.input.value=draft.computed[c.index]?.[c.id] ?? "");
+      } else issues=r.data?.issues?.length ? r.data.issues : [{field:"Validação",message:"Não foi possível validar. Tente conectar novamente."}];
+      atualizar();
+    },350);
   }
-
-  function campoTexto(rotulo, id, attrs) {
-    const wrap = document.createElement("div");
-    wrap.className = "field";
-    const lab = document.createElement("label");
-    lab.setAttribute("for", id);
-    lab.textContent = rotulo;
-    const inp = document.createElement("input");
-    inp.id = id;
-    Object.assign(inp, attrs || {});
-    inp.setAttribute("autocomplete", "off");
-    const err = document.createElement("div");
-    err.className = "erro";
-    err.hidden = true;
-    wrap.append(lab, inp, err);
-    return { wrap, inp, err };
-  }
-
-  function marcarErro(input, errEl, msg) {
-    if (!msg) {
-      input.removeAttribute("aria-invalid");
-      errEl.hidden = true;
-      errEl.textContent = "";
-      return;
-    }
-    input.setAttribute("aria-invalid", "true");
-    errEl.hidden = false;
-    errEl.textContent = msg;
-  }
-
-  async function carregar() {
-    const r = await api().request("GET", "/api/v1/profiles");
-    if (r.status !== 200) {
-      ui().toast("Não foi possível carregar os formulários.", "error");
-      return;
-    }
-    estado.perfis = r.data;
-    const caixa = document.getElementById("lista-formularios");
-    caixa.innerHTML = "";
-    estado.perfis.forEach((p) => {
-      const lab = document.createElement("label");
-      const chk = document.createElement("input");
-      chk.type = "checkbox";
-      chk.value = p.profile_id;
-      chk.checked = estado.perfilId === null;
-      chk.addEventListener("change", () => {
-        const marcados = [...caixa.querySelectorAll("input:checked")].map((c) => c.value);
-        selecionar(marcados);
-      });
-      lab.append(chk, document.createTextNode(" " + p.name));
-      caixa.append(lab, document.createElement("br"));
-    });
-    const iniciais = estado.perfis.filter((p) => p.mode === "contrato").map((p) => p.profile_id);
-    selecionar(iniciais.length ? [iniciais[0]] : estado.perfis.slice(0, 1).map((p) => p.profile_id));
-  }
-
-  async function selecionar(ids) {
-    if (!ids.length) return;
-    const r = await api().request("POST", "/api/v1/profiles/compose", { profile_ids: ids });
-    if (r.status !== 200) {
-      ui().toast((r.data && r.data.message) || "Formulários incompatíveis.", "error");
-      return;
-    }
-    estado.perfilId = ids;
-    estado.campos = r.data.fields || [];
-    renderParticipantes();
-    atualizarPendencias();
-  }
-
-  function escopoCampos() {
-    return estado.campos.filter((c) => (c.escopo || "participante") === "participante");
-  }
-
-  function renderParticipantes() {
-    const caixa = document.getElementById("participantes");
-    caixa.innerHTML = "";
-    for (let i = 0; i < estado.participantes; i++) {
-      const card = document.createElement("div");
-      card.className = "card";
-      const h = document.createElement("h2");
-      h.textContent = i === 0 ? "Participante principal" : "Participante " + (i + 1);
-      card.append(h);
-      const nome = campoTexto("Nome completo", "nome-" + i, {});
-      const cpf = campoTexto("CPF", "cpf-" + i, { inputMode: "numeric" });
-      card.append(nome.wrap, cpf.wrap);
-      escopoCampos().forEach((c) => {
-        const f = campoTexto(c.rotulo || c.id, "dyn-" + i + "-" + c.id, {});
-        f.inp.dataset.campoId = c.id;
-        card.append(f.wrap);
-      });
-      caixa.append(card);
-    }
-  }
-
-  function lerParticipantes() {
-    const lista = [];
-    for (let i = 0; i < estado.participantes; i++) {
-      const get = (id) => document.getElementById(id).value.trim();
-      const dinamicos = {};
-      document.querySelectorAll("#participantes [data-campo-id]").forEach((inp) => {
-        const pagina = Number(inp.closest(".card") ? [...document.getElementById("participantes").children].indexOf(inp.closest(".card")) : 0);
-        if (pagina === i && inp.value.trim()) dinamicos[inp.dataset.campoId] = inp.value.trim();
-      });
-      lista.push({
-        nome_completo: get("nome-" + i),
-        cpf: get("cpf-" + i),
-        endereco: "",
-        data_assinatura: document.getElementById("data-assinatura").value.trim(),
-        local_assinatura: document.getElementById("local-assinatura").value.trim(),
-        campos_dinamicos: dinamicos,
-      });
-    }
-    return lista;
-  }
-
-  function validarLocal() {
-    const faltas = [];
-    const lista = lerParticipantes();
-    lista.forEach((p, i) => {
-      if (!p.nome_completo) faltas.push("Participante " + (i + 1) + ": nome");
-      if (!p.cpf) faltas.push("Participante " + (i + 1) + ": CPF");
-    });
-    if (!document.getElementById("data-assinatura").value.trim()) faltas.push("Data da assinatura");
-    if (!document.getElementById("local-assinatura").value.trim()) faltas.push("Local da assinatura");
-    if (!estado.outputId) faltas.push("Diretório de saída");
-    return { lista, faltas };
-  }
-
-  function atualizarPendencias() {
-    const { faltas } = validarLocal();
-    const el = document.getElementById("pendencias");
-    const btn = document.getElementById("btn-ver-pendencias");
-    const gerar = document.getElementById("btn-gerar");
-    if (!faltas.length) {
-      el.textContent = "Pronto para gerar.";
-      el.classList.add("pronto");
-      btn.hidden = true;
-      gerar.disabled = false;
-    } else {
-      el.textContent = faltas.length + " pendência(s).";
-      el.classList.remove("pronto");
-      btn.hidden = false;
-      gerar.disabled = true;
-      btn.onclick = () => {
-        const ul = document.createElement("ul");
-        faltas.forEach((f) => {
-          const li = document.createElement("li");
-          li.textContent = f;
-          ul.append(li);
-        });
-        ui().abrirModal("Campos pendentes", ul, [{ texto: "Entendi", primario: true }]);
-      };
-    }
-  }
-
-  async function escolherPasta() {
-    const r = await api().selectOutput();
-    if (r.cancelled) return;
-    if (r.selection_id) {
-      estado.outputId = r.selection_id;
-      document.getElementById("pasta-saida").value = "Pasta selecionada";
-    } else {
-      ui().toast("Não foi possível selecionar a pasta.", "error");
-    }
-    atualizarPendencias();
-  }
-
-  async function gerar() {
-    const { lista, faltas } = validarLocal();
-    if (faltas.length || !estado.perfilId) { atualizarPendencias(); return; }
-    estado.ultimaLista = lista;
-    const r = await api().request("POST", "/api/v1/jobs/generate", {
-      profile_ids: estado.perfilId,
-      participants: lista,
-      output_id: estado.outputId,
-    });
-    if (r.status !== 202) {
-      const det = r.data && r.data.issues ? ": " + r.data.issues.map((x) => x.field).join(", ") : "";
-      ui().toast(((r.data && r.data.message) || "Falha ao gerar.") + det, "error");
-      return;
-    }
-    estado.jobId = r.data.job_id;
-    ui().irEtapa(2);
-    acompanhar();
-  }
-
-  async function acompanhar() {
-    const statusEl = document.getElementById("fila-status");
-    const barra = document.getElementById("fila-barra");
-    barra.parentElement.hidden = false;
-    clearInterval(estado.pollTimer);
-    const sondar = async () => {
-      const r = await api().request("GET", "/api/v1/jobs/" + estado.jobId);
-      if (r.status !== 200) return;
-      const s = r.data;
-      const total = s.total || 1;
-      barra.style.width = Math.round((100 * (s.completed || 0)) / total) + "%";
-      statusEl.textContent = "Estado: " + s.status + " (" + (s.completed || 0) + "/" + total + ")";
-      if (["completed", "failed", "cancelled"].includes(s.status)) {
-        clearInterval(estado.pollTimer);
-        if (s.status === "completed") {
-          estado.ultimo = {
-            participants: estado.ultimaLista || [],
-            output_id: estado.outputId,
-            file_ids: s.file_ids || [],
-          };
-          statusEl.textContent += " Concluído.";
-          const btn = document.getElementById("btn-abrir-pasta");
-          btn.hidden = false;
-          btn.onclick = async () => {
-            const o = await api().openResult(estado.jobId);
-            if (!o.ok) ui().toast("Não foi possível abrir a pasta.", "error");
-          };
-          ui().toast("Documentos gerados.", "success");
-        } else if (s.status === "failed") {
-          ui().toast((s.error && s.error.message) || "Falha no processo.", "error");
-        }
+  function fieldControl(field,index,host) {
+    const id = form().canonical(field.id), global = field.escopo === "global";
+    const owner = global ? draft.globals : draft.people[index];
+    if (owner[id] === undefined) owner[id] = field.valor_padrao ?? "";
+    const wrap = document.createElement("div"); wrap.className = "field";
+    const label = document.createElement("label"), input = document.createElement(field.tipo === "SELECAO" ? "select" : "input");
+    input.id = "campo-" + (global ? "global" : index) + "-" + id;
+    label.htmlFor = input.id; label.textContent = (field.rotulo || id) + (field.obrigatorio ? " *" : "");
+    input.autocomplete = "off";
+    if (field.tipo === "SELECAO") {
+      for (const value of ["",...(field.opcoes || [])]) {
+        const option=document.createElement("option"); option.value=value; option.textContent=value || "Selecione"; input.append(option);
       }
-    };
-    estado.pollTimer = setInterval(sondar, 800);
-    sondar();
+    } else if (field.tipo === "CHECKBOX") {
+      input.type="checkbox"; const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
+      if (owner[id] === "") owner[id]=options[options.length-1];
+      input.checked = owner[id] === options[0] || owner[id] === true;
+    } else {
+      input.type = "text";
+      if (["CPF","CNPJ","CPF_CNPJ","INTEIRO","ANO","DATA","MOEDA","AREA"].includes(field.tipo)) input.inputMode = "decimal";
+      if (field.tipo === "DATA") input.placeholder="DD/MM/AAAA";
+      input.maxLength = 4000;
+    }
+    if (field.tipo !== "CHECKBOX") input.value=owner[id];
+    if (field.calculo) {input.readOnly=true; input.placeholder="Calculado pelo sistema ao gerar";}
+    const error=document.createElement("div"); error.id=input.id+"-erro"; error.className="erro"; error.hidden=true;
+    input.setAttribute("aria-describedby",error.id);
+    input.addEventListener("input",()=>{
+      if (busy()) return;
+      const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
+      owner[id]=field.tipo === "CHECKBOX" ? (input.checked ? options[0] : options[options.length-1]) : input.value.trim();
+      changed();
+    });
+    wrap.append(label,input,error); host.append(wrap);
+    controls.push({field,index,id,owner,wrap,input,error});
   }
-
+  function render() {
+    controls.length=0; $("participantes").replaceChildren(); $("campos-globais").replaceChildren();
+    draft.people.forEach((person,index)=>{
+      const card=document.createElement("div"); card.className="card";
+      const title=document.createElement("h2"); title.textContent=index ? "Participante "+(index+1) : "Participante principal"; card.append(title);
+      fieldControl({id:"nome_completo",rotulo:"Nome completo",tipo:"TEXTO",obrigatorio:true},index,card);
+      fieldControl({id:"cpf",rotulo:"CPF",tipo:"CPF",obrigatorio:true},index,card);
+      fields.filter(f=>f.escopo !== "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id))).forEach(f=>fieldControl(f,index,card));
+      if (index) {
+        const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-secondary"; remove.textContent="Remover participante "+(index+1);
+        remove.dataset.editable="true";
+        remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.abrirModal("Remover participante?","Os dados deste participante serão removidos do rascunho.",[{texto:"Voltar"},{texto:"Remover",aoClicar:()=>{draft.people.splice(index,1);changed();render();}}]);}); card.append(remove);
+      }
+      $("participantes").append(card);
+    });
+    const globals=fields.filter(f=>f.escopo === "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
+    if(globals.length){const card=document.createElement("div");card.className="card";const title=document.createElement("h2");title.textContent="Dados compartilhados";card.append(title);globals.forEach(f=>fieldControl(f,0,card));$("campos-globais").append(card);}
+    schedulePreview();atualizar();
+  }
+  function localIssues() {
+    const result=[];
+    controls.forEach(c=>{
+      const show=form().visible(c.field,values(c.index),c.index+1); c.wrap.hidden=!show;
+      if(!show || c.field.calculo)return;
+      const value=String(c.owner[c.id] ?? "").trim();
+      let message="";
+      if(c.field.obrigatorio && !value && c.field.tipo !== "CHECKBOX")message="Preencha este campo.";
+      if(value && c.field.tipo === "CPF" && !form().cpfValid(value))message="CPF inválido.";
+      if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
+      if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
+      if(message)result.push({participant:c.index+1,field:c.id,message});
+    });
+    if(!form().dateValid(draft.globals.data_assinatura)) result.push({field:"data_assinatura",message:"Informe uma data válida."});
+    if(!draft.globals.local_assinatura)result.push({field:"local_assinatura",message:"Informe o local da assinatura."});
+    return result;
+  }
+  function atualizar() {
+    const errors=[...localIssues(),...issues];
+    controls.forEach(c=>{
+      const error=errors.find(e=>form().canonical(e.field)===c.id && (!e.participant || e.participant===c.index+1 || c.field.escopo === "global"));
+      c.input.disabled=busy(); c.error.hidden=!error; c.error.textContent=error ? error.message || "Confira o valor e o formato deste campo." : "";
+      if(error)c.input.setAttribute("aria-invalid","true");else c.input.removeAttribute("aria-invalid");
+    });
+    const pending=[];
+    if(!online())pending.push("Aguardando conexão.");
+    if(composing)pending.push("Carregando campos…");
+    else if(!composed)pending.push("Selecione formulários compatíveis.");
+    if(previewPending)pending.push("Validando campos…");
+    if(draft.people.length>maximum)pending.push("Remova participantes: limite do perfil é "+maximum+".");
+    if(!draft.output_id)pending.push("Selecione a pasta de saída.");
+    errors.forEach(e=>pending.push((e.participant ? "Participante "+e.participant+": " : "")+e.field+" — "+(e.message || "Confira o valor.")));
+    $("pendencias").textContent=busy() ? "Trabalho em andamento." : pending.length ? pending.length+" pendência(s)." : "Pronto para gerar.";
+    $("pendencias").classList.toggle("pronto",!pending.length&&!busy());
+    $("btn-gerar").disabled=!!pending.length||busy();
+    $("btn-pasta").disabled=!online()||busy();
+    $("btn-adicionar").disabled=busy()||!composed||draft.people.length>=maximum;
+    $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
+    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-avancado').forEach(el=>el.disabled=busy());
+    const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
+    btn.onclick=()=>{const list=document.createElement("ul");pending.forEach(p=>{const li=document.createElement("li");li.textContent=p;list.append(li);});window.ContractoUI.abrirModal("Campos pendentes",list,[{texto:"Revisar",aoClicar:()=>controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus()}]);};
+    return pending;
+  }
+  async function selecionar(ids) {
+    if(busy())return;
+    changed(); const request=++compositionRevision; selected=ids; composing=!!ids.length; composed=false;
+    atualizar();
+    if(!ids.length){fields=[];render();return;}
+    const r=await window.ContractoAPI.request("POST","/api/v1/profiles/compose",{profile_ids:ids});
+    if(request!==compositionRevision)return;
+    composing=false;
+    if(r.status!==200){issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];atualizar();return;}
+    fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
+    if(catalog.some(p=>ids.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
+    composed=true;render();
+  }
+  async function carregar() {
+    const r=await window.ContractoAPI.request("GET","/api/v1/profiles");
+    if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];atualizar();return;}
+    catalog=r.data;loaded=true;
+    const initial=catalog.find(p=>p.mode === "contrato") || catalog[0];
+    selected=initial ? [initial.profile_id] : [];
+    $("lista-formularios").replaceChildren();$("lista-perfis").replaceChildren();
+    catalog.forEach(p=>{
+      const label=document.createElement("label"),check=document.createElement("input");check.type="checkbox";check.value=p.profile_id;check.checked=selected.includes(p.profile_id);
+      check.addEventListener("change",()=>selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value)));
+      label.append(check,document.createTextNode(" "+p.name));$("lista-formularios").append(label);
+      const item=document.createElement("p");item.textContent=p.name+" — até "+p.max_participants+" participante(s), "+p.fields.length+" campo(s).";$("lista-perfis").append(item);
+    });
+    if(!catalog.length)$("lista-perfis").textContent="Nenhum perfil disponível nesta instalação.";
+    await selecionar(selected);
+  }
+  async function gerar() {
+    if(atualizar().length||busy())return;
+    const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
+    const r=await window.ContractoEtapa2.gerar(snapshot);
+    if(r && r.status!==202){issues=r.data?.issues?.length ? r.data.issues : [{field:"Geração",message:r.data?.message || "Não foi possível gerar."}];atualizar();window.ContractoUI.toast(r.data?.message || "Confira os campos indicados.","error");controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus();}
+  }
   function ligar() {
-    document.getElementById("btn-pasta").addEventListener("click", escolherPasta);
-    document.getElementById("btn-gerar").addEventListener("click", gerar);
-    document.getElementById("tela-inicio").addEventListener("input", atualizarPendencias);
-    document.getElementById("modo-simples").addEventListener("click", () => {
-      document.getElementById("modo-simples").setAttribute("aria-current", "page");
-      document.getElementById("modo-avancado").removeAttribute("aria-current");
-      ui().toast("Modo Simples: marque os formulários desejados.", "info");
-    });
-    document.getElementById("modo-avancado").addEventListener("click", () => {
-      document.getElementById("modo-avancado").setAttribute("aria-current", "page");
-      document.getElementById("modo-simples").removeAttribute("aria-current");
-      carregar();
-    });
+    if(bound)return;bound=true;
+    $("btn-gerar").addEventListener("click",gerar);
+    $("btn-adicionar").addEventListener("click",()=>{if(busy()||draft.people.length>=maximum)return;draft.people.push({nome_completo:"",cpf:""});changed();render();});
+    ["data_assinatura","local_assinatura"].forEach(id=>$(id.replaceAll("_","-")).addEventListener("input",e=>{draft.globals[id]=e.target.value.trim();changed();}));
+    $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
+    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{if(busy())return;mode=name;["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});window.ContractoEtapa2.atualizar();$("btn-gerar").textContent=mode === "simples" ? "Gerar documentos" : "Gerar e organizar";}));
     carregar();
   }
-
-  window.ContractoEtapa1 = { ligar, lerParaEtapa2 };
+  window.ContractoEtapa1={ligar,atualizar,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
 })();

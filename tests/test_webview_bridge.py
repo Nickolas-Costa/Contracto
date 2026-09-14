@@ -38,3 +38,18 @@ class TestWebViewBridge(unittest.TestCase):
             self.assertNotIn(folder, str(result))
             self.assertEqual(server.jobs.selections.resolve(result["selection_id"], "directory"), Path(folder).resolve())
             self.assertEqual(WebViewDialogs(window).selecionar_pasta(), Path(folder))
+
+    def test_apenas_url_local_registrada_autorizada(self):
+        with LocalServer(profiles=[]) as server:
+            local = "file:///C:/app/frontend/index.html"
+            bridge = ShellBridge(server, frontend_url=local)
+            window = Mock()
+            bridge._attach(window)
+            window.get_current_url.return_value = local
+            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
+            window.get_current_url.return_value = local + "?x=1"
+            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
+            window.get_current_url.return_value = None
+            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
+            public = {name for name in dir(bridge) if not name.startswith("_") and callable(getattr(bridge, name))}
+            self.assertEqual(public, {"request", "select_file", "select_output", "open_result", "get_file"})

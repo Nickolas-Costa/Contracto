@@ -27,4 +27,7 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0010 | Pendências visuais do shell antes da WebView | futura |
 | 0011 | Base HTTP local e ponte nativa da WebView | aceita |
 | 0012 | Participante modular dirigido pelo perfil | aceita |
+| 0013 | Bootstrap recuperável e origem imutável da ponte | aceita |
+| 0014 | Rascunho canônico e validação compartilhada | aceita |
+| 0015 | Snapshot, manifesto e retomada sem duplicação | aceita |
 | — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |

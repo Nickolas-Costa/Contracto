@@ -62,8 +62,9 @@ class TestFrontendBase(unittest.TestCase):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         self.assertIn("pywebviewready", app_js)
         self.assertIn("finalizarArranque", app_js)
-        # Guarda contra dupla inicialização.
-        self.assertIn("if (iniciado) return;", app_js)
+        # Corridas e recuperação são exercitadas no teste de comportamento JS.
+        self.assertIn("conectando", app_js)
+        self.assertIn("ContractoEtapa2.ligar()", app_js)
 
 
 if __name__ == "__main__":

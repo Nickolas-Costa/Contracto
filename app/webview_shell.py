@@ -13,16 +13,12 @@ from ports.webview_dialog import WebViewDialogs
 
 class ShellBridge:
     """JS envia DTOs, nunca token ou caminho. A autenticação fica no processo nativo."""
-    def __init__(self, server):
+    def __init__(self, server, *, frontend_url=None):
         self._server = server
         self._window = None
         self._dialogs = None
-        self._allowed_urls = {None, "about:blank"}
-
-    def allow_url(self, url):
-        """Registra a URL local exata servida pelo shell (ex: arquivo do frontend)."""
-        if url:
-            self._allowed_urls.add(url)
+        # Configuração nativa, nunca método exportado ao JavaScript.
+        self._allowed_urls = frozenset({frontend_url} if frontend_url else {None, "about:blank"})
 
     def _attach(self, window):
         self._window = window
@@ -76,7 +72,7 @@ class ShellBridge:
         """Devolve um PDF de seleção válida em base64 (visualizador embutido)."""
         if not self._authorized():
             return {"ok": False, "code": "unauthorized_page"}
-        if not isinstance(file_id, str) or not file_id:
+        if not isinstance(file_id, str) or not re.fullmatch(r"[a-f0-9]{32}", file_id):
             return {"ok": False, "code": "invalid_request"}
         try:
             request = Request(
@@ -89,9 +85,15 @@ class ShellBridge:
             except HTTPError as exc:
                 response = exc
             with response:
+                if response.status == 413:
+                    return {"ok": False, "code": "preview_too_large"}
                 if response.status != 200:
                     return {"ok": False, "code": "file_unavailable"}
-                bruto = response.read()
+                bruto = response.read(20 * 1024 * 1024 + 1)
+                if len(bruto) > 20 * 1024 * 1024:
+                    return {"ok": False, "code": "preview_too_large"}
+            if not self._authorized():
+                return {"ok": False, "code": "unauthorized_page"}
             return {"ok": True, "base64": base64.b64encode(bruto).decode("ascii")}
         except Exception:
             return {"ok": False, "code": "file_unavailable"}
@@ -105,7 +107,7 @@ class ShellBridge:
                 return {"cancelled": True}
             if not self._authorized():
                 return {"code": "unauthorized_page"}
-            return {"selection_id": self._server.jobs.selections.register(path, kind)}
+            return {"selection_id": self._server.jobs.selections.register(path, kind), "name": path.name}
         except Exception:
             return {"code": "selection_failed"}
 
@@ -133,15 +135,15 @@ def main(self_test=False, ui=False):
     errors = []
     frontend_url = None
     if ui:
-        index = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+        root = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+        index = root / "frontend" / "index.html"
         if not index.is_file():
             raise RuntimeError("Frontend não encontrado em frontend/index.html")
         frontend_url = index.as_uri()
     with LocalServer(profiles=[] if self_test else None) as server:
-        bridge = ShellBridge(server)
+        bridge = ShellBridge(server, frontend_url=frontend_url)
         titulo = "Contracto" if ui else "Contracto — diagnóstico da base"
         if frontend_url:
-            bridge.allow_url(frontend_url)
             window = webview.create_window(titulo, url=frontend_url,
                                            js_api=bridge, width=1200, height=850,
                                            hidden=self_test)

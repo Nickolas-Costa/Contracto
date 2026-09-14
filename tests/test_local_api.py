@@ -26,6 +26,33 @@ from utils.profile_manager import CampoEntrada, FormularioModelo, Perfil
 
 
 class TestLocalAPI(unittest.TestCase):
+    def test_preview_recalculates_without_creating_job(self):
+        for profile in self.server.jobs.profiles.values():
+            profile.campos_entrada = [CampoEntrada(id="valor", rotulo="Valor", tipo="MOEDA"),
+                                     CampoEntrada(id="total", rotulo="Total", tipo="MOEDA", calculo="valor + valor")]
+        body = copy.deepcopy(self.payload)
+        body.pop("output_id")
+        body["participants"][0]["campos_dinamicos"] = {"valor": "12,50", "total": "999,00"}
+        status, result = self.http("/api/v1/profiles/preview", body)
+        self.assertEqual(status, 200)
+        self.assertEqual(result["values"][0]["total"], "25,00")
+        self.assertFalse(result["issues"])
+        self.assertFalse(self.server.jobs._states)
+
+    def test_idempotent_generation_and_conflicting_reuse(self):
+        body = dict(self.payload, request_id="a" * 32)
+        status, first = self.http("/api/v1/jobs/generate", body)
+        self.assertEqual(status, 202)
+        status, second = self.http("/api/v1/jobs/generate", body)
+        self.assertEqual(status, 202)
+        self.assertEqual(first["job_id"], second["job_id"])
+        self.assertEqual(len(self.server.jobs._states), 1)
+        changed = copy.deepcopy(body)
+        changed["participants"][0]["nome_completo"] = "Outra Pessoa QA"
+        status, error = self.http("/api/v1/jobs/generate", changed)
+        self.assertEqual(status, 409)
+        self.assertEqual(error["code"], "request_conflict")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="contracto-api-test-")
         self.root = Path(self.temp.name)

@@ -1,5 +1,7 @@
 # Base pronta para iniciar a migração de UI
 
+> **Estado de 14/09/2026:** a primeira WebView já existe e teve a jornada estabilizada. Leia [relatório atual](qa/revisao-2026-09-14/RELATORIO.md) e [plano visual para aprovação](qa/revisao-2026-09-14/PLANO_UI.md). Bootstrap recuperável, rascunho canônico, validação prévia, manifesto completo, retomada idempotente e viewer foram implementados (ADRs 0013–0015). A produção continua Tk. A descrição abaixo registra a entrega anterior; as pendências 1 e 3 já avançaram e não devem ser reiniciadas do zero.
+
 Atualizado em 13/09/2026. Esta entrega implementa a infraestrutura da Fase A e um shell técnico de diagnóstico. O aplicativo de produção continua CustomTkinter v4.5.15; o diagnóstico não é uma nova versão para distribuir aos usuários.
 
 ## O que está implementado

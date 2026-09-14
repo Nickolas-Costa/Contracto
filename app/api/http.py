@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse, Response
 from utils.logger import contexto_log_api
 from version import __version__
 from .jobs import ApiError, capabilities
-from .models import ComposeInput, EmptyInput, GenerateInput, JobState, ProcessInput
+from .models import ComposeInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
 
 
@@ -140,6 +140,10 @@ def create_app(session):
     @app.post("/api/v1/profiles/compose")
     def compose(request: ComposeInput):
         return session.jobs.compose(request)
+
+    @app.post("/api/v1/profiles/preview")
+    def preview(request: PreviewInput):
+        return session.jobs.preview(request)
 
     @app.post("/api/v1/jobs/generate", response_model=JobState, status_code=202)
     def generate(request: GenerateInput):

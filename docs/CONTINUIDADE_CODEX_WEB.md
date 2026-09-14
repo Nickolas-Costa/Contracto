@@ -1,5 +1,7 @@
 # Continuidade remota — Contracto
 
+> 14/09/2026: consultar `qa/revisao-2026-09-14/RELATORIO.md` e `PLANO_UI.md` antes do roteiro histórico abaixo. Correções integradas localmente; publicação remota não faz parte da aprovação desta rodada. O remoto precisa receber esse commit antes de trabalhar sobre ele.
+
 > Atualização em 13/09/2026: a base HTTP e a ponte WebView foram implementadas localmente. Leia primeiro [BASE_UI_STATUS.md](BASE_UI_STATUS.md), que contém o estado atual e as pendências. O plano e o prompt abaixo registram a entrega anterior e não devem reiniciar a implementação já concluída.
 
 Preparado em 12/09/2026. Repositório: `Nickolas-Costa/Contracto`; base: `main`.

@@ -28,8 +28,12 @@ class EmptyInput(Model):
     pass
 
 
-class GenerateInput(ComposeInput):
+class PreviewInput(ComposeInput):
     participants: list[ParticipantInput] = Field(min_length=1, max_length=4)
+
+
+class GenerateInput(PreviewInput):
+    request_id: Id | None = None
     output_id: Id
 
 
@@ -39,6 +43,7 @@ class Attachment(Model):
 
 
 class ProcessInput(Model):
+    request_id: Id | None = None
     participants: list[ParticipantInput] = Field(min_length=1, max_length=4)
     output_id: Id
     file_ids: list[Id] = Field(default_factory=list, max_length=100)

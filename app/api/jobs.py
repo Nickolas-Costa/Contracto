@@ -1,5 +1,7 @@
 """Fachada da fila: operações separadas, snapshots privados e publicação isolada."""
 import copy
+import hashlib
+import json
 import secrets
 import shutil
 import tempfile
@@ -43,6 +45,7 @@ class Jobs:
         self._lock = threading.RLock()
         self._closed = False
         self._states = {}
+        self._requests = {}
         self._outputs = {}
         self.max_jobs = max_jobs
         with contexto_log_api():
@@ -77,12 +80,33 @@ class Jobs:
                 "fields": [asdict(c) for c in result.perfil.campos_entrada]}
 
     def _participants(self, values):
-        result = [Participant(**value.model_dump()) for value in values]
-        if any(not p.nome_completo.strip() or not validar_cpf(p.cpf) for p in result):
-            raise ApiError("invalid_participants", "Confira nome e CPF dos participantes", 422)
+        result, issues = [], []
+        for index, value in enumerate(values, 1):
+            data = value.model_dump(exclude_unset=True)
+            dynamic = data.get("campos_dinamicos", {})
+            for key in ("endereco", "data_assinatura", "local_assinatura", "nome_completo", "cpf"):
+                if key in data and key in dynamic and data[key] != dynamic[key]:
+                    issues.append({"participant": index, "field": key})
+            participant = Participant(**data)
+            result.append(participant)
+            if not participant.nome_completo.strip():
+                issues.append({"participant": index, "field": "nome_completo"})
+            if not validar_cpf(participant.cpf):
+                issues.append({"participant": index, "field": "cpf"})
+        if issues:
+            raise ApiError("invalid_participants", "Confira os campos indicados e valores duplicados", 422, issues=issues)
         return result
 
     def generate(self, request):
+        retry = self._request_retry("generate", request)
+        if retry is not None:
+            return retry
+        profiles, participants, field_errors = self._prepare_fields(request)
+        if field_errors:
+            raise ApiError("invalid_fields", "Confira os campos obrigatórios e seus formatos", 422, issues=field_errors)
+        return self._generate_prepared(request, profiles, participants)
+
+    def _prepare_fields(self, request):
         profiles = self._profiles(request.profile_ids)
         self.compose(request)
         participants = self._participants(request.participants)
@@ -91,8 +115,14 @@ class Jobs:
         if any(set(p.campos_dinamicos) - allowed for p in participants):
             raise ApiError("unknown_fields", "Há campos que não pertencem aos perfis selecionados", 422)
         participants, field_errors = preparar_participantes(participants, combined)
-        if field_errors:
-            raise ApiError("invalid_fields", "Confira os campos obrigatórios e seus formatos", 422, issues=field_errors)
+        return profiles, participants, field_errors
+
+    def preview(self, request):
+        profiles, participants, errors = self._prepare_fields(request)
+        fields = combinar_perfis(profiles).perfil.campos_entrada
+        return {"values": [{f.id: p.obter_campo(f.id) for f in fields} for p in participants], "issues": errors}
+
+    def _generate_prepared(self, request, profiles, participants):
         output = self.selections.resolve(request.output_id, "directory")
         for profile in profiles:
             if len(participants) > profile.max_participantes:
@@ -109,9 +139,12 @@ class Jobs:
                 raise ApiError("generation_failed", "Não foi possível gerar todos os formulários")
             return result.arquivos_gerados
 
-        return self._submit(request.output_id, operation)
+        return self._submit(request.output_id, operation, "generate", request)
 
     def process(self, request):
+        retry = self._request_retry("process", request)
+        if retry is not None:
+            return retry
         participants = self._participants(request.participants)
         self.selections.resolve(request.output_id, "directory")
         if not request.file_ids and not request.attachments:
@@ -158,16 +191,38 @@ class Jobs:
             shutil.rmtree(inputs)
             return [r.caminho_saida for r in result["resultado_lote"].convertidos]
 
-        return self._submit(request.output_id, operation)
+        return self._submit(request.output_id, operation, "process", request)
 
-    def _submit(self, output_id, operation):
+    @staticmethod
+    def _fingerprint(kind, request):
+        body = json.dumps(request.model_dump(exclude={"request_id"}), sort_keys=True, ensure_ascii=True)
+        return hashlib.sha256((kind + body).encode()).hexdigest()
+
+    def _request_retry(self, kind, request):
         with self._lock:
+            if self._closed:
+                raise ApiError("closed", "Sessão encerrada", 503)
+            if request.request_id and request.request_id in self._requests:
+                fingerprint, key = self._requests[request.request_id]
+                if fingerprint != self._fingerprint(kind, request):
+                    raise ApiError("request_conflict", "Identificador já usado por outro comando", 409)
+                return self.snapshot(key)
+        return None
+
+    def _submit(self, output_id, operation, kind=None, request=None):
+        with self._lock:
+            if request is not None:
+                retry = self._request_retry(kind, request)
+                if retry is not None:
+                    return retry
             if self._closed:
                 raise ApiError("closed", "Sessão encerrada", 503)
             if len(self._states) >= self.max_jobs:
                 raise ApiError("job_limit", "Limite de trabalhos da sessão; reinicie o aplicativo", 429)
             key = secrets.token_hex(16)
             self._states[key] = JobState(job_id=key, status="queued")
+            if request is not None and request.request_id:
+                self._requests[request.request_id] = (self._fingerprint(kind, request), key)
 
             def task(job):
                 staging = published = None
@@ -234,6 +289,8 @@ class Jobs:
                 self.queue.adicionar_tarefa(task, key)
             except Exception:
                 del self._states[key]
+                if request is not None and request.request_id:
+                    self._requests.pop(request.request_id, None)
                 raise
             return self.snapshot(key)
 

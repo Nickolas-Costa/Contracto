@@ -1,6 +1,6 @@
 """Port de binários externos: Ghostscript + Word.
 
-Decisão registrada (DECISIONS §5-6): Windows-only com Word por enquanto.
+Windows-only com Word por enquanto.
 Este port expõe capacidades p/ o futuro shell decidir como informar falhas,
 sem iniciar o Word durante a verificação.
 """

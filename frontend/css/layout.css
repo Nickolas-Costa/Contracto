@@ -43,6 +43,20 @@ body {
 .toolbar button:hover { background: rgba(255, 255, 255, 0.14); }
 .toolbar button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
+/* Estado da conexão local */
+#conexao { font-size: 12px; opacity: 0.9; margin-left: 4px; }
+#conexao[data-estado="falha"] { font-weight: 600; }
+#btn-tentar {
+  font: inherit;
+  color: #fff;
+  background: transparent;
+  border: 1px solid #fff;
+  border-radius: var(--r-button);
+  padding: 4px 10px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
 /* Stepper */
 .stepper { display: flex; gap: 8px; align-items: center; margin: 16px 0; padding: 0; list-style: none; }
 .stepper button {
@@ -160,3 +174,23 @@ body {
   * { transition: none !important; animation: none !important; }
   #ondas { display: none; }
 }
+
+/* Correções funcionais de acessibilidade e conteúdo, sem redesenho. */
+[hidden] { display: none !important; }
+#lista-formularios { display: grid; gap: 8px; }
+#lista-formularios label { display: flex; gap: 8px; align-items: center; }
+.field input[type="checkbox"] { width: 20px; height: 20px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.acoes { flex-wrap: wrap; z-index: 2; }
+.acoes-participantes { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.documento-linha { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin: 10px 0; }
+#lista-resultados { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.modal .acoes { position: static; background: transparent; }
+.pdf-preview { width: min(900px, 80vw); height: 65vh; border: 0; }
+.modal:has(.pdf-preview) { max-width: calc(100vw - 48px); }
+[data-theme="dark"] .stepper button[aria-current="step"] { color: #99c2e2; }
+[data-theme="dark"] .btn:focus-visible { outline-color: #99c2e2; }
+[data-theme="dark"] .pendencias.pronto { color: #8ad59b; }
+[data-theme="dark"] .field .erro { color: #ffaaaa; }
+.field select[aria-invalid="true"] { border-color: var(--c-error); }
+@media (max-width: 760px) { .toolbar { flex-wrap: wrap; } .toolbar nav { margin-left: 0; } .stepper { flex-wrap: wrap; } }
