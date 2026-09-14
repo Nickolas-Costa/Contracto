@@ -97,6 +97,7 @@
       </div>
       <div class="card">
         <h2>Conversão e Organização</h2>
+        <div id="formato-opcoes">
         <div class="field">
           <label for="formato-saida">Formato de saída</label>
           <select id="formato-saida">
@@ -104,7 +105,11 @@
             <option value="PDF/A-2b">PDF/A-2b</option>
           </select>
         </div>
+        <p id="capacidade-formato" class="hint"></p>
+        </div>
         <div id="fila-status" role="status">Nenhum processo em andamento.</div>
+        <p id="fila-detalhe" class="hint"></p>
+        <span id="estado-trabalho" data-state="" hidden></span>
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">

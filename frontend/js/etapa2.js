@@ -168,7 +168,7 @@
     if(!/^[A-Za-z0-9_-]{1,50}$/.test(type)||attachments.some(a=>a.document_type===type)){ui().toast("Use um tipo válido e diferente dos anexos existentes.","warning");return;}
     selecting=true;const original=base;
     try{const r=await api().selectFile();if(r.cancelled)return;if(base!==original||busy)return;if(!r.selection_id){ui().toast("Não foi possível anexar.","error");return;}
-      attachments.push({file_id:r.selection_id,document_type:type,label:$("anexo-tipo").selectedOptions[0].textContent,name:r.name || type});alterarProcesso();manifesto();atualizar();
+      attachments.push({file_id:r.selection_id,document_type:type,label:$("anexo-tipo").value.trim() || type,name:r.name || type});alterarProcesso();manifesto();atualizar();
     }catch(_){ui().toast("Falha ao abrir o seletor.","error");}finally{selecting=false;}
   }
   async function cancelar() {
