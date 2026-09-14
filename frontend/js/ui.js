@@ -3,6 +3,10 @@
   "use strict";
 
   const ICONES = { success: "✓", info: "i", warning: "!", error: "✕" };
+  // Foco local: um fragmento na URL alteraria a origem exata autorizada da ponte.
+  document.getElementById("pular-conteudo").addEventListener("click",()=>{
+    const main=document.getElementById("telas");main.focus();main.scrollIntoView({block:"start"});
+  });
 
   function toast(message, type) {
     type = type || "success";
@@ -84,11 +88,13 @@
   });
 
   function mostrarTela(nome) {
+    if (!["inicio", "etapa2", "perfis", "config"].includes(nome)) return;
+    document.getElementById("stepper").hidden = !["inicio", "etapa2"].includes(nome);
     ["inicio", "etapa2", "perfis", "config"].forEach((t) => {
       document.getElementById("tela-" + t).hidden = t !== nome;
     });
     document.querySelectorAll("[data-tela]").forEach((b) => {
-      if (b.dataset.tela === nome) b.setAttribute("aria-current", "page");
+      if (b.dataset.tela === nome || (nome === "etapa2" && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {

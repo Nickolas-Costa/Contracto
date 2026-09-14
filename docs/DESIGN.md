@@ -1,5 +1,7 @@
 # Design — Contracto
 
+> Implementação WebView em 14/09/2026: lotes 1–3 do redesign aprovados e executados, com [relatório](qa/revisao-2026-09-14/ENTREGA_UI_LOTES_1_3.md). `frontend/css/tokens.css` contém a paleta implementada desta revisão (incluindo contraste do tema escuro); ondas foram removidas para reduzir decoração. As tabelas históricas abaixo não devem sobrescrever esses valores sem nova revisão. O Tk mantém seu tema próprio durante a convivência.
+
 > Sistema visual e de interação do Contracto. Identidade: **sóbrio, leve e focado**. Nada compete com o conteúdo; tudo conduz ao dossiê pronto.
 
 **Revisão:** 2.0 · 10 de setembro de 2026  

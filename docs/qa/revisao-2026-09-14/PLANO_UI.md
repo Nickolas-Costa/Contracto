@@ -1,5 +1,7 @@
 # Revisão visual após estabilização — plano para aprovação
 
+> Atualização: lotes 1–3 implementados após aprovação; ver [entrega e validação](ENTREGA_UI_LOTES_1_3.md). A comparação visual prevista ao final desse bloco está pronta. Lotes 4–7 e homologação completa continuam pendentes.
+
 14/09/2026. Escopo proposto, ainda não implementado. Referência: WebView2 real com massa sintética e prints locais em `prints/qa-2026-09-14-correcoes/`. O protótipo ZIP ignorado não foi usado como fonte nesta revisão.
 
 ## Avaliação

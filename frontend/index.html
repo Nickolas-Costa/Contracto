@@ -9,68 +9,76 @@
 <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
-<svg id="ondas" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 1200 800">
-<path d="M0,120 C200,100 400,140 600,120 S1000,100 1200,120" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
-<path d="M0,160 C200,140 400,180 600,160 S1000,140 1200,160" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
-<path d="M0,200 C200,180 400,220 600,200 S1000,180 1200,200" fill="none" stroke="var(--c-primary)" stroke-width="2"/>
-</svg>
-
 <div id="app">
+  <button class="skip-link" id="pular-conteudo" type="button">Pular para o conteúdo</button>
   <header class="toolbar">
-    <span class="marca">Contracto</span>
-    <div class="modos" role="group" aria-label="Modo">
-      <button id="modo-simples" type="button">Simples</button>
-      <button id="modo-avancado" type="button" aria-current="page">Avançado</button>
-    </div>
+    <span class="marca"><span class="brand-mark" aria-hidden="true">C</span>Contracto</span>
     <nav aria-label="Telas">
-      <button data-tela="inicio" type="button" aria-current="page">Início</button>
+      <button data-tela="inicio" type="button" aria-current="page">Documentos</button>
       <button data-tela="perfis" type="button">Perfis</button>
-      <button data-tela="config" type="button">Config</button>
+      <button data-tela="config" type="button">Configurações</button>
     </nav>
     <span id="conexao" role="status">Conectando…</span>
   </header>
 
   <ol class="stepper" id="stepper" aria-label="Etapas">
-    <li><button data-etapa="1" type="button" aria-current="step">1. Geração de Documentos</button></li>
-    <li aria-hidden="true">→</li>
-    <li><button data-etapa="2" type="button">2. Conversão e Organização</button></li>
+    <li><button data-etapa="1" type="button" aria-current="step"><span class="step-number">1</span>Preencher dados</button></li>
+    <li class="step-divider" aria-hidden="true"></li>
+    <li><button data-etapa="2" type="button"><span class="step-number">2</span>Revisar documentos</button></li>
   </ol>
 
-  <main id="telas">    <section id="tela-inicio" aria-label="Etapa 1">
+  <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
+      <div class="page-heading">
+        <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha os formulários e preencha os dados. Os campos com * são obrigatórios.</p></div>
+        <div class="mode-panel"><p class="hint">O que você precisa fazer?</p><div class="modos" role="group" aria-label="Modo">
+          <button id="modo-simples" type="button">Só gerar</button><button id="modo-avancado" type="button" aria-current="page">Gerar e organizar</button>
+        </div></div>
+      </div>
+      <div class="workspace"><div class="workspace-main">
       <div class="card">
-        <h2>Formulários</h2>
-        <div id="lista-formularios"></div>
+        <div class="card-header"><div><h2>Quais formulários?</h2><p class="hint">Selecione os modelos que farão parte deste trabalho.</p></div><span class="section-tag" id="selecao-resumo">Carregando</span></div>
+        <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
       </div>
       <div id="participantes"></div>
       <div class="acoes-participantes">
         <button class="btn btn-secondary" id="btn-adicionar" type="button" disabled>Adicionar participante</button>
         <span id="limite-participantes"></span>
       </div>
-      <div class="card">
-        <h2>Destino</h2>
-        <div class="field">
-          <label for="data-assinatura">Data da assinatura</label>
-          <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="local-assinatura">Local da assinatura</label>
-          <input id="local-assinatura" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="pasta-saida">Diretório de saída</label>
-          <input id="pasta-saida" readonly>
-          <button class="btn btn-secondary" id="btn-pasta" type="button">Selecionar pasta</button>
-        </div>
-      </div>
       <div id="campos-globais"></div>
-      <div class="acoes">
-        <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar e organizar</button>
-        <span class="pendencias" id="pendencias" role="status"></span>
-        <button class="btn btn-secondary" id="btn-ver-pendencias" type="button" hidden>Ver pendências</button>
+      <div class="card">
+        <div class="card-header"><div><h2>Assinatura e destino</h2><p class="hint">Estes dados valem para todos os participantes.</p></div></div>
+        <div class="field-grid">
+        <div class="field">
+          <label for="data-assinatura">Data da assinatura *</label>
+          <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off" aria-describedby="data-assinatura-erro">
+          <div id="data-assinatura-erro" class="erro" hidden></div>
+        </div>
+        <div class="field">
+          <label for="local-assinatura">Local da assinatura *</label>
+          <input id="local-assinatura" autocomplete="off" placeholder="Cidade / UF" aria-describedby="local-assinatura-erro">
+          <div id="local-assinatura-erro" class="erro" hidden></div>
+        </div>
+        <div class="field field-wide">
+          <label for="pasta-saida">Salvar documentos em *</label>
+          <div class="folder-picker"><input id="pasta-saida" readonly placeholder="Nenhuma pasta selecionada">
+          <button class="btn btn-secondary" id="btn-pasta" type="button">Escolher pasta</button></div>
+          <p class="field-note">Cada trabalho terá sua própria subpasta.</p>
+        </div>
+        </div>
       </div>
+      <div class="acoes form-actions">
+        <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
+        <button class="btn-link" id="btn-ver-pendencias" type="button" hidden>Revisar campos pendentes</button></div>
+        <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
+      </div>
+      </div><aside class="summary" aria-label="Resumo do trabalho">
+        <div class="card"><h2>Seu trabalho</h2><dl><dt>Formulários selecionados</dt><dd id="resumo-formularios">Aguardando seleção</dd><dt>Participantes</dt><dd id="resumo-participantes">1 participante</dd><dt>Pasta de destino</dt><dd id="resumo-destino">Escolha uma pasta</dd></dl></div>
+        <div class="card summary-help"><h2>Antes de gerar</h2><ol><li>Confira os nomes e os documentos de identificação.</li><li>Os dados compartilhados serão usados em todos os formulários.</li><li>Na próxima etapa você poderá conferir os PDFs.</li></ol></div>
+      </aside></div>
     </section>
 
     <section id="tela-etapa2" aria-label="Etapa 2" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Seu trabalho</p><h1>Revise os documentos.</h1><p class="hint">Confira os PDFs gerados antes de concluir a organização.</p></div></div>
       <div class="card">
         <h2>Documentos do processo</h2>
         <p id="manifesto-resumo"></p>
@@ -106,11 +114,13 @@
     </section>
 
     <section id="tela-perfis" aria-label="Perfis" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Biblioteca</p><h1>Perfis de documentos</h1><p class="hint">Consulte os modelos disponíveis. A edição de perfis continua no aplicativo clássico.</p></div></div>
       <div class="card"><h2>Perfis</h2><div id="lista-perfis"></div></div>
     </section>
 
     <section id="tela-config" aria-label="Configurações" hidden>
-      <div class="card">
+      <div class="page-heading"><div><p class="eyebrow">Preferências</p><h1>Configurações</h1><p class="hint">Ajuste a aparência para trabalhar com conforto.</p></div></div>
+      <div class="card compact-page">
         <h2>Aparência</h2>
         <div class="field">
           <label for="cfg-tema">Tema</label>

@@ -1,33 +1,15 @@
-/* Tokens do Contracto (docs/DESIGN.md §8). */
+/* Paleta local: contrastes verificados nos testes. */
 :root {
-  --c-primary: #005CA9;
-  --c-primary-hover: #00467F;
-  --c-primary-light: #99C2E2;
-  --c-bg: #F5F5F5;
-  --c-surface: #FFFFFF;
-  --c-surface-variant: #F0F0F0;
-  --c-border: #E0E0E0;
-  --c-text: #212121;
-  --c-text-secondary: #666666;
-  --c-success: #2E7D32;
-  --c-warning-badge: #B45309;
-  --c-error: #D32F2F;
-  --c-info: #005CA9;
-  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
-  --r-card: 12px;
-  --r-button: 12px;
-  --r-input: 8px;
-  --motion-fast: 150ms;
-  --motion-med: 220ms;
+ color-scheme: light;
+ --c-primary:#1455A0; --c-primary-hover:#104582; --c-on-primary:#FFFFFF; --c-primary-light:#E9F1FC;
+ --c-bg:#F2F4F8; --c-surface:#FFFFFF; --c-surface-variant:#EDF1F6; --c-border:#CFD7E3; --c-control-border:#77869B;
+ --c-text:#18283F; --c-text-secondary:#536279; --c-success:#236A45; --c-warning-badge:#92510B; --c-error:#B42332; --c-info:#1455A0; --c-focus:#1455A0;
+ --font:"Segoe UI",system-ui,sans-serif; --r-card:14px; --r-button:8px; --r-input:7px;
+ --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --motion-fast:150ms; --motion-med:220ms;
 }
-
 [data-theme="dark"] {
-  --c-bg: #1E1E1E;
-  --c-surface: #2B2B2B;
-  --c-surface-variant: #333333;
-  --c-border: #424242;
-  --c-text: #E0E0E0;
-  --c-text-secondary: #AAAAAA;
-  --c-primary-light: #7FB3D9;
-  --c-info: #7FB3D9;
+ color-scheme:dark;
+ --c-primary:#9AC4FF; --c-primary-hover:#B5D4FF; --c-on-primary:#132B48; --c-primary-light:#243B59;
+ --c-bg:#111B29; --c-surface:#1A283B; --c-surface-variant:#23334A; --c-border:#3B4E66; --c-control-border:#8294AC;
+ --c-text:#EDF3FC; --c-text-secondary:#B0C0D5; --c-success:#8AD5AA; --c-warning-badge:#F5C680; --c-error:#FFABAF; --c-info:#9AC4FF; --c-focus:#B5D4FF;
 }

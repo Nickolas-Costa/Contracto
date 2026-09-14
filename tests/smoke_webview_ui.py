@@ -57,6 +57,10 @@ def main():
             def probe():
                 try:
                     assert window.events.loaded.wait(20), "WebView did not load"
+                    if "--visual-start" in sys.argv:
+                        assert "--visible" in sys.argv, "--visual-start requires --visible"
+                        print("VISUAL FIXTURE: ready, synthetic profiles; no flow executed", flush=True)
+                        return
                     if "--visible" in sys.argv:
                         window.evaluate_js("window.__qaKeepResult = true")
                     window.evaluate_js((ROOT / "tests/webview_flow.js").read_text(encoding="utf-8"))
@@ -67,6 +71,21 @@ def main():
                         if result: break
                         time.sleep(.1)
                     assert result and result.get("ok"), result
+                    if "--layout" in sys.argv:
+                        for width, height in ((1024,768),(1280,720),(1920,1080),(680,768)):
+                            window.resize(width,height)
+                            time.sleep(.3)
+                            for theme in ("light", "dark"):
+                                window.evaluate_js("ContractoUI.aplicarTema("+json.dumps(theme)+")")
+                                for page in ("inicio","etapa2","perfis","config"):
+                                    window.evaluate_js("ContractoUI.mostrarTela("+json.dumps(page)+")")
+                                    layout=window.evaluate_js("""(() => {
+                                      const controls=[...document.querySelectorAll('input,select,button')].filter(e=>e.getClientRects().length && !e.closest('[hidden]'));
+                                      const clipped=controls.filter(e=>{const r=e.getBoundingClientRect();return r.left < -1 || r.right > innerWidth+1;}).map(e=>e.id||e.textContent);
+                                      return {ok:document.documentElement.scrollWidth<=innerWidth+1 && !clipped.length,clipped,width:innerWidth,height:innerHeight};
+                                    })()""")
+                                    assert layout["ok"], (width,height,theme,page,layout)
+                            print("LAYOUT OK",width,height,flush=True)
                     completed=[s for s in server.jobs._states.values() if s.status == "completed"]
                     assert len(completed)==2, [(s.status,s.error) for s in server.jobs._states.values()]
                     generated=completed[0]

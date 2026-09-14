@@ -8,9 +8,23 @@
   try {
     await wait(()=>$('campo-0-endereco'),'form ready');
     assert(checkboxes().filter(c=>c.checked).length===1,'one initial profile');
+    const originalURL=location.href;$('pular-conteudo').click();
+    assert(document.activeElement===$('telas')&&location.href===originalURL,'skip control moves focus without changing trusted URL');
+    assert(!document.querySelector('#participantes [aria-invalid="true"]'),'untouched fields do not show errors');
+    $('campo-0-cpf').dispatchEvent(new Event('blur'));
+    assert($('campo-0-cpf').getAttribute('aria-invalid')==='true','blur reveals field error');
+    $('btn-ver-pendencias').click();
+    const errorLink=[...document.querySelectorAll('#modal-corpo button')].find(b=>b.textContent.includes('CPF'));
+    assert(!!errorLink,'summary links to human field labels');errorLink.click();
+    assert(document.activeElement===$('campo-0-cpf') && $('overlay').hidden,'summary closes then focuses selected field');
+    window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
+    window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
+    window.ContractoUI.mostrarTela('inicio');assert(!$('stepper').hidden,'workflow restores steps');
     input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');input('campo-0-endereco','RUA QA');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose two profiles');
     assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after composition');
+    $('modo-simples').click();$('modo-avancado').click();
+    assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after mode change');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose single profile');
     input('campo-global-regime','B');
     assert(!$('campo-0-detalhe').parentElement.hidden,'conditional field visible');
