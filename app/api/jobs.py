@@ -21,7 +21,7 @@ from utils.cpf_validator import validar_cpf
 from utils.logger import contexto_log_api
 from utils.profile_manager import carregar_perfis
 
-from .models import Error, JobState
+from .models import Error, JobState, FileResult
 from .selections import SelectionError, Selections
 
 
@@ -47,6 +47,7 @@ class Jobs:
         self._states = {}
         self._requests = {}
         self._outputs = {}
+        self._file_details = {}
         self.max_jobs = max_jobs
         with contexto_log_api():
             self.profiles = {secrets.token_hex(16): copy.deepcopy(p)
@@ -132,14 +133,17 @@ class Jobs:
             if errors:
                 raise ApiError("invalid_generation", "Confira campos obrigatórios, data e modelos do perfil", 422)
 
+        metadata = {}
         def operation(folder, job, progress):
             result = gerar_documentos_de_perfis(participants, profiles, folder,
                                                cancel_event=job.cancel_event, on_progress=progress)
             if result.avisos or not result.arquivos_gerados:
                 raise ApiError("generation_failed", "Não foi possível gerar todos os formulários")
+            metadata.update({path: {"origin": "generated", "participants": result.participantes_por_arquivo.get(path, [])}
+                             for path in result.arquivos_gerados})
             return result.arquivos_gerados
 
-        return self._submit(request.output_id, operation, "generate", request)
+        return self._submit(request.output_id, operation, "generate", request, metadata)
 
     def process(self, request):
         retry = self._request_retry("process", request)
@@ -164,6 +168,7 @@ class Jobs:
         if any(p.suffix.lower() == ".rtf" for p in paths) and not caps["word"]:
             raise ApiError("word_unavailable", "Instale o Microsoft Word para converter RTF", 409)
 
+        metadata = {}
         def operation(folder, job, progress):
             # O serviço legado remove PDFs de entrada após processar: copiar apenas
             # para a área privada do trabalho, preservando todos os originais.
@@ -189,9 +194,17 @@ class Jobs:
             if not result["sucesso"] or len(result["resultado_lote"].convertidos) != len(ids):
                 raise ApiError("processing_failed", "Não foi possível concluir o processamento")
             shutil.rmtree(inputs)
-            return [r.caminho_saida for r in result["resultado_lote"].convertidos]
+            outputs = [r.caminho_saida for r in result["resultado_lote"].convertidos]
+            # stage2 preserves order: generated files first, then ordered attachments.
+            with self._lock:
+                sources = [self._file_details.get(key, {"origin": "imported", "participants": []})
+                           for key in request.file_ids]
+            sources += [{"origin": "attachment", "participants": list(range(1, len(participants)+1))}
+                        for _ in request.attachments]
+            metadata.update(zip(outputs, sources))
+            return outputs
 
-        return self._submit(request.output_id, operation, "process", request)
+        return self._submit(request.output_id, operation, "process", request, metadata)
 
     @staticmethod
     def _fingerprint(kind, request):
@@ -209,7 +222,7 @@ class Jobs:
                 return self.snapshot(key)
         return None
 
-    def _submit(self, output_id, operation, kind=None, request=None):
+    def _submit(self, output_id, operation, kind=None, request=None, metadata=None):
         with self._lock:
             if request is not None:
                 retry = self._request_retry(kind, request)
@@ -254,9 +267,17 @@ class Jobs:
                                 raise ApiError("output_conflict", "Destino já existe")
                             staging.rename(destination)
                             published, staging = destination, None
-                            for path in relative:
-                                registered.append(self.selections.register(destination / path, "file"))
+                            results = []
+                            for source, path in zip(files, relative):
+                                file_id = self.selections.register(destination / path, "file")
+                                registered.append(file_id)
+                                detail = (metadata or {}).get(source, {"origin": "imported", "participants": []})
+                                self._file_details[file_id] = {"origin": detail["origin"], "participants": list(detail["participants"])}
+                                results.append(FileResult(file_id=file_id, name=path.name,
+                                                          size_bytes=(destination/path).stat().st_size,
+                                                          **self._file_details[file_id]))
                             state.file_ids = registered
+                            state.files = results
                             self._outputs[key] = self.selections.register(destination, "directory")
                             state.status = "completed"
                             state.completed = state.total = len(files)
@@ -283,6 +304,9 @@ class Jobs:
                         with self._lock:
                             state.status, state.error = terminal, failure
                             state.file_ids = []
+                            state.files = []
+                            for file_id in registered:
+                                self._file_details.pop(file_id, None)
                             self._outputs.pop(key, None)
 
             try:
@@ -346,3 +370,4 @@ class Jobs:
                 if state.status in {"queued", "running", "cancelling"}:
                     state.status = "cancelled"
             self.profiles.clear()
+            self._file_details.clear()

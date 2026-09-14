@@ -18,7 +18,12 @@
     assert(!!errorLink,'summary links to human field labels');errorLink.click();
     assert(document.activeElement===$('campo-0-cpf') && $('overlay').hidden,'summary closes then focuses selected field');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
+    assert($('lista-perfis').children.length===2,'profile catalog shows detailed cards');
+    input('buscar-perfis','QA A');assert($('lista-perfis').children.length===1,'profile catalog filters by name');
+    input('buscar-perfis','inexistente');assert(!$('perfis-vazio').hidden,'profile catalog reports an empty search');
+    input('buscar-perfis','');
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
+    await wait(()=>$('lista-capacidades').textContent.includes('PDF'), 'capabilities shown without local paths');
     window.ContractoUI.mostrarTela('inicio');assert(!$('stepper').hidden,'workflow restores steps');
     input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');input('campo-0-endereco','RUA QA');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose two profiles');
@@ -48,6 +53,7 @@
     $('btn-retomar').click();
     await wait(()=>$('lista-resultados').children.length===2 && !window.ContractoEtapa2.ocupado(),'generation terminal');
     assert($('manifesto-resumo').textContent.includes('2 gerado'),'generated manifest');
+    assert($('lista-anexos').textContent.includes('Gerado pelo Contracto'),'generated document has safe metadata');
     $('btn-anexo').click();await wait(()=>$('lista-anexos').textContent.includes('anexo-qa.pdf'),'attachment appears');
     assert($('manifesto-resumo').textContent.includes('1 anexo'),'attachment retained with generated');
     $('btn-finalizar').click();$('btn-finalizar').click();
@@ -58,7 +64,7 @@
     await wait(()=>document.querySelector('.pdf-preview'),'viewer created');
     assert($('app').inert,'modal background inert');
     assert(document.querySelector('.pdf-preview').src.startsWith('blob:'),'viewer uses local blob');
-    window.ContractoUI.fecharModal();assert(!$('app').inert,'modal releases background');
+    window.ContractoUI.fecharModal();assert(!$('app').inert&&!document.querySelector('.modal').classList.contains('modal-viewer'),'modal releases background and viewer layout');
     if(window.__qaKeepResult){window.__qaResult={ok:true,checks};return;}
     window.ContractoUI.mostrarTela('inicio');
     assert(document.querySelector('[data-etapa="1"]').getAttribute('aria-current')==='step','navigation synchronized');

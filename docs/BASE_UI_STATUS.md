@@ -1,6 +1,6 @@
 # Base pronta para iniciar a migração de UI
 
-> **Redesign, lotes 1–3:** cabeçalho, temas, formulário agrupado, resumo e validação após interação implementados. Ver [entrega visual](qa/revisao-2026-09-14/ENTREGA_UI_LOTES_1_3.md). Não reiniciar esses lotes; revisar a comparação antes dos lotes seguintes.
+> **Redesign, lotes 1–7:** cabeçalho, temas, formulário agrupado, resumo, documentos com metadados seguros, estados de fila, viewer e catálogo pesquisável estão implementados. Ver [entregas visuais](qa/revisao-2026-09-14/ENTREGA_UI_LOTES_1_3.md) e [complemento](qa/revisao-2026-09-14/ENTREGA_UI_LOTES_4_7.md). Não reiniciar esses lotes.
 
 > **Estado de 14/09/2026:** a primeira WebView já existe e teve a jornada estabilizada. Leia [relatório atual](qa/revisao-2026-09-14/RELATORIO.md) e [plano visual para aprovação](qa/revisao-2026-09-14/PLANO_UI.md). Bootstrap recuperável, rascunho canônico, validação prévia, manifesto completo, retomada idempotente e viewer foram implementados (ADRs 0013–0015). A produção continua Tk. A descrição abaixo registra a entrega anterior; as pendências 1 e 3 já avançaram e não devem ser reiniciadas do zero.
 

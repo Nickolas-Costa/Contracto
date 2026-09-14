@@ -183,14 +183,31 @@
     catalog=r.data;loaded=true;
     const initial=catalog.find(p=>p.mode === "contrato") || catalog[0];
     selected=initial ? [initial.profile_id] : [];
-    $("lista-formularios").replaceChildren();$("lista-perfis").replaceChildren();
+    $("lista-formularios").replaceChildren();
+    const renderProfiles=(query="")=>{
+      const list=$("lista-perfis"), empty=$("perfis-vazio");
+      list.replaceChildren();
+      const needle=query.trim().toLocaleLowerCase("pt-BR");
+      const visible=catalog.filter(p=>[p.name,p.mode,...p.fields.map(f=>f.rotulo || f.id)].join(" ").toLocaleLowerCase("pt-BR").includes(needle));
+      visible.forEach(p=>{
+        const item=document.createElement("article");item.className="profile-item";
+        const title=document.createElement("h3");title.textContent=p.name;
+        const meta=document.createElement("p");meta.className="hint";meta.textContent=(p.mode === "contrato" ? "Contrato" : "Formulário simples")+" · até "+p.max_participants+" participante(s)";
+        const fieldsEl=document.createElement("p");fieldsEl.className="profile-fields";
+        const labels=p.fields.map(f=>f.rotulo || f.id).filter(Boolean);fieldsEl.textContent=labels.slice(0,6).join(" · ")+(labels.length>6 ? " · +"+(labels.length-6) : "");
+        item.append(title,meta,fieldsEl);list.append(item);
+      });
+      empty.hidden=visible.length>0;
+      empty.textContent=catalog.length ? "Nenhum perfil corresponde à busca." : "Nenhum perfil disponível nesta instalação.";
+    };
     catalog.forEach(p=>{
       const label=document.createElement("label"),check=document.createElement("input");check.type="checkbox";check.value=p.profile_id;check.checked=selected.includes(p.profile_id);
       check.addEventListener("change",()=>selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value)));
       label.append(check,document.createTextNode(" "+p.name));$("lista-formularios").append(label);
-      const item=document.createElement("p");item.textContent=p.name+" — até "+p.max_participants+" participante(s), "+p.fields.length+" campo(s).";$("lista-perfis").append(item);
     });
-    if(!catalog.length)$("lista-perfis").textContent="Nenhum perfil disponível nesta instalação.";
+    const search=$("buscar-perfis");
+    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfiles(search.value));}
+    renderProfiles(search?.value || "");
     await selecionar(selected);
   }
   async function gerar() {

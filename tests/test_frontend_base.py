@@ -103,9 +103,10 @@ class TestFrontendBase(unittest.TestCase):
         # Todo id lido pelo JS da Etapa 2 existe no HTML.
         for usado in sorted(set(re.findall(r'\$\("([\w-]+)"\)', etapa2))):
             self.assertIn(f'id="{usado}"', html, usado)
-        # anexo-tipo é input: rótulo vem do valor, sem selectedOptions.
-        self.assertIn('<input id="anexo-tipo"', html)
-        self.assertNotIn("selectedOptions", etapa2)
+        # Categoria é uma seleção finita: o valor técnico continua validado pela API,
+        # enquanto o texto da opção é apresentado ao usuário.
+        self.assertIn('<select id="anexo-tipo"', html)
+        self.assertIn("selectedOptions", etapa2)
 
 
 if __name__ == "__main__":

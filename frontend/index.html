@@ -83,20 +83,25 @@
 
     <section id="tela-etapa2" aria-label="Etapa 2" hidden>
       <div class="page-heading"><div><p class="eyebrow">Seu trabalho</p><h1>Revise os documentos.</h1><p class="hint">Confira os PDFs gerados antes de concluir a organização.</p></div></div>
-      <div class="card">
-        <h2>Documentos do processo</h2>
-        <p id="manifesto-resumo"></p>
+      <div class="card process-card">
+        <div class="card-header"><div><h2>Documentos deste trabalho</h2><p class="hint" id="manifesto-resumo"></p></div><span class="section-tag" id="manifesto-status">Aguardando geração</span></div>
         <div id="lista-anexos"></div>
         <div id="opcoes-processamento">
-        <div class="field">
-          <label for="anexo-tipo">Tipo do anexo (letras, números, _ ou -)</label>
-          <input id="anexo-tipo" value="ANEXO" maxlength="50" autocomplete="off">
+        <div class="field field-inline">
+          <label for="anexo-tipo">Categoria do anexo</label>
+          <select id="anexo-tipo">
+            <option value="ANEXO">Anexo complementar</option>
+            <option value="COMPROVANTE">Comprovante</option>
+            <option value="IDENTIFICACAO">Documento de identificação</option>
+            <option value="OUTRO">Outro documento</option>
+          </select>
+          <p class="field-note">PDF e RTF são aceitos. O original não é alterado.</p>
         </div>
-        <button class="btn btn-secondary" id="btn-anexo" type="button" disabled>Anexar PDF ou RTF</button>
+        <button class="btn btn-secondary" id="btn-anexo" type="button" disabled>Adicionar anexo</button>
         </div>
       </div>
-      <div class="card">
-        <h2>Conversão e Organização</h2>
+      <div class="card process-card">
+        <div class="card-header"><div><h2>Concluir o trabalho</h2><p class="hint">Escolha o formato e acompanhe o andamento.</p></div></div>
         <div id="formato-opcoes">
         <div class="field">
           <label for="formato-saida">Formato de saída</label>
@@ -107,15 +112,13 @@
         </div>
         <p id="capacidade-formato" class="hint"></p>
         </div>
-        <div id="fila-status" role="status">Nenhum processo em andamento.</div>
-        <p id="fila-detalhe" class="hint"></p>
-        <span id="estado-trabalho" data-state="" hidden></span>
+        <div class="job-state" id="estado-trabalho" data-state="idle" role="status"><span class="job-state-mark" aria-hidden="true"></span><div><strong id="fila-status">Aguardando documentos</strong><p id="fila-detalhe" class="hint">Gere os PDFs para conferir e concluir este trabalho.</p></div></div>
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>Finalizar processo</button>
+          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>Concluir e organizar</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
-          <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Retomar consulta</button>
+          <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
           <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
           <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar ao formulário</button>
         </div>
@@ -124,7 +127,7 @@
 
     <section id="tela-perfis" aria-label="Perfis" hidden>
       <div class="page-heading"><div><p class="eyebrow">Biblioteca</p><h1>Perfis de documentos</h1><p class="hint">Consulte os modelos disponíveis. A edição de perfis continua no aplicativo clássico.</p></div></div>
-      <div class="card"><h2>Perfis</h2><div id="lista-perfis"></div></div>
+      <div class="card profiles-card"><div class="card-header"><div><h2>Modelos disponíveis</h2><p class="hint">Escolha e consulte o que cada perfil oferece. Editar ou importar perfis ainda é uma função do aplicativo clássico.</p></div></div><div class="field"><label for="buscar-perfis">Buscar perfil</label><input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off"></div><div id="lista-perfis"></div><p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p></div>
     </section>
 
     <section id="tela-config" aria-label="Configurações" hidden>
@@ -135,6 +138,7 @@
           <label for="cfg-tema">Tema</label>
           <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
         </div>
+        <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
       </div>
     </section>
   </main>

@@ -14,7 +14,7 @@ async function bootstrap(){
  vm.runInNewContext(source('app.js'),{window,document,setTimeout,clearTimeout});
  await flush();assert.equal(window.ContractoApp.pronto(),false);
  elements.get('conexao').children[0].click();await flush();
- assert.equal(window.ContractoApp.pronto(),true);assert.equal(calls,2);assert.equal(one,1);assert.equal(two,1);
+ assert.equal(window.ContractoApp.pronto(),true);assert.equal(calls,3);assert.equal(one,1);assert.equal(two,1);
  events.pywebviewready();events.pywebviewready();await flush();
  assert.equal(one,1);assert.equal(two,1);
  console.log('PASS bootstrap 503 -> retry 200; duplicate ready events');

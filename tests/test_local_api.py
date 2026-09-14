@@ -164,6 +164,11 @@ class TestLocalAPI(unittest.TestCase):
             self.assertEqual(status, 202, job)
             generated = self.wait_job(job["job_id"])
             self.assertEqual(generated["status"], "completed", generated)
+            self.assertEqual(len(generated["files"]), len(generated["file_ids"]))
+            self.assertEqual(generated["files"][0]["origin"], "generated")
+            self.assertEqual(generated["files"][0]["participants"], [1])
+            self.assertGreater(generated["files"][0]["size_bytes"], 0)
+            self.assertNotIn(str(self.root), json.dumps(generated["files"]))
             original = self.server.jobs.selections.resolve(generated["file_ids"][0], "file")
             from pypdf import PdfReader
             with original.open("rb") as stream:
@@ -172,7 +177,10 @@ class TestLocalAPI(unittest.TestCase):
                 "participants": [self.participant], "output_id": self.output_id,
                 "file_ids": generated["file_ids"], "format": "PDF"})
             self.assertEqual(status, 202)
-            self.assertEqual(self.wait_job(process["job_id"])["status"], "completed")
+            processed = self.wait_job(process["job_id"])
+            self.assertEqual(processed["status"], "completed")
+            self.assertEqual(processed["files"][0]["origin"], "generated")
+            self.assertEqual(processed["files"][0]["participants"], [1])
             self.assertTrue(original.is_file())
             self.assertFalse(list(self.output.glob(".contracto-*")))
 

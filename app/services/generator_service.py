@@ -42,6 +42,7 @@ class ResultadoGeracao:
     """Resultado consolidado de uma execução de `gerar_documentos`."""
     arquivos_gerados: list[Path] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
+    participantes_por_arquivo: dict[Path, list[int]] = field(default_factory=dict)
 
 
 _caminho_modelo_cache: dict[tuple[str, str, str, str], Path | None] = {}
@@ -303,6 +304,10 @@ def gerar_documentos(
             ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida, reader=reader_modelo)
             campos_ausentes_form.update(ausentes)
             resultado.arquivos_gerados.append(caminho_saida)
+            resultado.participantes_por_arquivo[caminho_saida] = (
+                list(range(1, len(participantes) + 1)) if is_por_processo
+                else [next(i for i, p in enumerate(participantes, 1) if p is participante)]
+            )
             
         if campos_ausentes_form:
             resultado.avisos.append(
@@ -342,6 +347,7 @@ def gerar_documentos_de_perfis(
             nomes_de_arquivo_usados=nomes_usados,
         )
         resultado.arquivos_gerados.extend(parcial.arquivos_gerados)
+        resultado.participantes_por_arquivo.update(parcial.participantes_por_arquivo)
         resultado.avisos.extend(parcial.avisos)
         deslocamento += quantidade
     return resultado

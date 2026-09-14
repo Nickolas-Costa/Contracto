@@ -56,10 +56,19 @@ class Error(Model):
     message: str
 
 
+class FileResult(Model):
+    file_id: Id
+    name: str
+    size_bytes: int
+    origin: Literal["generated", "attachment", "imported"]
+    participants: list[int] = Field(default_factory=list)
+
+
 class JobState(Model):
     job_id: Id
     status: Literal["queued", "running", "cancelling", "cancelled", "completed", "failed"]
     completed: int = 0
     total: int = 0
     file_ids: list[Id] = Field(default_factory=list)
+    files: list[FileResult] = Field(default_factory=list)
     error: Error | None = None

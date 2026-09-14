@@ -81,6 +81,7 @@
     document.getElementById("overlay").hidden = true;
     document.getElementById("app").inert = false;
     document.getElementById("modal-corpo").replaceChildren();
+    document.querySelector(".modal")?.classList.remove("modal-viewer");
     if (aoFechar) { aoFechar(); aoFechar = null; }
     if (ultimoFoco && document.contains(ultimoFoco)) ultimoFoco.focus();
     ultimoFoco = null;

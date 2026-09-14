@@ -10,6 +10,8 @@
     $("estado-trabalho").dataset.state=state;
     $("fila-status").textContent=message;
     $("fila-detalhe").textContent=detail;
+    const summary=$("manifesto-status");
+    if(summary)summary.textContent=message+(detail ? " — "+detail : "");
   }
   function fileLabel(file,index) {return file?.name || "Documento "+(index+1);}
   function fileDescription(file) {
@@ -58,7 +60,7 @@
     $("btn-finalizar").disabled=true;$("btn-anexo").disabled=true;
   }
   function alterarProcesso() {
-    if(finalized){$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;$("fila-status").textContent="Processo alterado. Finalize novamente para atualizar os resultados.";}
+    if(finalized){$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;status("changed","Processo alterado.","Finalize novamente para atualizar os resultados.");}
     finalized=false;
   }
   function resultados(ids,jobId,files=[]) {
@@ -168,7 +170,8 @@
     if(!/^[A-Za-z0-9_-]{1,50}$/.test(type)||attachments.some(a=>a.document_type===type)){ui().toast("Use um tipo válido e diferente dos anexos existentes.","warning");return;}
     selecting=true;const original=base;
     try{const r=await api().selectFile();if(r.cancelled)return;if(base!==original||busy)return;if(!r.selection_id){ui().toast("Não foi possível anexar.","error");return;}
-      attachments.push({file_id:r.selection_id,document_type:type,label:$("anexo-tipo").value.trim() || type,name:r.name || type});alterarProcesso();manifesto();atualizar();
+      const choice=$("anexo-tipo");
+      attachments.push({file_id:r.selection_id,document_type:type,label:choice.selectedOptions[0]?.textContent || type,name:r.name || type});alterarProcesso();manifesto();atualizar();
     }catch(_){ui().toast("Falha ao abrir o seletor.","error");}finally{selecting=false;}
   }
   async function cancelar() {
@@ -186,5 +189,11 @@
     $("formato-saida").addEventListener("change",()=>{if(busy)return;alterarProcesso();atualizar();});
     $("btn-voltar").addEventListener("click",()=>ui().irEtapa(1));manifesto();atualizar();
   }
-  window.ContractoEtapa2={ligar,gerar,atualizar,invalidar,cancelar,reconectar,ocupado:()=>busy,capacidades:c=>{capabilities=c;atualizar();}};
+  function capacidades(c){
+    capabilities=c;
+    const target=$("lista-capacidades");
+    if(target)target.textContent="PDF: disponível · PDF/A: "+(c?.ghostscript ? "disponível" : "requer Ghostscript")+" · RTF: "+(c?.word ? "disponível" : "requer Microsoft Word")+".";
+    atualizar();
+  }
+  window.ContractoEtapa2={ligar,gerar,atualizar,invalidar,cancelar,reconectar,ocupado:()=>busy,capacidades};
 })();
