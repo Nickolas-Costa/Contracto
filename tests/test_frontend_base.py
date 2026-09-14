@@ -90,6 +90,22 @@ class TestFrontendBase(unittest.TestCase):
         # Corridas e recuperação são exercitadas no teste de comportamento JS.
         self.assertIn("conectando", app_js)
         self.assertIn("ContractoEtapa2.ligar()", app_js)
+        # Capacidades carregadas no arranque para não desativar PDF/A à toa.
+        self.assertIn("/api/v1/capabilities", app_js)
+        self.assertIn("capacidades(", app_js)
+
+    def test_etapa2_sem_ids_fantasmas(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
+        for exigido in ['id="formato-opcoes"', 'id="capacidade-formato"',
+                        'id="estado-trabalho"', 'id="fila-detalhe"']:
+            self.assertIn(exigido, html)
+        # Todo id lido pelo JS da Etapa 2 existe no HTML.
+        for usado in sorted(set(re.findall(r'\$\("([\w-]+)"\)', etapa2))):
+            self.assertIn(f'id="{usado}"', html, usado)
+        # anexo-tipo é input: rótulo vem do valor, sem selectedOptions.
+        self.assertIn('<input id="anexo-tipo"', html)
+        self.assertNotIn("selectedOptions", etapa2)
 
 
 if __name__ == "__main__":

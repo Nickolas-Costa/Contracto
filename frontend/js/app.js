@@ -24,6 +24,10 @@
       try {
         const r = await window.ContractoAPI.request("GET", "/api/v1/health");
         if (r.status !== 200) { falha(); return false; }
+        try {
+          const caps = await window.ContractoAPI.request("GET", "/api/v1/capabilities");
+          if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);
+        } catch (_) { /* sem capacidades: PDF/A segue desativado por segurança */ }
         conexao(true, "Pronto.");
         if (!ligado) {
           ligado = true;
