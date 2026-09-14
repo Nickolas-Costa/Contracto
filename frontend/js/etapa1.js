@@ -151,7 +151,6 @@
     $("btn-pasta").disabled=!online()||busy();
     $("btn-adicionar").disabled=busy()||!composed||draft.people.length>=maximum;
     $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
-    $("selecao-resumo").textContent=selected.length+" selecionado(s)";
     $("resumo-formularios").textContent=catalog.filter(p=>selected.includes(p.profile_id)).map(p=>p.name).join(", ") || "Nenhum selecionado";
     $("resumo-participantes").textContent=draft.people.map((p,i)=>p.nome_completo || "Participante "+(i+1)).join(" · ");
     $("resumo-destino").textContent=$("pasta-saida").value || "Escolha uma pasta";
@@ -203,11 +202,29 @@
   function ligar() {
     if(bound)return;bound=true;
     $("btn-gerar").addEventListener("click",gerar);
+    const todos=$("btn-selecionar-todos");
+    if(todos)todos.addEventListener("click",()=>{
+      if(busy()||!catalog.length)return;
+      selecionar(catalog.map(p=>p.profile_id));
+    });
+    document.querySelectorAll("[data-ir]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        window.ContractoUI.mostrarTela("inicio");
+        const alvo=document.getElementById(btn.dataset.ir);
+        if(alvo){alvo.scrollIntoView({block:"center"});const foco=alvo.matches("button,input")?alvo:alvo.querySelector("button,input");if(foco)foco.focus();}
+      });
+    });
     $("btn-adicionar").addEventListener("click",()=>{if(busy()||draft.people.length>=maximum)return;draft.people.push({nome_completo:"",cpf:""});changed();render();});
     ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{draft.globals[id]=e.target.value.trim();changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
     $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
     ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{if(busy())return;mode=name;["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});window.ContractoEtapa2.atualizar();}));
     carregar();
   }
-  window.ContractoEtapa1={ligar,atualizar,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
+  function revisar() {
+    const btn=$("btn-ver-pendencias");
+    if(btn && !btn.hidden){btn.click();return;}
+    atualizar();
+    window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
+  }
+  window.ContractoEtapa1={ligar,atualizar,revisar,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
 })();

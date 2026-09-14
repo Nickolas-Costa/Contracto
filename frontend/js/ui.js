@@ -37,7 +37,21 @@
     ultimoFoco = document.activeElement;
     aoFechar = cleanup || null;
     const overlay = document.getElementById("overlay");
-    document.getElementById("modal-titulo").textContent = titulo;
+    const tituloEl = document.getElementById("modal-titulo");
+    tituloEl.textContent = titulo;
+    if (!tituloEl.parentElement.classList.contains("modal-titulo-faixa")) {
+      const faixa = document.createElement("div");
+      faixa.className = "modal-titulo-faixa";
+      tituloEl.replaceWith(faixa);
+      faixa.append(tituloEl);
+      const fechar = document.createElement("button");
+      fechar.type = "button";
+      fechar.className = "modal-fechar";
+      fechar.textContent = "✕";
+      fechar.setAttribute("aria-label", "Fechar diálogo");
+      fechar.addEventListener("click", fecharModal);
+      faixa.append(fechar);
+    }
     const corpo = document.getElementById("modal-corpo");
     corpo.innerHTML = "";
     if (typeof corpoHTML === "string") {
@@ -97,19 +111,26 @@
       if (b.dataset.tela === nome || (nome === "etapa2" && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
+    const etapa = nome === "inicio" ? 1 : nome === "etapa2" ? 3 : 0;
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
-      if ((nome === "inicio" && b.dataset.etapa === "1") || (nome === "etapa2" && b.dataset.etapa === "2")) b.setAttribute("aria-current", "step");
+      if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
     });
     window.scrollTo(0, 0);
   }
 
   function irEtapa(n) {
-    document.querySelectorAll("#stepper [data-etapa]").forEach((b) => {
-      if (Number(b.dataset.etapa) === n) b.setAttribute("aria-current", "step");
-      else b.removeAttribute("aria-current");
-    });
-    mostrarTela(n === 1 ? "inicio" : "etapa2");
+    if (n === 1) { mostrarTela("inicio"); return; }
+    if (n === 2) {
+      if (window.ContractoEtapa1 && window.ContractoEtapa1.revisar) window.ContractoEtapa1.revisar();
+      return;
+    }
+    if (n === 3) { mostrarTela("etapa2"); return; }
+    if (n === 4) {
+      mostrarTela("etapa2");
+      const btn = document.getElementById("btn-finalizar");
+      if (btn) { btn.focus(); btn.scrollIntoView({ block: "center" }); }
+    }
   }
 
   document.querySelectorAll("[data-tela]").forEach((b) => {

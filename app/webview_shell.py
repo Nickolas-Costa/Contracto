@@ -9,6 +9,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 
 from server import LocalServer
 from ports.webview_dialog import WebViewDialogs
+from version import __version__
 
 
 class ShellBridge:
@@ -142,7 +143,9 @@ def main(self_test=False, ui=False):
         frontend_url = index.as_uri()
     with LocalServer(profiles=[] if self_test else None) as server:
         bridge = ShellBridge(server, frontend_url=frontend_url)
-        titulo = "Contracto" if ui else "Contracto — diagnóstico da base"
+        # Barra do sistema é desenhada pelo SO (pywebview não expõe espessura
+        # nem ícone próprios): aqui vão nome e versão; o ícone vem do pacote.
+        titulo = f"Contracto {__version__}" if ui else "Contracto — diagnóstico da base"
         if frontend_url:
             window = webview.create_window(titulo, url=frontend_url,
                                            js_api=bridge, width=1200, height=850,
