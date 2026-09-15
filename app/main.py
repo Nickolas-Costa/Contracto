@@ -1,9 +1,9 @@
 """
 Ponto de entrada da aplicação.
 
-Executar com:
-    python main.py
-(a partir da pasta `app/`)
+Interface padrão: WebView (`frontend/`) sobre a API local.
+Interface legada Tk (`ui/`) mantida como backup de consulta — abrir com
+`python main.py --tk` a partir da pasta `app/`.
 """
 
 import sys
@@ -16,18 +16,18 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-import customtkinter as ctk
-
 from utils.instancia_unica import InstanciaJaEmExecucao, InstanciaUnica
 from utils.logger import configurar_logger
 
 
+def escolher_interface(argumentos: list[str] | None = None) -> str:
+    """Devolve "tk" com `--tk`; qualquer outro caso abre a WebView."""
+    args = sys.argv[1:] if argumentos is None else argumentos
+    return "tk" if "--tk" in args else "web"
+
+
 def _tratar_excecao_global(tipo, valor, tb):
-    """Tratamento global de exceções não capturadas.
-    
-    Registra no log e exibe uma mensagem amigável ao usuário,
-    evitando que a aplicação feche silenciosamente.
-    """
+    """Registra exceção não capturada e avisa sem fechar silenciosamente."""
     logger = configurar_logger()
     logger.critical(
         "Exceção não tratada: %s: %s\n%s",
@@ -35,9 +35,9 @@ def _tratar_excecao_global(tipo, valor, tb):
         valor,
         "".join(traceback.format_tb(tb)),
     )
-    
-    # Tentar mostrar uma mensagem para o usuário
+
     try:
+        import customtkinter as ctk
         from ui.alert_modal import AlertModal
         if ctk.CTk._top_level_list:
             top = ctk.CTk._top_level_list[0]
@@ -55,6 +55,27 @@ def _tratar_excecao_global(tipo, valor, tb):
             )
     except Exception:
         pass
+
+
+def iniciar_web() -> None:
+    """Abre a interface WebView (padrão)."""
+    from webview_shell import main as iniciar_shell
+
+    iniciar_shell(ui=True)
+
+
+def iniciar_tk() -> None:
+    """Abre a interface legada Tk (backup; `python main.py --tk`)."""
+    import customtkinter as ctk
+
+    ctk.set_appearance_mode("system")
+    ctk.set_default_color_theme("blue")
+
+    from ui.main_window import MainWindow
+
+    app = MainWindow()
+    configurar_logger().info("Janela principal criada")
+    app.mainloop()
 
 
 def main() -> None:
@@ -80,19 +101,17 @@ def main() -> None:
     except OSError:
         logger.warning("Mutex indisponível; seguindo sem trava de instância.")
         guarda_instancia = None
-    
+
     # Instalar tratamento global de exceções
     sys.excepthook = _tratar_excecao_global
-    
-    ctk.set_appearance_mode("system")
-    ctk.set_default_color_theme("blue")
 
-    from ui.main_window import MainWindow
-    
-    app = MainWindow()
-    logger.info("Janela principal criada")
+    modo = escolher_interface()
+    logger.info(f"Interface selecionada: {modo}")
     try:
-        app.mainloop()
+        if modo == "tk":
+            iniciar_tk()
+        else:
+            iniciar_web()
     finally:
         if guarda_instancia is not None:
             guarda_instancia.liberar()
