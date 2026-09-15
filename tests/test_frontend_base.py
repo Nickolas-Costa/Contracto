@@ -90,6 +90,10 @@ class TestFrontendBase(unittest.TestCase):
         # Corridas e recuperação são exercitadas no teste de comportamento JS.
         self.assertIn("conectando", app_js)
         self.assertIn("ContractoEtapa2.ligar()", app_js)
+
+    def test_build_embarca_frontend(self):
+        bat = (RAIZ.parent / "build_exe.bat").read_text(encoding="utf-8")
+        self.assertIn("../frontend;frontend", bat)
         # Capacidades carregadas no arranque para não desativar PDF/A à toa.
         self.assertIn("/api/v1/capabilities", app_js)
         self.assertIn("capacidades(", app_js)
