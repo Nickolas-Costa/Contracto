@@ -24,6 +24,16 @@
       try {
         const r = await window.ContractoAPI.request("GET", "/api/v1/health");
         if (r.status !== 200) { falha(); return false; }
+        // Item 8: diagnóstico WebView2 amigável
+        if (typeof navigator !== "undefined" && navigator.userAgent?.includes("Windows") && window.chrome?.webview) {
+          try {
+            const diag = await window.ContractoAPI.request("GET", "/api/v1/diagnostics/webview2");
+            if (diag.status === 200 && diag.data && !diag.data.available) {
+              const msg = diag.data.message + " <a href='" + diag.data.install_url + "' target='_blank'>Baixar WebView2</a>";
+              window.ContractoUI.toast(msg, "warning", 0);
+            }
+          } catch (_) { /* silencioso */ }
+        }
         try {
           const caps = await window.ContractoAPI.request("GET", "/api/v1/capabilities");
           if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);

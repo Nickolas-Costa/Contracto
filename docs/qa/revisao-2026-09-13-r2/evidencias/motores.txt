@@ -1,0 +1,1 @@
+SMOKE API ENGINES: OK � HTTP, Word, Ghostscript, conte�do e preserva��o do RTF.

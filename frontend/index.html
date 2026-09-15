@@ -36,8 +36,8 @@
       <div class="page-heading">
         <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha os formulários e preencha os dados. Os campos com * são obrigatórios.</p></div>
         <div class="mode-panel"><p class="hint">O que você precisa fazer?</p><div class="modos" role="group" aria-label="Modo">
-          <button id="modo-simples" type="button">Só gerar</button><button id="modo-avancado" type="button" aria-current="page">Gerar e organizar</button>
-        </div></div>
+          <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez. Ideal para gerar documentos em lote.">Só gerar</button><button id="modo-avancado" type="button" aria-current="page" data-tooltip="Gere um formulário e organize o processo completo (anexos, PDF/A, finalizar).">Gerar e organizar</button>
+        </div><p class="hint" id="modo-explicacao">No modo <strong>Só gerar</strong> você seleciona vários formulários. No modo <strong>Gerar e organizar</strong> escolha apenas um.</p></div>
       </div>
       <div class="workspace"><div class="workspace-main">
       <div class="card">
@@ -55,7 +55,10 @@
         <div class="field-grid">
         <div class="field">
           <label for="data-assinatura">Data da assinatura *</label>
-          <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off" aria-describedby="data-assinatura-erro">
+          <div class="date-picker-wrapper">
+            <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off" aria-describedby="data-assinatura-erro">
+            <button type="button" class="btn-calendar" id="btn-calendario-data" aria-label="Abrir calendário" title="Abrir calendário">📅</button>
+          </div>
           <div id="data-assinatura-erro" class="erro" hidden></div>
         </div>
         <div class="field">
@@ -130,13 +133,21 @@
       <div class="card profiles-card"><div class="card-header"><div><h2>Modelos disponíveis</h2><p class="hint">Escolha e consulte o que cada perfil oferece. Editar ou importar perfis ainda é uma função do aplicativo clássico.</p></div></div><div class="field"><label for="buscar-perfis">Buscar perfil</label><input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off"></div><div id="lista-perfis"></div><p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p></div>
     </section>
 
-    <section id="tela-config" aria-label="Configurações" hidden>
+<section id="tela-config" aria-label="Configurações" hidden>
       <div class="page-heading"><div><p class="eyebrow">Preferências</p><h1>Configurações</h1><p class="hint">Ajuste a aparência para trabalhar com conforto.</p></div></div>
       <div class="card compact-page">
         <h2>Aparência</h2>
         <div class="field">
           <label for="cfg-tema">Tema</label>
           <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
+        </div>
+        <div class="field">
+          <label for="cfg-cor">Cor de destaque</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="cfg-cor" value="#005CA9">
+            <input type="text" id="cfg-cor-texto" value="#005CA9" placeholder="#005CA9" pattern="#[0-9A-Fa-f]{6}">
+          </div>
+          <p class="field-note">Define a cor dos botões primários, links e ondas de fundo.</p>
         </div>
         <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
       </div>

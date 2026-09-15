@@ -1,0 +1,73 @@
+diff --git a/app/ports/__init__.py b/app/ports/__init__.py
+index 83dccf7..60aa4fe 100644
+--- a/app/ports/__init__.py
++++ b/app/ports/__init__.py
+@@ -1,6 +1,5 @@
+-"""Camada de ports: interfaces p/ desacoplar backend da UI atual (Tk).
++"""Camada de ports: interfaces p/ desacoplar backend do Frontend.
+ 
+ Fase A (pywebview) e Fase B (Tauri V2) implementam estes ports sem tocar
+-em services/. Hoje as implementações default delegam ao comportamento
+-Windows/Tk existente.
++em services/..
+ """
+diff --git a/app/ports/binaries.py b/app/ports/binaries.py
+index a9cae40..3e45a39 100644
+--- a/app/ports/binaries.py
++++ b/app/ports/binaries.py
+@@ -1,6 +1,6 @@
+ """Port de binários externos: Ghostscript + Word.
+ 
+-Decisão registrada (DECISIONS §5-6): Windows-only com Word por enquanto.
++Windows-only com Word por enquanto.
+ Este port expõe capacidades p/ o futuro shell decidir como informar falhas,
+ sem iniciar o Word durante a verificação.
+ """
+diff --git a/frontend/css/layout.css b/frontend/css/layout.css
+index 34d4dfc..08f4f33 100644
+--- a/frontend/css/layout.css
++++ b/frontend/css/layout.css
+@@ -43,6 +43,20 @@ body {
+ .toolbar button:hover { background: rgba(255, 255, 255, 0.14); }
+ .toolbar button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+ 
++/* Estado da conexão local */
++#conexao { font-size: 12px; opacity: 0.9; margin-left: 4px; }
++#conexao[data-estado="falha"] { font-weight: 600; }
++#btn-tentar {
++  font: inherit;
++  color: #fff;
++  background: transparent;
++  border: 1px solid #fff;
++  border-radius: var(--r-button);
++  padding: 4px 10px;
++  margin-left: 8px;
++  cursor: pointer;
++}
++
+ /* Stepper */
+ .stepper { display: flex; gap: 8px; align-items: center; margin: 16px 0; padding: 0; list-style: none; }
+ .stepper button {
+diff --git a/tests/test_webview_bridge.py b/tests/test_webview_bridge.py
+index 09d7bdd..0500f7a 100644
+--- a/tests/test_webview_bridge.py
++++ b/tests/test_webview_bridge.py
+@@ -38,3 +38,18 @@ class TestWebViewBridge(unittest.TestCase):
+             self.assertNotIn(folder, str(result))
+             self.assertEqual(server.jobs.selections.resolve(result["selection_id"], "directory"), Path(folder).resolve())
+             self.assertEqual(WebViewDialogs(window).selecionar_pasta(), Path(folder))
++
++    def test_apenas_url_local_registrada_autorizada(self):
++        with LocalServer(profiles=[]) as server:
++            bridge = ShellBridge(server)
++            window = Mock()
++            bridge._attach(window)
++            local = "file:///C:/app/frontend/index.html"
++            window.get_current_url.return_value = local
++            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
++            bridge.allow_url(local)
++            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
++            window.get_current_url.return_value = local + "?x=1"
++            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
++            window.get_current_url.return_value = None
++            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)

@@ -145,6 +145,21 @@
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
   }
 
+  function aplicarCor(cor) {
+    document.documentElement.style.setProperty("--c-primary", cor);
+    // Ajusta variantes baseadas na cor principal
+    const r = parseInt(cor.slice(1, 3), 16), g = parseInt(cor.slice(3, 5), 16), b = parseInt(cor.slice(5, 7), 16);
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    const onPrimary = luminance > 0.5 ? "#172435" : "#FFFFFF";
+    const light = `color-mix(in srgb, ${cor} 15%, ${luminance > 0.5 ? "#FFFFFF" : "#0F1419"})`;
+    const hover = `color-mix(in srgb, ${cor} 85%, ${luminance > 0.5 ? "#FFFFFF" : "#0F1419"})`;
+    document.documentElement.style.setProperty("--c-on-primary", onPrimary);
+    document.documentElement.style.setProperty("--c-primary-light", light);
+    document.documentElement.style.setProperty("--c-primary-hover", hover);
+    // Atualiza gradiente de fundo (ondas)
+    document.body.style.backgroundImage = `repeating-linear-gradient(115deg, color-mix(in srgb, ${cor} 7%, transparent) 0 1px, transparent 1px 14px)`;
+  }
+
   function aplicarTemaInicial() {
     let tema = "light";
     try {
@@ -166,6 +181,37 @@
           try { localStorage.setItem("contracto-tema", sel.value); } catch (e) { /* sem armazenamento */ }
         });
       }
+    }
+    // Cor de destaque salva
+    try {
+      const corSalva = localStorage.getItem("contracto-cor");
+      if (corSalva && /^#[0-9A-Fa-f]{6}$/.test(corSalva)) {
+        aplicarCor(corSalva);
+        const input = document.getElementById("cfg-cor");
+        const texto = document.getElementById("cfg-cor-texto");
+        if (input) input.value = corSalva;
+        if (texto) texto.value = corSalva;
+      }
+    } catch (e) { /* sem armazenamento */ }
+    const corInput = document.getElementById("cfg-cor");
+    const corTexto = document.getElementById("cfg-cor-texto");
+    if (corInput && !corInput.dataset.ligado) {
+      corInput.dataset.ligado = "1";
+      corInput.addEventListener("input", () => {
+        aplicarCor(corInput.value);
+        if (corTexto) corTexto.value = corInput.value;
+        try { localStorage.setItem("contracto-cor", corInput.value); } catch (e) { /* sem armazenamento */ }
+      });
+    }
+    if (corTexto && !corTexto.dataset.ligado) {
+      corTexto.dataset.ligado = "1";
+      corTexto.addEventListener("input", () => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(corTexto.value)) {
+          aplicarCor(corTexto.value);
+          if (corInput) corInput.value = corTexto.value;
+          try { localStorage.setItem("contracto-cor", corTexto.value); } catch (e) { /* sem armazenamento */ }
+        }
+      });
     }
   }
 

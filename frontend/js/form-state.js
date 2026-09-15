@@ -7,8 +7,24 @@
       (!field.visivel_quando?.length || field.visivel_quando.some(group =>
         Object.entries(group).every(([id, accepted]) => accepted.includes(String(values[canonical(id)] ?? "")))));
   }
+  function onlyDigits(s) { return String(s).replace(/\D/g, ""); }
+  function formatCpfProgressive(valor) {
+    const digitos = onlyDigits(valor).slice(0, 11);
+    const tam = digitos.length;
+    if (tam <= 3) return digitos;
+    if (tam <= 6) return digitos.slice(0, 3) + "." + digitos.slice(3);
+    if (tam <= 9) return digitos.slice(0, 3) + "." + digitos.slice(3, 6) + "." + digitos.slice(6);
+    return digitos.slice(0, 3) + "." + digitos.slice(3, 6) + "." + digitos.slice(6, 9) + "-" + digitos.slice(9);
+  }
+  function formatDateProgressive(valor) {
+    const digitos = onlyDigits(valor).slice(0, 8);
+    const tam = digitos.length;
+    if (tam <= 2) return digitos;
+    if (tam <= 4) return digitos.slice(0, 2) + "/" + digitos.slice(2);
+    return digitos.slice(0, 2) + "/" + digitos.slice(2, 4) + "/" + digitos.slice(4);
+  }
   function cpfValid(value) {
-    const s = String(value).replace(/\D/g, "");
+    const s = onlyDigits(value);
     if (s.length !== 11 || /^(\d)\1+$/.test(s)) return false;
     for (let n = 9; n < 11; n++) {
       let sum = 0;
@@ -41,5 +57,5 @@
         local_assinatura: draft.globals.local_assinatura || "", campos_dinamicos: dynamic};
     });
   }
-  window.ContractoForm = {canonical, visible, cpfValid, dateValid, participants};
+  window.ContractoForm = {canonical, visible, cpfValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
 })();

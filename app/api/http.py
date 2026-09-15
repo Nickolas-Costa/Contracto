@@ -13,6 +13,9 @@ from version import __version__
 from .jobs import ApiError, capabilities
 from .models import ComposeInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
+import sys
+import subprocess
+import platform
 
 
 def error(code, message, status, issues=None):
@@ -128,6 +131,49 @@ def create_app(session):
     @app.get("/api/v1/health")
     def health():
         return {"version": __version__, "status": "ready"}
+
+    @app.get("/api/v1/diagnostics/webview2")
+    def webview2_diagnostic():
+        """Verifica disponibilidade do WebView2 Runtime e sugere instalação se ausente."""
+        info = {"platform": platform.system(), "architecture": platform.machine()}
+        if sys.platform != "win32":
+            return {**info, "available": True, "required": False, "note": "WebView2 só é necessário no Windows."}
+        # Registro do Evergreen Runtime (instalação por usuário) e Fixed Version (instalação por sistema)
+        import winreg
+        runtime_found = False
+        version = None
+        for hive, path in [
+            (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
+        ]:
+            try:
+                with winreg.OpenKey(hive, path) as key:
+                    version = winreg.QueryValueEx(key, "pv")[0]
+                    runtime_found = True
+                    break
+            except OSError:
+                continue
+        if not runtime_found:
+            # Fallback: tenta via Evergreen bootstrapper local
+            try:
+                out = subprocess.run(["cmd", "/c", "reg", "query", "HKCU\\Software\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}", "/v", "pv"], capture_output=True, text=True, timeout=3)
+                if out.returncode == 0:
+                    import re
+                    m = re.search(r"pv\s+REG_SZ\s+([\d.]+)", out.stdout)
+                    if m:
+                        version = m.group(1)
+                        runtime_found = True
+            except Exception:
+                pass
+        return {
+            **info,
+            "available": runtime_found,
+            "required": True,
+            "version": version,
+            "install_url": "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
+            "message": "WebView2 Runtime encontrado." if runtime_found else "WebView2 Runtime não encontrado. Instale para usar a interface moderna."
+        }
 
     @app.get("/api/v1/capabilities")
     def get_capabilities():

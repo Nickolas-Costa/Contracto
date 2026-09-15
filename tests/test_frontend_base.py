@@ -94,6 +94,7 @@ class TestFrontendBase(unittest.TestCase):
     def test_build_embarca_frontend(self):
         bat = (RAIZ.parent / "build_exe.bat").read_text(encoding="utf-8")
         self.assertIn("../frontend;frontend", bat)
+        app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         # Capacidades carregadas no arranque para não desativar PDF/A à toa.
         self.assertIn("/api/v1/capabilities", app_js)
         self.assertIn("capacidades(", app_js)
@@ -107,7 +108,7 @@ class TestFrontendBase(unittest.TestCase):
         # Todo id lido pelo JS da Etapa 2 existe no HTML.
         for usado in sorted(set(re.findall(r'\$\("([\w-]+)"\)', etapa2))):
             self.assertIn(f'id="{usado}"', html, usado)
-        # Categoria é uma seleção finita: o valor técnico continua validado pela API,
+# Categoria é uma seleção finita: o valor técnico continua validado pela API,
         # enquanto o texto da opção é apresentado ao usuário.
         self.assertIn('<select id="anexo-tipo"', html)
         self.assertIn("selectedOptions", etapa2)

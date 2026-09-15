@@ -1,0 +1,2 @@
+{"scenario":"generated only","passed":true,"payload":{"participants":[{"name":"Pessoa Sintetica"}],"output_id":"synthetic-output","format":"PDF","file_ids":["generated-pdf"]}}
+{"scenario":"generated plus attachment","passed":false,"payload":{"participants":[{"name":"Pessoa Sintetica"}],"output_id":"synthetic-output","format":"PDF","attachments":[{"file_id":"synthetic-attachment","document_type":"ANEXO"}]}}

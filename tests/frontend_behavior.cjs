@@ -8,13 +8,14 @@ async function bootstrap(){
  let calls=0,one=0,two=0;
  const events={};
  const document={readyState:'complete',getElementById:id=>elements.get(id),createElement:make};
- const window={ContractoAPI:{disponivel:()=>true,request:async()=>({status:++calls===1?503:200})},
-  ContractoUI:{aplicarTemaInicial(){}},ContractoEtapa1:{ligar(){one++},atualizar(){},reconectar(){}},
-  ContractoEtapa2:{ligar(){two++},atualizar(){},reconectar(){}},addEventListener(k,fn){events[k]=fn}};
+const window={ContractoAPI:{disponivel:()=>true,request:async()=>({status:++calls===1?503:200})},
+   ContractoUI:{aplicarTemaInicial(){}},ContractoEtapa1:{ligar(){one++},atualizar(){},reconectar(){}},
+   ContractoEtapa2:{ligar(){two++},atualizar(){},reconectar(){}},addEventListener(k,fn){events[k]=fn}};
+  // 3 chamadas: health (503), health (200), capabilities (webview2 pulado sem navigator/chrome)
  vm.runInNewContext(source('app.js'),{window,document,setTimeout,clearTimeout});
- await flush();assert.equal(window.ContractoApp.pronto(),false);
- elements.get('conexao').children[0].click();await flush();
- assert.equal(window.ContractoApp.pronto(),true);assert.equal(calls,3);assert.equal(one,1);assert.equal(two,1);
+await flush();assert.equal(window.ContractoApp.pronto(),false);
+  elements.get('conexao').children[0].click();await flush();
+  assert.equal(window.ContractoApp.pronto(),true);assert.equal(calls,3);assert.equal(one,1);assert.equal(two,1);
  events.pywebviewready();events.pywebviewready();await flush();
  assert.equal(one,1);assert.equal(two,1);
  console.log('PASS bootstrap 503 -> retry 200; duplicate ready events');

@@ -1,0 +1,400 @@
+test_inexistente_devolve_false (test_abrir_informa.TestAbrirInformaFalha.test_inexistente_devolve_false) ... ok
+test_valido_tenta_abrir_uma_vez (test_abrir_informa.TestAbrirInformaFalha.test_valido_tenta_abrir_uma_vez) ... ok
+test_desconhecido_e_travessia (test_api_hardening.TestArquivosVisualizacao.test_desconhecido_e_travessia) ... ok
+test_nao_pdf_rejeitado (test_api_hardening.TestArquivosVisualizacao.test_nao_pdf_rejeitado) ... ok
+test_pdf_valido_devolve_bytes (test_api_hardening.TestArquivosVisualizacao.test_pdf_valido_devolve_bytes) ... ok
+test_ponte_get_file (test_api_hardening.TestArquivosVisualizacao.test_ponte_get_file) ... ok
+test_sem_token_rejeitado (test_api_hardening.TestArquivosVisualizacao.test_sem_token_rejeitado) ... ok
+test_bearer_case_e_espacos_rejeitados (test_api_hardening.TestAuthLimites.test_bearer_case_e_espacos_rejeitados) ... ok
+test_host_trocado (test_api_hardening.TestAuthLimites.test_host_trocado) ... ok
+test_metodos_indevidos (test_api_hardening.TestAuthLimites.test_metodos_indevidos) ... ok
+test_origem_ausente_ou_trocada (test_api_hardening.TestAuthLimites.test_origem_ausente_ou_trocada) ... ok
+test_post_em_rota_get (test_api_hardening.TestAuthLimites.test_post_em_rota_get) ... ok
+test_rota_desconhecida (test_api_hardening.TestAuthLimites.test_rota_desconhecida) ... ok
+test_aninhamento_profundo_sem_vazamento (test_api_hardening.TestCorpoLimites.test_aninhamento_profundo_sem_vazamento) ... ok
+test_content_type_errado (test_api_hardening.TestCorpoLimites.test_content_type_errado) ... ok
+test_corpo_grande_rejeitado (test_api_hardening.TestCorpoLimites.test_corpo_grande_rejeitado) ... ok
+test_get_com_corpo_rejeitado (test_api_hardening.TestCorpoLimites.test_get_com_corpo_rejeitado) ... ok
+test_json_invalido_sem_vazamento (test_api_hardening.TestCorpoLimites.test_json_invalido_sem_vazamento) ... ok
+test_query_string_rejeitada (test_api_hardening.TestCorpoLimites.test_query_string_rejeitada) ... ok
+test_sessao_encerrada_recusa (test_api_hardening.TestIsolamentoSessao.test_sessao_encerrada_recusa) ... ok
+test_tokens_nao_cruzam_servidores (test_api_hardening.TestIsolamentoSessao.test_tokens_nao_cruzam_servidores) ... ok
+test_campo_extra_e_ids_invalidos (test_api_hardening.TestModelosLimites.test_campo_extra_e_ids_invalidos) ... ok
+test_campos_dinamicos_fora_do_limite (test_api_hardening.TestModelosLimites.test_campos_dinamicos_fora_do_limite) ... ok
+test_formato_invalido_e_cpf_invalido (test_api_hardening.TestModelosLimites.test_formato_invalido_e_cpf_invalido) ... ok
+test_nan_rejeitado (test_api_hardening.TestModelosLimites.test_nan_rejeitado) ... ok
+test_participantes_fora_do_limite (test_api_hardening.TestModelosLimites.test_participantes_fora_do_limite) ... ok
+test_cancel_idempotente_apos_concluir (test_api_hardening.TestRoteamentoTrabalhos.test_cancel_idempotente_apos_concluir) ... ok
+test_cancel_sem_corpo_rejeitado (test_api_hardening.TestRoteamentoTrabalhos.test_cancel_sem_corpo_rejeitado) ... ok
+test_job_desconhecido_e_travessia (test_api_hardening.TestRoteamentoTrabalhos.test_job_desconhecido_e_travessia) ... ok
+test_conteudo_incompleto_rejeita (test_backup.TestBackup.test_conteudo_incompleto_rejeita) ... ok
+test_criar_e_listar (test_backup.TestBackup.test_criar_e_listar) ... ok
+test_restaurar_substitui_tudo (test_backup.TestBackup.test_restaurar_substitui_tudo) ... ok
+test_zip_invalido_rejeita (test_backup.TestBackup.test_zip_invalido_rejeita) ... ok
+test_alerta_sem_lista_nao_quebra (test_base_modal.TestBaseModal.test_alerta_sem_lista_nao_quebra) ... ok
+test_confirmar_e_cancelar (test_base_modal.TestBaseModal.test_confirmar_e_cancelar) ... ok
+test_escape_fecha_alerta (test_base_modal.TestBaseModal.test_escape_fecha_alerta) ... ok
+test_grab_so_nos_dialogos_bloqueantes (test_base_modal.TestBaseModal.test_grab_so_nos_dialogos_bloqueantes) ... ok
+test_segunda_abertura_fecha_anterior (test_base_modal.TestBaseModal.test_segunda_abertura_fecha_anterior) ... ok
+test_todos_herdam_base (test_base_modal.TestBaseModal.test_todos_herdam_base) ... ok
+test_inexistente_nao_levanta (test_caminhos.TestAbrirPasta.test_inexistente_nao_levanta) ... ok
+test_valida_abre_uma_vez (test_caminhos.TestAbrirPasta.test_valida_abre_uma_vez) ... ok
+test_backup_e_padroes (test_caminhos.TestConfigCorrompida.test_backup_e_padroes) ... Configura��o ileg�vel; padr�es restaurados (c�pia: C:\Users\sousa\AppData\Local\Temp\tmptoj9ey7p\contracto_config.json.corrompido-20260913-170802).
+ok
+test_inexistente_devolve_none (test_caminhos.TestCopiaCorrompida.test_inexistente_devolve_none) ... ok
+test_renomeia_com_marca_de_data (test_caminhos.TestCopiaCorrompida.test_renomeia_com_marca_de_data) ... ok
+test_sem_appdata_usa_primeiro_gravavel (test_caminhos.TestDiretorioDadosLocal.test_sem_appdata_usa_primeiro_gravavel) ... ok
+test_prefere_downloads_do_userprofile (test_caminhos.TestPastaDownloads.test_prefere_downloads_do_userprofile) ... ok
+test_sem_downloads_cai_para_home (test_caminhos.TestPastaDownloads.test_sem_downloads_cai_para_home) ... ok
+test_sem_userprofile_nao_levanta_keyerror (test_caminhos.TestPastaDownloads.test_sem_userprofile_nao_levanta_keyerror) ... ok
+test_backup_e_iniciais_preservados (test_caminhos.TestPerfisCorrompidos.test_backup_e_iniciais_preservados) ... ok
+test_converter_lote_cancelamento (test_cancellation.TestCancellationAndStages.test_converter_lote_cancelamento) ... ok
+test_converter_lote_progresso (test_cancellation.TestCancellationAndStages.test_converter_lote_progresso) ... ok
+test_executar_etapa2_cancelamento_imediato (test_cancellation.TestCancellationAndStages.test_executar_etapa2_cancelamento_imediato) ... ok
+test_gerar_documentos_cancelamento (test_cancellation.TestCancellationAndStages.test_gerar_documentos_cancelamento) ... ok
+test_condicao_sim_continua_valendo (test_checkbox_opcoes.TestCheckboxComOpcoes.test_condicao_sim_continua_valendo) ... ok
+test_damp_tem_sete_checks_sim_nao (test_checkbox_opcoes.TestCheckboxComOpcoes.test_damp_tem_sete_checks_sim_nao) ... ok
+test_definir_valor_respeita_par (test_checkbox_opcoes.TestCheckboxComOpcoes.test_definir_valor_respeita_par) ... ok
+test_legado_sem_opcoes_mantem_sim_nao (test_checkbox_opcoes.TestCheckboxComOpcoes.test_legado_sem_opcoes_mantem_sim_nao) ... ok
+test_par_sim_nao (test_checkbox_opcoes.TestCheckboxComOpcoes.test_par_sim_nao) ... ok
+test_formatar_cnpj (test_cnpj_validator.TestCnpjValidator.test_formatar_cnpj) ... ok
+test_limpar_cnpj (test_cnpj_validator.TestCnpjValidator.test_limpar_cnpj) ... ok
+test_validar_cnpj_numerico_tradicional (test_cnpj_validator.TestCnpjValidator.test_validar_cnpj_numerico_tradicional) ... ok
+test_validar_novo_cnpj_alfanumerico (test_cnpj_validator.TestCnpjValidator.test_validar_novo_cnpj_alfanumerico) ... ok
+test_gera_todos_os_formularios_sem_sobrescrever_nomes_iguais (test_composicao_perfis.TestComposicaoPerfis.test_gera_todos_os_formularios_sem_sobrescrever_nomes_iguais) ... ok
+test_identifica_paginas_com_o_nome_de_cada_formulario (test_composicao_perfis.TestComposicaoPerfis.test_identifica_paginas_com_o_nome_de_cada_formulario) ... ok
+test_impede_campos_com_mesmo_nome_interno_e_tipos_diferentes (test_composicao_perfis.TestComposicaoPerfis.test_impede_campos_com_mesmo_nome_interno_e_tipos_diferentes) ... ok
+test_respeita_limite_de_proponentes_do_formulario_da_pagina (test_composicao_perfis.TestComposicaoPerfis.test_respeita_limite_de_proponentes_do_formulario_da_pagina) ... ok
+test_reune_campos_e_respeita_limite_de_participantes (test_composicao_perfis.TestComposicaoPerfis.test_reune_campos_e_respeita_limite_de_participantes) ... ok
+test_classifica_ligacoes_e_incompatibilidades (test_composicao_perfis.TestConferenciaMapeamento.test_classifica_ligacoes_e_incompatibilidades) ... ok
+test_renderiza_a_previa_sem_alterar_o_pdf (test_composicao_perfis.TestConferenciaMapeamento.test_renderiza_a_previa_sem_alterar_o_pdf) ... ok
+test_formata_cpf_valido_ja_formatado (test_cpf_validator.TestFormatarCpf.test_formata_cpf_valido_ja_formatado) ... ok
+test_formata_cpf_valido_sem_formatacao (test_cpf_validator.TestFormatarCpf.test_formata_cpf_valido_sem_formatacao) ... ok
+test_levanta_erro_para_cpf_curto (test_cpf_validator.TestFormatarCpf.test_levanta_erro_para_cpf_curto) ... ok
+test_levanta_erro_para_cpf_invalido_matematicamente (test_cpf_validator.TestFormatarCpf.test_levanta_erro_para_cpf_invalido_matematicamente) ... ok
+test_levanta_erro_para_cpf_longo (test_cpf_validator.TestFormatarCpf.test_levanta_erro_para_cpf_longo) ... ok
+test_levanta_erro_para_string_vazia (test_cpf_validator.TestFormatarCpf.test_levanta_erro_para_string_vazia) ... ok
+test_levanta_erro_para_todos_digitos_iguais (test_cpf_validator.TestFormatarCpf.test_levanta_erro_para_todos_digitos_iguais) ... ok
+test_remove_caracteres_nao_numericos (test_cpf_validator.TestLimparCpf.test_remove_caracteres_nao_numericos) ... ok
+test_remove_pontos_e_traco (test_cpf_validator.TestLimparCpf.test_remove_pontos_e_traco) ... ok
+test_string_so_com_digitos_fica_igual (test_cpf_validator.TestLimparCpf.test_string_so_com_digitos_fica_igual) ... ok
+test_string_vazia (test_cpf_validator.TestLimparCpf.test_string_vazia) ... ok
+test_cpf_com_caracteres_nao_numericos_valido (test_cpf_validator.TestValidarCpf.test_cpf_com_caracteres_nao_numericos_valido) ... ok
+test_cpf_curto_demais (test_cpf_validator.TestValidarCpf.test_cpf_curto_demais) ... ok
+test_cpf_invalido_digitos_verificadores_errados (test_cpf_validator.TestValidarCpf.test_cpf_invalido_digitos_verificadores_errados) ... ok
+test_cpf_longo_demais (test_cpf_validator.TestValidarCpf.test_cpf_longo_demais) ... ok
+test_cpf_todos_digitos_iguais_000 (test_cpf_validator.TestValidarCpf.test_cpf_todos_digitos_iguais_000) ... ok
+test_cpf_todos_digitos_iguais_111 (test_cpf_validator.TestValidarCpf.test_cpf_todos_digitos_iguais_111) ... ok
+test_cpf_todos_digitos_iguais_999 (test_cpf_validator.TestValidarCpf.test_cpf_todos_digitos_iguais_999) ... ok
+test_cpf_valido_com_formatacao (test_cpf_validator.TestValidarCpf.test_cpf_valido_com_formatacao) ... ok
+test_cpf_valido_sem_formatacao (test_cpf_validator.TestValidarCpf.test_cpf_valido_sem_formatacao) ... ok
+test_cpf_vazio (test_cpf_validator.TestValidarCpf.test_cpf_vazio) ... ok
+test_outros_cpfs_validos (test_cpf_validator.TestValidarCpf.test_outros_cpfs_validos) ... ok
+test_data_formato_errado_levanta_erro (test_date_formatter.TestSepararDataPorExtenso.test_data_formato_errado_levanta_erro) ... ok
+test_data_invalida_levanta_erro (test_date_formatter.TestSepararDataPorExtenso.test_data_invalida_levanta_erro) ... ok
+test_exemplo_do_espec_01_01_2026 (test_date_formatter.TestSepararDataPorExtenso.test_exemplo_do_espec_01_01_2026) ... ok
+test_exemplo_do_espec_05_11_2028 (test_date_formatter.TestSepararDataPorExtenso.test_exemplo_do_espec_05_11_2028) ... ok
+test_exemplo_do_espec_15_07_2026 (test_date_formatter.TestSepararDataPorExtenso.test_exemplo_do_espec_15_07_2026) ... ok
+test_exemplo_do_espec_22_08_2027 (test_date_formatter.TestSepararDataPorExtenso.test_exemplo_do_espec_22_08_2027) ... ok
+test_primeira_letra_do_mes_maiuscula (test_date_formatter.TestSepararDataPorExtenso.test_primeira_letra_do_mes_maiuscula) ... ok
+test_todos_os_meses (test_date_formatter.TestSepararDataPorExtenso.test_todos_os_meses) ... ok
+test_data_formato_errado (test_date_formatter.TestValidarData.test_data_formato_errado) ... ok
+test_data_invalida_dia_inexistente (test_date_formatter.TestValidarData.test_data_invalida_dia_inexistente) ... ok
+test_data_valida (test_date_formatter.TestValidarData.test_data_valida) ... ok
+test_data_vazia (test_date_formatter.TestValidarData.test_data_vazia) ... ok
+test_formatar_area_progressiva (test_document_validator.TestDocumentValidator.test_formatar_area_progressiva) ... ok
+test_formatar_cnpj_progressivo (test_document_validator.TestDocumentValidator.test_formatar_cnpj_progressivo) ... ok
+test_formatar_cpf_ou_cnpj_progressivo (test_document_validator.TestDocumentValidator.test_formatar_cpf_ou_cnpj_progressivo) ... ok
+test_formatar_cpf_progressivo (test_document_validator.TestDocumentValidator.test_formatar_cpf_progressivo) ... ok
+test_formatar_data_progressiva (test_document_validator.TestDocumentValidator.test_formatar_data_progressiva) ... ok
+test_formatar_moeda_progressiva (test_document_validator.TestDocumentValidator.test_formatar_moeda_progressiva) ... ok
+test_formatar_telefone_progressivo (test_document_validator.TestDocumentValidator.test_formatar_telefone_progressivo) ... ok
+test_limpar_documento (test_document_validator.TestDocumentValidator.test_limpar_documento) ... ok
+test_validar_cpf_ou_cnpj (test_document_validator.TestDocumentValidator.test_validar_cpf_ou_cnpj) ... ok
+test_validar_email (test_document_validator.TestDocumentValidator.test_validar_email) ... ok
+test_validar_telefone (test_document_validator.TestDocumentValidator.test_validar_telefone) ... ok
+test_extrai_primeiro_nome (test_filename_utils.TestExtrairPrimeiroNome.test_extrai_primeiro_nome) ... ok
+test_nome_unico (test_filename_utils.TestExtrairPrimeiroNome.test_nome_unico) ... ok
+test_nome_vazio (test_filename_utils.TestExtrairPrimeiroNome.test_nome_vazio) ... ok
+test_dois_participantes (test_filename_utils.TestGerarSufixoNomes.test_dois_participantes) ... ok
+test_lista_vazia (test_filename_utils.TestGerarSufixoNomes.test_lista_vazia) ... ok
+test_nomes_duplicados (test_filename_utils.TestGerarSufixoNomes.test_nomes_duplicados) ... ok
+test_tres_participantes (test_filename_utils.TestGerarSufixoNomes.test_tres_participantes) ... ok
+test_um_participante (test_filename_utils.TestGerarSufixoNomes.test_um_participante) ... ok
+test_ppe (test_filename_utils.TestNomeDocumentoIndividual.test_ppe) ... ok
+test_primeiro_imovel (test_filename_utils.TestNomeDocumentoIndividual.test_primeiro_imovel) ... ok
+test_contrato_dois_participantes (test_filename_utils.TestNomeDocumentoProcesso.test_contrato_dois_participantes) ... ok
+test_planilha_um_participante (test_filename_utils.TestNomeDocumentoProcesso.test_planilha_um_participante) ... ok
+test_remove_acentos_basicos (test_filename_utils.TestRemoverAcentos.test_remove_acentos_basicos) ... ok
+test_sem_acentos_nao_altera (test_filename_utils.TestRemoverAcentos.test_sem_acentos_nao_altera) ... ok
+test_inexistente_devolve_false (test_files_compartilhados.TestAbrirPastaCompartilhado.test_inexistente_devolve_false) ... ok
+test_valida_abre_uma_vez (test_files_compartilhados.TestAbrirPastaCompartilhado.test_valida_abre_uma_vez) ... ok
+test_delegadores_mantem_comportamento (test_files_compartilhados.TestAtualizarEntry.test_delegadores_mantem_comportamento) ... ok
+test_editavel_e_somente_leitura (test_files_compartilhados.TestAtualizarEntry.test_editavel_e_somente_leitura) ... ok
+test_calculated_value_cannot_be_overridden (test_form_validation.TestFormValidation.test_calculated_value_cannot_be_overridden) ... ok
+test_calculation_order_and_cycle (test_form_validation.TestFormValidation.test_calculation_order_and_cycle) ... ok
+test_formats_and_bounds (test_form_validation.TestFormValidation.test_formats_and_bounds) ... ok
+test_global_and_participant_limit (test_form_validation.TestFormValidation.test_global_and_participant_limit) ... ok
+test_required_conditional_and_hidden_value_cleared (test_form_validation.TestFormValidation.test_required_conditional_and_hidden_value_cleared) ... ok
+test_geracao_ponta_a_ponta_com_formulario_caixa (test_formulario_caixa.TestFormularioCaixa.test_geracao_ponta_a_ponta_com_formulario_caixa) ... ok
+test_modelo_oficial_formulario_caixa_existe (test_formulario_caixa.TestFormularioCaixa.test_modelo_oficial_formulario_caixa_existe) ... ok
+test_perfil_formulario_caixa_carregado (test_formulario_caixa.TestFormularioCaixa.test_perfil_formulario_caixa_carregado) ... ok
+test_geracao_ponta_a_ponta_com_isencao_e_heranca_assinatura (test_formulario_isencao.TestFormularioIsencao.test_geracao_ponta_a_ponta_com_isencao_e_heranca_assinatura) ... ok
+test_modelo_oficial_isencao_existe (test_formulario_isencao.TestFormularioIsencao.test_modelo_oficial_isencao_existe) ... ok
+test_perfil_isencao_carregado (test_formulario_isencao.TestFormularioIsencao.test_perfil_isencao_carregado) ... ok
+test_geracao_ponta_a_ponta_com_itbi (test_formulario_itbi.TestFormularioITBI.test_geracao_ponta_a_ponta_com_itbi) ... ok
+test_modelo_oficial_itbi_existe (test_formulario_itbi.TestFormularioITBI.test_modelo_oficial_itbi_existe) ... ok
+test_perfil_itbi_carregado (test_formulario_itbi.TestFormularioITBI.test_perfil_itbi_carregado) ... ok
+test_acessibilidade_basica (test_frontend_base.TestFrontendBase.test_acessibilidade_basica) ... ok
+test_arquivos_presentes (test_frontend_base.TestFrontendBase.test_arquivos_presentes) ... ok
+test_boot_aguarda_ponte (test_frontend_base.TestFrontendBase.test_boot_aguarda_ponte) ... ok
+test_js_balanceado (test_frontend_base.TestFrontendBase.test_js_balanceado) ... ok
+test_referencias_resolvem (test_frontend_base.TestFrontendBase.test_referencias_resolvem) ... ok
+test_sem_rede_externa_e_sem_inline (test_frontend_base.TestFrontendBase.test_sem_rede_externa_e_sem_inline) ... ok
+test_tokens_presentes (test_frontend_base.TestFrontendBase.test_tokens_presentes) ... ok
+test_campo_ausente_no_modelo_gera_aviso_mas_nao_impede_geracao (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_campo_ausente_no_modelo_gera_aviso_mas_nao_impede_geracao) ... ok
+test_gerar_documentos_com_filtro_de_formularios_ativos (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_gerar_documentos_com_filtro_de_formularios_ativos)
+Verifica se gerar_documentos gera apenas os formul�rios selecionados na Etapa 2. ... ok
+test_modelo_totalmente_incompativel_levanta_erro (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_modelo_totalmente_incompativel_levanta_erro) ... ok
+test_obter_campos_do_formulario (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_obter_campos_do_formulario) ... ok
+test_tres_participantes_compartilham_endereco_e_data (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_tres_participantes_compartilham_endereco_e_data) ... ok
+test_um_participante_gera_dois_arquivos_com_valores_corretos (test_generator_service.TestGeracaoDeDocumentosPontaAPonta.test_um_participante_gera_dois_arquivos_com_valores_corretos) ... ok
+test_nome_vazio_fica_vazio (test_generator_service.TestUtilitariosDeArquivo.test_nome_vazio_fica_vazio) ... ok
+test_nomes_duplicados_geram_sufixo (test_generator_service.TestUtilitariosDeArquivo.test_nomes_duplicados_geram_sufixo) ... ok
+test_remove_caracteres_invalidos_do_windows (test_generator_service.TestUtilitariosDeArquivo.test_remove_caracteres_invalidos_do_windows) ... ok
+test_data_invalida (test_generator_service.TestValidarAntesDeGerar.test_data_invalida) ... ok
+test_faltando_modelos_e_pasta (test_generator_service.TestValidarAntesDeGerar.test_faltando_modelos_e_pasta) ... ok
+test_participante_sem_nome_ou_cpf (test_generator_service.TestValidarAntesDeGerar.test_participante_sem_nome_ou_cpf) ... ok
+test_sem_participantes (test_generator_service.TestValidarAntesDeGerar.test_sem_participantes) ... ok
+test_tudo_certo_nao_gera_erros (test_generator_service.TestValidarAntesDeGerar.test_tudo_certo_nao_gera_erros) ... ok
+test_detecta_area_zero_e_sobreposicao (test_geometria_formulario.TestAuditoriaGenerica.test_detecta_area_zero_e_sobreposicao) ... ok
+test_pdf_sem_formulario_nao_quebra (test_geometria_formulario.TestAuditoriaGenerica.test_pdf_sem_formulario_nao_quebra) ... ok
+test_config_existe_e_cobre_damp (test_geometria_formulario.TestConfigDampRegressao.test_config_existe_e_cobre_damp) ... ok
+test_regras_mantem_geometria_do_asset (test_geometria_formulario.TestConfigDampRegressao.test_regras_mantem_geometria_do_asset) ... Object count 698 exceeds defined trailer size 659
+ok
+test_dividir_reaproveita_original_e_cria_irmas (test_geometria_formulario.TestRegrasPolimorficas.test_dividir_reaproveita_original_e_cria_irmas) ... ok
+test_mesma_chamada_para_tipos_diferentes (test_geometria_formulario.TestRegrasPolimorficas.test_mesma_chamada_para_tipos_diferentes) ... ok
+test_origem_ausente_falha_explicito (test_geometria_formulario.TestRegrasPolimorficas.test_origem_ausente_falha_explicito) ... ok
+test_combinar_gerar_e_organizar_sem_ui (test_headless_backend.TestHeadlessBackend.test_combinar_gerar_e_organizar_sem_ui) ... ok
+test_ports_sem_tkinter (test_headless_backend.TestHeadlessBackend.test_ports_sem_tkinter) ... ok
+test_rtfs_de_trabalhos_distintos_usam_pastas_temporarias_distintas (test_headless_backend.TestHeadlessBackend.test_rtfs_de_trabalhos_distintos_usam_pastas_temporarias_distintas) ... ok
+test_word_sem_registro_nao_e_reportado_como_disponivel (test_headless_backend.TestHeadlessBackend.test_word_sem_registro_nao_e_reportado_como_disponivel) ... ok
+test_arquivo_ilegivel_rejeita (test_import_export.TestImportExport.test_arquivo_ilegivel_rejeita) ... ok
+test_exportar_inexistente_rejeita (test_import_export.TestImportExport.test_exportar_inexistente_rejeita) ... ok
+test_formato_estrangeiro_rejeita (test_import_export.TestImportExport.test_formato_estrangeiro_rejeita) ... ok
+test_ida_e_volta_preserva_conteudo (test_import_export.TestImportExport.test_ida_e_volta_preserva_conteudo) ... ok
+test_nome_em_colisao_ganha_copia (test_import_export.TestImportExport.test_nome_em_colisao_ganha_copia) ... ok
+test_perfil_invalido_rejeita (test_import_export.TestImportExport.test_perfil_invalido_rejeita) ... ok
+test_context_manager_libera_ao_sair (test_instancia_unica.TestInstanciaUnica.test_context_manager_libera_ao_sair) ... ok
+test_liberar_permite_readquirir (test_instancia_unica.TestInstanciaUnica.test_liberar_permite_readquirir) ... ok
+test_nomes_diferentes_coexistem (test_instancia_unica.TestInstanciaUnica.test_nomes_diferentes_coexistem) ... ok
+test_segunda_aquisicao_mesmo_nome_bloqueia (test_instancia_unica.TestInstanciaUnica.test_segunda_aquisicao_mesmo_nome_bloqueia) ... ok
+test_auth_origin_host_methods (test_local_api.TestLocalAPI.test_auth_origin_host_methods) ... ok
+test_bridge_opens_only_completed_result_by_id (test_local_api.TestLocalAPI.test_bridge_opens_only_completed_result_by_id) ... ok
+test_cancel_running_and_queued_cleanup (test_local_api.TestLocalAPI.test_cancel_running_and_queued_cleanup) ... ok
+test_compose_conflict (test_local_api.TestLocalAPI.test_compose_conflict) ... ok
+test_concurrent_submissions_unique_complete (test_local_api.TestLocalAPI.test_concurrent_submissions_unique_complete) ... ok
+test_declared_required_field_rejected_over_http (test_local_api.TestLocalAPI.test_declared_required_field_rejected_over_http) ... ok
+test_generate_without_word_gs_then_process_keeps_original (test_local_api.TestLocalAPI.test_generate_without_word_gs_then_process_keeps_original) ... ok
+test_health_and_no_paths_in_capabilities_or_catalog (test_local_api.TestLocalAPI.test_health_and_no_paths_in_capabilities_or_catalog) ... ok
+test_invalid_json_size_and_paths_rejected (test_local_api.TestLocalAPI.test_invalid_json_size_and_paths_rejected) ... ok
+test_missing_capabilities_reject_before_job (test_local_api.TestLocalAPI.test_missing_capabilities_reject_before_job) ... ok
+test_process_cancellation_cleans_partial_and_keeps_input (test_local_api.TestLocalAPI.test_process_cancellation_cleans_partial_and_keeps_input) ... ok
+test_shutdown_invalidates_token_selections_and_socket (test_local_api.TestLocalAPI.test_shutdown_invalidates_token_selections_and_socket) ... ok
+test_shutdown_waits_for_cleanup_of_active_job (test_local_api.TestLocalAPI.test_shutdown_waits_for_cleanup_of_active_job) ... ok
+test_undeclared_dynamic_field_rejected (test_local_api.TestLocalAPI.test_undeclared_dynamic_field_rejected) ... ok
+test_unknown_selection_profile_and_job (test_local_api.TestLocalAPI.test_unknown_selection_profile_and_job) ... ok
+test_worker_errors_do_not_leak_and_next_job_runs (test_local_api.TestLocalAPI.test_worker_errors_do_not_leak_and_next_job_runs) ... ok
+test_expiry_and_wrong_kind (test_local_api.TestSelections.test_expiry_and_wrong_kind) ... ok
+test_import_without_tk (test_local_api.TestSelections.test_import_without_tk) ... ok
+test_arquivo_usa_rotacao_2mb_5_copias (test_logger_rotacao.TestRotacaoENiveis.test_arquivo_usa_rotacao_2mb_5_copias) ... ok
+test_desenvolvimento_registra_detalhe_e_mostra_console (test_logger_rotacao.TestRotacaoENiveis.test_desenvolvimento_registra_detalhe_e_mostra_console) ... ok
+test_producao_resumida_e_sem_console (test_logger_rotacao.TestRotacaoENiveis.test_producao_resumida_e_sem_console) ... ok
+test_rotacao_acontece_ao_estourar (test_logger_rotacao.TestRotacaoENiveis.test_rotacao_acontece_ao_estourar) ... ok
+test_campos_do_ppe (test_modelos_oficiais.TestCamposBatemComOMapeamento.test_campos_do_ppe) ... ok
+test_campos_do_primeiro_imovel (test_modelos_oficiais.TestCamposBatemComOMapeamento.test_campos_do_primeiro_imovel) ... ok
+test_gera_e_preenche_corretamente_com_os_pdfs_reais (test_modelos_oficiais.TestGeracaoPontaAPontaComPdfsReais.test_gera_e_preenche_corretamente_com_os_pdfs_reais) ... ok
+test_modelo_ppe_esta_presente (test_modelos_oficiais.TestModelosOficiaisExistem.test_modelo_ppe_esta_presente) ... ok
+test_modelo_primeiro_imovel_esta_presente (test_modelos_oficiais.TestModelosOficiaisExistem.test_modelo_primeiro_imovel_esta_presente) ... ok
+test_listar_nomes_perfis_por_modo (test_modo_operacao.TestModosOperacao.test_listar_nomes_perfis_por_modo) ... ok
+test_perfis_modo_contrato (test_modo_operacao.TestModosOperacao.test_perfis_modo_contrato) ... ok
+test_perfis_modo_simples (test_modo_operacao.TestModosOperacao.test_perfis_modo_simples) ... ok
+test_campos_de_valor_nao_cobrem_o_simbolo_monetario (test_novos_formularios.TestCatalogoENovosPdfs.test_campos_de_valor_nao_cobrem_o_simbolo_monetario) ... ok
+test_configuracao_de_mapeamento_persiste_sem_ser_sobrescrita (test_novos_formularios.TestCatalogoENovosPdfs.test_configuracao_de_mapeamento_persiste_sem_ser_sobrescrita) ... ok
+test_geracao_damp_e_seguro (test_novos_formularios.TestCatalogoENovosPdfs.test_geracao_damp_e_seguro) ... Object count 698 exceeds defined trailer size 659
+ok
+test_mapeador_seguro_exclusivo_e_cliente_exclusivo (test_novos_formularios.TestCatalogoENovosPdfs.test_mapeador_seguro_exclusivo_e_cliente_exclusivo) ... ok
+test_motor_aceita_formulario_arbitrario_sem_codigo_especifico (test_novos_formularios.TestCatalogoENovosPdfs.test_motor_aceita_formulario_arbitrario_sem_codigo_especifico) ... ok
+test_ordem_e_ids (test_novos_formularios.TestCatalogoENovosPdfs.test_ordem_e_ids) ... ok
+test_todos_os_campos_configurados_existem_nos_pdfs (test_novos_formularios.TestCatalogoENovosPdfs.test_todos_os_campos_configurados_existem_nos_pdfs) ... ok
+test_casado_com_comunhao_parcial (test_novos_formularios.TestDampConfiguracao.test_casado_com_comunhao_parcial) ... ok
+test_ir_isento_e_entregue (test_novos_formularios.TestDampConfiguracao.test_ir_isento_e_entregue) ... ok
+test_pis_opcional_e_ocupacao_exibida_apos_a_situacao (test_novos_formularios.TestDampConfiguracao.test_pis_opcional_e_ocupacao_exibida_apos_a_situacao) ... ok
+test_seis_enquadramentos_e_fgts (test_novos_formularios.TestDampConfiguracao.test_seis_enquadramentos_e_fgts) ... ok
+test_sete_modalidades_sao_exclusivas (test_novos_formularios.TestDampConfiguracao.test_sete_modalidades_sao_exclusivas) ... ok
+test_situacoes_ocupacionais_e_imovel (test_novos_formularios.TestDampConfiguracao.test_situacoes_ocupacionais_e_imovel) ... ok
+test_solteiro_com_uniao_e_divorciado_sem_uniao (test_novos_formularios.TestDampConfiguracao.test_solteiro_com_uniao_e_divorciado_sem_uniao) ... ok
+test_textos_longos_data_e_ausencia_de_assinatura (test_novos_formularios.TestDampConfiguracao.test_textos_longos_data_e_ausencia_de_assinatura) ... ok
+test_formata_e_valida (test_novos_formularios.TestPisPasep.test_formata_e_valida) ... ok
+test_alias_nome (test_participant_modular.TestFonteUnica.test_alias_nome) ... ok
+test_kwargs_legados_viram_dicionario (test_participant_modular.TestFonteUnica.test_kwargs_legados_viram_dicionario) ... ok
+test_local_padrao_preservado (test_participant_modular.TestFonteUnica.test_local_padrao_preservado) ... ok
+test_propriedades_espelham_atribuicao (test_participant_modular.TestFonteUnica.test_propriedades_espelham_atribuicao) ... ok
+test_copia_legada_sem_campos (test_participant_modular.TestHerancaPorPerfil.test_copia_legada_sem_campos) ... ok
+test_copia_so_compartilhados_do_perfil (test_participant_modular.TestHerancaPorPerfil.test_copia_so_compartilhados_do_perfil) ... ok
+test_chaves_classicas_resolvem (test_participant_modular.TestResolvedorEstavel.test_chaves_classicas_resolvem) ... ok
+test_config_manager_cache_speed (test_performance.TestPerformance.test_config_manager_cache_speed)
+Valida que 10.000 leituras de configura��o ocorrem em menos de 0.1 segundos. ... ok
+test_loading_modal_lifecycle_is_instant (test_performance.TestPerformance.test_loading_modal_lifecycle_is_instant)
+Valida cria��o e destrui��o instant�nea do LoadingModal ultraleve sem travamentos. ... ok
+test_profile_manager_cache_speed (test_performance.TestPerformance.test_profile_manager_cache_speed)
+Valida que 5.000 buscas de perfil ocorrem diretamente da mem�ria em menos de 0.30 segundos. ... ok
+test_scroll_do_mouse_avanca_oito_unidades_por_giro (test_performance.TestPerformance.test_scroll_do_mouse_avanca_oito_unidades_por_giro) ... ok
+test_theme_color_cache_speed (test_performance.TestPerformance.test_theme_color_cache_speed)
+Valida que 50.000 acessos a cores e temas ocorrem em menos de 0.1 segundos. ... ok
+test_apenas_arquivos_permitidos_importam_tkinter (test_port_dialog.TestSemTkinterForaDaUI.test_apenas_arquivos_permitidos_importam_tkinter) ... ok
+test_cancelamento_devolve_none (test_port_dialog.TestSemTkinterForaDaUI.test_cancelamento_devolve_none) ... ok
+test_import_como_pacote_app (test_port_dialog.TestSemTkinterForaDaUI.test_import_como_pacote_app) ... ok
+test_port_dialog_nao_importa_tkinter (test_port_dialog.TestSemTkinterForaDaUI.test_port_dialog_nao_importa_tkinter) ... ok
+test_configurar_logger_usa_formatador_privado (test_privacidade_log.TestFormatadorPrivado.test_configurar_logger_usa_formatador_privado) ... ok
+test_mensagem_com_cpf_mascarada (test_privacidade_log.TestFormatadorPrivado.test_mensagem_com_cpf_mascarada) ... ok
+test_traceback_mascarado (test_privacidade_log.TestFormatadorPrivado.test_traceback_mascarado) ... ok
+test_cnpj_formatado (test_privacidade_log.TestMascararDadosPessoais.test_cnpj_formatado) ... ok
+test_cpf_formatado (test_privacidade_log.TestMascararDadosPessoais.test_cpf_formatado) ... ok
+test_cpf_sem_formatacao (test_privacidade_log.TestMascararDadosPessoais.test_cpf_sem_formatacao) ... ok
+test_email_preserva_dominio (test_privacidade_log.TestMascararDadosPessoais.test_email_preserva_dominio) ... ok
+test_texto_comum_intacto (test_privacidade_log.TestMascararDadosPessoais.test_texto_comum_intacto) ... ok
+test_caminho_pasta_pdfa (test_process_folder.TestCriarEstruturaPastas.test_caminho_pasta_pdfa) ... ok
+test_cria_estrutura_completa (test_process_folder.TestCriarEstruturaPastas.test_cria_estrutura_completa) ... ok
+test_hierarquia_correta (test_process_folder.TestCriarEstruturaPastas.test_hierarquia_correta)
+REGISTRADOS deve estar DENTRO de ASSINADOS, n�o ao lado. ... ok
+test_reutiliza_pastas_existentes (test_process_folder.TestCriarEstruturaPastas.test_reutiliza_pastas_existentes)
+Se as pastas j� existem, n�o gera erro. ... ok
+test_config_manager_migration (test_profile_manager.TestProfileManager.test_config_manager_migration)
+Verifica se config_manager migra perfil_ativo 'Padr�o' para 'MCMV'. ... ok
+test_default_profiles_created (test_profile_manager.TestProfileManager.test_default_profiles_created)
+Verifica se os perfis MCMV e SBPE s�o criados por padr�o. ... ok
+test_duplicar_perfil (test_profile_manager.TestProfileManager.test_duplicar_perfil)
+Verifica se duplicar_perfil cria uma c�pia independente com nome �nico. ... ok
+test_edicao_de_perfil_inicial_nao_e_desfeita_ao_reabrir (test_profile_manager.TestProfileManager.test_edicao_de_perfil_inicial_nao_e_desfeita_ao_reabrir) ... ok
+test_migration_from_legacy_padrao (test_profile_manager.TestProfileManager.test_migration_from_legacy_padrao)
+Verifica se perfil antigo com nome 'Padr�o' � migrado para 'MCMV'. ... ok
+test_adicionar_e_obter_status_fila (test_queue_manager.TestQueueManager.test_adicionar_e_obter_status_fila) ... ok
+test_callback_com_erro_nao_prende_worker (test_queue_manager.TestQueueManager.test_callback_com_erro_nao_prende_worker) ... Falha no callback do item 6166e28383f149e9b9301883cec2d6f0.
+ok
+test_callback_de_cancelamento_pode_consultar_fila (test_queue_manager.TestQueueManager.test_callback_de_cancelamento_pode_consultar_fila) ... ok
+test_cancelar_job_na_fila (test_queue_manager.TestQueueManager.test_cancelar_job_na_fila) ... ok
+test_encerramento_cancela_ativo_e_recusa_novos (test_queue_manager.TestQueueManager.test_encerramento_cancela_ativo_e_recusa_novos) ... ok
+test_execucao_job_sucesso (test_queue_manager.TestQueueManager.test_execucao_job_sucesso) ... ok
+test_calculo_configurado_no_campo (test_regras_configuraveis.TestRegrasConfiguraveis.test_calculo_configurado_no_campo) ... ok
+test_calculo_nao_executa_codigo (test_regras_configuraveis.TestRegrasConfiguraveis.test_calculo_nao_executa_codigo) ... ok
+test_paginacao_nao_tem_limite_fixo (test_regras_configuraveis.TestRegrasConfiguraveis.test_paginacao_nao_tem_limite_fixo) ... ok
+test_valor_padrao_do_mapeamento (test_regras_configuraveis.TestRegrasConfiguraveis.test_valor_padrao_do_mapeamento) ... ok
+test_arquivo_inexistente_lanca_erro (test_rtf_converter.TestRtfConverter.test_arquivo_inexistente_lanca_erro) ... ok
+test_conversao_sucesso (test_rtf_converter.TestRtfConverter.test_conversao_sucesso) ... ok
+test_abrir_pasta_rejects_non_directory_and_executables (test_security_hardening.TestSecurityHardening.test_abrir_pasta_rejects_non_directory_and_executables)
+Verifica se _abrir_pasta rejeita arquivos comuns ou execut�veis. ... ok
+test_ghostscript_includes_dsafer_flag (test_security_hardening.TestSecurityHardening.test_ghostscript_includes_dsafer_flag)
+Verifica se -dSAFER est� presente na chamada do Ghostscript. ... ok
+test_sanitizacao_nomes_reservados_windows (test_security_hardening.TestSecurityHardening.test_sanitizacao_nomes_reservados_windows)
+Verifica se nomes reservados (CON, PRN, AUX, NUL, COM1, LPT1) s�o neutralizados. ... ok
+test_taskkill_includes_username_filter (test_security_hardening.TestSecurityHardening.test_taskkill_includes_username_filter)
+Verifica se taskkill filtra pelo usu�rio logado. ... ok
+test_ghostscript_em_assets_nada_a_fazer (test_setup_gs.TestSetupGs.test_ghostscript_em_assets_nada_a_fazer) ... ok
+test_sem_ghostscript_com_flag_permite (test_setup_gs.TestSetupGs.test_sem_ghostscript_com_flag_permite) ... ok
+test_sem_ghostscript_falha (test_setup_gs.TestSetupGs.test_sem_ghostscript_falha) ... ok
+test_versao_desconhecida_sem_executavel (test_setup_gs.TestSetupGs.test_versao_desconhecida_sem_executavel) ... ok
+test_versao_lida_do_executavel (test_setup_gs.TestSetupGs.test_versao_lida_do_executavel) ... ok
+test_gerar_form_cliente (test_simple_form_generation.TestSimpleFormGeneration.test_gerar_form_cliente) ... ok
+test_gerar_isencao_tributos (test_simple_form_generation.TestSimpleFormGeneration.test_gerar_isencao_tributos) ... ok
+test_gerar_itbi (test_simple_form_generation.TestSimpleFormGeneration.test_gerar_itbi) ... ok
+test_encerrar_processos_orfaos (test_system_repair.TestSystemRepairService.test_encerrar_processos_orfaos) ... ok
+test_executar_diagnostico_e_reparo (test_system_repair.TestSystemRepairService.test_executar_diagnostico_e_reparo)
+Executa a rotina completa e valida o objeto de resultado retornado. ... ok
+test_limpar_arquivos_temporarios (test_system_repair.TestSystemRepairService.test_limpar_arquivos_temporarios)
+Testa se a fun��o de limpeza executa sem erros. ... ok
+test_verificar_modelos_padrao (test_system_repair.TestSystemRepairService.test_verificar_modelos_padrao)
+Verifica se os modelos oficiais existem no ambiente. ... ok
+test_insignias_fixas_passam_aa (test_toast_contraste.TestContrasteToast.test_insignias_fixas_passam_aa) ... ok
+test_boas_vindas_nao_se_esconde_sozinho (test_toast_welcome_teclado.TestToastWelcomeTeclado.test_boas_vindas_nao_se_esconde_sozinho) ... ok
+test_escape_dispensa_toast (test_toast_welcome_teclado.TestToastWelcomeTeclado.test_escape_dispensa_toast) ... ok
+test_texto_guia_sem_jargao (test_toast_welcome_teclado.TestToastWelcomeTeclado.test_texto_guia_sem_jargao) ... ok
+test_toast_cabe_na_janela (test_toast_welcome_teclado.TestToastWelcomeTeclado.test_toast_cabe_na_janela) ... ok
+test_hash_usa_o_zip_da_versao_atual (test_v4510_estavel.TestBuildSha256Versionado.test_hash_usa_o_zip_da_versao_atual) ... ok
+test_acima_de_50mb_rejeita_sem_ler_o_pdf (test_v4510_estavel.TestLimitesDePdf.test_acima_de_50mb_rejeita_sem_ler_o_pdf) ... ok
+test_arquivo_inexistente_rejeita_com_mensagem_amigavel (test_v4510_estavel.TestLimitesDePdf.test_arquivo_inexistente_rejeita_com_mensagem_amigavel) ... ok
+test_mais_de_1000_campos_rejeita (test_v4510_estavel.TestLimitesDePdf.test_mais_de_1000_campos_rejeita) ... ok
+test_mais_de_100_paginas_rejeita (test_v4510_estavel.TestLimitesDePdf.test_mais_de_100_paginas_rejeita) ... ok
+test_damp_seguro_e_form_cliente_encontrados (test_v4510_estavel.TestModelosRealocados.test_damp_seguro_e_form_cliente_encontrados) ... ok
+test_todos_os_modelos_resolvem_sem_subpasta_novos (test_v4510_estavel.TestModelosRealocados.test_todos_os_modelos_resolvem_sem_subpasta_novos) ... ok
+test_ciclo_nao_trava_nem_perde_campo (test_v4510_estavel.TestOrdenacaoPorDependencia.test_ciclo_nao_trava_nem_perde_campo) ... ok
+test_controle_vem_antes_do_dependente (test_v4510_estavel.TestOrdenacaoPorDependencia.test_controle_vem_antes_do_dependente) ... ok
+test_campo_repetido_no_perfil_rejeita (test_v4510_estavel.TestValidacaoEstrutural.test_campo_repetido_no_perfil_rejeita) ... ok
+test_identificador_repetido_rejeita (test_v4510_estavel.TestValidacaoEstrutural.test_identificador_repetido_rejeita) ... ok
+test_nome_repetido_rejeita (test_v4510_estavel.TestValidacaoEstrutural.test_nome_repetido_rejeita) ... ok
+test_perfil_valido_passa (test_v4510_estavel.TestValidacaoEstrutural.test_perfil_valido_passa) ... ok
+test_campos_apontam_rotulo_e_id (test_validacao_estrutural.TestProblemasEstruturais.test_campos_apontam_rotulo_e_id) ... ok
+test_formulario_aponta_nome (test_validacao_estrutural.TestProblemasEstruturais.test_formulario_aponta_nome) ... ok
+test_limpo_nao_aponta_nada (test_validacao_estrutural.TestProblemasEstruturais.test_limpo_nao_aponta_nada) ... ok
+test_nome_vazio_e_duplicado (test_validacao_estrutural.TestProblemasEstruturais.test_nome_vazio_e_duplicado) ... ok
+test_calendario_libera_captura_ao_fechar (test_visual_assets.TestVisualAssets.test_calendario_libera_captura_ao_fechar) ... ok
+test_campos_padrao_reaparecem_ao_sair_de_perfil_paginado (test_visual_assets.TestVisualAssets.test_campos_padrao_reaparecem_ao_sair_de_perfil_paginado) ... ok
+test_cartao_de_participante_some_em_pagina_sem_campos (test_visual_assets.TestVisualAssets.test_cartao_de_participante_some_em_pagina_sem_campos) ... ok
+test_get_icon_loads_valid_ctk_image (test_visual_assets.TestVisualAssets.test_get_icon_loads_valid_ctk_image)
+Verifica se a fun��o get_icon retorna CTkImage com sucesso para �cones padr�o. ... ok
+test_main_window_initialization (test_visual_assets.TestVisualAssets.test_main_window_initialization)
+Verifica se MainWindow inicializa e carrega todas as telas e �cones sem exce��es. ... ok
+test_navegacao_distingue_formulario_de_pagina (test_visual_assets.TestVisualAssets.test_navegacao_distingue_formulario_de_pagina) ... ok
+test_pendencias_aparecem_somente_depois_do_toast (test_visual_assets.TestVisualAssets.test_pendencias_aparecem_somente_depois_do_toast) ... ok
+test_placeholder_nao_vira_texto_editavel_apos_limpar (test_visual_assets.TestVisualAssets.test_placeholder_nao_vira_texto_editavel_apos_limpar) ... ok
+test_simple_loader_instantiation (test_visual_assets.TestVisualAssets.test_simple_loader_instantiation)
+Verifica se o componente SimpleLoader pode ser instanciado sem erros. ... ok
+test_version_is_current (test_visual_assets.TestVisualAssets.test_version_is_current)
+Verifica se a vers�o centralizada est� definida como 4.5.16. ... ok
+test_apenas_url_local_registrada_autorizada (test_webview_bridge.TestWebViewBridge.test_apenas_url_local_registrada_autorizada) ... ok
+test_http_bridge_and_navigation_rejection (test_webview_bridge.TestWebViewBridge.test_http_bridge_and_navigation_rejection) ... ok
+test_native_dialog_cancel_and_selection_id (test_webview_bridge.TestWebViewBridge.test_native_dialog_cancel_and_selection_id) ... ok
+test_classe_nao_registrada_e_word_ausente (test_word_travado.TestClassificacaoWordAusente.test_classe_nao_registrada_e_word_ausente) ... ok
+test_erro_generico_nao_e_ausencia (test_word_travado.TestClassificacaoWordAusente.test_erro_generico_nao_e_ausencia) ... ok
+test_import_error_e_word_ausente (test_word_travado.TestClassificacaoWordAusente.test_import_error_e_word_ausente) ... ok
+test_contagem_e_fechar_agora (test_word_travado.TestModalWordTravado.test_contagem_e_fechar_agora) ... ok
+test_hwnd_invalido_nao_levanta (test_word_travado.TestPidEEncerramento.test_hwnd_invalido_nao_levanta) ... ok
+test_pid_inexistente_falha_sem_levantar (test_word_travado.TestPidEEncerramento.test_pid_inexistente_falha_sem_levantar) ... Inst�ncia do Word (PID 99999999) encerrada ap�s travamento: False.
+ok
+test_pid_vazio_nao_encerra (test_word_travado.TestPidEEncerramento.test_pid_vazio_nao_encerra) ... ok
+test_avisa_com_prazo_e_encerra_no_fim (test_word_travado.TestTravamentoComAviso.test_avisa_com_prazo_e_encerra_no_fim) ... Word encerrado ap�s travar na convers�o de 'doc.rtf'.
+ok
+test_word_ausente_pede_instalacao (test_word_travado.TestTravamentoComAviso.test_word_ausente_pede_instalacao) ... Falha do Word ao converter 'C:\Users\sousa\AppData\Local\Temp\tmpmwbz43bj\doc.rtf'.
+Traceback (most recent call last):
+  File "C:\Users\sousa\AppData\Local\Temp\contracto-qa-a682895-r2\source\app\services\rtf_converter.py", line 216, in _worker
+    _executar_conversao_word_com(caminho_rtf, caminho_pdf, pid_filho)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sousa\AppData\Roaming\uv\python\cpython-3.14.6-windows-x86_64-none\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\sousa\AppData\Roaming\uv\python\cpython-3.14.6-windows-x86_64-none\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\sousa\AppData\Roaming\uv\python\cpython-3.14.6-windows-x86_64-none\Lib\unittest\mock.py", line 1247, in _execute_mock_call
+    result = effect(*args, **kwargs)
+  File "C:\Users\sousa\AppData\Local\Temp\contracto-qa-a682895-r2\source\tests\test_word_travado.py", line 98, in sem_word
+    raise ImportError("No module named 'win32com'")
+ImportError: No module named 'win32com'
+ok
+
+----------------------------------------------------------------------
+Ran 339 tests in 37.121s
+
+OK
+Verificando Ghostscript local para empacotamento...
+Ghostscript 10.07.1 em: C:\Users\sousa\AppData\Local\Temp\contracto-qa-a682895-r2\source\app\assets\gs\bin\gswin64c.exe
+Ghostscript j� est� na pasta assets. Nada a fazer.
+Verificando Ghostscript local para empacotamento...
+[AVISO] Ghostscript n�o encontrado no sistema.
+Seguindo sem o Ghostscript embutido (--allow-without-gs).
+O execut�vel gerado N�O converter� para PDF/A.
+Verificando Ghostscript local para empacotamento...
+[AVISO] Ghostscript n�o encontrado no sistema.
+[ERRO] Causa da interrup��o do build: Ghostscript n�o encontrado.
+Sem ele, o execut�vel sairia sem o motor de convers�o para PDF/A.
+Instale o Ghostscript ou use --allow-without-gs para seguir mesmo assim.

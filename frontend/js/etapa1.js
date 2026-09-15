@@ -68,7 +68,15 @@
     input.addEventListener("input",()=>{
       if (busy()) return;
       const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
-      owner[id]=field.tipo === "CHECKBOX" ? (input.checked ? options[0] : options[options.length-1]) : input.value.trim();
+      let val = field.tipo === "CHECKBOX" ? (input.checked ? options[0] : options[options.length-1]) : input.value;
+      if (field.tipo === "CPF") {
+        val = form().formatCpfProgressive(val);
+        input.value = val;
+      } else if (field.tipo === "DATA") {
+        val = form().formatDateProgressive(val);
+        input.value = val;
+      }
+      owner[id] = val.trim();
       changed();
     });
     wrap.append(label,input,error); host.append(wrap);
@@ -166,49 +174,54 @@
   }
   async function selecionar(ids) {
     if(busy())return;
-    changed(); const request=++compositionRevision; selected=ids; composing=!!ids.length; composed=false;
+    const isSimple = mode === "simples";
+    const finalIds = isSimple ? ids : (ids[0] ? [ids[0]] : []);
+    changed(); const request=++compositionRevision; selected=finalIds; composing=!!finalIds.length; composed=false;
     atualizar();
-    if(!ids.length){fields=[];render();return;}
-    const r=await window.ContractoAPI.request("POST","/api/v1/profiles/compose",{profile_ids:ids});
+    if(!finalIds.length){fields=[];render();return;}
+    const r=await window.ContractoAPI.request("POST","/api/v1/profiles/compose",{profile_ids:finalIds});
     if(request!==compositionRevision)return;
     composing=false;
     if(r.status!==200){issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];atualizar();return;}
     fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
-    if(catalog.some(p=>ids.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
+    if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
-  async function carregar() {
+async function carregar() {
     const r=await window.ContractoAPI.request("GET","/api/v1/profiles");
     if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];atualizar();return;}
     catalog=r.data;loaded=true;
-    const initial=catalog.find(p=>p.mode === "contrato") || catalog[0];
-    selected=initial ? [initial.profile_id] : [];
+    render();
+    await selecionar(mode === "simples" ? [] : (catalog.find(p=>p.mode === "contrato") || catalog[0] || {profile_id:null}).profile_id ? [catalog.find(p=>p.mode === "contrato") || catalog[0]].profile_id : []);
+  }
+  function render() {
     $("lista-formularios").replaceChildren();
-    const renderProfiles=(query="")=>{
-      const list=$("lista-perfis"), empty=$("perfis-vazio");
-      list.replaceChildren();
-      const needle=query.trim().toLocaleLowerCase("pt-BR");
-      const visible=catalog.filter(p=>[p.name,p.mode,...p.fields.map(f=>f.rotulo || f.id)].join(" ").toLocaleLowerCase("pt-BR").includes(needle));
-      visible.forEach(p=>{
-        const item=document.createElement("article");item.className="profile-item";
-        const title=document.createElement("h3");title.textContent=p.name;
-        const meta=document.createElement("p");meta.className="hint";meta.textContent=(p.mode === "contrato" ? "Contrato" : "Formulário simples")+" · até "+p.max_participants+" participante(s)";
-        const fieldsEl=document.createElement("p");fieldsEl.className="profile-fields";
-        const labels=p.fields.map(f=>f.rotulo || f.id).filter(Boolean);fieldsEl.textContent=labels.slice(0,6).join(" · ")+(labels.length>6 ? " · +"+(labels.length-6) : "");
-        item.append(title,meta,fieldsEl);list.append(item);
-      });
-      empty.hidden=visible.length>0;
-      empty.textContent=catalog.length ? "Nenhum perfil corresponde à busca." : "Nenhum perfil disponível nesta instalação.";
-    };
+    const isSimple = mode === "simples";
+    const todosBtn = $("btn-selecionar-todos");
+    const explicacao = $("modo-explicacao");
+    if(todosBtn) todosBtn.disabled = !isSimple;
+    if(explicacao) explicacao.textContent = isSimple ? "No modo <strong>Só gerar</strong> você seleciona vários formulários." : "No modo <strong>Gerar e organizar</strong> escolha apenas um.";
     catalog.forEach(p=>{
-      const label=document.createElement("label"),check=document.createElement("input");check.type="checkbox";check.value=p.profile_id;check.checked=selected.includes(p.profile_id);
-      check.addEventListener("change",()=>selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value)));
-      label.append(check,document.createTextNode(" "+p.name));$("lista-formularios").append(label);
+      const label=document.createElement("label");
+      const input=document.createElement("input");
+      input.type = isSimple ? "checkbox" : "radio";
+      input.name = isSimple ? "" : "profile-radio";
+      input.value=p.profile_id;
+      input.checked=selected.includes(p.profile_id);
+      input.disabled = !isSimple && selected.length && !selected.includes(p.profile_id);
+      input.addEventListener("change",()=>{
+        if(busy()){input.checked=!input.checked;return;}
+        if(isSimple){
+          selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value));
+        }else{
+          selecionar(input.checked ? [p.profile_id] : []);
+        }
+      });
+      label.append(input,document.createTextNode(" "+p.name));
+      $("lista-formularios").append(label);
     });
     const search=$("buscar-perfis");
-    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfiles(search.value));}
-    renderProfiles(search?.value || "");
-    await selecionar(selected);
+    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>render());}
   }
   async function gerar() {
     if(atualizar().length||busy())return;
@@ -216,12 +229,65 @@
     const r=await window.ContractoEtapa2.gerar(snapshot);
     if(r && r.status!==202){issues=r.data?.issues?.length ? r.data.issues : [{field:"Geração",message:r.data?.message || "Não foi possível gerar."}];atualizar();window.ContractoUI.toast(r.data?.message || "Confira os campos indicados.","error");controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus();}
   }
+  function abrirCalendario(input) {
+    const today = new Date();
+    const year = today.getFullYear(), month = today.getMonth(), day = today.getDate();
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const overlay = document.createElement("div");
+    overlay.className = "calendario-overlay";
+    overlay.innerHTML = `
+      <div class="calendario-card">
+        <div class="calendario-header">
+          <button type="button" class="cal-btn" data-acao="prev" aria-label="Mês anterior">‹</button>
+          <span class="cal-mes-ano">${months[month]} ${year}</span>
+          <button type="button" class="cal-btn" data-acao="next" aria-label="Próximo mês">›</button>
+          <button type="button" class="cal-btn cal-fechar" aria-label="Fechar calendário">✕</button>
+        </div>
+        <div class="cal-dias-semana">${diasSemana.map(d=>`<span>${d}</span>`).join("")}</div>
+        <div class="cal-grid" data-ano="${year}" data-mes="${month}"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const grid = overlay.querySelector(".cal-grid");
+    function renderCal(y, m) {
+      grid.dataset.ano = y; grid.dataset.mes = m;
+      overlay.querySelector(".cal-mes-ano").textContent = `${months[m]} ${y}`;
+      const firstDay = new Date(y, m, 1).getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      let html = "";
+      for (let i = 0; i < firstDay; i++) html += `<span></span>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = d === day && m === month && y === year;
+        html += `<button type="button" class="cal-dia${isToday ? " hoje" : ""}" data-dia="${d}">${d}</button>`;
+      }
+      grid.innerHTML = html;
+    }
+    renderCal(year, month);
+    overlay.addEventListener("click", e => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      if (btn.classList.contains("cal-fechar") || btn.dataset.acao === "fechar") { overlay.remove(); input.focus(); return; }
+      if (btn.dataset.acao === "prev") { let m = Number(grid.dataset.mes) - 1, y = Number(grid.dataset.ano); if (m < 0) { m = 11; y--; } renderCal(y, m); return; }
+      if (btn.dataset.acao === "next") { let m = Number(grid.dataset.mes) + 1, y = Number(grid.dataset.ano); if (m > 11) { m = 0; y++; } renderCal(y, m); return; }
+      if (btn.classList.contains("cal-dia")) {
+        const d = Number(btn.dataset.dia), m = Number(grid.dataset.mes), y = Number(grid.dataset.ano);
+        const val = `${String(d).padStart(2,"0")}/${String(m+1).padStart(2,"0")}/${y}`;
+        input.value = val;
+        draft.globals.data_assinatura = val;
+        changed();
+        overlay.remove();
+        input.focus();
+      }
+    });
+    overlay.addEventListener("keydown", e => { if (e.key === "Escape") { overlay.remove(); input.focus(); } });
+    overlay.querySelector(".cal-grid").focus();
+  }
   function ligar() {
     if(bound)return;bound=true;
     $("btn-gerar").addEventListener("click",gerar);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
-      if(busy()||!catalog.length)return;
+      if(busy()||!catalog.length||mode!=="simples")return;
       selecionar(catalog.map(p=>p.profile_id));
     });
     document.querySelectorAll("[data-ir]").forEach(btn=>{
@@ -232,9 +298,12 @@
       });
     });
     $("btn-adicionar").addEventListener("click",()=>{if(busy()||draft.people.length>=maximum)return;draft.people.push({nome_completo:"",cpf:""});changed();render();});
-    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{draft.globals[id]=e.target.value.trim();changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
+    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().formatDateProgressive(val);input.value=val;draft.globals[id]=val.trim();changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
+    const calBtn=$("btn-calendario-data");
+    const dateInput=$("data-assinatura");
+    if(calBtn && dateInput) calBtn.addEventListener("click",()=>abrirCalendario(dateInput));
     $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
-    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{if(busy())return;mode=name;["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});window.ContractoEtapa2.atualizar();}));
+    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{if(busy())return;mode=name;["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});selected=[];fields=[];composed=false;maximum=1;render();window.ContractoEtapa2.atualizar();}));
     carregar();
   }
   function revisar() {

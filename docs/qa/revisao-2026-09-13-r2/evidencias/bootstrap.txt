@@ -1,0 +1,2 @@
+{"scenario":"initial connection","passed":false,"healthCalls":1,"stage1Bindings":1,"stage2Bindings":0,"connection":"pronto"}
+{"scenario":"503 then retry 200","passed":false,"healthCalls":1,"stage1Bindings":0,"stage2Bindings":0,"connection":"falha"}
