@@ -5,6 +5,22 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+## [4.5.17] — 2026-09-13
+
+### Adicionado
+- Interface web da Etapa 1 e 2 sobre a API local: catálogo, composição,
+  participantes, destino, geração, anexos, processamento, visualizador
+  e Config com tema (shell `--ui` para testes).
+- Revisão visual: scroll estilizado, logo, stepper em 4 etapas,
+  Config no topo, selecionar-todos, resumo com links, fundo modular
+  e modais com faixa e X.
+- Participante modular dirigido pelo perfil (ADR-0012).
+
+### Corrigido
+- Bateria adversarial da API sem vulnerabilidade real.
+- DOM da Etapa 2, capabilities no arranque e rótulo do anexo.
+- Teste JS detecta Node fora do PATH (sem skip).
+
 ## [4.5.16] — 2026-09-13
 
 ### Corrigido
