@@ -103,16 +103,17 @@
   });
 
   function mostrarTela(nome) {
-    if (!["inicio", "etapa2", "perfis", "config"].includes(nome)) return;
-    document.getElementById("stepper").hidden = !["inicio", "etapa2"].includes(nome);
-    ["inicio", "etapa2", "perfis", "config"].forEach((t) => {
-      document.getElementById("tela-" + t).hidden = t !== nome;
+    if (!["inicio", "conferir", "etapa2", "perfis", "config"].includes(nome)) return;
+    document.getElementById("stepper").hidden = !["inicio", "conferir", "etapa2"].includes(nome);
+    ["inicio", "conferir", "etapa2", "perfis", "config"].forEach((t) => {
+      const el = document.getElementById("tela-" + t);
+      if (el) el.hidden = t !== nome;
     });
     document.querySelectorAll("[data-tela]").forEach((b) => {
-      if (b.dataset.tela === nome || (nome === "etapa2" && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
+      if (b.dataset.tela === nome || (["conferir", "etapa2"].includes(nome) && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    const etapa = nome === "inicio" ? 1 : nome === "etapa2" ? 3 : 0;
+    const etapa = nome === "inicio" ? 1 : nome === "conferir" ? 2 : nome === "etapa2" ? 3 : 0;
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
@@ -123,11 +124,28 @@
   function irEtapa(n) {
     if (n === 1) { mostrarTela("inicio"); return; }
     if (n === 2) {
-      if (window.ContractoEtapa1 && window.ContractoEtapa1.revisar) window.ContractoEtapa1.revisar();
+      if (window.ContractoEtapa1 && window.ContractoEtapa1.conferir) {
+        window.ContractoEtapa1.conferir();
+      } else {
+        mostrarTela("conferir");
+      }
       return;
     }
-    if (n === 3) { mostrarTela("etapa2"); return; }
+    if (n === 3) {
+      if (window.ContractoEtapa1 && !window.ContractoEtapa1.composto()) {
+        toast("Preencha o formulário e confira os dados antes de avançar.", "warning");
+        mostrarTela("inicio");
+        return;
+      }
+      mostrarTela("etapa2");
+      return;
+    }
     if (n === 4) {
+      if (window.ContractoEtapa1 && !window.ContractoEtapa1.composto()) {
+        toast("Gere os documentos primeiro para poder concluir o trabalho.", "warning");
+        mostrarTela("inicio");
+        return;
+      }
       mostrarTela("etapa2");
       const btn = document.getElementById("btn-finalizar");
       if (btn) { btn.focus(); btn.scrollIntoView({ block: "center" }); }
@@ -140,6 +158,13 @@
   document.querySelectorAll("#stepper [data-etapa]").forEach((b) => {
     b.addEventListener("click", () => irEtapa(Number(b.dataset.etapa)));
   });
+
+  const indicadorGlobal = document.getElementById("indicador-fila-global");
+  if (indicadorGlobal) {
+    indicadorGlobal.addEventListener("click", () => {
+      mostrarTela("etapa2");
+    });
+  }
 
   function aplicarTema(nome) {
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";

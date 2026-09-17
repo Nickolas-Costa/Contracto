@@ -41,8 +41,11 @@
     const owner = global ? draft.globals : draft.people[index];
     if (owner[id] === undefined) owner[id] = field.valor_padrao ?? "";
     const wrap = document.createElement("div"); wrap.className = "field";
-    if(id === "endereco")wrap.classList.add("field-wide");
-    const label = document.createElement("label"), input = document.createElement(field.tipo === "SELECAO" ? "select" : "input");
+    if(id === "endereco" || field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA") wrap.classList.add("field-wide");
+    const isTextarea = field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA";
+    const label = document.createElement("label");
+    const input = document.createElement(field.tipo === "SELECAO" ? "select" : (isTextarea ? "textarea" : "input"));
+    if (isTextarea) input.rows = 3;
     input.id = "campo-" + (global ? "global" : index) + "-" + id;
     label.htmlFor = input.id; label.textContent = (field.rotulo || id) + (field.obrigatorio && !field.calculo ? " *" : "");
     input.autocomplete = "off";
@@ -187,28 +190,34 @@
     if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
-async function carregar() {
+  async function carregar() {
     const r=await window.ContractoAPI.request("GET","/api/v1/profiles");
     if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];atualizar();return;}
     catalog=r.data;loaded=true;
-    render();
-    await selecionar(mode === "simples" ? [] : (catalog.find(p=>p.mode === "contrato") || catalog[0] || {profile_id:null}).profile_id ? [catalog.find(p=>p.mode === "contrato") || catalog[0]].profile_id : []);
+    renderProfilesList();
+    const defaultProfile = catalog.find(p=>p.mode === "contrato") || catalog[0];
+    await selecionar(mode === "simples" ? [] : (defaultProfile?.profile_id ? [defaultProfile.profile_id] : []));
   }
-  function render() {
+  function renderProfilesList() {
     $("lista-formularios").replaceChildren();
     const isSimple = mode === "simples";
-    const todosBtn = $("btn-selecionar-todos");
+    const todosWrap = $("wrapper-selecionar-todos");
     const explicacao = $("modo-explicacao");
-    if(todosBtn) todosBtn.disabled = !isSimple;
-    if(explicacao) explicacao.textContent = isSimple ? "No modo <strong>Só gerar</strong> você seleciona vários formulários." : "No modo <strong>Gerar e organizar</strong> escolha apenas um.";
-    catalog.forEach(p=>{
+    const titulo = $("titulo-selecao-secao");
+    if(todosWrap) todosWrap.hidden = !isSimple;
+    if(titulo) titulo.textContent = isSimple ? "Formulários simples" : "Modelo de contrato";
+    if(explicacao) explicacao.innerHTML = isSimple ? "No modo <strong>Só gerar</strong> selecione um ou mais formulários em lote." : "No modo <strong>Gerar e organizar</strong> escolha apenas 1 contrato.";
+    const filtrados = catalog.filter(p => isSimple ? (p.mode === "formulario_simples" || catalog.every(item => item.mode !== "formulario_simples")) : (p.mode === "contrato" || catalog.every(item => item.mode !== "contrato")));
+    if(!filtrados.length){
+      const msg = document.createElement("p"); msg.className="hint"; msg.textContent="Nenhum perfil disponível para este modo."; $("lista-formularios").append(msg); return;
+    }
+    filtrados.forEach(p=>{
       const label=document.createElement("label");
       const input=document.createElement("input");
       input.type = isSimple ? "checkbox" : "radio";
       input.name = isSimple ? "" : "profile-radio";
       input.value=p.profile_id;
       input.checked=selected.includes(p.profile_id);
-      input.disabled = !isSimple && selected.length && !selected.includes(p.profile_id);
       input.addEventListener("change",()=>{
         if(busy()){input.checked=!input.checked;return;}
         if(isSimple){
@@ -221,7 +230,7 @@ async function carregar() {
       $("lista-formularios").append(label);
     });
     const search=$("buscar-perfis");
-    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>render());}
+    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfilesList());}
   }
   async function gerar() {
     if(atualizar().length||busy())return;
@@ -239,34 +248,41 @@ async function carregar() {
     overlay.innerHTML = `
       <div class="calendario-card">
         <div class="calendario-header">
-          <button type="button" class="cal-btn" data-acao="prev" aria-label="Mês anterior">‹</button>
-          <span class="cal-mes-ano">${months[month]} ${year}</span>
-          <button type="button" class="cal-btn" data-acao="next" aria-label="Próximo mês">›</button>
-          <button type="button" class="cal-btn cal-fechar" aria-label="Fechar calendário">✕</button>
+          <button type="button" class="cal-btn" data-acao="prev">◄</button>
+          <strong id="cal-mes-ano">${months[month]} ${year}</strong>
+          <button type="button" class="cal-btn cal-fechar" data-acao="fechar">✕</button>
         </div>
-        <div class="cal-dias-semana">${diasSemana.map(d=>`<span>${d}</span>`).join("")}</div>
-        <div class="cal-grid" data-ano="${year}" data-mes="${month}"></div>
-      </div>`;
-    document.body.appendChild(overlay);
-    const grid = overlay.querySelector(".cal-grid");
+        <div class="cal-dias-semana">
+          ${diasSemana.map(d=>`<span>${d}</span>`).join("")}
+        </div>
+        <div class="cal-grid" id="cal-grid" tabindex="0"></div>
+      </div>
+    `;
+    document.body.append(overlay);
     function renderCal(y, m) {
-      grid.dataset.ano = y; grid.dataset.mes = m;
-      overlay.querySelector(".cal-mes-ano").textContent = `${months[m]} ${y}`;
       const firstDay = new Date(y, m, 1).getDay();
-      const daysInMonth = new Date(y, m + 1, 0).getDate();
-      let html = "";
-      for (let i = 0; i < firstDay; i++) html += `<span></span>`;
-      for (let d = 1; d <= daysInMonth; d++) {
-        const isToday = d === day && m === month && y === year;
-        html += `<button type="button" class="cal-dia${isToday ? " hoje" : ""}" data-dia="${d}">${d}</button>`;
+      const lastDate = new Date(y, m + 1, 0).getDate();
+      const grid = overlay.querySelector("#cal-grid");
+      grid.dataset.ano = y; grid.dataset.mes = m;
+      overlay.querySelector("#cal-mes-ano").textContent = `${months[m]} ${y}`;
+      grid.innerHTML = "";
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("span"); grid.append(empty);
       }
-      grid.innerHTML = html;
+      for (let d = 1; d <= lastDate; d++) {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "cal-dia";
+        if (d === day && m === month && y === year) btn.classList.add("hoje");
+        btn.textContent = d; btn.dataset.dia = d;
+        grid.append(btn);
+      }
     }
     renderCal(year, month);
     overlay.addEventListener("click", e => {
       const btn = e.target.closest("button");
       if (!btn) return;
-      if (btn.classList.contains("cal-fechar") || btn.dataset.acao === "fechar") { overlay.remove(); input.focus(); return; }
+      if (btn.dataset.acao === "fechar") { overlay.remove(); input.focus(); return; }
+      const grid = overlay.querySelector("#cal-grid");
       if (btn.dataset.acao === "prev") { let m = Number(grid.dataset.mes) - 1, y = Number(grid.dataset.ano); if (m < 0) { m = 11; y--; } renderCal(y, m); return; }
       if (btn.dataset.acao === "next") { let m = Number(grid.dataset.mes) + 1, y = Number(grid.dataset.ano); if (m > 11) { m = 0; y++; } renderCal(y, m); return; }
       if (btn.classList.contains("cal-dia")) {
@@ -282,13 +298,134 @@ async function carregar() {
     overlay.addEventListener("keydown", e => { if (e.key === "Escape") { overlay.remove(); input.focus(); } });
     overlay.querySelector(".cal-grid").focus();
   }
+  function conferir() {
+    atualizar();
+    if (!selected.length) {
+      window.ContractoUI.toast("Selecione ao menos um modelo para conferir.", "warning");
+      window.ContractoUI.mostrarTela("inicio");
+      return;
+    }
+    const val = form().participants(draft, fields);
+    const pendentes = issues.filter(i => i.severity === "error");
+    if (pendentes.length > 0) {
+      window.ContractoUI.toast("Existem pendências no formulário. Revise os campos antes de avançar.", "warning");
+      const btn = $("btn-ver-pendencias");
+      if (btn && !btn.hidden) btn.click();
+      window.ContractoUI.mostrarTela("inicio");
+      return;
+    }
+
+    const container = $("corpo-conferencia");
+    if (container) {
+      container.innerHTML = "";
+      const infoBox = document.createElement("div");
+      infoBox.className = "card-header";
+      infoBox.innerHTML = `<div><strong style="font-size:16px;">Modelos selecionados:</strong> <p class="hint">${selected.map(id => catalog.find(p => p.profile_id === id)?.nome || id).join(", ")}</p></div>`;
+      container.appendChild(infoBox);
+
+      const dl = document.createElement("dl");
+      dl.className = "field-grid";
+      dl.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+      dl.style.margin = "16px 0";
+
+      const dtData = document.createElement("dt"); dtData.innerHTML = "<strong>Data da assinatura:</strong> " + (draft.globals.data_assinatura || "Não informada");
+      const dtLocal = document.createElement("dt"); dtLocal.innerHTML = "<strong>Local da assinatura:</strong> " + (draft.globals.local_assinatura || "Não informado");
+      const dtDestino = document.createElement("dt"); dtDestino.className = "field-wide"; dtDestino.innerHTML = "<strong>Salvar em:</strong> " + ($("pasta-saida")?.value || "Nenhuma pasta selecionada");
+
+      dl.append(dtData, dtLocal, dtDestino);
+      container.appendChild(dl);
+
+      draft.people.forEach((p, idx) => {
+        const pBox = document.createElement("fieldset");
+        pBox.className = "field-section";
+        const legend = document.createElement("legend");
+        legend.textContent = idx ? "Participante " + (idx + 1) : "Participante Principal";
+        pBox.appendChild(legend);
+
+        const pGrid = document.createElement("div");
+        pGrid.className = "field-grid";
+        pGrid.innerHTML = `
+          <div><strong>Nome:</strong> ${p.nome_completo || "Pendente"}</div>
+          <div><strong>CPF:</strong> ${p.cpf || "Pendente"}</div>
+        `;
+
+        fields.forEach(f => {
+          const id = form().canonical(f.id);
+          if (f.escopo !== "global" && p[id] && !["nome_completo", "cpf"].includes(id)) {
+            const item = document.createElement("div");
+            item.innerHTML = `<strong>${f.rotulo || id}:</strong> ${p[id]}`;
+            pGrid.appendChild(item);
+          }
+        });
+
+        pBox.appendChild(pGrid);
+        container.appendChild(pBox);
+      });
+    }
+
+    const btnVoltar = $("btn-conferir-voltar");
+    const btnConfirmar = $("btn-conferir-confirmar");
+    if (btnVoltar && !btnVoltar.dataset.ligado) {
+      btnVoltar.dataset.ligado = "1";
+      btnVoltar.addEventListener("click", () => window.ContractoUI.mostrarTela("inicio"));
+    }
+    if (btnConfirmar && !btnConfirmar.dataset.ligado) {
+      btnConfirmar.dataset.ligado = "1";
+      btnConfirmar.addEventListener("click", () => {
+        gerar();
+      });
+    }
+
+    window.ContractoUI.mostrarTela("conferir");
+  }
+
+  function novoTrabalho() {
+    window.ContractoUI.abrirModal(
+      "Iniciar novo trabalho",
+      "<p>Deseja reiniciar a preparação de documentos?</p>",
+      [
+        {
+          texto: "Preservar destino e data",
+          aoClicar: () => {
+            draft.people = [{ nome_completo: "", cpf: "" }];
+            selected = [];
+            fields = [];
+            composed = false;
+            changed();
+            render();
+            window.ContractoUI.mostrarTela("inicio");
+          }
+        },
+        {
+          texto: "Limpar tudo",
+          aoClicar: () => {
+            draft.people = [{ nome_completo: "", cpf: "" }];
+            draft.globals.data_assinatura = "";
+            draft.globals.local_assinatura = "";
+            draft.output_id = null;
+            $("pasta-saida").value = "";
+            selected = [];
+            fields = [];
+            composed = false;
+            changed();
+            render();
+            window.ContractoUI.mostrarTela("inicio");
+          }
+        },
+        { texto: "Cancelar" }
+      ]
+    );
+  }
+
   function ligar() {
-    if(bound)return;bound=true;
-    $("btn-gerar").addEventListener("click",gerar);
+    const btnNovo = $("btn-novo-trabalho");
+    if (btnNovo) btnNovo.addEventListener("click", novoTrabalho);
+    $("btn-gerar").addEventListener("click", conferir);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
       if(busy()||!catalog.length||mode!=="simples")return;
-      selecionar(catalog.map(p=>p.profile_id));
+      const simplesIds = catalog.filter(p=>p.mode === "formulario_simples" || catalog.every(item=>item.mode!=="formulario_simples")).map(p=>p.profile_id);
+      selecionar(simplesIds);
     });
     document.querySelectorAll("[data-ir]").forEach(btn=>{
       btn.addEventListener("click",()=>{
@@ -298,12 +435,32 @@ async function carregar() {
       });
     });
     $("btn-adicionar").addEventListener("click",()=>{if(busy()||draft.people.length>=maximum)return;draft.people.push({nome_completo:"",cpf:""});changed();render();});
-    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().formatDateProgressive(val);input.value=val;draft.globals[id]=val.trim();changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
+    try {
+      const salvoLocal = localStorage.getItem("contracto-local-assinatura");
+      if(salvoLocal && !draft.globals.local_assinatura) {
+        draft.globals.local_assinatura = salvoLocal;
+        const inputLocal = $("local-assinatura");
+        if(inputLocal) inputLocal.value = salvoLocal;
+      }
+    } catch(e) {}
+    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().formatDateProgressive(val);input.value=val;draft.globals[id]=val.trim();if(id==="local_assinatura"){try{localStorage.setItem("contracto-local-assinatura",val.trim());}catch(e){}}changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
     const calBtn=$("btn-calendario-data");
     const dateInput=$("data-assinatura");
     if(calBtn && dateInput) calBtn.addEventListener("click",()=>abrirCalendario(dateInput));
     $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
-    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{if(busy())return;mode=name;["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});selected=[];fields=[];composed=false;maximum=1;render();window.ContractoEtapa2.atualizar();}));
+    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
+      if(busy())return;mode=name;
+      ["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
+      selected=[];fields=[];composed=false;maximum=1;
+      renderProfilesList();
+      if(mode === "avancado") {
+        const contratoDefault = catalog.find(p=>p.mode === "contrato") || catalog[0];
+        if(contratoDefault) selecionar([contratoDefault.profile_id]);
+      } else {
+        selecionar([]);
+      }
+      window.ContractoEtapa2.atualizar();
+    }));
     carregar();
   }
   function revisar() {
@@ -312,5 +469,5 @@ async function carregar() {
     atualizar();
     window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
   }
-  window.ContractoEtapa1={ligar,atualizar,revisar,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
+  window.ContractoEtapa1={ligar,atualizar,revisar,conferir,novoTrabalho,composto:()=>composed,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
 })();

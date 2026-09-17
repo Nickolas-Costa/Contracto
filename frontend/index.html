@@ -18,6 +18,8 @@
       <button data-tela="inicio" type="button" aria-current="page">Documentos</button>
       <button data-tela="perfis" type="button">Perfis</button>
     </nav>
+    <span id="indicador-fila-global" class="queue-global-badge" hidden role="status"></span>
+    <button class="btn btn-secondary btn-sm" id="btn-novo-trabalho" type="button" style="margin-left:auto;">Novo trabalho</button>
     <span id="conexao" role="status">Conectando…</span>
     <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
   </header>
@@ -86,7 +88,20 @@
       </div>
       </div><aside class="summary" aria-label="Resumo do trabalho">
         <div class="card"><h2>Seu trabalho</h2><dl><dt>Formulários selecionados</dt><dd><button class="btn-link" data-ir="lista-formularios" type="button" id="resumo-formularios">Aguardando seleção</button></dd><dt>Participantes</dt><dd><button class="btn-link" data-ir="participantes" type="button" id="resumo-participantes">1 participante</button></dd><dt>Pasta de destino</dt><dd><button class="btn-link" data-ir="btn-pasta" type="button" id="resumo-destino">Escolha uma pasta</button></dd></dl></div>
-      </aside></div>
+    </section>
+
+    <section id="tela-conferir" aria-label="Conferir dados" hidden>
+      <div class="page-heading">
+        <div><p class="eyebrow">Etapa 2 — Conferência</p><h1>Conferir dados antes de gerar.</h1><p class="hint">Revise todas as informações preenchidas para garantir que os documentos sejam gerados corretamente.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><h2>Resumo dos dados preenchidos</h2><p class="hint">Confira a lista de participantes, campos e modelos selecionados.</p></div></div>
+        <div id="corpo-conferencia">Carregando dados para conferência…</div>
+        <div class="acoes form-actions" style="margin-top:20px;">
+          <button class="btn btn-secondary" id="btn-conferir-voltar" type="button">Voltar ao formulário</button>
+          <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos</button>
+        </div>
+      </div>
     </section>
 
     <section id="tela-etapa2" aria-label="Etapa 2" hidden>
