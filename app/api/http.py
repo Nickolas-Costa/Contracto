@@ -211,4 +211,26 @@ def create_app(session):
     def cancel(job_id: str, request: EmptyInput):
         return session.jobs.cancel(job_id)
 
+    @app.get("/api/v1/settings")
+    def get_settings():
+        from utils import config_manager
+        return config_manager.carregar_config(forcar_disco=True)
+
+    @app.post("/api/v1/settings")
+    def update_settings(dados: dict):
+        from utils import config_manager
+        config = config_manager.carregar_config()
+        config.update({k: v for k, v in dados.items() if k in config_manager._DEFAULTS})
+        config_manager.salvar_config(config)
+        return config
+
+    @app.post("/api/v1/system/repair")
+    def system_repair():
+        from services import system_repair
+        try:
+            ok, msg = system_repair.executar_reparo_completo()
+            return {"status": "success" if ok else "warning", "message": msg}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     return app

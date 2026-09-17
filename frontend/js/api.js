@@ -37,5 +37,13 @@
     return window.pywebview.api.get_file(fileId);
   }
 
-  window.ContractoAPI = { disponivel, request, selectOutput, selectFile, openResult, getFile };
+  async function getSettings() {
+    return request("GET", "/api/v1/settings");
+  }
+
+  async function updateSettings(dados) {
+    return request("POST", "/api/v1/settings", dados);
+  }
+
+  window.ContractoAPI = { disponivel, request, selectOutput, selectFile, openResult, getFile, getSettings, updateSettings };
 })();

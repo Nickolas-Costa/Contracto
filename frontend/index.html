@@ -153,22 +153,40 @@
       <div class="card profiles-card"><div class="card-header"><div><h2>Modelos disponíveis</h2><p class="hint">Escolha e consulte o que cada perfil oferece. Editar ou importar perfis ainda é uma função do aplicativo clássico.</p></div></div><div class="field"><label for="buscar-perfis">Buscar perfil</label><input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off"></div><div id="lista-perfis"></div><p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p></div>
     </section>
 
-<section id="tela-config" aria-label="Configurações" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Preferências</p><h1>Configurações</h1><p class="hint">Ajuste a aparência para trabalhar com conforto.</p></div></div>
+    <section id="tela-config" aria-label="Configurações" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Preferências do Sistema</p><h1>Configurações</h1><p class="hint">Ajuste a aparência e padrões para trabalhar com conforto.</p></div></div>
       <div class="card compact-page">
-        <h2>Aparência</h2>
-        <div class="field">
-          <label for="cfg-tema">Tema</label>
-          <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
-        </div>
-        <div class="field">
-          <label for="cfg-cor">Cor de destaque</label>
-          <div class="color-picker-wrapper">
-            <input type="color" id="cfg-cor" value="#005CA9">
-            <input type="text" id="cfg-cor-texto" value="#005CA9" placeholder="#005CA9" pattern="#[0-9A-Fa-f]{6}">
+        <h2>Aparência e Estilo</h2>
+        <div class="field-grid">
+          <div class="field">
+            <label for="cfg-tema">Tema visual</label>
+            <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
           </div>
-          <p class="field-note">Define a cor dos botões primários, links e ondas de fundo.</p>
+          <div class="field">
+            <label for="cfg-tamanho-quadros">Densidade da interface</label>
+            <select id="cfg-tamanho-quadros"><option value="Pequeno">Pequeno</option><option value="Médio" selected>Médio</option><option value="Grande">Grande</option></select>
+          </div>
+          <div class="field field-wide">
+            <label for="cfg-cor">Cor de destaque (Accent)</label>
+            <div class="color-picker-wrapper">
+              <input type="color" id="cfg-cor" value="#005CA9">
+              <input type="text" id="cfg-cor-texto" value="#005CA9" placeholder="#005CA9" pattern="#[0-9A-Fa-f]{6}">
+            </div>
+            <p class="field-note">Define a cor dos botões primários, seleções e ondas de fundo.</p>
+          </div>
+          <div class="field field-wide">
+            <label for="cfg-local-padrao">Local de assinatura padrão (Backend)</label>
+            <input id="cfg-local-padrao" placeholder="Cidade - UF" autocomplete="off">
+            <p class="field-note">Salvo nativamente na configuração do aplicativo (%APPDATA%/Contracto).</p>
+          </div>
         </div>
+
+        <div class="acoes form-actions" style="margin-top:20px;">
+          <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
+          <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
+          <button class="btn btn-secondary" id="btn-cfg-reparo" type="button">Diagnóstico e reparo do sistema</button>
+        </div>
+
         <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
       </div>
     </section>
