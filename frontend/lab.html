@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contracto — Laboratório Visual Design System</title>
+<link rel="icon" href="assets/logo.png" type="image/png">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  /* Estilos específicos do laboratório visual */
+  .lab-body {
+    padding-bottom: 60px;
+  }
+  .lab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--c-border);
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .lab-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .lab-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .lab-section {
+    margin-bottom: 40px;
+  }
+  .lab-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--c-primary-light);
+    color: var(--c-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .lab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    border-radius: var(--r-card);
+    padding: 14px;
+    border: 1px solid var(--c-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100px;
+    font-size: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .swatch-name { font-weight: 700; margin-bottom: 4px; }
+  .swatch-val { opacity: 0.85; font-family: monospace; }
+
+  /* Demo de fundo vetorial */
+  .bg-demo-box {
+    position: relative;
+    height: 180px;
+    border-radius: var(--r-card);
+    overflow: hidden;
+    border: 1px solid var(--c-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text);
+    font-weight: 700;
+    font-size: 16px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .component-box {
+    padding: 20px;
+    border-radius: var(--r-card);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-sm);
+  }
+  .component-box-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--c-text-secondary);
+    margin-bottom: 14px;
+  }
+  .flex-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body class="lab-body">
+
+<!-- Fundo Decorativo de Ondas Senoidais & Orbes Ambientes -->
+<div class="bg-waves-container" aria-hidden="true">
+  <div class="bg-glow-orb bg-glow-top"></div>
+  <div class="bg-glow-orb bg-glow-bottom"></div>
+  <svg class="bg-waves-svg" id="bg-waves-svg" preserveAspectRatio="none" viewBox="0 0 1440 900"></svg>
+</div>
+
+<div id="app">
+  <header class="lab-header">
+    <div class="lab-title">
+      <img src="assets/logo.png" width="38" height="42" alt="Contracto Logo">
+      <div>
+        <h1 style="font-size: 22px; margin:0;">Contracto — Laboratório Visual</h1>
+        <p class="hint" style="margin:0;">Sistema de Design, Tokens, Fundo Decorativo e Componentes</p>
+      </div>
+    </div>
+    <div class="lab-controls">
+      <label for="lab-theme-select" style="font-size:13px; font-weight:600;">Tema:</label>
+      <select id="lab-theme-select" style="min-height:36px; padding:4px 10px;">
+        <option value="light">Claro</option>
+        <option value="dark">Escuro</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" id="lab-btn-toast" type="button">Testar Toast</button>
+      <button class="btn btn-primary btn-sm" id="lab-btn-modal" type="button">Testar Modal</button>
+    </div>
+  </header>
+
+  <!-- Seção 1: Fundo & Identidade Visual -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>1. Fundo Decorativo Senoidal & Identidade Tk</span>
+      <span class="section-tag">Ondas Senoidais Vetoriais</span>
+    </div>
+    <div class="lab-grid">
+      <div class="component-box">
+        <div class="component-box-title">Demonstração de Fundo Clássico Tk</div>
+        <p class="hint" style="margin-bottom:12px;">
+          O fundo possui 30 linhas sinusoidais suaves desenhadas com destaque na cor primária de accent, com brilho ambiente gradiente de profundidade.
+        </p>
+        <div class="bg-demo-box">
+          <span style="position:relative; z-index:2; background:var(--c-surface); padding:8px 16px; border-radius:20px; border:1px solid var(--c-border); box-shadow:var(--shadow-sm);">
+            Atmospheric Wave Background
+          </span>
+        </div>
+      </div>
+      <div class="component-box">
+        <div class="component-box-title">Cor Primária de Destaque</div>
+        <p class="hint" style="margin-bottom:12px;">Selecione uma cor para testar o comportamento dos tokens em tempo real:</p>
+        <div class="color-picker-wrapper">
+          <input type="color" id="lab-color-input" value="#1455A0">
+          <input type="text" id="lab-color-text" value="#1455A0">
+        </div>
+        <p class="field-note" style="margin-top:10px;">Atualiza `--c-primary` e recalcula gradientes do fundo senoidal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção 2: Tokens de Cor -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>2. Paleta de Cores e Tokens CSS</span>
+    </div>
+    <div class="swatch-grid">
+      <div class="swatch" style="background:var(--c-primary); color:var(--c-on-primary);">
+        <div><div class="swatch-name">Primary</div><div>--c-primary</div></div>
+        <div class="swatch-val">var(--c-primary)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-primary-hover); color:var(--c-on-primary);">
+        <div><div class="swatch-name">Primary Hover</div><div>--c-primary-hover</div></div>
+        <div class="swatch-val">var(--c-primary-hover)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-primary-light); color:var(--c-primary);">
+        <div><div class="swatch-name">Primary Light</div><div>--c-primary-light</div></div>
+        <div class="swatch-val">var(--c-primary-light)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-surface); color:var(--c-text);">
+        <div><div class="swatch-name">Surface</div><div>--c-surface</div></div>
+        <div class="swatch-val">var(--c-surface)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-surface-variant); color:var(--c-text);">
+        <div><div class="swatch-name">Surface Variant</div><div>--c-surface-variant</div></div>
+        <div class="swatch-val">var(--c-surface-variant)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-success); color:#fff;">
+        <div><div class="swatch-name">Success</div><div>--c-success</div></div>
+        <div class="swatch-val">var(--c-success)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-warning-badge); color:#fff;">
+        <div><div class="swatch-name">Warning</div><div>--c-warning-badge</div></div>
+        <div class="swatch-val">var(--c-warning-badge)</div>
+      </div>
+      <div class="swatch" style="background:var(--c-error); color:#fff;">
+        <div><div class="swatch-name">Error</div><div>--c-error</div></div>
+        <div class="swatch-val">var(--c-error)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção 3: Botões e Controles -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>3. Botões e Controles Interativos</span>
+    </div>
+    <div class="component-box">
+      <div class="flex-row">
+        <button class="btn btn-primary" type="button">Botão Primário</button>
+        <button class="btn btn-secondary" type="button">Botão Secundário</button>
+        <button class="btn btn-primary" type="button" disabled>Desativado</button>
+        <button class="btn-calendar" type="button" aria-label="Calendário">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </button>
+        <button class="btn-link" type="button">Botão de Link</button>
+        <button class="btn-subtle" type="button">Ação Sutil</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção 4: Formulários e Inputs -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>4. Campos de Entrada e Validação</span>
+    </div>
+    <div class="component-box">
+      <div class="field-grid">
+        <div class="field">
+          <label for="lab-input-normal">Campo Normal *</label>
+          <input id="lab-input-normal" placeholder="Digite algo aqui..." autocomplete="off">
+          <p class="field-note">Instrução auxiliar de preenchimento.</p>
+        </div>
+        <div class="field">
+          <label for="lab-input-error">Campo com Erro *</label>
+          <input id="lab-input-error" value="Valor inválido" aria-invalid="true" autocomplete="off">
+          <div class="erro">Este campo é obrigatório ou contém formato incorreto.</div>
+        </div>
+        <div class="field">
+          <label for="lab-select">Caixa de Seleção</label>
+          <select id="lab-select">
+            <option value="1">Opção 1 — Formato PDF</option>
+            <option value="2">Opção 2 — Formato PDF/A-2b</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lab-readonly">Somente Leitura</label>
+          <input id="lab-readonly" readonly value="C:\Caminho\Protegido\Documentos">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção 5: Stepper & Indicadores de Estado -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>5. Stepper em 4 Etapas e Estados do Trabalho</span>
+    </div>
+    <div class="component-box" style="margin-bottom:20px;">
+      <ol class="stepper" aria-label="Etapas de Exemplo">
+        <li><button type="button" aria-current="step"><span class="step-number">1</span>Preencher dados</button></li>
+        <li class="step-divider" aria-hidden="true"></li>
+        <li><button type="button"><span class="step-number">2</span>Conferir</button></li>
+        <li class="step-divider" aria-hidden="true"></li>
+        <li><button type="button"><span class="step-number">3</span>Revisar documentos</button></li>
+        <li class="step-divider" aria-hidden="true"></li>
+        <li><button type="button"><span class="step-number">4</span>Enviar</button></li>
+      </ol>
+    </div>
+    <div class="lab-grid">
+      <div class="job-state" data-state="running">
+        <span class="job-state-mark" aria-hidden="true"></span>
+        <div>
+          <strong>Gerando documentos...</strong>
+          <p class="hint">Aguarde o processamento em segundo plano.</p>
+        </div>
+      </div>
+      <div class="job-state" data-state="completed">
+        <span class="job-state-mark" aria-hidden="true"></span>
+        <div>
+          <strong>Trabalho concluído</strong>
+          <p class="hint">PDFs validados e salvos com sucesso.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção 6: Cartões e Glassmorphism -->
+  <section class="lab-section">
+    <div class="lab-section-title">
+      <span>6. Cartões Glassmorphic e Elevação</span>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>Cartão Principal de Exemplo</h2>
+          <p class="hint">Com efeito glassmorphic de desfoque de fundo e bordas elevadas.</p>
+        </div>
+        <span class="section-tag">Perfil Ativo</span>
+      </div>
+      <p style="margin:0; color:var(--c-text-secondary);">
+        Este cartão utiliza variáveis de elevação do design system do Contracto, adaptando-se perfeitamente aos modos claro e escuro.
+      </p>
+    </div>
+  </section>
+</div>
+
+<!-- Modal de Demonstração -->
+<div class="overlay" id="lab-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lab-modal-titulo">
+    <div class="modal-titulo-faixa">
+      <h2 id="lab-modal-titulo">Diálogo do Laboratório Visual</h2>
+      <button class="modal-fechar" id="lab-modal-fechar" type="button" aria-label="Fechar modal">✕</button>
+    </div>
+    <div class="modal-corpo">
+      <p>Este é o componente modal padronizado com captura de foco, fecho via ESC e fundo inerte.</p>
+    </div>
+    <div class="acoes">
+      <button class="btn btn-secondary" id="lab-modal-btn-cancelar" type="button">Cancelar</button>
+      <button class="btn btn-primary" id="lab-modal-btn-confirmar" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+  // Script interativo do Laboratório Visual
+  const themeSelect = document.getElementById('lab-theme-select');
+  const colorInput = document.getElementById('lab-color-input');
+  const colorText = document.getElementById('lab-color-text');
+  const btnToast = document.getElementById('lab-btn-toast');
+  const btnModal = document.getElementById('lab-btn-modal');
+  const overlay = document.getElementById('lab-overlay');
+  const btnFecharModal = document.getElementById('lab-modal-fechar');
+  const btnCancelarModal = document.getElementById('lab-modal-btn-cancelar');
+
+  // Alternador de tema
+  themeSelect.addEventListener('change', (e) => {
+    document.documentElement.setAttribute('data-theme', e.target.value);
+    desenharOndasSenoidais();
+  });
+
+  // Atualização dinâmica da cor primária
+  function atualizarCorPrimaria(hex) {
+    if(/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      document.documentElement.style.setProperty('--c-primary', hex);
+      document.documentElement.style.setProperty('--c-focus', hex);
+      desenharOndasSenoidais();
+    }
+  }
+
+  colorInput.addEventListener('input', (e) => {
+    colorText.value = e.target.value;
+    atualizarCorPrimaria(e.target.value);
+  });
+  colorText.addEventListener('input', (e) => {
+    colorInput.value = e.target.value;
+    atualizarCorPrimaria(e.target.value);
+  });
+
+  // Trigger do Modal
+  btnModal.addEventListener('click', () => { overlay.hidden = false; });
+  const fecharModal = () => { overlay.hidden = true; };
+  btnFecharModal.addEventListener('click', fecharModal);
+  btnCancelarModal.addEventListener('click', fecharModal);
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) fecharModal(); });
+
+  // Trigger de Toast
+  btnToast.addEventListener('click', () => {
+    const container = document.getElementById('toasts');
+    const toast = document.createElement('div');
+    toast.className = 'toast success';
+    toast.innerHTML = '<span class="insignia">✓</span><span>Demonstração de notificação toast executada com sucesso!</span>';
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  });
+
+  // Gerador Vetorial de Ondas Senoidais (Paridade com Tkinter Layout original)
+  function desenharOndasSenoidais() {
+    const svg = document.getElementById('bg-waves-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+    const largura = 1440;
+    const altura = 900;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const corPrimaria = getComputedStyle(document.documentElement).getPropertyValue('--c-primary').trim() || '#1455A0';
+    
+    const destaqueIndices = new Set([6, 17, 26]);
+    const numLinhas = 30;
+    const steps = 60;
+
+    for (let i = 0; i < numLinhas; i++) {
+      const yOffset = (i - 5) * (altura / 18.0);
+      let pathData = '';
+
+      for (let s = 0; s <= steps; s++) {
+        const x = (s / steps) * largura;
+        const y = yOffset + (x * 0.28) + Math.sin(s * 0.14 + i * 0.22) * (altura * 0.05);
+        pathData += (s === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+      }
+
+      const path = document.createElementNS('http' + '://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('fill', 'none');
+
+      if (destaqueIndices.has(i)) {
+        path.setAttribute('stroke', corPrimaria);
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-opacity', isDark ? '0.6' : '0.45');
+      } else {
+        const strokeColor = isDark ? '#2B2E38' : '#DFE4EE';
+        path.setAttribute('stroke', strokeColor);
+        path.setAttribute('stroke-width', '1');
+        path.setAttribute('stroke-opacity', isDark ? '0.35' : '0.5');
+      }
+
+      svg.appendChild(path);
+    }
+  }
+
+  // Inicializa o desenho do fundo
+  desenharOndasSenoidais();
+  window.addEventListener('resize', desenharOndasSenoidais);
+</script>
+</body>
+</html>

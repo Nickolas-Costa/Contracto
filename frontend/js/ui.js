@@ -147,7 +147,6 @@
 
   function aplicarCor(cor) {
     document.documentElement.style.setProperty("--c-primary", cor);
-    // Ajusta variantes baseadas na cor principal
     const r = parseInt(cor.slice(1, 3), 16), g = parseInt(cor.slice(3, 5), 16), b = parseInt(cor.slice(5, 7), 16);
     const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     const onPrimary = luminance > 0.5 ? "#172435" : "#FFFFFF";
@@ -156,8 +155,7 @@
     document.documentElement.style.setProperty("--c-on-primary", onPrimary);
     document.documentElement.style.setProperty("--c-primary-light", light);
     document.documentElement.style.setProperty("--c-primary-hover", hover);
-    // Atualiza gradiente de fundo (ondas)
-    document.body.style.backgroundImage = `repeating-linear-gradient(115deg, color-mix(in srgb, ${cor} 7%, transparent) 0 1px, transparent 1px 14px)`;
+    document.body.style.backgroundImage = "none";
   }
 
   function aplicarTemaInicial() {
@@ -215,5 +213,60 @@
     }
   }
 
-  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, aplicarTema, aplicarTemaInicial };
+  function desenharFundoSenoidal() {
+    let container = document.querySelector(".bg-waves-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "bg-waves-container";
+      container.setAttribute("aria-hidden", "true");
+      container.innerHTML = '<div class="bg-glow-orb bg-glow-top"></div><div class="bg-glow-orb bg-glow-bottom"></div><svg class="bg-waves-svg" id="bg-waves-svg" preserveAspectRatio="none" viewBox="0 0 1440 900"></svg>';
+      document.body.prepend(container);
+    }
+    const svg = document.getElementById("bg-waves-svg");
+    if (!svg) return;
+    svg.innerHTML = "";
+    const largura = 1440;
+    const altura = 900;
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const corPrimaria = getComputedStyle(document.documentElement).getPropertyValue("--c-primary").trim() || "#1455A0";
+
+    const destaqueIndices = new Set([6, 17, 26]);
+    const numLinhas = 30;
+    const steps = 60;
+
+    for (let i = 0; i < numLinhas; i++) {
+      const yOffset = (i - 5) * (altura / 18.0);
+      let pathData = "";
+
+      for (let s = 0; s <= steps; s++) {
+        const x = (s / steps) * largura;
+        const y = yOffset + (x * 0.28) + Math.sin(s * 0.14 + i * 0.22) * (altura * 0.05);
+        pathData += (s === 0 ? "M " + x.toFixed(1) + " " + y.toFixed(1) : " L " + x.toFixed(1) + " " + y.toFixed(1));
+      }
+
+      const path = document.createElementNS("http" + "://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathData);
+      path.setAttribute("fill", "none");
+
+      if (destaqueIndices.has(i)) {
+        path.setAttribute("stroke", corPrimaria);
+        path.setAttribute("stroke-width", "2");
+        path.setAttribute("stroke-opacity", isDark ? "0.6" : "0.45");
+      } else {
+        const strokeColor = isDark ? "#2B2E38" : "#DFE4EE";
+        path.setAttribute("stroke", strokeColor);
+        path.setAttribute("stroke-width", "1");
+        path.setAttribute("stroke-opacity", isDark ? "0.35" : "0.5");
+      }
+
+      svg.appendChild(path);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    desenharFundoSenoidal();
+    window.addEventListener("resize", desenharFundoSenoidal);
+  });
+
+  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, aplicarTema, aplicarTemaInicial, desenharFundoSenoidal };
 })();

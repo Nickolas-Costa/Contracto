@@ -42,7 +42,7 @@ class _IDCollectorParser(HTMLParser):
 
 class TestFrontendBase(unittest.TestCase):
     def test_arquivos_presentes(self):
-        for rel in ["index.html", "css/tokens.css", "css/layout.css",
+        for rel in ["index.html", "lab.html", "css/tokens.css", "css/layout.css",
                     "assets/logo.png",
                     "js/api.js", "js/ui.js", "js/etapa1.js", "js/etapa2.js",
                     "js/app.js"]:
