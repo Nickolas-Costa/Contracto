@@ -1,7 +1,8 @@
-"""Base do frontend web: arquivos, tokens, CSP e integridade das referências."""
+"""Base do frontend web: arquivos, tokens, CSP, integridade do HTML, IDs únicos e shell."""
 
 import re
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent / "frontend"
@@ -10,6 +11,33 @@ TOKENS_OBRIGATORIOS = [
     "--c-primary", "--c-bg", "--c-surface", "--c-text", "--c-success",
     "--c-warning-badge", "--c-error", "--r-card", "--r-button", "--r-input",
 ]
+
+
+class _IDCollectorParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = []
+        self.doctypes = 0
+        self.head_count = 0
+        self.body_count = 0
+        self.app_count = 0
+
+    def handle_decl(self, decl):
+        if decl.lower().startswith("doctype"):
+            self.doctypes += 1
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "head":
+            self.head_count += 1
+        elif tag == "body":
+            self.body_count += 1
+
+        for attr, value in attrs:
+            if attr == "id":
+                if value == "app":
+                    self.app_count += 1
+                if value:
+                    self.ids.append(value)
 
 
 class TestFrontendBase(unittest.TestCase):
@@ -108,10 +136,34 @@ class TestFrontendBase(unittest.TestCase):
         # Todo id lido pelo JS da Etapa 2 existe no HTML.
         for usado in sorted(set(re.findall(r'\$\("([\w-]+)"\)', etapa2))):
             self.assertIn(f'id="{usado}"', html, usado)
-# Categoria é uma seleção finita: o valor técnico continua validado pela API,
-        # enquanto o texto da opção é apresentado ao usuário.
         self.assertIn('<select id="anexo-tipo"', html)
         self.assertIn("selectedOptions", etapa2)
+
+    def test_integridade_html_e_ids_unicos(self):
+        """Garante que index.html possui estrutura única e sem IDs duplicados."""
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        parser = _IDCollectorParser()
+        parser.feed(html)
+
+        self.assertEqual(parser.doctypes, 1, "HTML deve conter exatamente 1 DOCTYPE")
+        self.assertEqual(parser.head_count, 1, "HTML deve conter exatamente 1 tag <head>")
+        self.assertEqual(parser.body_count, 1, "HTML deve conter exatamente 1 tag <body>")
+        self.assertEqual(parser.app_count, 1, "HTML deve conter exatamente 1 elemento #app")
+
+        # Verifica unicidade de IDs no DOM
+        vistos = set()
+        duplicados = set()
+        for elem_id in parser.ids:
+            if elem_id in vistos:
+                duplicados.add(elem_id)
+            vistos.add(elem_id)
+
+        self.assertEqual(duplicados, set(), f"IDs duplicados encontrados no HTML: {duplicados}")
+
+    def test_janela_maximizada_no_shell(self):
+        """Garante que webview_shell.py configura a janela principal como maximizada."""
+        shell_py = (RAIZ.parent / "app" / "webview_shell.py").read_text(encoding="utf-8")
+        self.assertIn("maximized=True", shell_py)
 
 
 if __name__ == "__main__":

@@ -35,14 +35,19 @@
   <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
       <div class="page-heading">
         <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha os formulários e preencha os dados. Os campos com * são obrigatórios.</p></div>
-        <div class="mode-panel"><p class="hint">O que você precisa fazer?</p><div class="modos" role="group" aria-label="Modo">
-          <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez. Ideal para gerar documentos em lote.">Só gerar</button><button id="modo-avancado" type="button" aria-current="page" data-tooltip="Gere um formulário e organize o processo completo (anexos, PDF/A, finalizar).">Gerar e organizar</button>
-        </div><p class="hint" id="modo-explicacao">No modo <strong>Só gerar</strong> você seleciona vários formulários. No modo <strong>Gerar e organizar</strong> escolha apenas um.</p></div>
       </div>
       <div class="workspace"><div class="workspace-main">
       <div class="card">
-        <div class="card-header"><div><h2>Quais formulários?</h2><p class="hint">Selecione os modelos que farão parte deste trabalho.</p></div><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
+        <div class="card-header">
+          <div><h2 id="titulo-selecao-secao">Seleção de modelo</h2><p class="hint" id="modo-explicacao">No modo <strong>Gerar e organizar</strong> selecione apenas um contrato.</p></div>
+          <div class="mode-panel">
+            <div class="modos" role="group" aria-label="Modo de geração">
+              <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Só gerar</button><button id="modo-avancado" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Gerar e organizar</button>
+            </div>
+          </div>
+        </div>
         <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
+        <div id="wrapper-selecionar-todos" style="margin-top:10px;text-align:right" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
       </div>
       <div id="participantes"></div>
       <div class="acoes-participantes">
@@ -57,7 +62,7 @@
           <label for="data-assinatura">Data da assinatura *</label>
           <div class="date-picker-wrapper">
             <input id="data-assinatura" inputmode="numeric" placeholder="DD/MM/AAAA" autocomplete="off" aria-describedby="data-assinatura-erro">
-            <button type="button" class="btn-calendar" id="btn-calendario-data" aria-label="Abrir calendário" title="Abrir calendário">📅</button>
+            <button type="button" class="btn-calendar" id="btn-calendario-data" aria-label="Abrir calendário" title="Abrir calendário"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></button>
           </div>
           <div id="data-assinatura-erro" class="erro" hidden></div>
         </div>

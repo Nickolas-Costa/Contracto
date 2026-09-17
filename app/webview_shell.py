@@ -149,6 +149,7 @@ def main(self_test=False, ui=False):
         if frontend_url:
             window = webview.create_window(titulo, url=frontend_url,
                                            js_api=bridge, width=1200, height=850,
+                                           maximized=True,
                                            hidden=self_test)
         else:
             window = webview.create_window(titulo, html=DIAGNOSTIC_HTML,
