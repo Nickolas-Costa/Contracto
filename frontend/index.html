@@ -21,6 +21,8 @@
     <span id="indicador-fila-global" class="queue-global-badge" hidden role="status"></span>
     <button class="btn btn-secondary btn-sm" id="btn-novo-trabalho" type="button" style="margin-left:auto;">Novo trabalho</button>
     <span id="conexao" role="status">Conectando…</span>
+    <button type="button" id="btn-ajuda-topo">Ajuda</button>
+    <button type="button" id="btn-sobre-topo">Sobre</button>
     <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
   </header>
 
@@ -149,8 +151,31 @@
     </section>
 
     <section id="tela-perfis" aria-label="Perfis" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Biblioteca</p><h1>Perfis de documentos</h1><p class="hint">Consulte os modelos disponíveis. A edição de perfis continua no aplicativo clássico.</p></div></div>
-      <div class="card profiles-card"><div class="card-header"><div><h2>Modelos disponíveis</h2><p class="hint">Escolha e consulte o que cada perfil oferece. Editar ou importar perfis ainda é uma função do aplicativo clássico.</p></div></div><div class="field"><label for="buscar-perfis">Buscar perfil</label><input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off"></div><div id="lista-perfis"></div><p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p></div>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Biblioteca</p>
+          <h1>Perfis de documentos</h1>
+          <p class="hint">Gerencie, crie, duplique, edite, importe e exporte perfis de documentos em WebView.</p>
+        </div>
+        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
+          <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
+        </div>
+      </div>
+      <div class="card profiles-card">
+        <div class="card-header">
+          <div>
+            <h2>Modelos cadastrados</h2>
+            <p class="hint">Consulte os modelos e edite suas configurações de entrada e saída.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="buscar-perfis">Buscar perfil</label>
+          <input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off">
+        </div>
+        <div id="lista-perfis" style="display:flex; flex-direction:column; gap:16px; margin-top:16px;"></div>
+        <p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p>
+      </div>
     </section>
 
     <section id="tela-config" aria-label="Configurações" hidden>

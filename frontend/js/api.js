@@ -45,5 +45,39 @@
     return request("POST", "/api/v1/settings", dados);
   }
 
-  window.ContractoAPI = { disponivel, request, selectOutput, selectFile, openResult, getFile, getSettings, updateSettings };
+  async function getProfiles() {
+    return request("GET", "/api/v1/profiles");
+  }
+
+  async function createProfile(dados) {
+    return request("POST", "/api/v1/profiles", dados);
+  }
+
+  async function updateProfile(nome, dados) {
+    return request("PUT", "/api/v1/profiles/" + encodeURIComponent(nome), dados);
+  }
+
+  async function deleteProfile(nome) {
+    return request("DELETE", "/api/v1/profiles/" + encodeURIComponent(nome));
+  }
+
+  async function duplicateProfile(nome, novoNome) {
+    return request("POST", "/api/v1/profiles/" + encodeURIComponent(nome) + "/duplicate", { novo_nome: novoNome });
+  }
+
+  window.ContractoAPI = {
+    disponivel,
+    request,
+    selectOutput,
+    selectFile,
+    openResult,
+    getFile,
+    getSettings,
+    updateSettings,
+    getProfiles,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+    duplicateProfile
+  };
 })();

@@ -56,8 +56,8 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 .toolbar button[aria-current="page"],.modos button[aria-current="page"]{background:var(--c-primary-light);color:var(--c-primary)}
 .toolbar button:hover,.modos button:hover{background:var(--c-surface-variant)}
 #conexao{margin-left:auto;font-size:12px;color:var(--c-text-secondary);max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:6px}#conexao::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-success);display:inline-block;flex:none}#conexao[data-estado="falha"]{color:var(--c-error)}#conexao[data-estado="falha"]::before{background:var(--c-error)}#btn-tentar{border:1px solid var(--c-control-border);margin:4px}
-#btn-config-topo{margin-left:8px;border:1px solid rgba(255,255,255,.55);border-radius:var(--r-button);padding:9px 13px;background:transparent;color:#fff;font-weight:600}
-#btn-config-topo:hover{background:rgba(255,255,255,.14)}#btn-config-topo[aria-current="page"]{background:rgba(255,255,255,.22)}
+#btn-ajuda-topo, #btn-sobre-topo, #btn-config-topo{margin-left:4px;border:1px solid var(--c-control-border);border-radius:var(--r-button);padding:7px 11px;background:var(--c-surface-variant);color:var(--c-text);font-weight:600}
+#btn-ajuda-topo:hover, #btn-sobre-topo:hover, #btn-config-topo:hover{background:var(--c-primary-light);color:var(--c-primary)}#btn-config-topo[aria-current="page"]{background:var(--c-primary-light);color:var(--c-primary)}
 .page-heading{display:flex;justify-content:space-between;align-items:center;gap:24px;margin:28px 0 20px}h1{margin:0 0 6px;font-size:28px;font-weight:650;letter-spacing:-.6px;line-height:1.2}
 .eyebrow{margin:0 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--c-text-secondary);font-weight:700}.hint{color:var(--c-text-secondary);margin:0;font-size:13px}
 .mode-panel{flex:none}.mode-panel>.hint{margin-bottom:6px;font-size:12px}.modos{background:var(--c-surface-variant);padding:4px;border:1px solid var(--c-border);border-radius:10px}

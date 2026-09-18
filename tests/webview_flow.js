@@ -6,7 +6,7 @@
   const input=(id,value)=>{const el=$(id);if(!el)throw Error('missing '+id);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));};
   const checkboxes=()=>[...document.querySelectorAll('#lista-formularios input')];
   try {
-    await wait(()=>$('campo-0-endereco'),'form ready');
+    await wait(()=>$('campo-0-endereco'),'form ready: ' + document.getElementById('conexao')?.textContent + ' inputs=' + [...document.querySelectorAll('input')].map(i=>i.id).join(','));
     assert(checkboxes().filter(c=>c.checked).length===1,'one initial profile');
     const originalURL=location.href;$('pular-conteudo').click();
     assert(document.activeElement===$('telas')&&location.href===originalURL,'skip control moves focus without changing trusted URL');
@@ -18,7 +18,7 @@
     assert(!!errorLink,'summary links to human field labels');errorLink.click();
     assert(document.activeElement===$('campo-0-cpf') && $('overlay').hidden,'summary closes then focuses selected field');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
-    assert($('lista-perfis').children.length===2,'profile catalog shows detailed cards');
+    await wait(()=>$('lista-perfis').children.length===2,'profile catalog shows detailed cards');
     input('buscar-perfis','QA A');assert($('lista-perfis').children.length===1,'profile catalog filters by name');
     input('buscar-perfis','inexistente');assert(!$('perfis-vazio').hidden,'profile catalog reports an empty search');
     input('buscar-perfis','');

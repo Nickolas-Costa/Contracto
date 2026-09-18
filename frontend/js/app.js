@@ -58,11 +58,23 @@
     conexao(false, "Conectando…");
     clearTimeout(timer);
     if (window.ContractoAPI.disponivel()) return finalizarArranque();
-    timer = setTimeout(falha, 15000);
+
+    const interval = setInterval(() => {
+      if (window.ContractoAPI.disponivel()) {
+        clearInterval(interval);
+        clearTimeout(timer);
+        finalizarArranque();
+      }
+    }, 50);
+
+    timer = setTimeout(() => {
+      clearInterval(interval);
+      falha();
+    }, 15000);
   }
   window.ContractoApp = { iniciar, verificar: finalizarArranque, pronto: () => pronto, falha };
   window.addEventListener("pywebviewready", () => {
-    if (document.readyState !== "loading") finalizarArranque();
+    finalizarArranque();
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();

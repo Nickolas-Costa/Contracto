@@ -461,13 +461,336 @@
       }
       window.ContractoEtapa2.atualizar();
     }));
+    const btnNovoPerfil = $("btn-novo-perfil");
+    if (btnNovoPerfil) btnNovoPerfil.addEventListener("click", novoPerfilModal);
+    const btnImpPerfil = $("btn-importar-perfil");
+    if (btnImpPerfil) btnImpPerfil.addEventListener("click", importarPerfilModal);
+    const busqPerfil = $("buscar-perfis");
+    if (busqPerfil && !busqPerfil.dataset.gerenciado) {
+      busqPerfil.dataset.gerenciado = "1";
+      busqPerfil.addEventListener("input", renderProfilesManagement);
+    }
+
     carregar();
   }
+
+  async function carregarTelaPerfis() {
+    const r = await window.ContractoAPI.getProfiles();
+    if (r.status === 200 && Array.isArray(r.data)) {
+      catalog = r.data;
+    }
+    renderProfilesManagement();
+  }
+
+  function renderProfilesManagement() {
+    const container = $("lista-perfis");
+    if (!container) return;
+    container.replaceChildren();
+
+    const search = $("buscar-perfis");
+    const termo = (search?.value || "").trim().toLowerCase();
+
+    const filtrados = catalog.filter(p => {
+      if (!termo) return true;
+      const nome = (p.nome || p.name || "").toLowerCase();
+      const modo = (p.modo_fluxo || p.mode || "").toLowerCase();
+      const desc = (p.descricao || "").toLowerCase();
+      return nome.includes(termo) || modo.includes(termo) || desc.includes(termo);
+    });
+
+    const vazio = $("perfis-vazio");
+    if (vazio) vazio.hidden = filtrados.length > 0;
+
+    filtrados.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "card profile-item-card";
+      card.style.padding = "16px";
+      card.style.display = "flex";
+      card.style.flexDirection = "column";
+      card.style.gap = "8px";
+
+      const header = document.createElement("div");
+      header.style.display = "flex";
+      header.style.justifyContent = "space-between";
+      header.style.alignItems = "center";
+      header.style.flexWrap = "wrap";
+      header.style.gap = "10px";
+
+      const titleGroup = document.createElement("div");
+      titleGroup.style.display = "flex";
+      titleGroup.style.alignItems = "center";
+      titleGroup.style.gap = "10px";
+
+      const title = document.createElement("h3");
+      title.style.margin = "0";
+      title.textContent = p.nome || p.name || p.profile_id;
+
+      const badge = document.createElement("span");
+      badge.style.fontSize = "0.75rem";
+      badge.style.padding = "2px 8px";
+      badge.style.borderRadius = "12px";
+      badge.style.background = "var(--bg-accent-soft, #e6f0fa)";
+      badge.style.color = "var(--color-primary, #005ca9)";
+      badge.style.fontWeight = "600";
+      badge.textContent = (p.modo_fluxo || p.mode) === "formulario_simples" ? "Formulário Simples" : "Contrato Completo";
+
+      titleGroup.append(title, badge);
+
+      const actionsGroup = document.createElement("div");
+      actionsGroup.style.display = "flex";
+      actionsGroup.style.gap = "6px";
+      actionsGroup.style.flexWrap = "wrap";
+
+      const btnDup = document.createElement("button");
+      btnDup.type = "button";
+      btnDup.className = "btn btn-secondary";
+      btnDup.textContent = "Duplicar";
+      btnDup.addEventListener("click", () => duplicarPerfilModal(p));
+
+      const btnEdt = document.createElement("button");
+      btnEdt.type = "button";
+      btnEdt.className = "btn btn-secondary";
+      btnEdt.textContent = "Editar";
+      btnEdt.addEventListener("click", () => editarPerfilModal(p));
+
+      const btnExp = document.createElement("button");
+      btnExp.type = "button";
+      btnExp.className = "btn btn-secondary";
+      btnExp.textContent = "Exportar";
+      btnExp.addEventListener("click", () => exportarPerfilModal(p));
+
+      const btnExc = document.createElement("button");
+      btnExc.type = "button";
+      btnExc.className = "btn btn-secondary";
+      btnExc.style.color = "var(--color-error, #d93025)";
+      btnExc.textContent = "Excluir";
+      btnExc.addEventListener("click", () => excluirPerfilModal(p));
+
+      actionsGroup.append(btnDup, btnEdt, btnExp, btnExc);
+      header.append(titleGroup, actionsGroup);
+
+      const details = document.createElement("p");
+      details.className = "hint";
+      details.style.margin = "0";
+      const campos = p.campos_entrada || p.fields || [];
+      details.textContent = `${campos.length} campos configurados • Formato: ${p.formato_saida || "PDF/A-2b"} • Máx. participantes: ${p.max_participantes || 4}`;
+
+      card.append(header, details);
+      container.append(card);
+    });
+  }
+
+  function duplicarPerfilModal(p) {
+    const nomeAtual = p.nome || p.name;
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <p class="hint">Digite o nome para a cópia do perfil "${nomeAtual}":</p>
+      <div class="field" style="margin-top:10px;">
+        <label for="dup-nome-input">Novo nome</label>
+        <input id="dup-nome-input" value="${nomeAtual} (Cópia)" autocomplete="off">
+      </div>
+    `;
+    window.ContractoUI.abrirModal("Duplicar perfil", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Duplicar",
+        primario: true,
+        aoClicar: async () => {
+          const novoNome = wrap.querySelector("#dup-nome-input").value.trim();
+          if (!novoNome) return;
+          const r = await window.ContractoAPI.duplicateProfile(nomeAtual, novoNome);
+          if (r.status === 200 || r.status === 201) {
+            window.ContractoUI.toast(`Perfil "${novoNome}" criado com sucesso!`, "success");
+            await carregarTelaPerfis();
+          } else {
+            window.ContractoUI.toast(r.data?.message || "Erro ao duplicar perfil.", "error");
+          }
+        }
+      }
+    ]);
+  }
+
+  function excluirPerfilModal(p) {
+    const nome = p.nome || p.name;
+    window.ContractoUI.abrirModal("Excluir perfil", `Deseja realmente excluir o perfil "${nome}"? Esta ação não pode ser desfeita.`, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Excluir definitivamente",
+        primario: true,
+        aoClicar: async () => {
+          const r = await window.ContractoAPI.deleteProfile(nome);
+          if (r.status === 200) {
+            window.ContractoUI.toast(`Perfil "${nome}" excluído.`, "success");
+            await carregarTelaPerfis();
+          } else {
+            window.ContractoUI.toast(r.data?.message || "Não foi possível excluir o perfil.", "error");
+          }
+        }
+      }
+    ]);
+  }
+
+  function exportarPerfilModal(p) {
+    const jsonStr = JSON.stringify(p, null, 2);
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <p class="hint">Copie o JSON do perfil "${p.nome || p.name}":</p>
+      <div class="field" style="margin-top:10px;">
+        <textarea id="json-export-area" rows="12" readonly style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
+      </div>
+    `;
+    window.ContractoUI.abrirModal("Exportar perfil", wrap, [
+      {
+        texto: "Copiar JSON",
+        primario: true,
+        aoClicar: () => {
+          const area = wrap.querySelector("#json-export-area");
+          area.select();
+          navigator.clipboard.writeText(jsonStr);
+          window.ContractoUI.toast("JSON copiado para a área de transferência!", "success");
+        }
+      },
+      { texto: "Fechar", primario: false }
+    ]);
+  }
+
+  function novoPerfilModal() {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <div class="field-grid">
+        <div class="field">
+          <label for="novo-nome">Nome do perfil</label>
+          <input id="novo-nome" placeholder="Ex: Novo Formulário" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="novo-modo">Modo de fluxo</label>
+          <select id="novo-modo">
+            <option value="contrato">Contrato Completo</option>
+            <option value="formulario_simples">Formulário Simples</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="novo-formato">Formato de saída</label>
+          <select id="novo-formato">
+            <option value="PDF/A-2b">PDF/A-2b</option>
+            <option value="PDF">PDF Simples</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="novo-max">Máx. participantes</label>
+          <input id="novo-max" type="number" min="1" max="4" value="4">
+        </div>
+      </div>
+    `;
+    window.ContractoUI.abrirModal("Criar novo perfil", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Salvar perfil",
+        primario: true,
+        aoClicar: async () => {
+          const nome = wrap.querySelector("#novo-nome").value.trim();
+          const modo = wrap.querySelector("#novo-modo").value;
+          const formato = wrap.querySelector("#novo-formato").value;
+          const maxPart = parseInt(wrap.querySelector("#novo-max").value || "4", 10);
+          if (!nome) {
+            window.ContractoUI.toast("Informe o nome do perfil.", "warning");
+            return;
+          }
+          const dados = { nome, modo_fluxo: modo, formato_saida: formato, max_participantes: maxPart, campos_entrada: [] };
+          const r = await window.ContractoAPI.createProfile(dados);
+          if (r.status === 200 || r.status === 201) {
+            window.ContractoUI.toast(`Perfil "${nome}" criado!`, "success");
+            await carregarTelaPerfis();
+          } else {
+            window.ContractoUI.toast(r.data?.message || "Erro ao criar perfil.", "error");
+          }
+        }
+      }
+    ]);
+  }
+
+  function importarPerfilModal() {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <p class="hint">Cole a estrutura JSON do perfil que deseja importar:</p>
+      <div class="field" style="margin-top:10px;">
+        <textarea id="import-json-area" rows="10" placeholder='{ "nome": "Novo Perfil", "modo_fluxo": "contrato", ... }' style="font-family:monospace; font-size:0.85rem;"></textarea>
+      </div>
+    `;
+    window.ContractoUI.abrirModal("Importar perfil JSON", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Importar",
+        primario: true,
+        aoClicar: async () => {
+          const text = wrap.querySelector("#import-json-area").value.trim();
+          if (!text) return;
+          try {
+            const parsed = JSON.parse(text);
+            const r = await window.ContractoAPI.createProfile(parsed);
+            if (r.status === 200 || r.status === 201) {
+              window.ContractoUI.toast(`Perfil "${parsed.nome || 'Importado'}" importado com sucesso!`, "success");
+              await carregarTelaPerfis();
+            } else {
+              window.ContractoUI.toast(r.data?.message || "Falha na validação do perfil importado.", "error");
+            }
+          } catch (e) {
+            window.ContractoUI.toast("JSON inválido: " + e.message, "error");
+          }
+        }
+      }
+    ]);
+  }
+
+  function editarPerfilModal(p) {
+    const jsonStr = JSON.stringify(p, null, 2);
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <p class="hint">Edite as propriedades JSON do perfil "${p.nome || p.name}":</p>
+      <div class="field" style="margin-top:10px;">
+        <textarea id="edit-json-area" rows="12" style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
+      </div>
+    `;
+    window.ContractoUI.abrirModal("Editar perfil", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Salvar alterações",
+        primario: true,
+        aoClicar: async () => {
+          const text = wrap.querySelector("#edit-json-area").value.trim();
+          try {
+            const parsed = JSON.parse(text);
+            const nomeOriginal = p.nome || p.name;
+            const r = await window.ContractoAPI.updateProfile(nomeOriginal, parsed);
+            if (r.status === 200) {
+              window.ContractoUI.toast(`Perfil "${parsed.nome || nomeOriginal}" atualizado com sucesso!`, "success");
+              await carregarTelaPerfis();
+            } else {
+              window.ContractoUI.toast(r.data?.message || "Erro ao salvar alterações no perfil.", "error");
+            }
+          } catch (e) {
+            window.ContractoUI.toast("JSON inválido: " + e.message, "error");
+          }
+        }
+      }
+    ]);
+  }
+
   function revisar() {
     const btn=$("btn-ver-pendencias");
     if(btn && !btn.hidden){btn.click();return;}
     atualizar();
     window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
   }
-  window.ContractoEtapa1={ligar,atualizar,revisar,conferir,novoTrabalho,composto:()=>composed,modo:()=>mode,reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))};
+  window.ContractoEtapa1={
+    ligar,
+    atualizar,
+    revisar,
+    conferir,
+    novoTrabalho,
+    carregarTelaPerfis,
+    composto:()=>composed,
+    modo:()=>mode,
+    reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))
+  };
 })();

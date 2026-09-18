@@ -25,17 +25,25 @@ class ShellBridge:
         self._window = window
         self._dialogs = WebViewDialogs(window)
 
+    def _normalize_url(self, url):
+        if not url:
+            return ""
+        import urllib.parse
+        return urllib.parse.unquote(url).rstrip("/").split("#")[0].lower()
+
     def _authorized(self):
-        return (not self._server.closed and self._window is not None
-                and self._window.get_current_url() in self._allowed_urls)
+        if self._server.closed or self._window is None:
+            return False
+        current = self._normalize_url(self._window.get_current_url())
+        return any(self._normalize_url(allowed) == current for allowed in self._allowed_urls)
 
     def request(self, method, path, payload=None):
         if not self._authorized():
             return {"status": 403, "data": {"code": "unauthorized_page"}}
-        if method not in {"GET", "POST"} or not isinstance(path, str) or not re.fullmatch(r"/api/v1/[a-z0-9/-]+", path):
+        if method not in {"GET", "POST", "PUT", "DELETE"} or not isinstance(path, str) or not re.fullmatch(r"/api/v1/[A-Za-z0-9/%\._-]+", path):
             return {"status": 400, "data": {"code": "invalid_request"}}
         try:
-            body = json.dumps(payload, allow_nan=False).encode() if method == "POST" else None
+            body = json.dumps(payload, allow_nan=False).encode() if method in {"POST", "PUT"} else None
             if body and len(body) > 1024 * 1024:
                 return {"status": 413, "data": {"code": "body_too_large"}}
             request = Request(self._server.origin + path, data=body, method=method,

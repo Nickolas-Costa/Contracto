@@ -118,6 +118,9 @@
       if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
     });
+    if (nome === "perfis" && window.ContractoEtapa1?.carregarTelaPerfis) {
+      window.ContractoEtapa1.carregarTelaPerfis();
+    }
     window.scrollTo(0, 0);
   }
 
@@ -163,6 +166,44 @@
   if (indicadorGlobal) {
     indicadorGlobal.addEventListener("click", () => {
       mostrarTela("etapa2");
+    });
+  }
+
+  const btnAjuda = document.getElementById("btn-ajuda-topo");
+  if (btnAjuda) {
+    btnAjuda.addEventListener("click", () => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <p>Bem-vindo ao <strong>Contracto</strong>! Siga estes 4 passos simples:</p>
+          <ol style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px;">
+            <li><strong>1. Selecionar modo e modelo:</strong> Escolha "Só gerar" (lote) ou "Gerar e organizar" (contrato).</li>
+            <li><strong>2. Preencher os dados:</strong> Digite dados de cada participante (Nome, CPF, Renda, etc.) e dados globais.</li>
+            <li><strong>3. Conferir e Validar:</strong> Clique em "Conferir dados" para verificar o stepper e resolver inconsistências.</li>
+            <li><strong>4. Gerar e Concluir:</strong> Escolha PDF ou PDF/A-2b e acompanhe o progresso na fila local.</li>
+          </ol>
+        </div>
+      `;
+      abrirModal("Guia de Utilização", wrap, [{ texto: "Entendi", primario: true }]);
+    });
+  }
+
+  const btnSobre = document.getElementById("btn-sobre-topo");
+  if (btnSobre) {
+    btnSobre.addEventListener("click", () => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <p><strong>Contracto v4.5.18</strong> — Automação e Preparação de Documentos</p>
+          <p class="hint">Interface moderna em WebView2 com API local independente e arquitetura loopback com token efêmero.</p>
+          <ul style="margin:0; padding-left:20px; font-size:0.85rem; color:var(--c-text-secondary);">
+            <li><strong>Privacidade:</strong> Sem telemetria ou chamadas externas de rede (100% LGPD local).</li>
+            <li><strong>Motores:</strong> Python pypdf / ReportLab + Word COM / Ghostscript.</li>
+            <li><strong>Desenvolvimento:</strong> Google DeepMind Antigravity Pair-Programming.</li>
+          </ul>
+        </div>
+      `;
+      abrirModal("Sobre o Contracto", wrap, [{ texto: "Fechar", primario: true }]);
     });
   }
 
