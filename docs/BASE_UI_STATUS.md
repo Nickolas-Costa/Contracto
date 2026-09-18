@@ -59,6 +59,16 @@
 
 ---
 
+## Próximos Passos (Pós v4.5.18)
+
+As pendências identificadas após a entrega da v4.5.18 estão formalmente registradas em:
+
+- **ADR 0021** — [`docs/adr/0021-consolidacao-toolbar-e-modo-webview.md`](adr/0021-consolidacao-toolbar-e-modo-webview.md): consolidação da toolbar, remoção do indicador de backend, promoção do seletor de modo.
+- **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2.
+- **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo.
+
+---
+
 ## Comandos de Validação
 
 ```powershell
