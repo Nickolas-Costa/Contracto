@@ -20,7 +20,27 @@ echo  Build do Contracto - Preparacao de Docs
 echo ==========================================
 echo.
 
+if not exist .\.venv\Scripts\python.exe (
+    echo [ERRO] Ambiente virtual .venv nao foi encontrado nesta maquina!
+    echo.
+    echo Para solucionar, execute os comandos abaixo no terminal CMD ou PowerShell:
+    echo   python -m venv .venv
+    echo   .\.venv\Scripts\python.exe -m pip install --upgrade pip
+    echo   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+    echo.
+    pause
+    exit /b 1
+)
+
+set APP_VERSION=
 for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'app'); import version; print(version.__version__)"') do set APP_VERSION=%%v
+
+if "%APP_VERSION%"=="" (
+    echo [ERRO] Nao foi possivel determinar a versao da aplicacao em app/version.py.
+    echo.
+    pause
+    exit /b 1
+)
 
 REM Verificar se o ambiente virtual esta ativo
 if not defined VIRTUAL_ENV (
@@ -42,6 +62,8 @@ echo [2/5] Preparando dependencias (Ghostscript local)...
 if errorlevel 1 (
     echo [ERRO] Build interrompido no passo 2/5: preparo do Ghostscript.
     echo        A causa esta nas mensagens acima desta linha.
+    echo.
+    pause
     exit /b 1
 )
 echo.
@@ -49,11 +71,21 @@ echo.
 echo [3/5] Lendo versao e gerando executavel com PyInstaller (via Contracto_v%APP_VERSION%.spec)...
 echo Versao detectada: %APP_VERSION%
 
+.\.venv\Scripts\python.exe scripts\generate_spec.py
+if errorlevel 1 (
+    echo [ERRO] Falha ao gerar o arquivo de especificacao .spec do PyInstaller!
+    echo.
+    pause
+    exit /b 1
+)
+
 cd app
 ..\.venv\Scripts\python.exe -m PyInstaller Contracto_v%APP_VERSION%.spec
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar o executavel!
     cd ..
+    echo.
+    pause
     exit /b 1
 )
 cd ..
@@ -67,11 +99,15 @@ echo [5/5] Gerando pacote de distribuicao versionado + SHA-256...
 .\.venv\Scripts\python.exe scripts\create_dist_package.py
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar o pacote de distribuicao.
+    echo.
+    pause
     exit /b 1
 )
 .\.venv\Scripts\python.exe -c "import hashlib,pathlib; p=pathlib.Path(r'dist\Contracto_v%APP_VERSION%.zip'); f=p.open('rb'); h=hashlib.file_digest(f,'sha256').hexdigest().upper(); f.close(); pathlib.Path(str(p)+'.sha256.txt').write_text('SHA256  '+h+'  '+p.name+'\n', encoding='utf-8')"
 if errorlevel 1 (
     echo [ERRO] Falha ao gerar a verificacao SHA-256 do pacote.
+    echo.
+    pause
     exit /b 1
 )
 
