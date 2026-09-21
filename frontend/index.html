@@ -18,11 +18,12 @@
       <button data-tela="inicio" type="button" aria-current="page">Documentos</button>
       <button data-tela="perfis" type="button">Perfis</button>
     </nav>
+    <div class="modos toolbar-mode" role="group" aria-label="Modo de geração">
+      <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Simples</button><button id="modo-contrato" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Contrato</button>
+    </div>
+    <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
     <span id="indicador-fila-global" class="queue-global-badge" hidden role="status"></span>
-    <button class="btn btn-secondary btn-sm" id="btn-novo-trabalho" type="button" style="margin-left:auto;">Novo trabalho</button>
-    <span id="conexao" role="status">Conectando…</span>
     <button type="button" id="btn-ajuda-topo">Ajuda</button>
-    <button type="button" id="btn-sobre-topo">Sobre</button>
     <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
   </header>
 
@@ -38,21 +39,18 @@
 
   <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
       <div class="page-heading">
-        <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha os formulários e preencha os dados. Os campos com * são obrigatórios.</p></div>
+        <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha o modelo e preencha os dados. Os campos com * são obrigatórios.</p></div>
       </div>
       <div class="workspace"><div class="workspace-main">
       <div class="card">
         <div class="card-header">
-          <div><h2 id="titulo-selecao-secao">Seleção de modelo</h2><p class="hint" id="modo-explicacao">No modo <strong>Gerar e organizar</strong> selecione apenas um contrato.</p></div>
-          <div class="mode-panel">
-            <div class="modos" role="group" aria-label="Modo de geração">
-              <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Só gerar</button><button id="modo-avancado" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Gerar e organizar</button>
-            </div>
-          </div>
+          <div><h2 id="titulo-selecao-secao">Seleção de modelo</h2><p class="hint" id="modo-explicacao">No modo <strong>Contrato</strong> escolha apenas 1 contrato.</p></div>
         </div>
+        <div id="seletor-modelos" class="modos-seletor" role="group" aria-label="Modelos disponíveis">Carregando modelos…</div>
         <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
         <div id="wrapper-selecionar-todos" style="margin-top:10px;text-align:right" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
       </div>
+      <div id="paginacao-form" class="paginacao-form" hidden></div>
       <div id="participantes"></div>
       <div class="acoes-participantes">
         <button class="btn btn-secondary" id="btn-adicionar" type="button" disabled>Adicionar participante</button>
@@ -86,10 +84,10 @@
       <div class="acoes form-actions">
         <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
         <button class="btn-link" id="btn-ver-pendencias" type="button" hidden>Revisar campos pendentes</button></div>
+        <button class="btn btn-secondary" id="btn-limpar-campos" type="button">Limpar campos</button>
         <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
       </div>
-      </div><aside class="summary" aria-label="Resumo do trabalho">
-        <div class="card"><h2>Seu trabalho</h2><dl><dt>Formulários selecionados</dt><dd><button class="btn-link" data-ir="lista-formularios" type="button" id="resumo-formularios">Aguardando seleção</button></dd><dt>Participantes</dt><dd><button class="btn-link" data-ir="participantes" type="button" id="resumo-participantes">1 participante</button></dd><dt>Pasta de destino</dt><dd><button class="btn-link" data-ir="btn-pasta" type="button" id="resumo-destino">Escolha uma pasta</button></dd></dl></div>
+      </div>
     </section>
 
     <section id="tela-conferir" aria-label="Conferir dados" hidden>
@@ -187,12 +185,9 @@
             <label for="cfg-tema">Tema visual</label>
             <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
           </div>
-          <div class="field">
-            <label for="cfg-tamanho-quadros">Densidade da interface</label>
-            <select id="cfg-tamanho-quadros"><option value="Pequeno">Pequeno</option><option value="Médio" selected>Médio</option><option value="Grande">Grande</option></select>
-          </div>
           <div class="field field-wide">
-            <label for="cfg-cor">Cor de destaque (Accent)</label>
+            <label for="cfg-cor">Cor de destaque</label>
+            <div id="cfg-cores" class="color-swatches" role="group" aria-label="Cores predefinidas"></div>
             <div class="color-picker-wrapper">
               <input type="color" id="cfg-cor" value="#005CA9">
               <input type="text" id="cfg-cor-texto" value="#005CA9" placeholder="#005CA9" pattern="#[0-9A-Fa-f]{6}">
@@ -200,7 +195,7 @@
             <p class="field-note">Define a cor dos botões primários, seleções e ondas de fundo.</p>
           </div>
           <div class="field field-wide">
-            <label for="cfg-local-padrao">Local de assinatura padrão (Backend)</label>
+            <label for="cfg-local-padrao">Local de assinatura padrão</label>
             <input id="cfg-local-padrao" placeholder="Cidade - UF" autocomplete="off">
             <p class="field-note">Salvo nativamente na configuração do aplicativo (%APPDATA%/Contracto).</p>
           </div>

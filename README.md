@@ -2,15 +2,14 @@
 
 <img src="assets/LOGO_OFICIAL_CONTRACTO.png" alt="Contracto" width="120"/>
 
-# 📑 Contracto
-### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conformidade PDF/A-2b
+# Contracto
+### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
 [![Versão](https://img.shields.io/badge/versão-v4.5.17-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
-[![Privacidade](https://img.shields.io/badge/Privacidade-100%25%20Offline%20%7C%20Zero%20Cloud-2E7D32?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/Nickolas-Costa/Contracto#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
-[![Testes](https://img.shields.io/badge/Testes-116%2F116%20Passando-success?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
+[![Testes](https://img.shields.io/badge/Testes-116%2F116%20ok-success?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 
 <br/>
 
@@ -26,7 +25,7 @@
 
 ## 💡 Sobre o Contracto
 
-O **Contracto** é uma solução desktop Windows nativa, moderna e de alto desempenho desenvolvida para imobiliárias, correspondentes bancários e profissionais do setor habitacional. Ele automatiza o preenchimento de formulários cadastrais, organiza dossiês de financiamento e converte documentos contratuais para o formato de conformidade perene **PDF/A-2b (ISO 19005-2)**.
+O **Contracto** é uma solução desktop Windows nativa, moderna e de alto desempenho desenvolvida para correspondentes bancários, imobiliárias e profissionais do setor habitacional. Ele automatiza o preenchimento de formulários cadastrais, organiza dossiês de financiamento e converte documentos contratuais para o formato de conformidade **PDF/A-2b (ISO 19005-2)**.
 
 ### 📋 Modelos Oficiais Suportados Nativamente:
 - **Declaração de Pessoa Politicamente Exposta (PPE)**
@@ -42,16 +41,17 @@ O **Contracto** é uma solução desktop Windows nativa, moderna e de alto desem
 
 O sistema dispõe de um seletor dinâmico de modo na barra superior (*TopBar*), permitindo alternar instantaneamente entre dois modos especializados:
 
-### 1. 📂 Modo Avançado (Contratos Habitacionais)
+### 1. 📂 Modo Contrato (Contratos Habitacionais)
 Projetado para processos contratuais completos com fluxo de 2 etapas:
-- **Etapa 1 (Geração de Documentos)**: Preenchimento de 1 a 4 participantes com validação de CPF/CNPJ em tempo real, data no calendário e diretório de destino.
-- **Etapa 2 (Conversão e Organização)**: Inclusão de documentos do processo (Contrato, Cédula de Crédito, Planilha de Evolução, etc.), conversão em lote para **PDF/A-2b** e criação automática da estrutura de pastas padronizada.
+- **Etapa 1 (Geração de Documentos)**: Preenchimento de 1 a 4 participantes com validação de CPF/CNPJ em tempo real, data e diretório de destino.
+- **Etapa 2 (Conversão e Organização)**: Inclusão de documentos do processo (Contrato, Cédula de Crédito, Planilha de Evolução, etc.), para conversão em lote **PDF/A-2b** e criação automática da estrutura de pastas padronizada.
 
 ### 2. 📄 Modo Simples (Formulários Únicos & Declarações Avulsas)
 Projetado para emissão rápida e direta de formulários individuais com **1 clique**:
 - Interface simplificada sem necessidade de Etapa 2.
 - Geração instantânea do PDF preenchido e abertura direta da pasta de destino.
-- **Opção `[x] Preservar dados para Reutilizar`**: Mantém Nome, CPF, Endereço e Local preenchidos na tela para que você possa emitir formulários sequenciais (ex: Contrato e logo após ITBI/Isenção) sem precisar digitar nada novamente.
+- Possibilidade de preencher mais de um formulário no mesmo fluxo e com divisão dos campos por páginas.
+- **Opção `[x] Preservar dados para Reutilizar`**: Mantém dadis preenchidos na tela para que você possa emitir formulários sequenciais (ex: Contrato e logo após ITBI/Isenção) sem precisar digitar nada novamente.
 
 ---
 
@@ -82,44 +82,10 @@ Acumulado desde a 4.5.11: privacidade e estabilidade (log, instância única, Wo
 
 Identidade visual própria (`docs/DESIGN.md`), guia para o design da versão web e toast contido na janela com dispensa por teclado. Detalhes em [CHANGELOG.md](CHANGELOG.md).
 
-## Atualizações da Versão 4.5.13
-
-Os 7 campos SIM/NÃO do DAMP passaram de lista suspensa para caixa de seleção, mantendo os valores esperados pelas regras do formulário. Detalhes em [CHANGELOG.md](CHANGELOG.md).
-
-## Atualizações da Versão 4.5.12
-
-Troca do motor de pré-visualização por alternativa de licença permissiva, com links de código-fonte dos terceiros, e serviço genérico de geometria de formulários (auditoria + correções declarativas por modelo, sem scripts pontuais). Detalhes em [CHANGELOG.md](CHANGELOG.md).
-
-## 🚀 Principais Recursos da Versão 4.5.11 (estável)
-
-- **Paginação fixa e quadros inteligentes**: barra `← Anterior / Próxima →` sempre visível acima do botão gerar; páginas sem campo ocultam o quadro vazio; dados finais só na última página.
-- **Contador de pendências**: o botão de gerar trava até tudo pronto e mostra *"X pendência(s) em Y página(s)"* com botão **Ver pendências** (validação sem trocar de página).
-- **Seleção por identificador estável**: renomear um perfil não quebra mais a seleção salva (com migração automática do formato antigo).
-- **Perfis com correções aplicadas**: ajustes em perfis instalados (ex: campos ocupacionais só quando ATIVO) + validação estrutural que impede gravar perfil incompleto.
-- **PDFs blindados**: limite de 50 MB / 100 páginas / 1.000 campos para modelos configurados pelo usuário.
-- **Modais que acompanham o foco**: pop-ups se escondem ao alternar de janela e voltam ao retornar.
-- **Pacote com verificação SHA-256**: o ZIP da distribuição acompanha `.sha256.txt` para conferir integridade.
-
-Manutenção da série 4.5.x: mascaramento de dados pessoais no log, bloqueio de segunda instância, fallbacks de pastas com cópia de segurança, rotação do log, aviso com prazo para o Word travado e build que informa a causa da interrupção. Detalhes em [CHANGELOG.md](CHANGELOG.md).
-
-## 🧾 Recursos da Versão 4.5.9
-
-- **Seleção Multi-Formulários no Modo Simples**: Seletor com checkboxes que combina 2+ perfis (`profile_composer.combinar_perfis`) com validação de compatibilidade e persistência em `formularios_basicos_selecionados`.
-- **Seletor de Modos Avançado / Simples**: Alternância rápida na barra superior com suporte a formulários únicos (1 clique) e contratos completos.
-- **Preservação Inteligente de Dados**: Opção `[x] Preservar dados para Reutilizar` no modo simples para emissão em sequência de vários formulários sem redigitar dados cadastrais.
-- **Subtítulos de Seções e Layout Organizado**: Subtítulos agrupando visualmente *Dados do Vendedor*, *Dados do Imóvel e Cartório* e *Valores da Operação* em todos os formulários.
-- **Navegação por Teclado (<kbd>Tab</kbd>) & Anéis de Foco**: Auto-rolagem suave do viewport para acompanhar o foco do cursor e destaque visual com borda de 2px no widget ativo.
-- **Auto-Formatação de Valores, Áreas e Telefones**: Formatação em tempo real no padrão nacional (`0.000,00`), máscara para telefone `(00) 00000-0000` e validador de e-mail integrado.
-- **Enquadramento de Isenção no ITBI (Lei Municipal 1648/2023)**: Checkbox no perfil ITBI que insere o texto legal padrão de enquadramento na isenção no PDF quando ativado, ou limpa o conteúdo quando desativado.
-- **Correção de Placeholders Nativos**: Restauração imediata dos placeholders visuais em todas as entradas de dados sem necessidade de intervenção do usuário.
-- **Novo Validador Universal de CNPJ**: Suporte completo ao CNPJ tradicional e ao **novo padrão de CNPJ Alfanumérico da Receita Federal** (*IN RFB nº 2.229/2024*).
-- **Design System Dinâmico & Temas**: Transição fluida entre modo Claro e Escuro com cores de destaque vivas e arredondamento impecável dos seletores.
-- **Conversão Silenciosa para PDF/A-2b**: Geração de documentos em conformidade ISO 19005-2 via Ghostscript isolado em sandbox (`-dSAFER`).
-
 ---
 
 ## 📂 Estrutura do Projeto
-
+Para uma visão organizada de onde cada parte do código fica, consulte [docs/MAPA_PROJETO.md](docs/MAPA_PROJETO.md).
 ```
 CONTRACTO/
 ├── LICENSE                             # Licença MIT
@@ -251,6 +217,6 @@ O **Contracto** é uma ferramenta independente. Este aplicativo **NÃO possui qu
 - Os desenvolvedores e mantenedores deste projeto **não se responsabilizam** por eventuais recusas de dossiês, erros de digitação ou divergências de dados decorrentes do uso desta ferramenta.
 
 ### 4. Componentes de Terceiros
-A lista de componentes distribuídos com o aplicativo está em [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). O motor de conversão PDF/A (Ghostscript 10.07.1, AGPL) tem código-fonte em https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/tag/gs10071.
+A lista de componentes distribuídos com o aplicativo está em [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). O motor de conversão PDF/A (Ghostscript 10.07.1, AGPL) tem código-fonte em: [Ghostscript](https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/tag/gs10071).
 
 ---

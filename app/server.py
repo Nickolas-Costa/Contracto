@@ -1,4 +1,9 @@
-"""Servidor loopback embutível; token apenas em memória, sem CLI pública."""
+"""Servidor local embutido do Contracto.
+
+Este backend é usado apenas em loopback para a interface WebView e não expõe um
+serviço público na rede. O token de autenticação é gerado em memória para cada
+instância do processo e ajuda a restringir acessos entre a UI local e o servidor.
+"""
 import secrets
 import socket
 import threading

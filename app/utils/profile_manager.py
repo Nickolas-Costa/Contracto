@@ -98,6 +98,9 @@ class CampoEntrada:
     limpar_quando_oculto: bool = True
     calculo: str = ""
     ate_participante: int | None = None
+    # Apresentação sugerida para a Etapa 1: "select" (dropdown) ou "checkbox".
+    apresentacao: str = "select"
+    # Flag de perfil: quando True, SELECAO renderiza como grupo de checkboxes.
 
     def __post_init__(self) -> None:
         if self.tipo:
@@ -120,6 +123,8 @@ class Perfil:
     correcoes_aplicadas: list[str] = field(default_factory=list)
     # Mapeia subtítulos para uma mesma página sem perder a separação visual.
     agrupamento_paginas: dict[str, str] = field(default_factory=dict)
+    # Apresentação sugerida dos campos SELECAO: "select" (dropdown) ou "checkbox".
+    apresentacao: str = "select"
 
     def usa_modelos_embutidos(self) -> bool:
         """Retorna True se usar os formulários embutidos (PPE e 1º Imóvel sem caminhos)."""
@@ -222,10 +227,10 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                         ajuda=c.ajuda, minimo=c.minimo, maximo=c.maximo,
                         visivel_quando=[dict(condicao) for condicao in c.visivel_quando],
                         limpar_quando_oculto=c.limpar_quando_oculto,
-                        calculo=c.calculo,
-                        ate_participante=c.ate_participante,
-                    )
-                    for c in p.campos_entrada
+                    calculo=c.calculo,
+                    ate_participante=c.ate_participante,
+                )
+                for c in p.campos_entrada
                 ],
                 formato_saida=p.formato_saida,
                 modo_fluxo=p.modo_fluxo,
@@ -329,6 +334,9 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             existente.agrupamento_paginas = copy.deepcopy(inicial.agrupamento_paginas)
         if not existente.formularios:
             existente.formularios = copy.deepcopy(inicial.formularios)
+        # Apresentação vem do perfil inicial (pode mudar a forma de selecionar).
+        if inicial.apresentacao and not existente.apresentacao:
+            existente.apresentacao = inicial.apresentacao
         for indice, formulario_inicial in enumerate(inicial.formularios):
             if indice < len(existente.formularios):
                 formulario_existente = existente.formularios[indice]
@@ -601,6 +609,7 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         usar_paginacao=origem.usar_paginacao,
         correcoes_aplicadas=list(origem.correcoes_aplicadas),
         agrupamento_paginas=dict(origem.agrupamento_paginas),
+        apresentacao=origem.apresentacao,
     )
     perfis.append(novo_perfil)
     salvar_perfis(perfis)

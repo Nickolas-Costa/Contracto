@@ -5,6 +5,7 @@
   const draft = {people: [{nome_completo:"",cpf:""}], globals:{data_assinatura:"",local_assinatura:""}};
   let catalog = [], selected = [], fields = [], maximum = 1, revision = 0, compositionRevision = 0;
   let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "avancado";
+  let paginas = [], paginaAtual = 0, usarPaginacao = false, agrupamento = {};
   const controls = [];
   const touched = new WeakMap(), touchedGlobals = new Set();
   let reviewing = false;
@@ -14,6 +15,7 @@
   const online = () => window.ContractoApp?.pronto() || false;
   function changed() {
     issues = []; revision++;
+    recalcularLocal();
     window.ContractoEtapa2?.invalidar();
     schedulePreview();
     atualizar();
@@ -36,6 +38,26 @@
       atualizar();
     },350);
   }
+  function avaliarFormulaLocal(expressao, valores) {
+    // Avaliador restrito: apenas identificadores de campos + operadores aritméticos.
+    if (!expressao || /[^A-Za-z0-9_+\-*/().\s,]/.test(expressao)) return null;
+    const ids = Object.keys(valores);
+    try {
+      const fn = Function(...ids, '"use strict";return(' + expressao + ')');
+      const args = ids.map(k => {
+        const raw = String(valores[k] ?? "").replace(/\./g, "").replace(",", ".");
+        const num = Number(raw);
+        return Number.isFinite(num) ? num : 0;
+      });
+      const out = fn(...args);
+      return (typeof out === "number" && Number.isFinite(out)) ? out : null;
+    } catch (_) { return null; }
+  }
+  function sincronizarSelecao() {
+    // A lista é montada antes da composição inicial; sem este sync o perfil
+    // composto não aparece marcado (smoke: "one initial profile").
+    document.querySelectorAll("#lista-formularios input").forEach(el=>{ el.checked=selected.includes(el.value); });
+  }
   function fieldControl(field,index,host) {
     const id = form().canonical(field.id), global = field.escopo === "global";
     const owner = global ? draft.globals : draft.people[index];
@@ -45,13 +67,31 @@
     const isTextarea = field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA";
     const label = document.createElement("label");
     const input = document.createElement(field.tipo === "SELECAO" ? "select" : (isTextarea ? "textarea" : "input"));
-    if (isTextarea) input.rows = 3;
+    if (isTextarea) {
+      input.rows = 3;
+      input.classList.add("field-textarea");
+      const autoResize = () => { input.style.height = "auto"; input.style.height = Math.min(320, Math.max(80, input.scrollHeight)) + "px"; };
+      input.addEventListener("input", autoResize);
+      requestAnimationFrame(autoResize);
+    }
     input.id = "campo-" + (global ? "global" : index) + "-" + id;
     label.htmlFor = input.id; label.textContent = (field.rotulo || id) + (field.obrigatorio && !field.calculo ? " *" : "");
     input.autocomplete = "off";
     if (field.tipo === "SELECAO") {
-      for (const value of ["",...(field.opcoes || [])]) {
-        const option=document.createElement("option"); option.value=value; option.textContent=value || "Selecione"; input.append(option);
+      const opcoes = field.opcoes || [];
+      const humanizar = (nome) => nome.replace(/_/g, " ").replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+      for (const value of ["", ...opcoes]) {
+        const rotulo = (field.apresentacao === "checkbox") ? humanizar(value) : (value || "Selecione");
+        const option = document.createElement("option"); option.value = value; option.textContent = rotulo; input.append(option);
+      }
+      if (field.apresentacao === "checkbox" && opcoes.length && opcoes.length <= 4) {
+        input.replaceWith(...opcoes.map(value => {
+          const cb = document.createElement("label"); cb.className = "checkbox-inline";
+          const chk = document.createElement("input"); chk.type = "checkbox"; chk.value = value; chk.checked = owner[id] === value; chk.id = input.id + "-" + value.replace(/[^A-Za-z0-9]/g, "_");
+          const lbl = document.createElement("span"); lbl.textContent = humanizar(value);
+          cb.append(chk, lbl); return cb;
+        }));
+        input.addEventListener("change", () => {});
       }
     } else if (field.tipo === "CHECKBOX") {
       input.type="checkbox"; const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
@@ -63,7 +103,7 @@
       if (field.tipo === "DATA") input.placeholder="DD/MM/AAAA";
       input.maxLength = 4000;
     }
-    if (field.tipo !== "CHECKBOX") input.value=owner[id];
+    if (field.tipo !== "CHECKBOX" && field.tipo !== "SELECAO") input.value=owner[id];
     if (field.calculo) {input.readOnly=true; input.placeholder="Calculado automaticamente";}
     const error=document.createElement("div"); error.id=input.id+"-erro"; error.className="erro"; error.hidden=true;
     input.setAttribute("aria-describedby",error.id);
@@ -86,6 +126,73 @@
     if(field.calculo){const note=document.createElement("p");note.className="field-note";note.id=input.id+"-nota";note.textContent="Calculado a partir dos dados informados.";wrap.append(note);input.setAttribute("aria-describedby",error.id+" "+note.id);}
     controls.push({field,index,id,owner,wrap,input,error});
   }
+  function recalcularLocal() {
+    controls.forEach(c => {
+      const expr = c.field.calculo || c.field.formula;
+      if (!expr) return;
+      const vals = values(c.index);
+      const out = avaliarFormulaLocal(expr, vals);
+      if (out !== null) {
+        const texto = String(Math.round(out * 100) / 100).replace(".", ",");
+        c.input.value = texto;
+        c.owner[c.id] = texto;
+      }
+    });
+  }
+  function resolverPaginas(lista, grupo) {
+    const ordem = [];
+    lista.forEach(f => {
+      if (["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id))) return;
+      const p = form().paginaDe ? form().paginaDe(f, grupo) : (f.aba || "Geral");
+      if (!ordem.includes(p)) ordem.push(p);
+    });
+    return ordem;
+  }
+  function renderPaginacao() {
+    const host = $("paginacao-form");
+    if (!host) return;
+    host.replaceChildren();
+    if (!composed || !usarPaginacao || paginas.length < 2) { host.hidden = true; return; }
+    host.hidden = false;
+    const prev = document.createElement("button");
+    prev.type = "button"; prev.className = "btn btn-secondary btn-sm"; prev.textContent = "← Anterior";
+    prev.disabled = paginaAtual === 0;
+    prev.addEventListener("click", () => mudarPagina(-1));
+    const info = document.createElement("span");
+    info.className = "paginacao-indicador";
+    info.textContent = "Página " + (paginaAtual + 1) + " de " + paginas.length;
+    const nome = document.createElement("span");
+    nome.className = "paginacao-nome";
+    nome.textContent = paginas[paginaAtual] || "";
+    const next = document.createElement("button");
+    next.type = "button"; next.className = "btn btn-secondary btn-sm"; next.textContent = "Próxima →";
+    next.disabled = paginaAtual >= paginas.length - 1;
+    next.addEventListener("click", () => mudarPagina(1));
+    host.append(prev, info, nome, next);
+  }
+  function mudarPagina(delta) {
+    const novo = Math.max(0, Math.min(paginas.length - 1, paginaAtual + delta));
+    if (novo === paginaAtual) return;
+    if (delta > 0) {
+      // Valida a página atual antes de avançar.
+      reviewing = true;
+      const erros = localIssues().filter(e => paginaDoControle(e) === paginas[paginaAtual]);
+      atualizar();
+      if (erros.length) {
+        window.ContractoUI.toast("Revise os campos desta página antes de avançar.", "warning");
+        return;
+      }
+      reviewing = false;
+    }
+    paginaAtual = novo;
+    renderPaginacao();
+    atualizar();
+  }
+  function paginaDoControle(e) {
+    const c = controls.find(x => x.id === form().canonical(e.field) && (!e.participant || e.participant === x.index + 1));
+    if (!c) return null;
+    return form().paginaDe ? form().paginaDe(c.field, agrupamento) : (c.field.aba || "Geral");
+  }
   function group(card, title) {
     const section=document.createElement("fieldset");section.className="field-section";
     const legend=document.createElement("legend");legend.textContent=title;
@@ -94,6 +201,7 @@
   }
   function render() {
     controls.length=0; $("participantes").replaceChildren(); $("campos-globais").replaceChildren();
+    fields = (fields || []).filter(f => typeof f.id === "string" && f.id.length > 0);
     draft.people.forEach((person,index)=>{
       const card=document.createElement("div"); card.className="card";
       const header=document.createElement("div");header.className="card-header";
@@ -107,21 +215,28 @@
       if(address.length){const grid=group(card,"Endereço");address.forEach(f=>fieldControl(f,index,grid));}
       if(details.length){const grid=group(card,"Dados do formulário");details.forEach(f=>fieldControl(f,index,grid));}
       if (index) {
-        const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.setAttribute("aria-label","Remover participante "+(index+1));
-        remove.dataset.editable="true";
-        remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.abrirModal("Remover participante?","Os dados deste participante serão removidos do rascunho.",[{texto:"Manter participante"},{texto:"Remover",aoClicar:()=>{draft.people.splice(index,1);changed();render();$("btn-adicionar").focus();}}]);}); header.append(remove);
+        const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.setAttribute("aria-label","Remover participante "+(index+1)); remove.dataset.editable="true";
+        remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.toast("Participante removido.","warning");draft.people.splice(index,1);changed();render();$("btn-adicionar").focus();}); header.append(remove);
       }
       $("participantes").append(card);
     });
     const globals=fields.filter(f=>f.escopo === "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
     if(globals.length){const card=document.createElement("div");card.className="card";const title=document.createElement("h2");title.textContent="Dados compartilhados";card.append(title);const grid=document.createElement("div");grid.className="field-grid";card.append(grid);globals.forEach(f=>fieldControl(f,0,grid));$("campos-globais").append(card);}
-    schedulePreview();atualizar();
+    recalcularLocal(); renderPaginacao(); sincronizarSelecao(); schedulePreview();atualizar();
+  }
+  function emPaginaAtual(c) {
+    if (!usarPaginacao || paginas.length < 2) return true;
+    if (["nome_completo","cpf"].includes(c.id)) return true;
+    const p = form().paginaDe ? form().paginaDe(c.field, agrupamento) : (c.field.aba || "Geral");
+    return p === paginas[paginaAtual];
   }
   function localIssues() {
     const result=[];
     controls.forEach(c=>{
-      const show=form().visible(c.field,values(c.index),c.index+1); c.wrap.hidden=!show;
-      if(!show || c.field.calculo)return;
+      const visivelCondicional = form().visible(c.field,values(c.index),c.index+1);
+      const naPagina = emPaginaAtual(c);
+      c.wrap.hidden = !visivelCondicional || !naPagina;
+      if(!visivelCondicional || c.field.calculo || c.field.formula)return;
       const value=String(c.owner[c.id] ?? "").trim();
       let message="";
       if(c.field.obrigatorio && !value && c.field.tipo !== "CHECKBOX")message="Preencha este campo.";
@@ -162,16 +277,17 @@
     $("btn-pasta").disabled=!online()||busy();
     $("btn-adicionar").disabled=busy()||!composed||draft.people.length>=maximum;
     $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
-    $("resumo-formularios").textContent=catalog.filter(p=>selected.includes(p.profile_id)).map(p=>p.name).join(", ") || "Nenhum selecionado";
-    $("resumo-participantes").textContent=draft.people.map((p,i)=>p.nome_completo || "Participante "+(i+1)).join(" · ");
-    $("resumo-destino").textContent=$("pasta-saida").value || "Escolha uma pasta";
+    const badge=$("badge-participantes");
+    if(badge) badge.textContent=draft.people.length+" participante(s)";
     document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-avancado').forEach(el=>el.disabled=busy());
     const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
     btn.onclick=()=>{
-      reviewing=true;atualizar();const list=document.createElement("ul"),offset=pending.length-errors.length;
-      pending.forEach((p,i)=>{const li=document.createElement("li"),target=i>=offset ? targetFor(errors[i-offset]) : p.includes("pasta") ? $("btn-pasta") : null;
-        if(target){const link=document.createElement("button");link.className="btn-link";link.type="button";link.textContent=p;link.addEventListener("click",()=>{window.ContractoUI.fecharModal();target.focus();target.scrollIntoView({block:"center"});});li.append(link);}else li.textContent=p;list.append(li);});
-      window.ContractoUI.abrirModal("Revise os dados",list,[{texto:"Voltar ao formulário"}]);
+      reviewing=true;atualizar();
+      const comErro=errors.map(targetFor).find(el=>el && el.focus);
+      const resumo=pending.slice(0,3).join(" | ");
+      const resto=pending.length>3 ? " (mais "+(pending.length-3)+")" : "";
+      window.ContractoUI.toast("Revise os dados: "+resumo+resto,"warning",8000);
+      if(comErro){comErro.focus();comErro.scrollIntoView({block:"center"});}
     };
     return pending;
   }
@@ -185,8 +301,26 @@
     const r=await window.ContractoAPI.request("POST","/api/v1/profiles/compose",{profile_ids:finalIds});
     if(request!==compositionRevision)return;
     composing=false;
-    if(r.status!==200){issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];atualizar();return;}
+    if(r.status!==200){
+      issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];
+      if (r.status === 409 && finalIds.length > 1) {
+        // Bloco 4: conflito no modo simples — mesmo id com tipos/opções distintos.
+        const nomes = finalIds.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || id) : id; });
+        const detalhe = document.createElement("div");
+        const intro = document.createElement("p");
+        intro.textContent = "Os formulários selecionados definem o mesmo campo interno de formas diferentes: " + nomes.join(" × ") + ". " + (r.data?.message || "");
+        const dica = document.createElement("p");
+        dica.className = "hint";
+        dica.textContent = "Ajuste um dos nomes internos nas configurações de perfis ou selecione formulários compatíveis.";
+        detalhe.append(intro, dica);
+        window.ContractoUI.abrirModal("Conflito entre formulários", detalhe, [{texto: "Entendi", primario: true}]);
+      }
+      fields=[]; paginas=[]; usarPaginacao=false; composed=false; render();
+      return;
+    }
     fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
+    usarPaginacao=!!r.data.usar_paginacao; agrupamento=r.data.agrupamento_paginas || {};
+    paginas=r.data.paginas || resolverPaginas(fields, agrupamento); paginaAtual=0;
     if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
@@ -206,10 +340,16 @@
     const titulo = $("titulo-selecao-secao");
     if(todosWrap) todosWrap.hidden = !isSimple;
     if(titulo) titulo.textContent = isSimple ? "Formulários simples" : "Modelo de contrato";
-    if(explicacao) explicacao.innerHTML = isSimple ? "No modo <strong>Só gerar</strong> selecione um ou mais formulários em lote." : "No modo <strong>Gerar e organizar</strong> escolha apenas 1 contrato.";
+    if(explicacao) explicacao.innerHTML = isSimple ? "No modo <strong>Simples</strong> selecione um ou mais formulários em lote." : "No modo <strong>Contrato</strong> escolha apenas 1 contrato.";
     const filtrados = catalog.filter(p => isSimple ? (p.mode === "formulario_simples" || catalog.every(item => item.mode !== "formulario_simples")) : (p.mode === "contrato" || catalog.every(item => item.mode !== "contrato")));
     if(!filtrados.length){
       const msg = document.createElement("p"); msg.className="hint"; msg.textContent="Nenhum perfil disponível para este modo."; $("lista-formularios").append(msg); return;
+    }
+    // Até 2 modelos em botões; mais que 2 vira seletor de lista (Contrato).
+    const usarSeletorLista = !isSimple && filtrados.length > 2;
+    if (usarSeletorLista) {
+      renderSeletorLista(filtrados, isSimple);
+      return;
     }
     filtrados.forEach(p=>{
       const label=document.createElement("label");
@@ -231,6 +371,39 @@
     });
     const search=$("buscar-perfis");
     if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfilesList());}
+  }
+
+  function renderSeletorLista(filtrados, isSimple) {
+    const host = $("seletor-modelos");
+    if (!host) return;
+    host.replaceChildren();
+    const count = document.createElement("span");
+    count.className = "seletor-count";
+    count.textContent = filtrados.length + " modelo" + (filtrados.length !== 1 ? "s" : ""); ;
+    filtrados.forEach(p => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "seletor-item";
+      btn.value = p.profile_id;
+      btn.setAttribute("aria-pressed", selected.includes(p.profile_id) ? "true" : "false");
+      const label = document.createTextNode(p.name);
+      btn.append(label, count.cloneNode(true));
+      btn.addEventListener("click", () => {
+        if (busy()) return;
+        if (isSimple) {
+          const ja = selected.includes(p.profile_id);
+          selecionar(ja ? selected.filter(id => id !== p.profile_id) : [...selected, p.profile_id]);
+        } else {
+          selecionar(btn.getAttribute("aria-pressed") === "true" ? [] : [p.profile_id]);
+        }
+      });
+      host.append(btn);
+    });
+  }
+  function pacoteProcesso() {
+    // Pacote atual para o processamento (contrato ProcessInput da API local).
+    if(!composed || !draft.output_id) return null;
+    return {participants:form().participants(draft,fields),output_id:draft.output_id};
   }
   async function gerar() {
     if(atualizar().length||busy())return;
@@ -298,69 +471,116 @@
     overlay.addEventListener("keydown", e => { if (e.key === "Escape") { overlay.remove(); input.focus(); } });
     overlay.querySelector(".cal-grid").focus();
   }
-  function conferir() {
-    atualizar();
+  async function conferir() {
+    reviewing = true;
+    const pendentes = atualizar();
     if (!selected.length) {
       window.ContractoUI.toast("Selecione ao menos um modelo para conferir.", "warning");
       window.ContractoUI.mostrarTela("inicio");
       return;
     }
-    const val = form().participants(draft, fields);
-    const pendentes = issues.filter(i => i.severity === "error");
     if (pendentes.length > 0) {
       window.ContractoUI.toast("Existem pendências no formulário. Revise os campos antes de avançar.", "warning");
       const btn = $("btn-ver-pendencias");
       if (btn && !btn.hidden) btn.click();
-      window.ContractoUI.mostrarTela("inicio");
+      else window.ContractoUI.mostrarTela("inicio");
+      return;
+    }
+    // Revalidação servidor antes de confirmar a conferência.
+    try {
+      const r = await window.ContractoAPI.request("POST", "/api/v1/profiles/preview", {profile_ids: selected, participants: form().participants(draft, fields)});
+      if (r.status === 200 && (r.data.issues || []).length) {
+        issues = r.data.issues;
+        atualizar();
+        window.ContractoUI.toast("O servidor apontou pendências. Revise os campos.", "warning");
+        return;
+      }
+      if (r.status !== 200) {
+        window.ContractoUI.toast("Não foi possível revalidar. Confira a conexão e tente de novo.", "warning");
+        return;
+      }
+    } catch (_) {
+      window.ContractoUI.toast("Sem conexão para conferir. Tente novamente.", "error");
       return;
     }
 
     const container = $("corpo-conferencia");
     if (container) {
-      container.innerHTML = "";
+      container.replaceChildren();
+      const nomes = selected.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || p.nome || id) : id; });
       const infoBox = document.createElement("div");
-      infoBox.className = "card-header";
-      infoBox.innerHTML = `<div><strong style="font-size:16px;">Modelos selecionados:</strong> <p class="hint">${selected.map(id => catalog.find(p => p.profile_id === id)?.nome || id).join(", ")}</p></div>`;
+      const titulo = document.createElement("div");
+      const forte = document.createElement("strong");
+      forte.style.fontSize = "16px"; forte.textContent = "Modelos selecionados:";
+      const lista = document.createElement("p");
+      lista.className = "hint"; lista.textContent = nomes.join(", ");
+      titulo.append(forte, lista); infoBox.className = "card-header"; infoBox.append(titulo);
       container.appendChild(infoBox);
 
       const dl = document.createElement("dl");
       dl.className = "field-grid";
       dl.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
       dl.style.margin = "16px 0";
-
-      const dtData = document.createElement("dt"); dtData.innerHTML = "<strong>Data da assinatura:</strong> " + (draft.globals.data_assinatura || "Não informada");
-      const dtLocal = document.createElement("dt"); dtLocal.innerHTML = "<strong>Local da assinatura:</strong> " + (draft.globals.local_assinatura || "Não informado");
-      const dtDestino = document.createElement("dt"); dtDestino.className = "field-wide"; dtDestino.innerHTML = "<strong>Salvar em:</strong> " + ($("pasta-saida")?.value || "Nenhuma pasta selecionada");
-
-      dl.append(dtData, dtLocal, dtDestino);
+      [["Data da assinatura", draft.globals.data_assinatura || "Não informada"],
+       ["Local da assinatura", draft.globals.local_assinatura || "Não informado"],
+       ["Salvar em", $("pasta-saida")?.value || "Nenhuma pasta selecionada"]
+      ].forEach(([rot, val]) => {
+        const dt = document.createElement("dt");
+        const b = document.createElement("strong"); b.textContent = rot + ": ";
+        dt.append(b, document.createTextNode(val));
+        container.appendChild(dl);
+        dl.append(dt);
+      });
       container.appendChild(dl);
 
+      // Agrupa campos por página/seção.
+      const porPagina = {};
+      fields.forEach(f => {
+        if (["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id))) return;
+        const chave = form().paginaDe ? form().paginaDe(f, agrupamento) : (f.aba || "Geral");
+        (porPagina[chave] = porPagina[chave] || []).push(f);
+      });
       draft.people.forEach((p, idx) => {
         const pBox = document.createElement("fieldset");
         pBox.className = "field-section";
         const legend = document.createElement("legend");
-        legend.textContent = idx ? "Participante " + (idx + 1) : "Participante Principal";
+        const nomeP = p.nome_completo || ("Participante " + (idx + 1));
+        legend.textContent = (idx ? "Participante " + (idx + 1) : "Participante principal") + " — " + nomeP;
         pBox.appendChild(legend);
-
-        const pGrid = document.createElement("div");
-        pGrid.className = "field-grid";
-        pGrid.innerHTML = `
-          <div><strong>Nome:</strong> ${p.nome_completo || "Pendente"}</div>
-          <div><strong>CPF:</strong> ${p.cpf || "Pendente"}</div>
-        `;
-
-        fields.forEach(f => {
-          const id = form().canonical(f.id);
-          if (f.escopo !== "global" && p[id] && !["nome_completo", "cpf"].includes(id)) {
-            const item = document.createElement("div");
-            item.innerHTML = `<strong>${f.rotulo || id}:</strong> ${p[id]}`;
-            pGrid.appendChild(item);
-          }
+        const base = document.createElement("div");
+        base.className = "field-grid";
+        [["Nome", p.nome_completo || "Pendente"], ["CPF", p.cpf || "Pendente"]].forEach(([rot, val]) => {
+          const item = document.createElement("div");
+          const b = document.createElement("strong"); b.textContent = rot + ": ";
+          item.append(b, document.createTextNode(val));
+          base.append(item);
         });
-
-        pBox.appendChild(pGrid);
+        pBox.appendChild(base);
+        Object.entries(porPagina).forEach(([pagina, listaCampos]) => {
+          const visiveis = listaCampos.filter(f => {
+            const id = form().canonical(f.id);
+            if (f.escopo === "global") return false;
+            if (!form().visible(f, values(idx), idx + 1)) return false;
+            return p[id] !== undefined && String(p[id] ?? "").trim() !== "";
+          });
+          if (!visiveis.length) return;
+          const secao = document.createElement("div");
+          secao.className = "conferencia-secao";
+          const h = document.createElement("h3"); h.textContent = pagina;
+          const grid = document.createElement("div"); grid.className = "field-grid";
+          visiveis.forEach(f => {
+            const id = form().canonical(f.id);
+            const item = document.createElement("div");
+            const b = document.createElement("strong"); b.textContent = (f.rotulo || id) + ": ";
+            item.append(b, document.createTextNode(String(p[id])));
+            grid.append(item);
+          });
+          secao.append(h, grid);
+          pBox.appendChild(secao);
+        });
         container.appendChild(pBox);
       });
+      try { window.ContractoUI.sincronizarStepper?.(); } catch (_) {}
     }
 
     const btnVoltar = $("btn-conferir-voltar");
@@ -387,28 +607,14 @@
         {
           texto: "Preservar destino e data",
           aoClicar: () => {
-            draft.people = [{ nome_completo: "", cpf: "" }];
-            selected = [];
-            fields = [];
-            composed = false;
-            changed();
-            render();
-            window.ContractoUI.mostrarTela("inicio");
-          }
-        },
-        {
-          texto: "Limpar tudo",
-          aoClicar: () => {
+            window.ContractoEtapa2?.recomecar?.();
             draft.people = [{ nome_completo: "", cpf: "" }];
             draft.globals.data_assinatura = "";
             draft.globals.local_assinatura = "";
             draft.output_id = null;
             $("pasta-saida").value = "";
-            selected = [];
-            fields = [];
-            composed = false;
-            changed();
-            render();
+            selected = []; fields = []; composed = false;
+            changed(); render();
             window.ContractoUI.mostrarTela("inicio");
           }
         },
@@ -417,9 +623,25 @@
     );
   }
 
+  function limparCampos() {
+    draft.people = [{nome_completo:"",cpf:""}];
+    draft.globals.data_assinatura = "";
+    draft.globals.local_assinatura = "";
+    const pasta = $("pasta-saida");
+    if (pasta) pasta.value = "";
+    fields = []; composed = false; maximum = 1; selected = [];
+    renderProfilesList();
+    if (mode === "contrato") {
+      const contratoDefault = catalog.find(p => p.mode === "contrato") || catalog[0];
+      if (contratoDefault) selecionar([contratoDefault.profile_id]);
+    }
+    window.ContractoEtapa2.atualizar();
+    window.ContractoUI.toast("Campos limpos.", "success");
+  }
+
   function ligar() {
-    const btnNovo = $("btn-novo-trabalho");
-    if (btnNovo) btnNovo.addEventListener("click", novoTrabalho);
+    $("btn-novo-trabalho").addEventListener("click", novoTrabalho);
+    $("btn-limpar-campos").addEventListener("click", limparCampos);
     $("btn-gerar").addEventListener("click", conferir);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
@@ -448,12 +670,12 @@
     const dateInput=$("data-assinatura");
     if(calBtn && dateInput) calBtn.addEventListener("click",()=>abrirCalendario(dateInput));
     $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
-    ["simples","avancado"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
+    ["simples","contrato"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
       if(busy())return;mode=name;
-      ["simples","avancado"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
+      ["simples","contrato"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
       selected=[];fields=[];composed=false;maximum=1;
       renderProfilesList();
-      if(mode === "avancado") {
+      if(mode === "contrato") {
         const contratoDefault = catalog.find(p=>p.mode === "contrato") || catalog[0];
         if(contratoDefault) selecionar([contratoDefault.profile_id]);
       } else {
@@ -474,12 +696,21 @@
     carregar();
   }
 
-  async function carregarTelaPerfis() {
-    const r = await window.ContractoAPI.getProfiles();
-    if (r.status === 200 && Array.isArray(r.data)) {
-      catalog = r.data;
+  function carregarTelaPerfis() {
+    if (catalog && catalog.length) {
+      renderProfilesManagement();
     }
-    renderProfilesManagement();
+    window.ContractoAPI.getProfiles().then(r => {
+      if (r.status === 200 && Array.isArray(r.data)) {
+        catalog = r.data;
+        renderProfilesManagement();
+      }
+    });
+    const search = $("buscar-perfis");
+    if (search && !search.dataset.ligado) {
+      search.dataset.ligado = "1";
+      search.addEventListener("input", renderProfilesManagement);
+    }
   }
 
   function renderProfilesManagement() {
@@ -789,6 +1020,7 @@
     conferir,
     novoTrabalho,
     carregarTelaPerfis,
+    pacoteProcesso,
     composto:()=>composed,
     modo:()=>mode,
     reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))

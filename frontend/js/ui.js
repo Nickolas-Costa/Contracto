@@ -8,7 +8,7 @@
     const main=document.getElementById("telas");main.focus();main.scrollIntoView({block:"start"});
   });
 
-  function toast(message, type) {
+  function toast(message, type, duration) {
     type = type || "success";
     const caixa = document.getElementById("toasts");
     const el = document.createElement("div");
@@ -21,10 +21,12 @@
     txt.textContent = message;
     el.append(ins, txt);
     caixa.append(el);
-    const timer = setTimeout(() => el.remove(), 4000);
+    // duration 0 = persistente (dispensa com Escape); padrão 4s.
+    const ms = duration === undefined ? 4000 : duration;
+    const timer = ms === 0 ? null : setTimeout(() => el.remove(), ms);
     el.tabIndex = 0;
     el.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape") { clearTimeout(timer); el.remove(); }
+      if (ev.key === "Escape") { if (timer) clearTimeout(timer); el.remove(); }
     });
     return el;
   }
@@ -102,6 +104,20 @@
     }
   });
 
+  function etapaLiberada(n) {
+    if (n <= 1) return true;
+    if (n === 2) return !!(window.ContractoEtapa1 && window.ContractoEtapa1.composto());
+    if (n >= 3) return !!(window.ContractoEtapa1 && window.ContractoEtapa1.composto()) && !!(window.ContractoEtapa2 && window.ContractoEtapa2.temBase());
+    return true;
+  }
+  function sincronizarStepper() {
+    document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
+      const n = Number(b.dataset.etapa);
+      const locked = !etapaLiberada(n);
+      b.disabled = locked;
+      b.title = locked ? "Conclua a etapa anterior para avançar" : "";
+    });
+  }
   function mostrarTela(nome) {
     if (!["inicio", "conferir", "etapa2", "perfis", "config"].includes(nome)) return;
     document.getElementById("stepper").hidden = !["inicio", "conferir", "etapa2"].includes(nome);
@@ -121,11 +137,23 @@
     if (nome === "perfis" && window.ContractoEtapa1?.carregarTelaPerfis) {
       window.ContractoEtapa1.carregarTelaPerfis();
     }
+    if (nome === "inicio" || nome === "config") {
+      window.ContractoEtapa2?.atualizar();
+    }
+    if (nome === "config") {
+      cfgCarregarRascunho();
+    }
     window.scrollTo(0, 0);
   }
 
   function irEtapa(n) {
     if (n === 1) { mostrarTela("inicio"); return; }
+    if (!etapaLiberada(n)) {
+      if (n === 2) toast("Preencha o formulário e selecione modelos compatíveis antes de conferir.", "warning");
+      else toast("Gere os documentos primeiro para poder concluir o trabalho.", "warning");
+      mostrarTela("inicio");
+      return;
+    }
     if (n === 2) {
       if (window.ContractoEtapa1 && window.ContractoEtapa1.conferir) {
         window.ContractoEtapa1.conferir();
@@ -165,45 +193,16 @@
   const indicadorGlobal = document.getElementById("indicador-fila-global");
   if (indicadorGlobal) {
     indicadorGlobal.addEventListener("click", () => {
-      mostrarTela("etapa2");
+      if (window.ContractoEtapa2 && window.ContractoEtapa2.painelFila) window.ContractoEtapa2.painelFila();
+      else mostrarTela("etapa2");
     });
   }
+  document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
   const btnAjuda = document.getElementById("btn-ajuda-topo");
   if (btnAjuda) {
     btnAjuda.addEventListener("click", () => {
-      const wrap = document.createElement("div");
-      wrap.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <p>Bem-vindo ao <strong>Contracto</strong>! Siga estes 4 passos simples:</p>
-          <ol style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px;">
-            <li><strong>1. Selecionar modo e modelo:</strong> Escolha "Só gerar" (lote) ou "Gerar e organizar" (contrato).</li>
-            <li><strong>2. Preencher os dados:</strong> Digite dados de cada participante (Nome, CPF, Renda, etc.) e dados globais.</li>
-            <li><strong>3. Conferir e Validar:</strong> Clique em "Conferir dados" para verificar o stepper e resolver inconsistências.</li>
-            <li><strong>4. Gerar e Concluir:</strong> Escolha PDF ou PDF/A-2b e acompanhe o progresso na fila local.</li>
-          </ol>
-        </div>
-      `;
-      abrirModal("Guia de Utilização", wrap, [{ texto: "Entendi", primario: true }]);
-    });
-  }
-
-  const btnSobre = document.getElementById("btn-sobre-topo");
-  if (btnSobre) {
-    btnSobre.addEventListener("click", () => {
-      const wrap = document.createElement("div");
-      wrap.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <p><strong>Contracto v4.5.18</strong> — Automação e Preparação de Documentos</p>
-          <p class="hint">Interface moderna em WebView2 com API local independente e arquitetura loopback com token efêmero.</p>
-          <ul style="margin:0; padding-left:20px; font-size:0.85rem; color:var(--c-text-secondary);">
-            <li><strong>Privacidade:</strong> Sem telemetria ou chamadas externas de rede (100% LGPD local).</li>
-            <li><strong>Motores:</strong> Python pypdf / ReportLab + Word COM / Ghostscript.</li>
-            <li><strong>Desenvolvimento:</strong> Google DeepMind Antigravity Pair-Programming.</li>
-          </ul>
-        </div>
-      `;
-      abrirModal("Sobre o Contracto", wrap, [{ texto: "Fechar", primario: true }]);
+      toast("Contracto em 4 passos. 1. Escolha o modo e o modelo. 2. Preencha os dados de cada participante. 3. Confira e gere os PDFs. 4. Anexe e conclua em Enviar.", "info", 12000);
     });
   }
 
@@ -225,7 +224,10 @@
   }
 
   function aplicarTemaInicial() {
+    // Arranque: aplica SOMENTE os valores já salvos; edição na tela Config
+    // usa rascunho e só persiste/aplica em "Salvar configurações".
     let tema = "light";
+    let corSalva = null;
     try {
       const salvo = localStorage.getItem("contracto-tema");
       if (salvo === "light" || salvo === "dark") {
@@ -233,51 +235,147 @@
       } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
         tema = "dark";
       }
+      const cor = localStorage.getItem("contracto-cor");
+      if (cor && /^#[0-9A-Fa-f]{6}$/.test(cor)) corSalva = cor;
     } catch (e) { /* sem armazenamento: segue o claro */ }
     aplicarTema(tema);
+    if (corSalva) aplicarCor(corSalva);
     const sel = document.getElementById("cfg-tema");
-    if (sel) {
-      sel.value = tema;
-      if (!sel.dataset.ligado) {
-        sel.dataset.ligado = "1";
-        sel.addEventListener("change", () => {
-          aplicarTema(sel.value);
-          try { localStorage.setItem("contracto-tema", sel.value); } catch (e) { /* sem armazenamento */ }
-        });
-      }
-    }
-    // Cor de destaque salva
+    if (sel) sel.value = tema;
+    const input = document.getElementById("cfg-cor");
+    const texto = document.getElementById("cfg-cor-texto");
+    if (input && corSalva) input.value = corSalva;
+    if (texto && corSalva) texto.value = corSalva;
+  }
+
+  function cfgLerSalvos() {
+    let tema = "light", cor = "#005CA9";
     try {
-      const corSalva = localStorage.getItem("contracto-cor");
-      if (corSalva && /^#[0-9A-Fa-f]{6}$/.test(corSalva)) {
-        aplicarCor(corSalva);
-        const input = document.getElementById("cfg-cor");
-        const texto = document.getElementById("cfg-cor-texto");
-        if (input) input.value = corSalva;
-        if (texto) texto.value = corSalva;
-      }
+      const t = localStorage.getItem("contracto-tema");
+      if (t === "light" || t === "dark") tema = t;
+      const c = localStorage.getItem("contracto-cor");
+      if (c && /^#[0-9A-Fa-f]{6}$/.test(c)) cor = c;
     } catch (e) { /* sem armazenamento */ }
-    const corInput = document.getElementById("cfg-cor");
-    const corTexto = document.getElementById("cfg-cor-texto");
-    if (corInput && !corInput.dataset.ligado) {
-      corInput.dataset.ligado = "1";
-      corInput.addEventListener("input", () => {
-        aplicarCor(corInput.value);
-        if (corTexto) corTexto.value = corInput.value;
-        try { localStorage.setItem("contracto-cor", corInput.value); } catch (e) { /* sem armazenamento */ }
+    return { tema, cor };
+  }
+
+  // Paridade com o legado (settings_frame.py: CORES_PREDEFINIDAS).
+  const CORES_PREDEFINIDAS = [
+    ["#1E6FB3", "Azul Institucional"], ["#00234E", "Azul Royal"],
+    ["#00838F", "Ciano"], ["#2E7D32", "Verde"],
+    ["#6A1B9A", "Roxo"], ["#AD1457", "Rosa"],
+    ["#E65100", "Laranja"], ["#455A64", "Cinza Azulado"]
+  ];
+
+  function marcarSwatch(cor) {
+    document.querySelectorAll("#cfg-cores .color-swatch").forEach(b => {
+      b.setAttribute("aria-pressed", b.dataset.cor === cor ? "true" : "false");
+    });
+  }
+
+  function renderizarSwatches() {
+    const host = document.getElementById("cfg-cores");
+    if (!host || host.dataset.ligado) return;
+    host.dataset.ligado = "1";
+    CORES_PREDEFINIDAS.forEach(([hex, nome]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "color-swatch";
+      b.dataset.cor = hex;
+      b.title = nome;
+      b.setAttribute("aria-label", "Cor " + nome);
+      b.setAttribute("aria-pressed", "false");
+      b.style.background = hex;
+      b.addEventListener("click", () => {
+        // Rascunho: só preenche os campos; aplicar acontece em Salvar.
+        const cor = document.getElementById("cfg-cor");
+        const texto = document.getElementById("cfg-cor-texto");
+        if (cor) cor.value = hex;
+        if (texto) texto.value = hex;
+        marcarSwatch(hex);
       });
-    }
-    if (corTexto && !corTexto.dataset.ligado) {
-      corTexto.dataset.ligado = "1";
-      corTexto.addEventListener("input", () => {
-        if (/^#[0-9A-Fa-f]{6}$/.test(corTexto.value)) {
-          aplicarCor(corTexto.value);
-          if (corInput) corInput.value = corTexto.value;
-          try { localStorage.setItem("contracto-cor", corTexto.value); } catch (e) { /* sem armazenamento */ }
+      host.append(b);
+    });
+  }
+
+  async function cfgCarregarRascunho() {
+    const salvos = cfgLerSalvos();
+    const sel = document.getElementById("cfg-tema");
+    if (sel) sel.value = salvos.tema;
+    const cor = document.getElementById("cfg-cor");
+    if (cor) cor.value = salvos.cor;
+    const texto = document.getElementById("cfg-cor-texto");
+    if (texto) texto.value = salvos.cor;
+    marcarSwatch(salvos.cor);
+    const local = document.getElementById("cfg-local-padrao");
+    if (local && window.ContractoAPI && window.ContractoAPI.getSettings) {
+      try {
+        const r = await window.ContractoAPI.getSettings();
+        if (r.status === 200 && r.data && typeof r.data.local_padrao === "string") {
+          local.value = r.data.local_padrao;
         }
-      });
+      } catch (_) { /* mantém o que está digitado */ }
     }
   }
+
+  async function cfgSalvar() {
+    const sel = document.getElementById("cfg-tema");
+    const cor = document.getElementById("cfg-cor");
+    const texto = document.getElementById("cfg-cor-texto");
+    const local = document.getElementById("cfg-local-padrao");
+    const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#005CA9";
+    try {
+      localStorage.setItem("contracto-tema", sel.value);
+      localStorage.setItem("contracto-cor", corFinal);
+    } catch (e) { /* sem armazenamento */ }
+    aplicarTema(sel.value);
+    aplicarCor(corFinal);
+    desenharFundoSenoidal();
+    if (cor) cor.value = corFinal;
+    if (texto) texto.value = corFinal;
+    try {
+      const r = await window.ContractoAPI.updateSettings({ local_padrao: ((local && local.value) || "").trim() });
+      if (r.status !== 200) toast("Tema e cor salvos; o local padrão não foi persistido.", "warning");
+      else toast("Configurações salvas.", "success");
+    } catch (_) {
+      toast("Tema e cor salvos; sem conexão para persistir o local padrão.", "warning");
+    }
+  }
+
+  function cfgDescartar() {
+    cfgCarregarRascunho();
+    toast("Alterações descartadas.", "info");
+  }
+
+  async function cfgReparo() {
+    try {
+      const r = await window.ContractoAPI.request("POST", "/api/v1/system/repair");
+      if (r.status === 200) toast("Diagnóstico e reparo concluídos.", "success");
+      else toast("Não foi possível concluir o reparo.", "error");
+    } catch (_) {
+      toast("Sem conexão para executar o reparo.", "error");
+    }
+  }
+
+  function ligarConfig() {
+    renderizarSwatches();
+    const salvar = document.getElementById("btn-cfg-salvar");
+    if (salvar && !salvar.dataset.ligado) {
+      salvar.dataset.ligado = "1";
+      salvar.addEventListener("click", cfgSalvar);
+    }
+    const descartar = document.getElementById("btn-cfg-descartar");
+    if (descartar && !descartar.dataset.ligado) {
+      descartar.dataset.ligado = "1";
+      descartar.addEventListener("click", cfgDescartar);
+    }
+    const reparo = document.getElementById("btn-cfg-reparo");
+    if (reparo && !reparo.dataset.ligado) {
+      reparo.dataset.ligado = "1";
+      reparo.addEventListener("click", cfgReparo);
+    }
+  }
+  document.addEventListener("DOMContentLoaded", ligarConfig);
 
   function desenharFundoSenoidal() {
     let container = document.querySelector(".bg-waves-container");
@@ -285,7 +383,7 @@
       container = document.createElement("div");
       container.className = "bg-waves-container";
       container.setAttribute("aria-hidden", "true");
-      container.innerHTML = '<div class="bg-glow-orb bg-glow-top"></div><div class="bg-glow-orb bg-glow-bottom"></div><svg class="bg-waves-svg" id="bg-waves-svg" preserveAspectRatio="none" viewBox="0 0 1440 900"></svg>';
+      container.innerHTML = '<div class="bg-glow-orb bg-glow-top"></div><div class="bg-glow-orb bg-glow-bottom"></div><svg class="bg-waves-svg" id="bg-waves-svg" preserveAspectRatio="none" viewBox="0 0 1440 400"></svg>';
       document.body.prepend(container);
     }
     const svg = document.getElementById("bg-waves-svg");
@@ -317,12 +415,12 @@
       if (destaqueIndices.has(i)) {
         path.setAttribute("stroke", corPrimaria);
         path.setAttribute("stroke-width", "2");
-        path.setAttribute("stroke-opacity", isDark ? "0.6" : "0.45");
+        path.setAttribute("stroke-opacity", isDark ? "0.55" : "0.45");
       } else {
-        const strokeColor = isDark ? "#2B2E38" : "#DFE4EE";
-        path.setAttribute("stroke", strokeColor);
+        // Secundárias acompanham o acento com bem menos opacidade.
+        path.setAttribute("stroke", corPrimaria);
         path.setAttribute("stroke-width", "1");
-        path.setAttribute("stroke-opacity", isDark ? "0.35" : "0.5");
+        path.setAttribute("stroke-opacity", isDark ? "0.14" : "0.22");
       }
 
       svg.appendChild(path);
@@ -334,5 +432,5 @@
     window.addEventListener("resize", desenharFundoSenoidal);
   });
 
-  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, aplicarTema, aplicarTemaInicial, desenharFundoSenoidal };
+  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, desenharFundoSenoidal };
 })();

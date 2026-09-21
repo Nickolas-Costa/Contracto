@@ -34,7 +34,35 @@
 
   async function getFile(fileId) {
     if (!disponivel()) return { ok: false, code: "sem_ponte" };
-    return window.pywebview.api.get_file(fileId);
+    const r = await window.pywebview.api.get_file(fileId);
+    if (!r || !r.ok || !r.base64) return { ok: false, code: (r && r.code) || "file_unavailable" };
+    try {
+      const bin = atob(r.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return { ok: true, blob: new Blob([bytes], { type: "application/pdf" }) };
+    } catch (_) {
+      return { ok: false, code: "file_unavailable" };
+    }
+  }
+
+  async function getJob(jobId) {
+    return request("GET", "/api/v1/jobs/" + encodeURIComponent(jobId));
+  }
+
+  async function listJobs() {
+    return request("GET", "/api/v1/jobs");
+  }
+
+  async function getCapabilities() {
+    const r = await request("GET", "/api/v1/capabilities");
+    if (r.status === 200 && r.data) return r.data;
+    return { pdf: true, word: false, ghostscript: false };
+  }
+
+  async function selectAttachment() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    return window.pywebview.api.select_file();
   }
 
   async function getSettings() {
@@ -70,8 +98,12 @@
     request,
     selectOutput,
     selectFile,
+    selectAttachment,
     openResult,
     getFile,
+    getJob,
+    listJobs,
+    getCapabilities,
     getSettings,
     updateSettings,
     getProfiles,

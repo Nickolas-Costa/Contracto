@@ -2,10 +2,24 @@
 (function () {
   "use strict";
   const canonical = id => id === "nome" ? "nome_completo" : id;
+  function norm(field) {
+    // Aliases legados: if_field -> visivel_quando, formula -> calculo, pagina via aba.
+    const f = field || {};
+    if (f.if_field && !f.visivel_quando) f.visivel_quando = f.if_field;
+    if (f.formula && !f.calculo) f.calculo = f.formula;
+    return f;
+  }
   function visible(field, values, index) {
-    return (!field.ate_participante || index <= field.ate_participante) &&
-      (!field.visivel_quando?.length || field.visivel_quando.some(group =>
+    const f = norm(field);
+    return (!f.ate_participante || index <= f.ate_participante) &&
+      (!f.visivel_quando?.length || f.visivel_quando.some(group =>
         Object.entries(group).every(([id, accepted]) => accepted.includes(String(values[canonical(id)] ?? "")))));
+  }
+  function paginaDe(campo, agrupamento) {
+    const f = norm(campo);
+    const aba = (f.aba || "Geral").trim() || "Geral";
+    if (agrupamento && agrupamento[aba]) return agrupamento[aba];
+    return aba;
   }
   function onlyDigits(s) { return String(s).replace(/\D/g, ""); }
   function formatCpfProgressive(valor) {
@@ -57,5 +71,5 @@
         local_assinatura: draft.globals.local_assinatura || "", campos_dinamicos: dynamic};
     });
   }
-  window.ContractoForm = {canonical, visible, cpfValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
+  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
 })();

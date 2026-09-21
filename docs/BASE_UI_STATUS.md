@@ -51,21 +51,30 @@
 
 | Verificação | Resultado | Evidência |
 | --- | --- | --- |
-| Suíte unitária completa | **PASS** | 355 testes em 33.361s, 0 falhas, 0 erros |
-| Testes base frontend | **PASS** | 12/12 testes (`tests/test_frontend_base.py`) |
+| Suíte unitária completa | **PASS** | 362 testes em ~36s, 0 falhas, 0 erros |
+| Testes base frontend | **PASS** | 15/15 testes (`tests/test_frontend_base.py`) |
 | Testes comportamento JS | **PASS** | `tests/test_frontend_behavior.py` |
+| Testes paridade Tk→WebView | **PASS** | 4/4 testes (`tests/test_frontend_parity.py`) |
 | Testes backend isolado | **PASS** | 4/4 testes (`tests/test_headless_backend.py`) |
-| Smoke WebView2 UI completo | **PASS** | 37/37 verificações de DOM, modal, fila e PDF/A em WebView2 real (`tests/smoke_webview_ui.py`) |
+| Smoke WebView2 UI completo | **PASS** | 32/32 verificações de DOM, conferência, envio ambíguo/retomada, fila e PDF em WebView2 real (`tests/smoke_webview_ui.py`) |
+| Smoke motores reais via HTTP | **PASS** | RTF→Word→PDF/A com Ghostscript real, PDF/A validado e RTF preservado (`tests/smoke_api_engines.py`) |
+| `pip check` | **PASS** | Nenhuma dependência quebrada |
+
+Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` ainda não existe). Release só após esse gate.
 
 ---
 
 ## Próximos Passos (Pós v4.5.18)
 
+> **Atualização em 20/09/2026:** os blocos 0–6 do plano residual foram implementados na branch `fix/ui-escopos-validacao` e a suíte completa (362 testes) passa. Resta apenas o gate final Windows/distribuição.
+
 As pendências identificadas após a entrega da v4.5.18 estão formalmente registradas em:
 
-- **ADR 0021** — [`docs/adr/0021-consolidacao-toolbar-e-modo-webview.md`](adr/0021-consolidacao-toolbar-e-modo-webview.md): consolidação da toolbar, remoção do indicador de backend, promoção do seletor de modo.
-- **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2.
-- **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo.
+- **ADR 0021** — [`docs/adr/0021-consolidacao-toolbar-e-modo-webview.md`](adr/0021-consolidacao-toolbar-e-modo-webview.md): consolidação da toolbar, remoção do indicador de backend, promoção do seletor de modo — ✅ concluído.
+- **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2 — ✅ blocos 0–6 concluídos.
+- **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo — ✅ concluído, ver tabela de rastreamento.
+
+Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` ainda não existe). Release só após esse gate.
 
 ---
 

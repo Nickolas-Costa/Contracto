@@ -3,6 +3,8 @@
   "use strict";
   const $=id=>document.getElementById(id), api=()=>window.ContractoAPI, ui=()=>window.ContractoUI;
   let bound=false, busy=false, base=null, attachments=[], active=null, timer=null, polling=false, failures=0, previewRevision=0, pending=null, sending=false, finalized=false;
+  let filaConhecida=[];
+  let eraEnvio=0;
   const online=()=>window.ContractoApp?.pronto() || false;
   let capabilities=null;
   const originLabel={generated:"Gerado pelo Contracto",attachment:"Anexo do trabalho",imported:"PDF importado"};
@@ -145,13 +147,21 @@
       if(!active)return;
       if(r.status===200){
         const job=r.data;
+        const reg=filaConhecida.find(f=>f.job_id===active.job_id);
+        if(reg){reg.status=job.status;reg.progress=job.progress||0;reg.message=job.message||reg.message;}
         if(["queued","running","sending"].includes(job.status)){
           status(job.status,job.message || "Processando…",job.step ? "Etapa "+job.step.current+" de "+job.step.total : "");
           $("progresso-trabalho").hidden=false;$("fila-barra").style.width=(job.progress || 0)+"%";
         } else if(job.status==="completed"){
-          status("completed","Trabalho concluído com sucesso.","Documentos organizados na pasta de destino.");
-          $("progresso-trabalho").hidden=true;active=null;busy=false;finalized=true;
-          resultados(job.result?.output_file_ids || [],job.job_id,job.result?.files || []);
+          const tipo = active.tipo;
+          $("progresso-trabalho").hidden=true;active=null;busy=false;
+          if(tipo==="generate"){
+            receberBase(job);
+          } else {
+            status("completed","Trabalho concluído com sucesso.","Documentos organizados na pasta de destino.");
+            finalized=true;
+            resultados(job.file_ids || job.result?.output_file_ids || [],job.job_id,job.files || job.result?.files || []);
+          }
         } else if(job.status==="failed"){
           status("failed","Trabalho não concluído.",job.error || "Ocorreu um erro no processamento.");
           if (job.error?.includes("Word")) alertaWordTravado();
@@ -167,16 +177,56 @@
     } catch(_){failures++;}
     finally {
       polling=false;atualizar();
-      if(active)timer=setTimeout(poll,failures>2?3000:1000);
+      try { window.ContractoUI?.sincronizarStepper?.(); } catch (_) {}
+      // Polling a cada 2s enquanto há trabalhos ativos; para quando a fila esvazia.
+      if(active)timer=setTimeout(poll,failures>2?3000:2000);
     }
   }
 
   function iniciar(jobId,tipo) {
     if(active)return;
     active={job_id:jobId,tipo,cancelRequested:false};busy=true;failures=0;pending=null;
+    filaConhecida.unshift({job_id:jobId,tipo,status:"queued",progress:5,message:"Operação agendada…"});
+    if(filaConhecida.length>8)filaConhecida.length=8;
     status("queued","Operação agendada…","Aguardando confirmação do servidor.");
     $("progresso-trabalho").hidden=false;$("fila-barra").style.width="5%";
     atualizar();poll();
+  }
+
+  function painelFila() {
+    const lista=document.createElement("div");
+    lista.className="fila-painel-lista";
+    if(!filaConhecida.length && !active){
+      const vazio=document.createElement("p");
+      vazio.className="hint";vazio.textContent="Nenhum trabalho na fila. Gere documentos para acompanhar aqui.";
+      lista.append(vazio);
+    }
+    filaConhecida.forEach(item=>{
+      const card=document.createElement("div");
+      card.className="fila-item";
+      const titulo=document.createElement("strong");
+      titulo.textContent=(item.tipo==="process"?"Processar":"Gerar")+" · "+item.job_id.slice(0,8);
+      const estado=document.createElement("p");
+      estado.className="hint";estado.textContent=item.status+" — "+(item.message||"");
+      const barra=document.createElement("div");barra.className="fila-barra";
+      const preench=document.createElement("div");preench.style.width=(item.progress||0)+"%";
+      barra.append(preench);
+      card.append(titulo,estado,barra);
+      if(["queued","running","sending"].includes(item.status)){
+        const btn=document.createElement("button");
+        btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent="Cancelar";
+        btn.addEventListener("click",async()=>{
+          try{
+            const r=await api().request("POST","/api/v1/jobs/"+item.job_id+"/cancel",{});
+            if(r.status===200)ui().toast("Cancelamento enviado.","info");
+            else ui().toast("Não foi possível cancelar.","error");
+          }catch(_){ui().toast("Falha ao cancelar.","error");}
+        });
+        card.append(btn);
+      }
+      lista.append(card);
+    });
+    ui().abrirModal("Fila de trabalhos",lista,[{texto:"Ver documentos",aoClicar:()=>window.ContractoUI.mostrarTela("etapa2")},{texto:"Fechar",primario:true}]);
   }
 
   async function anexar() {
@@ -192,17 +242,27 @@
     } catch(_){ui().toast("Falha ao selecionar anexo.","error");}
   }
 
+  function novoRequestId() {
+    const rid = new Uint8Array(16);
+    try { crypto.getRandomValues(rid); } catch (_) { for (let i = 0; i < 16; i++) rid[i] = Math.floor(Math.random() * 256); }
+    return [...rid].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
   async function finalizar() {
-    if(busy||!base||!online()||finalized)return;
+    // Single-flight + idempotência (request_id): o segundo clique não duplica o processo.
+    if(busy||sending||!base||!online()||finalized)return;
     const format=$("formato-saida").value;
     if(format==="PDF/A-2b"&&!capabilities?.ghostscript){ui().toast("PDF/A requer Ghostscript.","error");return;}
-    const files=base.file_ids.map(id=>({file_id:id,type:"GERADO"}));
-    attachments.forEach(a=>files.push({selection_id:a.selection_id,type:a.type}));
-    const payload={base_job_id:base.job_id,files,output_format:format};
+    const pacote=window.ContractoEtapa1?.pacoteProcesso?.();
+    if(!pacote){ui().toast("Reabra o formulário e confira os dados antes de concluir.","error");return;}
+    const payload={participants:pacote.participants,output_id:pacote.output_id,
+      file_ids:[...base.file_ids],
+      attachments:attachments.map(a=>({file_id:a.selection_id,document_type:a.type})),
+      format,request_id:novoRequestId()};
     sending=true;atualizar();
     try {
       const r=await api().request("POST","/api/v1/jobs/process",payload);
-      if(r.status===202){iniciar(r.data.job_id,"process");}
+      if(r.status===202){pending=null;iniciar(r.data.job_id,"process");}
       else {
         pending={tipo:"process",payload};
         ui().toast(r.data?.detail || "Falha ao iniciar processamento. Clique em 'Recuperar andamento' para tentar novamente.","error");
@@ -239,6 +299,21 @@
     if(active)poll();
   }
 
+  function recomecar() {
+    // Novo trabalho abandona o envio incerto: resposta tardia do snapshot
+    // antigo não inicia job nem contamina o novo rascunho.
+    eraEnvio++;
+    pending=null; sending=false; busy=false;
+    if(timer){clearTimeout(timer);timer=null;}
+    active=null; failures=0; finalized=false;
+    atualizar();
+  }
+
+  function capacidades(data) {
+    // Recebe as capabilities do arranque (app.js); sem elas, ligar() busca sozinho.
+    if (data) { capabilities = data; atualizar(); }
+  }
+
   function ligar() {
     if(bound)return;bound=true;
     $("btn-anexo").addEventListener("click",anexar);
@@ -250,12 +325,49 @@
     api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
   }
 
+  function gerar(snapshot) {
+    // Geração a partir do snapshot imutável da Etapa 1; retorna a resposta HTTP.
+    // Single-flight: o segundo clique durante o envio é descartado (sem job duplicado).
+    if (busy || sending || !online() || !snapshot) return Promise.resolve(null);
+    const requestId = novoRequestId();
+    const payload = { profile_ids: snapshot.profile_ids, participants: snapshot.participants, output_id: snapshot.output_id, request_id: requestId };
+    const era = eraEnvio;
+    sending = true; busy = true; atualizar();
+    return api().request("POST", "/api/v1/jobs/generate", payload).then(r => {
+      if (era !== eraEnvio) return r;
+      sending = false;
+      if (r.status === 202) {
+        pending = null;
+        iniciar(r.data.job_id, "generate");
+      } else if (r.status >= 500) {
+        // Envio ambíguo (resposta perdida/erro do servidor): mantém busy para
+        // bloquear duplicatas; a retomada reusa o mesmo request_id (idempotente).
+        registrarPendente(payload);
+      } else {
+        busy = false;
+        registrarPendente(payload);
+      }
+      atualizar();
+      return r;
+    }).catch(() => {
+      // Queda de conexão = envio ambíguo: mesma regra do 5xx.
+      if (era !== eraEnvio) return { status: 409, data: { message: "Trabalho descartado." } };
+      sending = false;
+      registrarPendente(payload);
+      atualizar();
+      return { status: 503, data: { message: "Conexão interrompida. Clique em 'Recuperar andamento'." } };
+    });
+  }
   function receberBase(jobData) {
-    base={job_id:jobData.job_id,file_ids:jobData.result?.output_file_ids || [],files:jobData.result?.files || []};
+    const ids = jobData.file_ids || jobData.result?.output_file_ids || [];
+    const files = jobData.files || jobData.result?.files || [];
+    base={job_id:jobData.job_id,file_ids:ids,files};
     attachments=[];finalized=false;
-    $("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;
     manifesto();status("completed","PDFs gerados com sucesso.","Revise os anexos ou escolha o formato antes de concluir.");
+    // Gerados também aparecem como linhas com "Visualizar" (paridade com o fluxo anterior).
+    resultados(ids,jobData.job_id,files);
     atualizar();
+    try { window.ContractoUI?.sincronizarStepper?.(); } catch (_) {}
   }
 
   function registrarPendente(payload) {
@@ -263,5 +375,5 @@
     atualizar();
   }
 
-  window.ContractoEtapa2={ligar,atualizar,invalidar,receberBase,registrarPendente,ocupado:()=>busy,temBase:()=>!!base};
+  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,ocupado:()=>busy,temBase:()=>!!base};
 })();

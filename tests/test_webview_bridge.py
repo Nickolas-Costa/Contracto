@@ -50,6 +50,20 @@ class TestWebViewBridge(unittest.TestCase):
             window.get_current_url.return_value = local + "?x=1"
             self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
             window.get_current_url.return_value = None
-            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 403)
+            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
             public = {name for name in dir(bridge) if not name.startswith("_") and callable(getattr(bridge, name))}
             self.assertEqual(public, {"request", "select_file", "select_output", "open_result", "get_file"})
+
+    def test_url_about_blank_nao_deve_terminar_em_falha_temporaria(self):
+        with LocalServer(profiles=[]) as server:
+            bridge = ShellBridge(server)
+            window = Mock()
+            bridge._attach(window)
+            window.get_current_url.return_value = "about:blank"
+            self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
+            local = "file:///C:/app/frontend/index.html"
+            bridge_ui = ShellBridge(server, frontend_url=local)
+            window_ui = Mock()
+            bridge_ui._attach(window_ui)
+            window_ui.get_current_url.return_value = "about:blank"
+            self.assertEqual(bridge_ui.request("GET", "/api/v1/health")["status"], 200)

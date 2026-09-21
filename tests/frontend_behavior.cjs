@@ -28,9 +28,14 @@ function fields(){
  assert.equal(result[0].campos_dinamicos.endereco,'Rua A');assert.equal(result[1].campos_dinamicos.endereco,'Rua B');
  assert.equal(result[0].endereco,undefined);assert.equal(result[0].campos_dinamicos.segredo,'');
  assert.equal(result[1].campos_dinamicos.regime,'A');assert.equal(draft.people[0].segredo,'oculto');
- assert.equal(f.cpfValid('529.982.247-25'),true);assert.equal(f.cpfValid('11111111111'),false);
- assert.equal(f.dateValid('31/02/2026'),false);assert.equal(f.dateValid('29/02/2024'),true);
- console.log('PASS canonical serialization, globals, hidden fields, CPF and dates');
+  assert.equal(f.cpfValid('529.982.247-25'),true);assert.equal(f.cpfValid('11111111111'),false);
+  assert.equal(f.dateValid('31/02/2026'),false);assert.equal(f.dateValid('29/02/2024'),true);
+  // Aliases legados if_field/formula + paginação por aba/agrupamento.
+  assert.equal(f.visible({id:'x',if_field:[{regime:['B']}]},{regime:'B'},1),true);
+  assert.equal(f.visible({id:'x',if_field:[{regime:['B']}]},{regime:'A'},1),false);
+  assert.equal(f.paginaDe({id:'x',aba:'Residência'},{'Residência':'Residência, renda e imóvel'}),'Residência, renda e imóvel');
+  assert.equal(f.paginaDe({id:'x',aba:'Geral'},{}),'Geral');
+  console.log('PASS canonical serialization, globals, hidden fields, CPF and dates');
 }
 function modal() {
   const registry = new Map();

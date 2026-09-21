@@ -85,8 +85,10 @@ class TestFrontendBase(unittest.TestCase):
         css = (RAIZ / "css/layout.css").read_text(encoding="utf-8")
         for exigido in ['lang="pt-BR"', "aria-current", 'role="status"',
                         'aria-modal="true"', "<label", "prefers-reduced-motion",
-                        'id="conexao"']:
+                        'id="badge-participantes"']:
             self.assertIn(exigido, html + css, exigido)
+        # ADR 0021: nenhum indicador técnico de backend exposto ao usuário final.
+        self.assertNotIn('id="conexao"', html)
 
     def test_estrutura_revisao_visual(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
@@ -101,15 +103,29 @@ class TestFrontendBase(unittest.TestCase):
         self.assertNotIn("selecao-resumo", html)
         self.assertNotIn("Antes de gerar", html)
         self.assertIn('id="btn-selecionar-todos"', html)
-        # Resumo com links para edição.
-        self.assertIn('data-ir="btn-pasta"', html)
+        # ADR 0021: modos dentro da toolbar, badge visível, sem painel lateral.
+        self.assertIn('class="modos toolbar-mode"', html)
+        self.assertIn('id="badge-participantes"', html)
+        self.assertIn('id="paginacao-form"', html)
+        self.assertNotIn('class="summary"', html)
+        self.assertNotIn('id="resumo-participantes"', html)
         # Scroll estilizado, faixa do modal e fundo modular.
         for exigido in ["::-webkit-scrollbar", "scrollbar-width",
                         "modal-titulo-faixa", "modal-fechar",
                         "repeating-linear-gradient"]:
             self.assertIn(exigido, css)
-        # Configurações no topo, fora da navegação.
+        # Configurações no topo, fora da navegação; Sobre removido; Ajuda é toast.
         self.assertIn('id="btn-config-topo"', html)
+        self.assertNotIn('id="btn-sobre-topo"', html)
+        self.assertNotIn('Sobre o Contracto', (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
+
+    def test_toolbar_consolidada_adr0021(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        toolbar = html.split('<header class="toolbar">', 1)[1].split("</header>", 1)[0]
+        self.assertIn('id="modo-simples"', toolbar)
+        self.assertIn('id="modo-avancado"', toolbar)
+        self.assertIn('id="badge-participantes"', toolbar)
+        self.assertNotIn('id="conexao"', toolbar)
 
     def test_boot_aguarda_ponte(self):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
@@ -164,6 +180,41 @@ class TestFrontendBase(unittest.TestCase):
         """Garante que webview_shell.py configura a janela principal como maximizada."""
         shell_py = (RAIZ.parent / "app" / "webview_shell.py").read_text(encoding="utf-8")
         self.assertIn("maximized=True", shell_py)
+
+    def test_ponte_api_completa(self):
+        api = (RAIZ / "js/api.js").read_text(encoding="utf-8")
+        for exigido in ["getJob(", "listJobs", "getCapabilities", "selectAttachment", "atob("]:
+            self.assertIn(exigido, api, exigido)
+
+    def test_fila_painel_e_paginacao(self):
+        etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
+        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        form = (RAIZ / "js/form-state.js").read_text(encoding="utf-8")
+        for exigido in ["painelFila", "filaConhecida", "2000", "gerar(snapshot)", "recomecar", "eraEnvio", "capacidades(data)", "pacoteProcesso", "document_type", "novoRequestId"]:
+            self.assertIn(exigido, etapa2 + etapa1, exigido)
+        for exigido in ["paginacao-form", "mudarPagina", "resolverPaginas", "field-textarea", "avaliarFormulaLocal", "sincronizarSelecao", "corpo-conferencia", "limparCampos"]:
+            self.assertIn(exigido, etapa1, exigido)
+        for exigido in ["paginaDe", "if_field", "formula"]:
+            self.assertIn(exigido, form, exigido)
+        ui = (RAIZ / "js/ui.js").read_text(encoding="utf-8")
+        self.assertIn("sincronizarStepper", ui)
+        self.assertIn("etapaLiberada", ui)
+        app = (RAIZ / "js/app.js").read_text(encoding="utf-8")
+        self.assertIn("mostrarCapacidades", app)
+        self.assertIn("lista-capacidades", app)
+        ui = (RAIZ / "js/ui.js").read_text(encoding="utf-8")
+        # Config com rascunho: aplica somente ao salvar; sem densidade.
+        for exigido in ["cfgCarregarRascunho", "cfgSalvar", "cfgDescartar", "btn-cfg-salvar", "local_padrao"]:
+            self.assertIn(exigido, ui, exigido)
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("cfg-tamanho-quadros", html)
+        self.assertNotIn("(Backend)", html)
+        self.assertIn('id="cfg-cores"', html)
+        for exigido in ["CORES_PREDEFINIDAS", "marcarSwatch", "#1E6FB3"]:
+            self.assertIn(exigido, ui, exigido)
+        css = (RAIZ / "css/layout.css").read_text(encoding="utf-8")
+        self.assertIn("color-swatches", css)
+        self.assertNotIn("color:#fff", css.replace(" ", ""))
 
 
 if __name__ == "__main__":

@@ -226,6 +226,10 @@ def create_app(session):
     def process(request: ProcessInput):
         return session.jobs.process(request)
 
+    @app.get("/api/v1/jobs", response_model=list[JobState])
+    def list_jobs():
+        return session.jobs.list_jobs()
+
     @app.get("/api/v1/jobs/{job_id}", response_model=JobState)
     def state(job_id: str):
         return session.jobs.snapshot(job_id)

@@ -110,7 +110,7 @@ class TestAuthLimites(BaseHardening):
         self.assertEqual(status, 405)
 
     def test_rota_desconhecida(self):
-        for path in ["/api/v1/admin", "/api/v1/jobs", "/docs", "/openapi.json", "/"]:
+        for path in ["/api/v1/admin", "/api/v1/jobs-desconhecido", "/docs", "/openapi.json", "/"]:
             status, data = self.http(path)
             self.assertIn(status, (403, 404), path)
             if status == 404:

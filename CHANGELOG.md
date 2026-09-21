@@ -5,6 +5,40 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+### Adicionado
+- Migração residual Tk → WebView2 (ADR-0021/0022, blocos 0–6):
+  toolbar consolidada com seletor de modo e badge de participantes;
+  campos condicionais (`if_field`) e calculados (`formula`);
+  paginação real por `pagina`; conferência agrupada por seção com
+  stepper condicional; modo simples com detecção de conflitos e cópia
+  de dados entre participantes; fila global interativa com polling;
+  paridade validada sobre todos os perfis reais
+  (`tests/test_frontend_parity.py`).
+- Espelho `VERSION` sincronizado com `app/version.py` (4.5.18).
+
+### Pendente (gate final, sem release)
+- WebView2 real, Word/GS reais, DPI 100/125/150/200%,
+  encerramento/cancelamento e instalador Inno Setup (ADR-0008).
+
+### Corrigido (finalização 20/09/2026, branch `fix/ui-escopos-validacao`)
+- Seleção inicial do perfil não aparecia marcada: a lista era montada
+  antes da composição (`sincronizarSelecao` em `etapa1.js`).
+- Tela Config nunca exibia as capabilities (`mostrarCapacidades` em
+  `app.js` + `capacidades()` exposta em `etapa2.js`; antes, a chamada a
+  `ContractoEtapa2.capacidades` inexistente abortava o bloco em silêncio).
+- Duplo clique em gerar criava dois trabalhos: single-flight com `busy`
+  mantido no envio ambíguo e retomada idempotente pelo mesmo
+  `request_id`; `recomecar()` descarta o envio incerto ao iniciar novo
+  trabalho.
+- `finalizar` enviava `{base_job_id, files, output_format}`, rejeitado
+  pelo `ProcessInput` (`extra=forbid`): agora monta
+  `{participants, output_id, file_ids, attachments, format, request_id}`
+  via `pacoteProcesso()` e os gerados voltam a listar com "Visualizar".
+- `tests/webview_flow.js` atualizado para o fluxo com conferência
+  (`btn-gerar` → `tela-conferir` → `btn-conferir-confirmar`).
+- Smoke WebView2 real: 32/32 verificações OK; smoke de motores reais
+  (Word + Ghostscript + PDF/A): OK; suíte: 362 testes OK.
+
 ## [4.5.17] — 2026-09-13
 
 ### Adicionado

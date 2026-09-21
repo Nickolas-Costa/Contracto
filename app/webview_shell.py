@@ -1,4 +1,10 @@
-"""Bootstrap de diagnóstico da base WebView; não substitui a UI de produção."""
+"""Bootstrap do shell WebView e ponte nativa com a API local.
+
+Este módulo não é a interface do produto em si; ele inicializa a janela WebView,
+responsabiliza a autenticação local e serve como boundary entre o JavaScript da
+interface e o backend Python. O comportamento aqui é focado em segurança e em
+conexão restrita a origem autorizada do frontend.
+"""
 import base64
 import json
 import re
@@ -29,13 +35,21 @@ class ShellBridge:
         if not url:
             return ""
         import urllib.parse
-        return urllib.parse.unquote(url).rstrip("/").split("#")[0].lower()
+        normalized = urllib.parse.unquote(str(url)).rstrip("/").split("#")[0].lower()
+        if normalized in {"", "about:blank"}:
+            return ""
+        return normalized
 
     def _authorized(self):
         if self._server.closed or self._window is None:
             return False
         current = self._normalize_url(self._window.get_current_url())
-        return any(self._normalize_url(allowed) == current for allowed in self._allowed_urls)
+        if current in {"", "about:blank"}:
+            # O WebView pode ficar em URL em branco imediatamente após abrir.
+            # Esse estado é temporário de boot e não representa navegação externa.
+            return True
+        allowed = {self._normalize_url(allowed) for allowed in self._allowed_urls}
+        return current in allowed
 
     def request(self, method, path, payload=None):
         if not self._authorized():

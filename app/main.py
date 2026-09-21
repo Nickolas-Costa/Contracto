@@ -1,9 +1,12 @@
-"""
-Ponto de entrada da aplicação.
+"""Entry-point da aplicação Contracto.
 
-Interface padrão: WebView (`frontend/`) sobre a API local.
-Interface legada Tk (`ui/`) mantida como backup de consulta — abrir com
-`python main.py --tk` a partir da pasta `app/`.
+A versão padrão utiliza a interface WebView sobre a API local em loopback.
+A interface legada em Tkinter continua disponível como fallback operacional e
+para manutenção de compatibilidade, sendo aberta com `python main.py --tk`.
+
+A lógica principal aqui é manter a inicialização mínima e previsível: validação
+existência de uma instância única, escolha da interface e registro de falhas
+não capturadas para diagnóstico.
 """
 
 import sys
@@ -21,13 +24,22 @@ from utils.logger import configurar_logger
 
 
 def escolher_interface(argumentos: list[str] | None = None) -> str:
-    """Devolve "tk" com `--tk`; qualquer outro caso abre a WebView."""
+    """Define a interface ativa do processo.
+
+    Qualquer argumento diferente de `--tk` mantém a interface moderna WebView.
+    A escolha centraliza a decisão em um único ponto para facilitar manutenção e
+    testes de boot da aplicação.
+    """
     args = sys.argv[1:] if argumentos is None else argumentos
     return "tk" if "--tk" in args else "web"
 
 
 def _tratar_excecao_global(tipo, valor, tb):
-    """Registra exceção não capturada e avisa sem fechar silenciosamente."""
+    """Registra falhas não capturadas sem esconder o problema ao usuário.
+
+    Centraliza o tratamento de exceções globais para facilitar diagnóstico de
+    incidentes em produção e manter uma mensagem legível em caso de erro crítico.
+    """
     logger = configurar_logger()
     logger.critical(
         "Exceção não tratada: %s: %s\n%s",
@@ -58,14 +70,18 @@ def _tratar_excecao_global(tipo, valor, tb):
 
 
 def iniciar_web() -> None:
-    """Abre a interface WebView (padrão)."""
+    """Inicializa o shell WebView, que é a interface padrão da aplicação."""
     from webview_shell import main as iniciar_shell
 
     iniciar_shell(ui=True)
 
 
 def iniciar_tk() -> None:
-    """Abre a interface legada Tk (backup; `python main.py --tk`)."""
+    """Inicializa o cliente legada em Tkinter para compatibilidade e manutenção.
+
+    A abertura por esse caminho é intencionalmente explícita e não deve ser usada
+    como padrão de uso em desenvolvimento normal.
+    """
     import customtkinter as ctk
 
     ctk.set_appearance_mode("system")
@@ -79,11 +95,12 @@ def iniciar_tk() -> None:
 
 
 def main() -> None:
-    # Configurar logger antes de tudo
+    # O logger deve existir antes de qualquer etapa crítica para registrar falhas
+    # de inicialização com contexto útil de diagnóstico.
     logger = configurar_logger()
     logger.info("Iniciando aplicação Contracto")
 
-    # Segunda cópia? Avisa e encerra sem abrir outra janela.
+    # Impede múltiplas instâncias da aplicação e evita sobreposição de janelas.
     try:
         guarda_instancia = InstanciaUnica()
         guarda_instancia.adquirir()

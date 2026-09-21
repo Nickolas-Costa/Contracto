@@ -5,12 +5,29 @@
   function conexao(ok, mensagem) {
     pronto = ok;
     const el = document.getElementById("conexao");
-    el.textContent = mensagem;
-    el.dataset.estado = ok ? "pronto" : "falha";
+    if (el) {
+      el.textContent = mensagem;
+      el.dataset.estado = ok ? "pronto" : "falha";
+    }
     window.ContractoEtapa1?.atualizar();
     window.ContractoEtapa2?.atualizar();
   }
+  function mostrarCapacidades(caps) {
+    // Tela Config ("Recursos deste computador"): resumo humano, sem caminhos locais.
+    const el = document.getElementById("lista-capacidades");
+    if (!el || !caps) return;
+    const partes = ["PDF simples: " + (caps.pdf === false ? "indisponível" : "disponível"),
+      "Conversão Word (RTF): " + (caps.word ? "disponível" : "indisponível"),
+      "PDF/A (Ghostscript): " + (caps.ghostscript ? "disponível" : "indisponível")];
+    el.textContent = partes.join(" · ");
+  }
   function falha() {
+    const holder = document.getElementById("conexao");
+    if (!holder) {
+      window.ContractoUI?.toast("Sem conexão com o serviço local. Tentando novamente…", "error");
+      iniciar();
+      return;
+    }
     conexao(false, "Sem conexão. ");
     const btn = document.createElement("button");
     btn.id = "btn-tentar"; btn.type = "button"; btn.textContent = "Tentar novamente";
@@ -37,6 +54,7 @@
         try {
           const caps = await window.ContractoAPI.request("GET", "/api/v1/capabilities");
           if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);
+          if (caps.status === 200) mostrarCapacidades(caps.data);
         } catch (_) { /* sem capacidades: PDF/A segue desativado por segurança */ }
         conexao(true, "Pronto.");
         if (!ligado) {

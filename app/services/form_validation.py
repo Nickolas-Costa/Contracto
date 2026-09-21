@@ -32,7 +32,8 @@ def valor_valido(campo, valor):
                 and (campo.minimo is None or int(value) >= campo.minimo)
                 and (campo.maximo is None or int(value) <= campo.maximo))
     if kind == "SELECAO":
-        return value in campo.opcoes
+        return value in campo.opcoes or (
+            kind == "SELECAO" and value.upper() in (o.upper() for o in campo.opcoes))
     if kind == "CHECKBOX":
         return value in (campo.opcoes or ["SIM", "NÃO"])
     if kind in {"MOEDA", "AREA"}:
@@ -77,6 +78,11 @@ def preparar_participantes(participantes, perfil):
                     value = options[0] if value else options[-1]
                 elif value == "":
                     value = options[-1]
+                # Normaliza o case para os valores canônicos.
+                elif value not in options and any(v.upper() == value.upper() for v in options):
+                    match = next(v for v in options if v.upper() == value.upper())
+                    participant.definir_campo(field.id, match)
+                    continue
             participant.definir_campo(field.id, value)
         # Valores ocultos não podem alimentar cálculos com dados forjados.
         for field in fields:

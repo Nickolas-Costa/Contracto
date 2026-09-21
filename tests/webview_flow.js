@@ -6,17 +6,18 @@
   const input=(id,value)=>{const el=$(id);if(!el)throw Error('missing '+id);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));};
   const checkboxes=()=>[...document.querySelectorAll('#lista-formularios input')];
   try {
-    await wait(()=>$('campo-0-endereco'),'form ready: ' + document.getElementById('conexao')?.textContent + ' inputs=' + [...document.querySelectorAll('input')].map(i=>i.id).join(','));
+    await wait(()=>$('campo-0-endereco'),'form ready: inputs=' + [...document.querySelectorAll('input')].map(i=>i.id).join(','));
     assert(checkboxes().filter(c=>c.checked).length===1,'one initial profile');
     const originalURL=location.href;$('pular-conteudo').click();
     assert(document.activeElement===$('telas')&&location.href===originalURL,'skip control moves focus without changing trusted URL');
+    assert(document.querySelector('.toolbar .modos #modo-simples'),'modos inside toolbar (ADR 0021)');
+    assert($('badge-participantes'),'participant badge visible');
+    assert(!document.getElementById('conexao'),'backend indicator removed (ADR 0021)');
     assert(!document.querySelector('#participantes [aria-invalid="true"]'),'untouched fields do not show errors');
     $('campo-0-cpf').dispatchEvent(new Event('blur'));
     assert($('campo-0-cpf').getAttribute('aria-invalid')==='true','blur reveals field error');
     $('btn-ver-pendencias').click();
-    const errorLink=[...document.querySelectorAll('#modal-corpo button')].find(b=>b.textContent.includes('CPF'));
-    assert(!!errorLink,'summary links to human field labels');errorLink.click();
-    assert(document.activeElement===$('campo-0-cpf') && $('overlay').hidden,'summary closes then focuses selected field');
+    await wait(()=>document.activeElement===$('campo-0-cpf') || document.querySelector('#toasts .toast'),'pending review focuses first field or shows toast');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
     await wait(()=>$('lista-perfis').children.length===2,'profile catalog shows detailed cards');
     input('buscar-perfis','QA A');assert($('lista-perfis').children.length===1,'profile catalog filters by name');
@@ -28,7 +29,7 @@
     input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');input('campo-0-endereco','RUA QA');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose two profiles');
     assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after composition');
-    $('modo-simples').click();$('modo-avancado').click();
+    $('modo-simples').click();$('modo-contrato').click();
     assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after mode change');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose single profile');
     input('campo-global-regime','B');
@@ -40,6 +41,10 @@
     input('data-assinatura','14/09/2026');input('local-assinatura','CIDADE QA');
     $('btn-pasta').click();await wait(()=>!$('btn-gerar').disabled,'generation enabled');
     assert($('campo-0-dobro').value==='20,00','backend calculated preview displayed');
+    $('btn-gerar').click();
+    await wait(()=>!$('tela-conferir').hidden,'conference screen opens');
+    assert($('corpo-conferencia').textContent.includes('PESSOA QA'),'conference lists participants');
+    assert($('corpo-conferencia').querySelector('h3'),'conference groups fields by section');
     const request=window.ContractoAPI.request;
     let responseLost=false;
     window.ContractoAPI.request=async(method,path,payload)=>{
@@ -47,7 +52,7 @@
       if(path==='/api/v1/jobs/generate' && result.status===202 && !responseLost){responseLost=true;return {status:503,data:{code:'simulated_response_loss'}};}
       return result;
     };
-    $('btn-gerar').click();$('btn-gerar').click();
+    $('btn-conferir-confirmar').click();$('btn-conferir-confirmar').click();
     await wait(()=>!$('btn-retomar').hidden && !$('btn-retomar').disabled,'ambiguous send recoverable');
     assert(window.ContractoEtapa2.ocupado(),'ambiguous send blocks duplicates');
     $('btn-retomar').click();

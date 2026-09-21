@@ -76,9 +76,13 @@ class Jobs:
         result = combinar_perfis(profiles)
         if result.erros or result.perfil is None:
             raise ApiError("incompatible_profiles", "Perfis com campos incompatíveis", 409)
+        perfil = result.perfil
         return {"profile_ids": request.profile_ids,
-                "max_participants": result.perfil.max_participantes,
-                "fields": [asdict(c) for c in result.perfil.campos_entrada]}
+                "max_participants": perfil.max_participantes,
+                "usar_paginacao": perfil.usar_paginacao,
+                "paginas": perfil.obter_abas_disponiveis(),
+                "agrupamento_paginas": dict(perfil.agrupamento_paginas),
+                "fields": [asdict(c) for c in perfil.campos_entrada]}
 
     def _participants(self, values):
         result, issues = [], []
@@ -327,6 +331,10 @@ class Jobs:
             if key not in self._states:
                 raise ApiError("job_not_found", "Trabalho não encontrado", 404)
             return self._states[key].model_copy(deep=True)
+
+    def list_jobs(self):
+        with self._lock:
+            return [s.model_copy(deep=True) for s in self._states.values()]
 
     def cancel(self, key):
         with self._lock:
