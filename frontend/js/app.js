@@ -1,7 +1,8 @@
 /* Bootstrap recuperável; ligação dos eventos é independente da conexão. */
 (function () {
   "use strict";
-  let ligado = false, conectando = null, timer = null, pronto = false;
+  let ligado = false, conectando = null, timer = null, retryTimer = null, pronto = false;
+  let tentativas = 0, erroDeConexaoExibido = false;
   function conexao(ok, mensagem) {
     pronto = ok;
     const el = document.getElementById("conexao");
@@ -21,18 +22,26 @@
       "PDF/A (Ghostscript): " + (caps.ghostscript ? "disponível" : "indisponível")];
     el.textContent = partes.join(" · ");
   }
-  function falha() {
-    const holder = document.getElementById("conexao");
-    if (!holder) {
-      window.ContractoUI?.toast("Sem conexão com o serviço local. Tentando novamente…", "error");
+  function agendarReconexao() {
+    clearTimeout(retryTimer);
+    // O shell e a API são criados no mesmo processo. Uma espera progressiva
+    // cobre a corrida de boot sem gerar loops síncronos ou dezenas de toasts.
+    const espera = Math.min(1000 * (2 ** Math.min(tentativas, 4)), 10000);
+    tentativas += 1;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
       iniciar();
-      return;
+    }, espera);
+  }
+  function falhaConexao() {
+    conexao(false, "Indisponível");
+    // O boot normal não é erro para o usuário. Só informe se a API continuar
+    // indisponível após as tentativas iniciais, e uma única vez.
+    if (tentativas >= 3 && !erroDeConexaoExibido) {
+      erroDeConexaoExibido = true;
+      window.ContractoUI?.toast("Não foi possível conectar ao serviço local. Feche e abra o Contracto novamente.", "error", 0);
     }
-    conexao(false, "Sem conexão. ");
-    const btn = document.createElement("button");
-    btn.id = "btn-tentar"; btn.type = "button"; btn.textContent = "Tentar novamente";
-    btn.addEventListener("click", iniciar);
-    document.getElementById("conexao").append(btn);
+    agendarReconexao();
   }
   async function finalizarArranque() {
     if (conectando) return conectando;
@@ -40,7 +49,7 @@
     conectando = (async () => {
       try {
         const r = await window.ContractoAPI.request("GET", "/api/v1/health");
-        if (r.status !== 200) { falha(); return false; }
+        if (r.status !== 200) { falhaConexao(); return false; }
         // Item 8: diagnóstico WebView2 amigável
         if (typeof navigator !== "undefined" && navigator.userAgent?.includes("Windows") && window.chrome?.webview) {
           try {
@@ -56,23 +65,36 @@
           if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);
           if (caps.status === 200) mostrarCapacidades(caps.data);
         } catch (_) { /* sem capacidades: PDF/A segue desativado por segurança */ }
+        // A conexão foi confirmada. A partir daqui, falhas da interface não
+        // podem reiniciar a ponte HTTP nem se passar por erro de backend.
         conexao(true, "Pronto.");
-        if (!ligado) {
-          ligado = true;
-          window.ContractoEtapa2.ligar();
-          window.ContractoEtapa1.ligar();
-        } else {
-          await window.ContractoEtapa1.reconectar();
-          window.ContractoEtapa2.reconectar();
+        tentativas = 0;
+        erroDeConexaoExibido = false;
+        clearTimeout(retryTimer);
+        retryTimer = null;
+        try {
+          if (!ligado) {
+            ligado = true;
+            window.ContractoEtapa2.ligar();
+            window.ContractoEtapa1.ligar();
+          } else {
+            await window.ContractoEtapa1.reconectar();
+            window.ContractoEtapa2.reconectar();
+          }
+        } catch (_) {
+          window.ContractoUI?.toast("A interface não pôde ser inicializada corretamente. Feche e abra o Contracto novamente.", "error", 0);
+          return false;
         }
         return true;
-      } catch (_) { falha(); return false; }
+      } catch (_) { falhaConexao(); return false; }
     })();
     try { return await conectando; } finally { conectando = null; }
   }
   function iniciar() {
     window.ContractoUI.aplicarTemaInicial();
     if (conectando) return conectando;
+    clearTimeout(retryTimer);
+    retryTimer = null;
     conexao(false, "Conectando…");
     clearTimeout(timer);
     if (window.ContractoAPI.disponivel()) return finalizarArranque();
@@ -87,10 +109,10 @@
 
     timer = setTimeout(() => {
       clearInterval(interval);
-      falha();
+      falhaConexao();
     }, 15000);
   }
-  window.ContractoApp = { iniciar, verificar: finalizarArranque, pronto: () => pronto, falha };
+  window.ContractoApp = { iniciar, verificar: finalizarArranque, pronto: () => pronto, falha: falhaConexao };
   window.addEventListener("pywebviewready", () => {
     finalizarArranque();
   });

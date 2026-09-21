@@ -63,12 +63,17 @@ echo [4/5] Criando atalho na Area de Trabalho...
 .\.venv\Scripts\python.exe scripts\create_shortcut.py
 echo.
 
-echo [5/5] Publicando apenas o executavel em dist/.
-if exist dist rmdir /s /q dist
-mkdir dist
-copy app\dist\Contracto_v%APP_VERSION%.exe dist\Contracto_v%APP_VERSION%.exe
-for %%f in (dist\*.zip dist\*.sha256.txt dist\*.zip.sha256.txt) do if exist "%%f" del /q "%%f"
-if exist dist\Contracto_v%APP_VERSION% rmdir /s /q dist\Contracto_v%APP_VERSION%
+echo [5/5] Gerando pacote de distribuicao versionado + SHA-256...
+.\.venv\Scripts\python.exe scripts\create_dist_package.py
+if errorlevel 1 (
+    echo [ERRO] Falha ao gerar o pacote de distribuicao.
+    exit /b 1
+)
+.\.venv\Scripts\python.exe -c "import hashlib,pathlib; p=pathlib.Path(r'dist\Contracto_v%APP_VERSION%.zip'); f=p.open('rb'); h=hashlib.file_digest(f,'sha256').hexdigest().upper(); f.close(); pathlib.Path(str(p)+'.sha256.txt').write_text('SHA256  '+h+'  '+p.name+'\n', encoding='utf-8')"
+if errorlevel 1 (
+    echo [ERRO] Falha ao gerar a verificacao SHA-256 do pacote.
+    exit /b 1
+)
 
 echo.
 echo ==========================================
@@ -76,11 +81,15 @@ echo  Build concluido com sucesso!
 echo ==========================================
 echo.
 echo Executavel gerado em:
-echo   dist\Contracto_v%APP_VERSION%.exe
+echo   app\dist\Contracto_v%APP_VERSION%.exe
+echo.
+echo Pacote de distribuicao verificavel:
+echo   dist\Contracto_v%APP_VERSION%.zip
+echo   dist\Contracto_v%APP_VERSION%.zip.sha256.txt
 echo.
 echo IMPORTANTE:
 echo   - O Usuario final Nao necessita ter o Python instalado na maquina.
 echo   - Ghostscript e todas as dependencias estao embutidas no arquivo .exe.
-echo   - A distribuicao usa apenas o executavel em dist\, sem zip, sem hash e sem pasta extra.
+echo   - Para distribuir, envie o ZIP junto do arquivo SHA-256 correspondente.
 echo.
 pause

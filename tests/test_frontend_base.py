@@ -123,7 +123,7 @@ class TestFrontendBase(unittest.TestCase):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
         toolbar = html.split('<header class="toolbar">', 1)[1].split("</header>", 1)[0]
         self.assertIn('id="modo-simples"', toolbar)
-        self.assertIn('id="modo-avancado"', toolbar)
+        self.assertIn('id="modo-contrato"', toolbar)
         self.assertIn('id="badge-participantes"', toolbar)
         self.assertNotIn('id="conexao"', toolbar)
 
@@ -136,8 +136,8 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("ContractoEtapa2.ligar()", app_js)
 
     def test_build_embarca_frontend(self):
-        bat = (RAIZ.parent / "build_exe.bat").read_text(encoding="utf-8")
-        self.assertIn("../frontend;frontend", bat)
+        spec = (RAIZ.parent / "app" / "Contracto_v4.5.18.spec").read_text(encoding="utf-8")
+        self.assertIn("('../frontend', 'frontend')", spec)
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         # Capacidades carregadas no arranque para não desativar PDF/A à toa.
         self.assertIn("/api/v1/capabilities", app_js)

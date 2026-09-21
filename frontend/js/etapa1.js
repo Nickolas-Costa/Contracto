@@ -279,7 +279,7 @@
     $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
     const badge=$("badge-participantes");
     if(badge) badge.textContent=draft.people.length+" participante(s)";
-    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-avancado').forEach(el=>el.disabled=busy());
+    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato').forEach(el=>el.disabled=busy());
     const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
     btn.onclick=()=>{
       reviewing=true;atualizar();
@@ -640,8 +640,10 @@
   }
 
   function ligar() {
-    $("btn-novo-trabalho").addEventListener("click", novoTrabalho);
-    $("btn-limpar-campos").addEventListener("click", limparCampos);
+    const btnNovoTrabalho = $("btn-novo-trabalho");
+    if (btnNovoTrabalho) btnNovoTrabalho.addEventListener("click", novoTrabalho);
+    const btnLimparCampos = $("btn-limpar-campos");
+    if (btnLimparCampos) btnLimparCampos.addEventListener("click", limparCampos);
     $("btn-gerar").addEventListener("click", conferir);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
@@ -691,12 +693,24 @@
     if (busqPerfil && !busqPerfil.dataset.gerenciado) {
       busqPerfil.dataset.gerenciado = "1";
       busqPerfil.addEventListener("input", renderProfilesManagement);
+      // Também use a propriedade DOM: alguns hosts WebView restauram a árvore
+      // durante a primeira navegação entre telas e podem descartar listeners.
+      busqPerfil.oninput = renderProfilesManagement;
     }
 
     carregar();
   }
 
   function carregarTelaPerfis() {
+    // Ligue a busca antes da atualização assíncrona. O catálogo já pode estar
+    // em memória quando a tela abre; nesse caso o usuário consegue digitar
+    // antes da resposta HTTP terminar.
+    const search = $("buscar-perfis");
+    if (search && !search.dataset.ligado) {
+      search.dataset.ligado = "1";
+      search.addEventListener("input", renderProfilesManagement);
+      search.oninput = renderProfilesManagement;
+    }
     if (catalog && catalog.length) {
       renderProfilesManagement();
     }
@@ -706,11 +720,6 @@
         renderProfilesManagement();
       }
     });
-    const search = $("buscar-perfis");
-    if (search && !search.dataset.ligado) {
-      search.dataset.ligado = "1";
-      search.addEventListener("input", renderProfilesManagement);
-    }
   }
 
   function renderProfilesManagement() {

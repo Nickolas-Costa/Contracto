@@ -20,8 +20,8 @@
     await wait(()=>document.activeElement===$('campo-0-cpf') || document.querySelector('#toasts .toast'),'pending review focuses first field or shows toast');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
     await wait(()=>$('lista-perfis').children.length===2,'profile catalog shows detailed cards');
-    input('buscar-perfis','QA A');assert($('lista-perfis').children.length===1,'profile catalog filters by name');
-    input('buscar-perfis','inexistente');assert(!$('perfis-vazio').hidden,'profile catalog reports an empty search');
+    input('buscar-perfis','QA A');await wait(()=>$('lista-perfis').children.length===1,'profile catalog filters by name');
+    input('buscar-perfis','inexistente');await wait(()=>!$('perfis-vazio').hidden,'profile catalog reports an empty search');
     input('buscar-perfis','');
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
     await wait(()=>$('lista-capacidades').textContent.includes('PDF'), 'capabilities shown without local paths');
