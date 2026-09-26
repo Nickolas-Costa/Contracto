@@ -65,6 +65,28 @@
     return window.pywebview.api.select_file();
   }
 
+  async function selectBackup() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    if (window.pywebview.api.select_backup) return window.pywebview.api.select_backup();
+    return window.pywebview.api.select_file();
+  }
+
+  async function activateProfile(nome) {
+    return request("POST", "/api/v1/profiles/active", { nome });
+  }
+
+  async function backupSystem() {
+    return request("POST", "/api/v1/system/backup", {});
+  }
+
+  async function restoreSystem(selectionId) {
+    return request("POST", "/api/v1/system/restore", { selection_id: selectionId });
+  }
+
+  async function restoreSettings() {
+    return request("POST", "/api/v1/settings/restore", {});
+  }
+
   async function getSettings() {
     return request("GET", "/api/v1/settings");
   }
@@ -110,6 +132,11 @@
     createProfile,
     updateProfile,
     deleteProfile,
-    duplicateProfile
+    duplicateProfile,
+    selectBackup,
+    activateProfile,
+    backupSystem,
+    restoreSystem,
+    restoreSettings
   };
 })();

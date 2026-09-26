@@ -1,6 +1,6 @@
 # ADR 0022 — Plano de Migração Residual Tk → WebView2 (Pós v4.5.18)
 
-- **Estado:** futura
+- **Estado:** em progresso
 - **Data:** 2026-09-17
 - **Contexto:** Com a migração base para WebView2 homologada na v4.5.18, a UI de produção já opera via `index.html`. Porém, várias funcionalidades que existiam no legado CustomTkinter não foram ainda replicadas com paridade completa na WebView. Este ADR registra o conjunto de lacunas identificadas, servindo de guia para as próximas versões.
 

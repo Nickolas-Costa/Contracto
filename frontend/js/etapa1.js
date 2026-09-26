@@ -241,6 +241,12 @@
       let message="";
       if(c.field.obrigatorio && !value && c.field.tipo !== "CHECKBOX")message="Preencha este campo.";
       if(value && c.field.tipo === "CPF" && !form().cpfValid(value))message="CPF inválido.";
+      if(value && c.field.tipo === "CNPJ" && form().cnpjValid && !form().cnpjValid(value))message="CNPJ inválido.";
+      if(value && c.field.tipo === "CPF_CNPJ" && form().docValid && !form().docValid(value))message="Documento inválido: use CPF ou CNPJ válido.";
+      if(value && c.field.tipo === "PIS_PASEP" && form().pisValid && !form().pisValid(value))message="PIS/PASEP inválido.";
+      if(value && c.field.tipo === "EMAIL" && form().emailValid && !form().emailValid(value))message="E-mail inválido.";
+      if(value && c.field.tipo === "TELEFONE" && form().telefoneValid && !form().telefoneValid(value))message="Telefone inválido: use DDD + número.";
+      if(value && c.field.tipo === "ANO" && form().anoValid && !form().anoValid(value))message="Ano inválido.";
       if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
       if(message)result.push({participant:c.index+1,field:c.id,message});
@@ -324,9 +330,56 @@
     if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
+  function mostrarCarregamentoModelos(texto) {
+    const lista = $("lista-formularios"), seletor = $("seletor-modelos");
+    if (seletor) { seletor.replaceChildren(); seletor.setAttribute("aria-busy", "true"); }
+    if (!lista) return;
+    lista.replaceChildren();
+    lista.setAttribute("aria-busy", "true");
+    const status = document.createElement("div");
+    status.className = "loading-status";
+    status.setAttribute("role", "status");
+    const giro = document.createElement("span");
+    giro.className = "spinner";
+    giro.setAttribute("aria-hidden", "true");
+    const msg = document.createElement("span");
+    msg.textContent = texto || "Buscando modelos…";
+    status.append(giro, msg);
+    const skel = document.createElement("div");
+    skel.className = "skeleton";
+    skel.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 3; i++) skel.append(document.createElement("span"));
+    lista.append(status, skel);
+  }
+  function mostrarErroModelos() {
+    const lista = $("lista-formularios");
+    if (!lista) return;
+    lista.replaceChildren();
+    lista.removeAttribute("aria-busy");
+    const box = document.createElement("div");
+    box.className = "modelos-erro";
+    const msg = document.createElement("span");
+    msg.setAttribute("role", "alert");
+    msg.textContent = "Não foi possível carregar os modelos. Verifique a conexão com o serviço local.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.id = "btn-recarregar-modelos";
+    retry.className = "btn btn-secondary btn-sm";
+    retry.textContent = "↻ Tentar novamente";
+    retry.addEventListener("click", carregar);
+    box.append(msg, retry);
+    lista.append(box);
+  }
+  function finalizarCarregamentoModelos() {
+    ["lista-formularios", "seletor-modelos"].forEach(id => {
+      const el = $(id);
+      if (el) el.removeAttribute("aria-busy");
+    });
+  }
   async function carregar() {
+    mostrarCarregamentoModelos();
     const r=await window.ContractoAPI.request("GET","/api/v1/profiles");
-    if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];atualizar();return;}
+    if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];mostrarErroModelos();atualizar();return;}
     catalog=r.data;loaded=true;
     renderProfilesList();
     const defaultProfile = catalog.find(p=>p.mode === "contrato") || catalog[0];
@@ -334,6 +387,7 @@
   }
   function renderProfilesList() {
     $("lista-formularios").replaceChildren();
+    finalizarCarregamentoModelos();
     const isSimple = mode === "simples";
     const todosWrap = $("wrapper-selecionar-todos");
     const explicacao = $("modo-explicacao");
@@ -347,6 +401,8 @@
     }
     // Até 2 modelos em botões; mais que 2 vira seletor de lista (Contrato).
     const usarSeletorLista = !isSimple && filtrados.length > 2;
+    const seletor = $("seletor-modelos");
+    if (seletor && !usarSeletorLista) seletor.replaceChildren();
     if (usarSeletorLista) {
       renderSeletorLista(filtrados, isSimple);
       return;
@@ -421,8 +477,9 @@
     overlay.innerHTML = `
       <div class="calendario-card">
         <div class="calendario-header">
-          <button type="button" class="cal-btn" data-acao="prev">◄</button>
+          <button type="button" class="cal-btn" data-acao="prev" aria-label="Mês anterior">◄</button>
           <strong id="cal-mes-ano">${months[month]} ${year}</strong>
+          <button type="button" class="cal-btn" data-acao="next" aria-label="Próximo mês">►</button>
           <button type="button" class="cal-btn cal-fechar" data-acao="fechar">✕</button>
         </div>
         <div class="cal-dias-semana">
@@ -640,10 +697,19 @@
   }
 
   function ligar() {
+    // Pinta o skeleton imediatamente: a ponte pode levar segundos no boot.
+    mostrarCarregamentoModelos();
     const btnNovoTrabalho = $("btn-novo-trabalho");
     if (btnNovoTrabalho) btnNovoTrabalho.addEventListener("click", novoTrabalho);
     const btnLimparCampos = $("btn-limpar-campos");
     if (btnLimparCampos) btnLimparCampos.addEventListener("click", limparCampos);
+    const chkPreservar = $("chk-preservar-dados");
+    if (chkPreservar) {
+      try { chkPreservar.checked = localStorage.getItem("contracto-preservar") === "1"; } catch (_) {}
+      chkPreservar.addEventListener("change", () => {
+        try { localStorage.setItem("contracto-preservar", chkPreservar.checked ? "1" : "0"); } catch (_) {}
+      });
+    }
     $("btn-gerar").addEventListener("click", conferir);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
@@ -686,9 +752,13 @@
       window.ContractoEtapa2.atualizar();
     }));
     const btnNovoPerfil = $("btn-novo-perfil");
-    if (btnNovoPerfil) btnNovoPerfil.addEventListener("click", novoPerfilModal);
+    if (btnNovoPerfil && !btnNovoPerfil.dataset.ligado) { btnNovoPerfil.dataset.ligado = "1"; btnNovoPerfil.addEventListener("click", novoPerfilModal); }
     const btnImpPerfil = $("btn-importar-perfil");
-    if (btnImpPerfil) btnImpPerfil.addEventListener("click", importarPerfilModal);
+    if (btnImpPerfil && !btnImpPerfil.dataset.ligado) { btnImpPerfil.dataset.ligado = "1"; btnImpPerfil.addEventListener("click", importarPerfilModal); }
+    const btnBackup = $("btn-backup-perfis");
+    if (btnBackup && !btnBackup.dataset.ligado) { btnBackup.dataset.ligado = "1"; btnBackup.addEventListener("click", backupPerfis); }
+    const btnRestore = $("btn-restaurar-perfis");
+    if (btnRestore && !btnRestore.dataset.ligado) { btnRestore.dataset.ligado = "1"; btnRestore.addEventListener("click", restaurarPerfis); }
     const busqPerfil = $("buscar-perfis");
     if (busqPerfil && !busqPerfil.dataset.gerenciado) {
       busqPerfil.dataset.gerenciado = "1";
@@ -806,7 +876,13 @@
       btnExc.textContent = "Excluir";
       btnExc.addEventListener("click", () => excluirPerfilModal(p));
 
-      actionsGroup.append(btnDup, btnEdt, btnExp, btnExc);
+      const btnAtivar = document.createElement("button");
+      btnAtivar.type = "button";
+      btnAtivar.className = "btn btn-secondary";
+      btnAtivar.textContent = "Ativar";
+      btnAtivar.addEventListener("click", () => ativarPerfil(p.nome || p.name));
+
+      actionsGroup.append(btnAtivar, btnDup, btnEdt, btnExp, btnExc);
       header.append(titleGroup, actionsGroup);
 
       const details = document.createElement("p");
@@ -823,13 +899,21 @@
   function duplicarPerfilModal(p) {
     const nomeAtual = p.nome || p.name;
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Digite o nome para a cópia do perfil "${nomeAtual}":</p>
-      <div class="field" style="margin-top:10px;">
-        <label for="dup-nome-input">Novo nome</label>
-        <input id="dup-nome-input" value="${nomeAtual} (Cópia)" autocomplete="off">
-      </div>
-    `;
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Digite o nome para a cópia do perfil "${nomeAtual}":`;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const rotulo = document.createElement("label");
+    rotulo.htmlFor = "dup-nome-input";
+    rotulo.textContent = "Novo nome";
+    const entrada = document.createElement("input");
+    entrada.id = "dup-nome-input";
+    entrada.autocomplete = "off";
+    entrada.value = nomeAtual + " (Cópia)";
+    campo.append(rotulo, entrada);
+    wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Duplicar perfil", wrap, [
       { texto: "Cancelar", primario: false },
       {
@@ -873,12 +957,21 @@
   function exportarPerfilModal(p) {
     const jsonStr = JSON.stringify(p, null, 2);
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Copie o JSON do perfil "${p.nome || p.name}":</p>
-      <div class="field" style="margin-top:10px;">
-        <textarea id="json-export-area" rows="12" readonly style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
-      </div>
-    `;
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Copie o JSON do perfil "${p.nome || p.name}":`;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const area = document.createElement("textarea");
+    area.id = "json-export-area";
+    area.rows = 12;
+    area.readOnly = true;
+    area.style.fontFamily = "monospace";
+    area.style.fontSize = "0.85rem";
+    area.value = jsonStr;
+    campo.append(area);
+    wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Exportar perfil", wrap, [
       {
         texto: "Copiar JSON",
@@ -985,12 +1078,20 @@
   function editarPerfilModal(p) {
     const jsonStr = JSON.stringify(p, null, 2);
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Edite as propriedades JSON do perfil "${p.nome || p.name}":</p>
-      <div class="field" style="margin-top:10px;">
-        <textarea id="edit-json-area" rows="12" style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
-      </div>
-    `;
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Edite as propriedades JSON do perfil "${p.nome || p.name}":`;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const area = document.createElement("textarea");
+    area.id = "edit-json-area";
+    area.rows = 12;
+    area.style.fontFamily = "monospace";
+    area.style.fontSize = "0.85rem";
+    area.value = jsonStr;
+    campo.append(area);
+    wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Editar perfil", wrap, [
       { texto: "Cancelar", primario: false },
       {
@@ -1016,11 +1117,44 @@
     ]);
   }
 
+  async function ativarPerfil(nome) {
+    const r = await window.ContractoAPI.activateProfile(nome);
+    if (r.status === 200) {
+      window.ContractoUI.toast(`Perfil "${nome}" ativado.`, "success");
+      await carregarTelaPerfis();
+    } else {
+      window.ContractoUI.toast(r.data?.message || "Não foi possível ativar o perfil.", "error");
+    }
+  }
+  async function backupPerfis() {
+    const r = await window.ContractoAPI.backupSystem();
+    if (r.status === 200) window.ContractoUI.toast(`Backup criado (${r.data.name}).`, "success");
+    else window.ContractoUI.toast(r.data?.message || "Não foi possível criar o backup.", "error");
+  }
+  async function restaurarPerfis() {
+    const sel = await window.ContractoAPI.selectBackup();
+    if (!sel || sel.cancelled) return;
+    if (!sel.selection_id) { window.ContractoUI.toast("Não foi possível selecionar o backup.", "error"); return; }
+    const r = await window.ContractoAPI.restoreSystem(sel.selection_id);
+    if (r.status === 200) {
+      window.ContractoUI.toast("Backup restaurado. Recarregando perfis.", "success");
+      await carregar();
+      await carregarTelaPerfis();
+    } else {
+      window.ContractoUI.toast(r.data?.message || "Backup inválido.", "error");
+    }
+  }
   function revisar() {
     const btn=$("btn-ver-pendencias");
     if(btn && !btn.hidden){btn.click();return;}
     atualizar();
     window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
+  }
+  // Skeleton visível antes mesmo da ponte: evita o texto morto no arranque.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!catalog.length && $("lista-formularios") && !$("lista-formularios").children.length) mostrarCarregamentoModelos();
+    });
   }
   window.ContractoEtapa1={
     ligar,

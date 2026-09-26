@@ -26,10 +26,12 @@ class Selections:
 
     def register(self, path: Path, kind: str) -> str:
         path = Path(path).resolve(strict=True)
-        if kind not in {"file", "directory"}:
+        if kind not in {"file", "directory", "backup"}:
             raise SelectionError("Seleção inválida")
         if kind == "file" and (not path.is_file() or path.suffix.lower() not in {".pdf", ".rtf"}):
             raise SelectionError("Arquivo inválido")
+        if kind == "backup" and (not path.is_file() or path.suffix.lower() != ".zip"):
+            raise SelectionError("Backup inválido")
         if kind == "directory" and not path.is_dir():
             raise SelectionError("Pasta inválida")
         with self._lock:

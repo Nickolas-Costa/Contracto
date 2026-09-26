@@ -37,9 +37,16 @@
   }
 
   function alertaWordTravado() {
+    const corpo = document.createElement("div");
+    const p1 = document.createElement("p");
+    p1.textContent = "O Microsoft Word está demorando para converter os arquivos RTF.";
+    const p2 = document.createElement("p");
+    p2.className = "hint";
+    p2.textContent = "Você pode tentar forçar o encerramento do Word e reprocessar o trabalho.";
+    corpo.append(p1, p2);
     ui().abrirModal(
       "Aviso: Microsoft Word travado",
-      "<p>O Microsoft Word está demorando para converter os arquivos RTF.</p><p class='hint'>Você pode tentar forçar o encerramento do Word e reprocessar o trabalho.</p>",
+      corpo,
       [
         {
           texto: "Forçar encerramento do Word",

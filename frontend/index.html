@@ -46,8 +46,11 @@
         <div class="card-header">
           <div><h2 id="titulo-selecao-secao">Seleção de modelo</h2><p class="hint" id="modo-explicacao">No modo <strong>Contrato</strong> escolha apenas 1 contrato.</p></div>
         </div>
-        <div id="seletor-modelos" class="modos-seletor" role="group" aria-label="Modelos disponíveis">Carregando modelos…</div>
-        <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
+        <div id="seletor-modelos" class="modos-seletor" role="group" aria-label="Modelos disponíveis" aria-busy="true"></div>
+        <div id="lista-formularios" aria-label="Formulários disponíveis" aria-busy="true">
+          <div class="loading-status" role="status"><span class="spinner" aria-hidden="true"></span><span>Buscando modelos…</span></div>
+          <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
         <div id="wrapper-selecionar-todos" style="margin-top:10px;text-align:right" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
       </div>
       <div id="paginacao-form" class="paginacao-form" hidden></div>
@@ -83,7 +86,10 @@
       </div>
       <div class="acoes form-actions">
         <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
-        <button class="btn-link" id="btn-ver-pendencias" type="button" hidden>Revisar campos pendentes</button></div>
+        <div class="action-row">
+          <button class="btn btn-secondary btn-revisar" id="btn-ver-pendencias" type="button" hidden>⚠ Revisar campos pendentes</button>
+          <label class="checkbox-inline"><input type="checkbox" id="chk-preservar-dados"> Preservar dados após gerar</label>
+        </div></div>
         <button class="btn btn-secondary" id="btn-limpar-campos" type="button">Limpar campos</button>
         <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
       </div>
@@ -155,9 +161,9 @@
           <h1>Perfis de documentos</h1>
           <p class="hint">Gerencie, crie, duplique, edite, importe e exporte perfis de documentos em WebView.</p>
         </div>
-        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
-          <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
+          <span class="hint">Backup, restauração e importação ficam em Configurações › Dados.</span>
         </div>
       </div>
       <div class="card profiles-card">
@@ -199,15 +205,34 @@
             <input id="cfg-local-padrao" placeholder="Cidade - UF" autocomplete="off">
             <p class="field-note">Salvo nativamente na configuração do aplicativo (%APPDATA%/Contracto).</p>
           </div>
+          <div class="field">
+            <label for="cfg-tamanho">Largura dos quadros</label>
+            <select id="cfg-tamanho"><option value="Pequeno">Pequeno</option><option value="Médio">Médio</option><option value="Grande">Grande</option></select>
+          </div>
+          <div class="field">
+            <label for="cfg-formato">Formato de saída padrão</label>
+            <select id="cfg-formato"><option value="PDF">PDF</option><option value="PDF/A-2b">PDF/A-2b</option></select>
+          </div>
         </div>
 
         <div class="acoes form-actions" style="margin-top:20px;">
           <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
           <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
+          <button class="btn btn-secondary" id="btn-cfg-restaurar" type="button">Restaurar padrões</button>
           <button class="btn btn-secondary" id="btn-cfg-reparo" type="button">Diagnóstico e reparo do sistema</button>
         </div>
 
+        <div class="field-section"><h2>Dados e backup</h2><p class="hint">O backup é um ZIP com perfis e configurações, guardado em %APPDATA%/Contracto/backups.</p>
+          <div class="page-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
+            <button class="btn btn-secondary" id="btn-backup-perfis" type="button">Fazer backup</button>
+            <button class="btn btn-secondary" id="btn-restaurar-perfis" type="button">Restaurar backup</button>
+          </div>
+        </div>
+
         <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
+
+        <div class="field-section" id="secao-sobre"><h2>Sobre o Contracto</h2><p class="hint" id="sobre-versao" role="status">Consultando versão…</p><p class="hint">Preparação de documentos 100% local (loopback, sem telemetria). Os dados ficam neste computador. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.</p></div>
       </div>
     </section>
   </main>

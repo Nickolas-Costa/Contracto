@@ -15,6 +15,14 @@ class WebViewDialogs:
         )
         return Path(values[0]) if values else None
 
+    def selecionar_backup(self):
+        from webview import FileDialog
+        values = self._window.create_file_dialog(
+            FileDialog.OPEN, allow_multiple=False,
+            file_types=("Backup Contracto (*.zip)",),
+        )
+        return Path(values[0]) if values else None
+
     def selecionar_pasta(self):
         from webview import FileDialog
         # Default to Downloads folder

@@ -78,6 +78,19 @@ class ShellBridge:
     def select_output(self):
         return self._select("directory")
 
+    def select_backup(self):
+        if not self._authorized():
+            return {"code": "unauthorized_page"}
+        try:
+            path = self._dialogs.selecionar_backup()
+            if path is None:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            return {"selection_id": self._server.jobs.selections.register(path, "backup"), "name": path.name}
+        except Exception:
+            return {"code": "selection_failed"}
+
     def open_result(self, job_id):
         if not self._authorized():
             return {"ok": False, "code": "unauthorized_page"}

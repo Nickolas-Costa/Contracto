@@ -5,6 +5,14 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
 ## [Não lançado]
 
+### Adicionado (P0 release 26/09/2026, ADR 0023/0024)
+- API: `LocalOnly` aceita PUT/DELETE; `POST /settings/restore`, `POST /profiles/active`, `POST /system/backup|restore` (backup via `selection_id`, sem vazar caminho); `select_backup()` na ponte.
+- WebView: Ativar perfil, Backup/Restaurar, `tamanho_quadros` + `formato_saida` + Restaurar padrões, Ajuda 4 passos + Sobre + boas-vindas (`primeira_execucao`), validações `CNPJ/CPF_CNPJ/PIS/EMAIL/TELEFONE/ANO`, `chk-preservar-dados`.
+- Testes: `tests/test_p0_release.py`. Tauri documentado sem código (ADR 0024).
+- Popups WebView auditados e corrigidos: alerta de Word travado com DOM (antes exibia tags literais), modais de perfil sem `innerHTML` com dados (XSS/quebra com `</textarea>`), calendário com botão de próximo mês (só havia anterior).
+- Isolamento de suíte: `gc.collect()` no `setUp` de `test_p0_release`/`test_local_api` — finalizadores `tkinter.font` pós-Tk travavam o worker Uvicorn em `json.dump` conforme a ordem dos testes.
+- Build: `app/dist/Contracto_v4.5.18.exe` gerado (~74 MB); instalador bloqueado sem Inno Setup (`ISCC.exe` ausente — falha explícita, sem fallback).
+
 ### Adicionado
 - Migração residual Tk → WebView2 (ADR-0021/0022, blocos 0–6):
   toolbar consolidada com seletor de modo e badge de participantes;

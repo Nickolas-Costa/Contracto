@@ -52,7 +52,7 @@ class TestWebViewBridge(unittest.TestCase):
             window.get_current_url.return_value = None
             self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
             public = {name for name in dir(bridge) if not name.startswith("_") and callable(getattr(bridge, name))}
-            self.assertEqual(public, {"request", "select_file", "select_output", "open_result", "get_file"})
+            self.assertEqual(public, {"request", "select_file", "select_output", "select_backup", "open_result", "get_file"})
 
     def test_url_about_blank_nao_deve_terminar_em_falha_temporaria(self):
         with LocalServer(profiles=[]) as server:

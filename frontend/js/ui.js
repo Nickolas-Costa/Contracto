@@ -142,6 +142,7 @@
     }
     if (nome === "config") {
       cfgCarregarRascunho();
+      carregarSobre();
     }
     window.scrollTo(0, 0);
   }
@@ -199,12 +200,46 @@
   }
   document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
-  const btnAjuda = document.getElementById("btn-ajuda-topo");
-  if (btnAjuda) {
-    btnAjuda.addEventListener("click", () => {
-      toast("Contracto em 4 passos. 1. Escolha o modo e o modelo. 2. Preencha os dados de cada participante. 3. Confira e gere os PDFs. 4. Anexe e conclua em Enviar.", "info", 12000);
-    });
+  const TEXTO_AJUDA = [
+    "1. Escolha o modo (Simples para vários formulários, Contrato para processo completo) e o modelo.",
+    "2. Preencha os dados de cada participante; use Revisar campos pendentes para corrigir.",
+    "3. Confira o resumo e gere os PDFs.",
+    "4. Em Enviar, anexe comprovantes se preciso, escolha PDF ou PDF/A-2b e conclua."
+  ];
+  function ajudaModal() {
+    const wrap = document.createElement("div");
+    TEXTO_AJUDA.forEach(t => { const p = document.createElement("p"); p.textContent = t; wrap.append(p); });
+    abrirModal("Ajuda — Contracto em 4 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
   }
+  async function carregarSobre() {
+    const el = document.getElementById("sobre-versao");
+    if (!el) return;
+    try {
+      const r = await window.ContractoAPI.request("GET", "/api/v1/health");
+      if (r.status === 200 && r.data && r.data.version) {
+        el.textContent = "Contracto v" + r.data.version + " — pronto para uso.";
+        return;
+      }
+      el.textContent = "Não foi possível consultar a versão do serviço local.";
+    } catch (_) {
+      el.textContent = "Sem conexão com o serviço local.";
+    }
+  }
+  async function boasVindasSePreciso() {
+    try {
+      const r = await window.ContractoAPI.getSettings();
+      if (r.status === 200 && r.data && r.data.primeira_execucao) {
+        ajudaModal();
+        await window.ContractoAPI.updateSettings({ primeira_execucao: false });
+      }
+    } catch (_) { /* sem ponte: não bloqueia o arranque */ }
+  }
+  const btnAjuda = document.getElementById("btn-ajuda-topo");
+  if (btnAjuda && !btnAjuda.dataset.ligado) {
+    btnAjuda.dataset.ligado = "1";
+    btnAjuda.addEventListener("click", ajudaModal);
+  }
+  document.addEventListener("DOMContentLoaded", () => { setTimeout(boasVindasSePreciso, 800); });
 
   function aplicarTema(nome) {
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
@@ -307,12 +342,16 @@
     const texto = document.getElementById("cfg-cor-texto");
     if (texto) texto.value = salvos.cor;
     marcarSwatch(salvos.cor);
-    const local = document.getElementById("cfg-local-padrao");
-    if (local && window.ContractoAPI && window.ContractoAPI.getSettings) {
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
       try {
         const r = await window.ContractoAPI.getSettings();
-        if (r.status === 200 && r.data && typeof r.data.local_padrao === "string") {
-          local.value = r.data.local_padrao;
+        if (r.status === 200 && r.data) {
+          const local = document.getElementById("cfg-local-padrao");
+          if (local && typeof r.data.local_padrao === "string") local.value = r.data.local_padrao;
+          const tam = document.getElementById("cfg-tamanho");
+          if (tam && typeof r.data.tamanho_quadros === "string") tam.value = r.data.tamanho_quadros;
+          const fmt = document.getElementById("cfg-formato");
+          if (fmt && typeof r.data.formato_saida === "string") fmt.value = r.data.formato_saida;
         }
       } catch (_) { /* mantém o que está digitado */ }
     }
@@ -323,22 +362,32 @@
     const cor = document.getElementById("cfg-cor");
     const texto = document.getElementById("cfg-cor-texto");
     const local = document.getElementById("cfg-local-padrao");
+    const tam = document.getElementById("cfg-tamanho");
+    const fmt = document.getElementById("cfg-formato");
     const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#005CA9";
+    const temaFinal = (sel && sel.value === "dark") ? "dark" : "light";
     try {
-      localStorage.setItem("contracto-tema", sel.value);
+      localStorage.setItem("contracto-tema", temaFinal);
       localStorage.setItem("contracto-cor", corFinal);
     } catch (e) { /* sem armazenamento */ }
-    aplicarTema(sel.value);
+    aplicarTema(temaFinal);
     aplicarCor(corFinal);
     desenharFundoSenoidal();
     if (cor) cor.value = corFinal;
     if (texto) texto.value = corFinal;
     try {
-      const r = await window.ContractoAPI.updateSettings({ local_padrao: ((local && local.value) || "").trim() });
-      if (r.status !== 200) toast("Tema e cor salvos; o local padrão não foi persistido.", "warning");
+      const payload = {
+        local_padrao: ((local && local.value) || "").trim(),
+        aparencia: temaFinal,
+        cor_destaque: corFinal
+      };
+      if (tam && tam.value) payload.tamanho_quadros = tam.value;
+      if (fmt && fmt.value) payload.formato_saida = fmt.value;
+      const r = await window.ContractoAPI.updateSettings(payload);
+      if (r.status !== 200) toast("Tema e cor salvos; preferências do computador não foram persistidas.", "warning");
       else toast("Configurações salvas.", "success");
     } catch (_) {
-      toast("Tema e cor salvos; sem conexão para persistir o local padrão.", "warning");
+      toast("Tema e cor salvos; sem conexão para persistir as preferências.", "warning");
     }
   }
 
@@ -357,6 +406,28 @@
     }
   }
 
+  async function cfgRestaurar() {
+    const wrap = document.createElement("div");
+    const p = document.createElement("p");
+    p.textContent = "Restaurar tema, cor, local, largura dos quadros e formato para os padrões? Esta ação não apaga perfis nem documentos.";
+    wrap.append(p);
+    abrirModal("Restaurar padrões", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Restaurar padrões", primario: true, aoClicar: async () => {
+          try {
+            const r = await window.ContractoAPI.restoreSettings();
+            if (r.status !== 200) { toast("Não foi possível restaurar os padrões.", "error"); return; }
+            try { localStorage.setItem("contracto-tema", r.data.aparencia || "light"); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#005CA9"); } catch (_) {}
+            aplicarTema(r.data.aparencia || "light");
+            aplicarCor(r.data.cor_destaque || "#005CA9");
+            await cfgCarregarRascunho();
+            toast("Padrões restaurados.", "success");
+          } catch (_) { toast("Sem conexão para restaurar os padrões.", "error"); }
+        }
+      }
+    ]);
+  }
   function ligarConfig() {
     renderizarSwatches();
     const salvar = document.getElementById("btn-cfg-salvar");
@@ -368,6 +439,11 @@
     if (descartar && !descartar.dataset.ligado) {
       descartar.dataset.ligado = "1";
       descartar.addEventListener("click", cfgDescartar);
+    }
+    const restaurar = document.getElementById("btn-cfg-restaurar");
+    if (restaurar && !restaurar.dataset.ligado) {
+      restaurar.dataset.ligado = "1";
+      restaurar.addEventListener("click", cfgRestaurar);
     }
     const reparo = document.getElementById("btn-cfg-reparo");
     if (reparo && !reparo.dataset.ligado) {

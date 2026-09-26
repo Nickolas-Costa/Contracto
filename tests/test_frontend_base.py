@@ -114,10 +114,18 @@ class TestFrontendBase(unittest.TestCase):
                         "modal-titulo-faixa", "modal-fechar",
                         "repeating-linear-gradient"]:
             self.assertIn(exigido, css)
-        # Configurações no topo, fora da navegação; Sobre removido; Ajuda é toast.
+        # Sobre vive dentro de Configs; Config ocupa o lugar do Sobre na toolbar.
         self.assertIn('id="btn-config-topo"', html)
         self.assertNotIn('id="btn-sobre-topo"', html)
-        self.assertNotIn('Sobre o Contracto', (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
+        self.assertIn('id="secao-sobre"', html)
+        self.assertIn('id="sobre-versao"', html)
+        self.assertIn('carregarSobre', (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
+        # Loading de modelos com skeleton + retry; Revisar com destaque.
+        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        for exigido in ["mostrarCarregamentoModelos", "mostrarErroModelos", "btn-recarregar-modelos"]:
+            self.assertIn(exigido, etapa1, exigido)
+        for exigido in ["skeleton", "spinner", "btn-revisar", "btn-sm", "action-row"]:
+            self.assertIn(exigido, css, exigido)
 
     def test_toolbar_consolidada_adr0021(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
