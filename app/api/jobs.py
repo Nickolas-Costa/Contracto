@@ -35,7 +35,9 @@ class ApiError(Exception):
 def capabilities():
     return {"word": binaries.word_status().disponivel,
             "ghostscript": binaries.ghostscript_status().disponivel,
-            "pdf": True}
+            "pdf": True,
+            "convert_in": [".pdf", ".rtf", ".doc", ".docx"],
+            "convert_out": ["PDF", "PDF/A-2b"]}
 
 
 class Jobs:
@@ -209,6 +211,68 @@ class Jobs:
             return outputs
 
         return self._submit(request.output_id, operation, "process", request, metadata)
+
+    def convert(self, request):
+        """Conversão direta de arquivos (modo Conversão): sem perfis nem participantes.
+
+        Rotas suportadas pelo motor local: office (RTF/DOC/DOCX via Word) → PDF,
+        PDF → PDF (cópia normalizada) e qualquer entrada → PDF/A-2b (via Word
+        e/ou Ghostscript). Saídas para DOC/DOCX/RTF não têm motor local e são
+        rejeitadas de forma explícita — sem fallback silencioso.
+        """
+        from services.pdfa_converter import converter_para_pdfa
+        from services.rtf_converter import converter_rtf_para_pdf
+        retry = self._request_retry("convert", request)
+        if retry is not None:
+            return retry
+        if len(request.file_ids) != len(set(request.file_ids)):
+            raise ApiError("duplicate_files", "Não repita arquivos", 422)
+        paths = [self.selections.resolve(key, "convert") for key in request.file_ids]
+        extensoes = [p.suffix.lower() for p in paths]
+        if any(e not in {".pdf", ".rtf", ".doc", ".docx"} for e in extensoes):
+            raise ApiError("invalid_format", "Conversão aceita PDF, RTF, DOC e DOCX", 422)
+        precisa_word = any(e in {".rtf", ".doc", ".docx"} for e in extensoes)
+        caps = capabilities()
+        if precisa_word and not caps["word"]:
+            raise ApiError("word_unavailable", "Instale o Microsoft Word para converter RTF, DOC e DOCX", 409)
+        if request.format == "PDF/A-2b" and not caps["ghostscript"]:
+            raise ApiError("ghostscript_unavailable", "Instale o Ghostscript para gerar PDF/A", 409)
+        if request.nome_saida is not None and len(paths) != 1:
+            raise ApiError("invalid_request", "Nome de saída personalizado só com um arquivo", 422)
+
+        metadata = {}
+        formato = request.format
+        nome_custom = request.nome_saida
+
+        def operation(folder, job, progress):
+            saidas = []
+            total = len(paths)
+            for index, (key, origem) in enumerate(zip(request.file_ids, paths)):
+                progress(index, total, origem.name)
+                ext = origem.suffix.lower()
+                base = (nome_custom.strip() if nome_custom else origem.stem)
+                destino = folder / f"{base}.pdf"
+                contador = 1
+                while destino.exists():
+                    contador += 1
+                    destino = folder / f"{base} ({contador}).pdf"
+                if ext == ".pdf" and formato == "PDF":
+                    shutil.copy2(origem, destino)
+                elif formato == "PDF/A-2b" and ext == ".pdf":
+                    converter_para_pdfa(origem, destino, perfil="PDF/A-2b")
+                else:
+                    # Office → PDF via Word; → PDF/A encadeia Ghostscript.
+                    meio = destino if formato == "PDF" else folder / f".tmp-{index}.pdf"
+                    converter_rtf_para_pdf(origem, meio)
+                    if formato == "PDF/A-2b":
+                        converter_para_pdfa(meio, destino, perfil="PDF/A-2b")
+                        meio.unlink(missing_ok=True)
+                saidas.append(destino)
+                metadata[destino] = {"origin": "imported", "participants": []}
+            progress(total, total, "")
+            return saidas
+
+        return self._submit(request.output_id, operation, "convert", request, metadata)
 
     @staticmethod
     def _fingerprint(kind, request):

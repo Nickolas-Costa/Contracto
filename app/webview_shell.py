@@ -91,6 +91,33 @@ class ShellBridge:
         except Exception:
             return {"code": "selection_failed"}
 
+    def select_documents(self):
+        """Multi-seleção de documentos para o modo Conversão (kind `convert`)."""
+        if not self._authorized():
+            return {"code": "unauthorized_page"}
+        try:
+            paths = self._dialogs.selecionar_documentos()
+            if not paths:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            items, rejected = [], 0
+            for path in paths:
+                try:
+                    items.append({"selection_id": self._server.jobs.selections.register(path, "convert"),
+                                  "name": path.name})
+                except Exception:
+                    rejected += 1
+            if not items:
+                return {"code": "selection_failed"}
+            result = {"selection_ids": [i["selection_id"] for i in items],
+                      "names": [i["name"] for i in items]}
+            if rejected:
+                result["rejected"] = rejected
+            return result
+        except Exception:
+            return {"code": "selection_failed"}
+
     def open_result(self, job_id):
         if not self._authorized():
             return {"ok": False, "code": "unauthorized_page"}

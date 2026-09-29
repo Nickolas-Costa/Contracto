@@ -3,6 +3,20 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.19] - 2026-09-29
+
+### Adicionado
+- Modo Conversão (terceiro botão Simples/Contrato): tela com dropzone,
+  `POST /api/v1/jobs/convert` (PDF/RTF/DOC/DOCX → PDF ou PDF/A-2b, nome e
+  pasta de saída), `select_documents()` na ponte, `tests/test_convert_api.py`.
+- Transposição MVP (Fases 0–4, `docs/PLANO_MVP_TRANSPOSICAO.md`): correção do
+  seletor de modelos, boot resiliente, modais centralizados, SuccessModal de
+  conclusão, confirmação sem anexos, copiar-dados, pendências com navegação,
+  tema do sistema, editor de perfil com cabeçalho, largura dos quadros.
+- Build: `dist/Contracto_v4.5.19.exe` + ZIP + SHA-256 gerados (~74 MB);
+  instalador pulado sem Inno Setup; corrigido parêntese não escapado no
+  `echo` do passo 6/6 do `build_exe.bat` (quebrava o bloco `if`).
+
 ## [Não lançado]
 
 ### Adicionado (P0 release 26/09/2026, ADR 0023/0024)

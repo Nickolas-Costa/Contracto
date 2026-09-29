@@ -95,9 +95,9 @@ echo [5/6] Criando atalho na Area de Trabalho...
 echo.
 
 echo [6/6] Compilando instalador Windows com Inno Setup (gate de release)...
-where iscc >nul 2>nul
+where /q iscc
 if errorlevel 1 (
-    echo [AVISO] Inno Setup (ISCC.exe) nao encontrado no PATH: instalador pulado.
+    echo [AVISO] Inno Setup ^(ISCC.exe^) nao encontrado no PATH: instalador pulado.
     echo         O .exe e o ZIP ja estao prontos em dist\. Para a release final,
     echo         instale o Inno Setup 6 e rode: .\.venv\Scripts\python.exe scripts\build_installer.py
     goto fim_ok

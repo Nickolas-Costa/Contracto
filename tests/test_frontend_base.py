@@ -1,6 +1,7 @@
 """Base do frontend web: arquivos, tokens, CSP, integridade do HTML, IDs únicos e shell."""
 
 import re
+import sys
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
@@ -63,7 +64,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn('[data-theme="dark"]', css)
 
     def test_sem_rede_externa_e_sem_inline(self):
-        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "etapa1", "etapa2", "app"]]:
+        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "etapa1", "etapa2", "conversao", "app"]]:
             texto = (RAIZ / nome).read_text(encoding="utf-8")
             self.assertNotIn("http://", texto, nome)
             self.assertNotIn("https://", texto, nome)
@@ -73,7 +74,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("Content-Security-Policy", html)
 
     def test_js_balanceado(self):
-        for nome in ["api.js", "ui.js", "etapa1.js", "etapa2.js", "app.js"]:
+        for nome in ["api.js", "ui.js", "etapa1.js", "etapa2.js", "conversao.js", "app.js"]:
             texto = (RAIZ / "js" / nome).read_text(encoding="utf-8")
             for abre, fecha in [("{", "}"), ("(", ")"), ("[", "]")]:
                 self.assertEqual(
@@ -144,7 +145,9 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("ContractoEtapa2.ligar()", app_js)
 
     def test_build_embarca_frontend(self):
-        spec = (RAIZ.parent / "app" / "Contracto_v4.5.18.spec").read_text(encoding="utf-8")
+        sys.path.insert(0, str(RAIZ.parent / "app"))
+        import version as versao_app
+        spec = (RAIZ.parent / "app" / f"Contracto_v{versao_app.__version__}.spec").read_text(encoding="utf-8")
         self.assertIn("('../frontend', 'frontend')", spec)
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         # Capacidades carregadas no arranque para não desativar PDF/A à toa.
@@ -162,6 +165,17 @@ class TestFrontendBase(unittest.TestCase):
             self.assertIn(f'id="{usado}"', html, usado)
         self.assertIn('<select id="anexo-tipo"', html)
         self.assertIn("selectedOptions", etapa2)
+
+    def test_conversao_sem_ids_fantasmas(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        conversao = (RAIZ / "js/conversao.js").read_text(encoding="utf-8")
+        for exigido in ['id="tela-conversao"', 'id="drop-conversao"',
+                        'id="lista-conversao"', 'id="btn-converter"',
+                        'id="modo-conversao"']:
+            self.assertIn(exigido, html)
+        # Todo id lido pelo JS da Conversão existe no HTML.
+        for usado in sorted(set(re.findall(r'\$\("([\w-]+)"\)', conversao))):
+            self.assertIn(f'id="{usado}"', html, usado)
 
     def test_integridade_html_e_ids_unicos(self):
         """Garante que index.html possui estrutura única e sem IDs duplicados."""

@@ -77,9 +77,14 @@
             ligado = true;
             window.ContractoEtapa2.ligar();
             window.ContractoEtapa1.ligar();
+            if (window.ContractoConversao) window.ContractoConversao.ligar();
           } else {
-            await window.ContractoEtapa1.reconectar();
-            window.ContractoEtapa2.reconectar();
+            // Fase 0: chamadas defensivas — se um módulo ainda não expuser
+            // reconectar (cache antigo), atualiza em vez de quebrar o boot.
+            if (window.ContractoEtapa1?.reconectar) await window.ContractoEtapa1.reconectar();
+            else window.ContractoEtapa1?.atualizar?.();
+            if (window.ContractoEtapa2?.reconectar) window.ContractoEtapa2.reconectar();
+            else window.ContractoEtapa2?.atualizar?.();
           }
         } catch (_) {
           window.ContractoUI?.toast("A interface não pôde ser inicializada corretamente. Feche e abra o Contracto novamente.", "error", 0);

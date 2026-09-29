@@ -71,6 +71,12 @@
     return window.pywebview.api.select_file();
   }
 
+  async function selectDocuments() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    if (window.pywebview.api.select_documents) return window.pywebview.api.select_documents();
+    return window.pywebview.api.select_file();
+  }
+
   async function activateProfile(nome) {
     return request("POST", "/api/v1/profiles/active", { nome });
   }
@@ -134,6 +140,7 @@
     deleteProfile,
     duplicateProfile,
     selectBackup,
+    selectDocuments,
     activateProfile,
     backupSystem,
     restoreSystem,

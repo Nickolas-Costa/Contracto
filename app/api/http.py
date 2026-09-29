@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse, Response
 from utils.logger import contexto_log_api
 from version import __version__
 from .jobs import ApiError, capabilities
-from .models import ComposeInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
+from .models import ComposeInput, ConvertInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
 import sys
 import subprocess
@@ -225,6 +225,10 @@ def create_app(session):
     @app.post("/api/v1/jobs/process", response_model=JobState, status_code=202)
     def process(request: ProcessInput):
         return session.jobs.process(request)
+
+    @app.post("/api/v1/jobs/convert", response_model=JobState, status_code=202)
+    def convert(request: ConvertInput):
+        return session.jobs.convert(request)
 
     @app.get("/api/v1/jobs", response_model=list[JobState])
     def list_jobs():

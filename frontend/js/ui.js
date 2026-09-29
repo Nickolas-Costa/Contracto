@@ -8,9 +8,15 @@
     const main=document.getElementById("telas");main.focus();main.scrollIntoView({block:"start"});
   });
 
+  // Fase 1 (DESIGN.md §7): temporário some em 6s com pausa sob hover/foco;
+  // erro que exige correção permanece no contexto (duration 0 = persistente).
+  // Máximo 3 visíveis: o mais antigo temporário é dispensado.
   function toast(message, type, duration) {
     type = type || "success";
     const caixa = document.getElementById("toasts");
+    caixa.querySelectorAll(".toast").forEach(el => {
+      if (caixa.children.length > 2 && !el.dataset.persistente) el.remove();
+    });
     const el = document.createElement("div");
     el.className = "toast " + type;
     el.setAttribute("role", "status");
@@ -21,12 +27,31 @@
     txt.textContent = message;
     el.append(ins, txt);
     caixa.append(el);
-    // duration 0 = persistente (dispensa com Escape); padrão 4s.
-    const ms = duration === undefined ? 4000 : duration;
-    const timer = ms === 0 ? null : setTimeout(() => el.remove(), ms);
+    // duration 0 = persistente (dispensa com Escape); padrão 6s.
+    const ms = duration === undefined ? 6000 : duration;
+    let timer = null, restante = ms, inicio = 0;
+    const remover = () => { if (timer) clearTimeout(timer); timer = null; el.remove(); };
+    const pausar = () => { if (!timer) return; clearTimeout(timer); timer = null; restante -= Date.now() - inicio; };
+    const retomar = () => {
+      if (ms === 0 || timer || restante <= 0) return;
+      inicio = Date.now();
+      timer = setTimeout(remover, restante);
+    };
+    if (ms === 0) {
+      el.dataset.persistente = "1";
+    } else {
+      retomar();
+      el.addEventListener("mouseenter", pausar);
+      el.addEventListener("mouseleave", retomar);
+      el.addEventListener("focusin", pausar);
+      el.addEventListener("focusout", retomar);
+    }
     el.tabIndex = 0;
     el.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape") { if (timer) clearTimeout(timer); el.remove(); }
+      // Se há modal aberto, o Escape pertence a ele (elemento mais interno);
+      // não dispensa o toast atrás do overlay.
+      if (ev.key === "Escape" && !document.getElementById("overlay").hidden) return;
+      if (ev.key === "Escape") remover();
     });
     return el;
   }
@@ -75,6 +100,10 @@
     });
     overlay.hidden = false;
     document.getElementById("app").inert = true;
+    // Convenção (DESIGN.md §7): o foco inicial vai ao primeiro botão, que
+    // deve ser a opção segura — confirmações destrutivas listam "Cancelar" /
+    // "Voltar" antes da ação irreversível. Modais nunca empilham: abrir um
+    // novo fecha o anterior (linha acima).
     const primeiro = acoes.querySelector("button");
     if (primeiro) primeiro.focus();
   }
@@ -119,9 +148,9 @@
     });
   }
   function mostrarTela(nome) {
-    if (!["inicio", "conferir", "etapa2", "perfis", "config"].includes(nome)) return;
+    if (!["inicio", "conferir", "etapa2", "perfis", "config", "conversao"].includes(nome)) return;
     document.getElementById("stepper").hidden = !["inicio", "conferir", "etapa2"].includes(nome);
-    ["inicio", "conferir", "etapa2", "perfis", "config"].forEach((t) => {
+    ["inicio", "conferir", "etapa2", "perfis", "config", "conversao"].forEach((t) => {
       const el = document.getElementById("tela-" + t);
       if (el) el.hidden = t !== nome;
     });
@@ -137,7 +166,7 @@
     if (nome === "perfis" && window.ContractoEtapa1?.carregarTelaPerfis) {
       window.ContractoEtapa1.carregarTelaPerfis();
     }
-    if (nome === "inicio" || nome === "config") {
+    if (nome === "inicio" || nome === "config" || nome === "conversao") {
       window.ContractoEtapa2?.atualizar();
     }
     if (nome === "config") {
@@ -179,8 +208,17 @@
         return;
       }
       mostrarTela("etapa2");
-      const btn = document.getElementById("btn-finalizar");
-      if (btn) { btn.focus(); btn.scrollIntoView({ block: "center" }); }
+      // Fase 2: no modo Simples não há "Concluir e organizar" (sem Etapa 2 de
+      // processamento) — foca os documentos gerados em vez de botão oculto.
+      const simples = window.ContractoEtapa1 && window.ContractoEtapa1.modo() === "simples";
+      const alvo = simples
+        ? document.getElementById("lista-resultados")
+        : document.getElementById("btn-finalizar");
+      if (alvo) {
+        if (!alvo.hasAttribute("tabindex")) alvo.setAttribute("tabindex", "-1");
+        alvo.focus({ preventScroll: true });
+        alvo.scrollIntoView({ block: "center" });
+      }
     }
   }
 
@@ -258,25 +296,47 @@
     document.body.style.backgroundImage = "none";
   }
 
+  // Fase 3 — paridade com o legado (settings_frame.py): "Padrão do Sistema"
+  // resolve via matchMedia e acompanha trocas do SO enquanto ativo.
+  function resolverTema(pref) {
+    if (pref === "dark") return "dark";
+    if (pref === "light") return "light";
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    } catch (_) {}
+    return "light";
+  }
+
   function aplicarTemaInicial() {
     // Arranque: aplica SOMENTE os valores já salvos; edição na tela Config
     // usa rascunho e só persiste/aplica em "Salvar configurações".
-    let tema = "light";
+    let pref = "sistema";
     let corSalva = null;
     try {
       const salvo = localStorage.getItem("contracto-tema");
-      if (salvo === "light" || salvo === "dark") {
-        tema = salvo;
-      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        tema = "dark";
+      if (salvo === "light" || salvo === "dark" || salvo === "sistema") {
+        pref = salvo;
+      } else if (salvo === "system") {
+        pref = "sistema"; // valor legado do backend
       }
       const cor = localStorage.getItem("contracto-cor");
       if (cor && /^#[0-9A-Fa-f]{6}$/.test(cor)) corSalva = cor;
     } catch (e) { /* sem armazenamento: segue o claro */ }
-    aplicarTema(tema);
-    if (corSalva) aplicarCor(corSalva);
+    aplicarTema(resolverTema(pref));
+    if (window.matchMedia) {
+      try {
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        const acompanhar = (e) => {
+          let atual = "sistema";
+          try { atual = localStorage.getItem("contracto-tema") || "sistema"; } catch (_) {}
+          if (atual === "sistema" || atual === "system") aplicarTema(e.matches ? "dark" : "light");
+        };
+        if (mq.addEventListener) mq.addEventListener("change", acompanhar);
+        else if (mq.addListener) mq.addListener(acompanhar);
+      } catch (_) {}
+    }
     const sel = document.getElementById("cfg-tema");
-    if (sel) sel.value = tema;
+    if (sel) sel.value = (pref === "light" || pref === "dark") ? pref : "sistema";
     const input = document.getElementById("cfg-cor");
     const texto = document.getElementById("cfg-cor-texto");
     if (input && corSalva) input.value = corSalva;
@@ -284,10 +344,11 @@
   }
 
   function cfgLerSalvos() {
-    let tema = "light", cor = "#005CA9";
+    let tema = "sistema", cor = "#005CA9";
     try {
       const t = localStorage.getItem("contracto-tema");
       if (t === "light" || t === "dark") tema = t;
+      else if (t === "sistema" || t === "system" || t === null) tema = "sistema";
       const c = localStorage.getItem("contracto-cor");
       if (c && /^#[0-9A-Fa-f]{6}$/.test(c)) cor = c;
     } catch (e) { /* sem armazenamento */ }
@@ -333,6 +394,15 @@
     });
   }
 
+  // Fase 4 (DESIGN.md §4): larguras máximas Pequeno 880 / Médio 1120 /
+  // Grande 1360 CSS px. O valor já era persistido e nunca aplicado.
+  const LARGURAS = { "Pequeno": 880, "Médio": 1120, "Medio": 1120, "Grande": 1360 };
+  function aplicarLargura(tamanho) {
+    const px = LARGURAS[tamanho];
+    if (px) document.documentElement.style.setProperty("--largura-quadros", px + "px");
+    else document.documentElement.style.removeProperty("--largura-quadros");
+  }
+
   async function cfgCarregarRascunho() {
     const salvos = cfgLerSalvos();
     const sel = document.getElementById("cfg-tema");
@@ -352,6 +422,7 @@
           if (tam && typeof r.data.tamanho_quadros === "string") tam.value = r.data.tamanho_quadros;
           const fmt = document.getElementById("cfg-formato");
           if (fmt && typeof r.data.formato_saida === "string") fmt.value = r.data.formato_saida;
+          aplicarLargura(r.data.tamanho_quadros);
         }
       } catch (_) { /* mantém o que está digitado */ }
     }
@@ -365,12 +436,12 @@
     const tam = document.getElementById("cfg-tamanho");
     const fmt = document.getElementById("cfg-formato");
     const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#005CA9";
-    const temaFinal = (sel && sel.value === "dark") ? "dark" : "light";
+    const prefFinal = (sel && (sel.value === "dark" || sel.value === "light")) ? sel.value : "sistema";
     try {
-      localStorage.setItem("contracto-tema", temaFinal);
+      localStorage.setItem("contracto-tema", prefFinal);
       localStorage.setItem("contracto-cor", corFinal);
     } catch (e) { /* sem armazenamento */ }
-    aplicarTema(temaFinal);
+    aplicarTema(resolverTema(prefFinal));
     aplicarCor(corFinal);
     desenharFundoSenoidal();
     if (cor) cor.value = corFinal;
@@ -378,11 +449,12 @@
     try {
       const payload = {
         local_padrao: ((local && local.value) || "").trim(),
-        aparencia: temaFinal,
+        aparencia: prefFinal === "sistema" ? "system" : prefFinal, // canônico do backend
         cor_destaque: corFinal
       };
       if (tam && tam.value) payload.tamanho_quadros = tam.value;
       if (fmt && fmt.value) payload.formato_saida = fmt.value;
+      aplicarLargura(tam && tam.value);
       const r = await window.ContractoAPI.updateSettings(payload);
       if (r.status !== 200) toast("Tema e cor salvos; preferências do computador não foram persistidas.", "warning");
       else toast("Configurações salvas.", "success");
@@ -418,9 +490,11 @@
           try {
             const r = await window.ContractoAPI.restoreSettings();
             if (r.status !== 200) { toast("Não foi possível restaurar os padrões.", "error"); return; }
-            try { localStorage.setItem("contracto-tema", r.data.aparencia || "light"); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#005CA9"); } catch (_) {}
-            aplicarTema(r.data.aparencia || "light");
+            const pref = (r.data.aparencia === "dark" || r.data.aparencia === "light") ? r.data.aparencia : "sistema";
+            try { localStorage.setItem("contracto-tema", pref); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#005CA9"); } catch (_) {}
+            aplicarTema(resolverTema(pref));
             aplicarCor(r.data.cor_destaque || "#005CA9");
+            aplicarLargura(r.data.tamanho_quadros);
             await cfgCarregarRascunho();
             toast("Padrões restaurados.", "success");
           } catch (_) { toast("Sem conexão para restaurar os padrões.", "error"); }
@@ -430,6 +504,12 @@
   }
   function ligarConfig() {
     renderizarSwatches();
+    // Aplica a largura salva logo no arranque (sem exigir abrir Config).
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
+      window.ContractoAPI.getSettings()
+        .then(r => { if (r.status === 200 && r.data) aplicarLargura(r.data.tamanho_quadros); })
+        .catch(() => {});
+    }
     const salvar = document.getElementById("btn-cfg-salvar");
     if (salvar && !salvar.dataset.ligado) {
       salvar.dataset.ligado = "1";
@@ -454,6 +534,15 @@
   document.addEventListener("DOMContentLoaded", ligarConfig);
 
   function desenharFundoSenoidal() {
+    // Fase 4 (DESIGN.md §5): sem ondas sob movimento reduzido ou alto
+    // contraste — remove resíduo de arranques anteriores e sai.
+    try {
+      if ((window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+          (window.matchMedia && window.matchMedia("(forced-colors: active)").matches)) {
+        document.querySelector(".bg-waves-container")?.remove();
+        return;
+      }
+    } catch (_) {}
     let container = document.querySelector(".bg-waves-container");
     if (!container) {
       container = document.createElement("div");

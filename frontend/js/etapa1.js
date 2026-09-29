@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id), form = () => window.ContractoForm;
   const draft = {people: [{nome_completo:"",cpf:""}], globals:{data_assinatura:"",local_assinatura:""}};
   let catalog = [], selected = [], fields = [], maximum = 1, revision = 0, compositionRevision = 0;
-  let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "avancado";
+  let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "contrato";
   let paginas = [], paginaAtual = 0, usarPaginacao = false, agrupamento = {};
   const controls = [];
   const touched = new WeakMap(), touchedGlobals = new Set();
@@ -56,7 +56,12 @@
   function sincronizarSelecao() {
     // A lista é montada antes da composição inicial; sem este sync o perfil
     // composto não aparece marcado (smoke: "one initial profile").
+    // Fase 0: sincroniza também os botões do seletor de modelos (>2
+    // contratos), que usam aria-pressed em vez de input:checked.
     document.querySelectorAll("#lista-formularios input").forEach(el=>{ el.checked=selected.includes(el.value); });
+    document.querySelectorAll("#seletor-modelos .seletor-item").forEach(btn=>{
+      btn.setAttribute("aria-pressed", selected.includes(btn.value) ? "true" : "false");
+    });
   }
   function fieldControl(field,index,host) {
     const id = form().canonical(field.id), global = field.escopo === "global";
@@ -85,13 +90,22 @@
         const option = document.createElement("option"); option.value = value; option.textContent = rotulo; input.append(option);
       }
       if (field.apresentacao === "checkbox" && opcoes.length && opcoes.length <= 4) {
-        input.replaceWith(...opcoes.map(value => {
+        // Fase 0: o <select> original sai do DOM via replaceWith; os listeners
+        // precisam ir nos checkboxes criados (antes eram anexados ao select
+        // já destacado — noop — e a escolha nunca chegava ao rascunho).
+        const caixas = opcoes.map(value => {
           const cb = document.createElement("label"); cb.className = "checkbox-inline";
           const chk = document.createElement("input"); chk.type = "checkbox"; chk.value = value; chk.checked = owner[id] === value; chk.id = input.id + "-" + value.replace(/[^A-Za-z0-9]/g, "_");
+          chk.addEventListener("change", () => {
+            if (busy()) { chk.checked = owner[id] === value; return; }
+            owner[id] = chk.checked ? value : "";
+            touch(owner, id);
+            changed();
+          });
           const lbl = document.createElement("span"); lbl.textContent = humanizar(value);
           cb.append(chk, lbl); return cb;
-        }));
-        input.addEventListener("change", () => {});
+        });
+        input.replaceWith(...caixas);
       }
     } else if (field.tipo === "CHECKBOX") {
       input.type="checkbox"; const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
@@ -215,6 +229,18 @@
       if(address.length){const grid=group(card,"Endereço");address.forEach(f=>fieldControl(f,index,grid));}
       if(details.length){const grid=group(card,"Dados do formulário");details.forEach(f=>fieldControl(f,index,grid));}
       if (index) {
+        // Fase 2 — paridade com o legado ("Copiar dados de [Participante X]"):
+        // reaproveita os campos idênticos do participante principal, mantendo
+        // nome e CPF próprios.
+        const copiar = document.createElement("button"); copiar.type = "button"; copiar.className = "btn btn-subtle"; copiar.textContent = "Copiar dados do participante 1"; copiar.setAttribute("aria-label", "Copiar dados do participante 1 para o participante " + (index + 1)); copiar.dataset.editable = "true";
+        copiar.addEventListener("click", () => {
+          if (busy()) return;
+          const origem = draft.people[0] || {}, destino = draft.people[index];
+          Object.keys(origem).forEach(k => { if (k !== "nome_completo" && k !== "cpf") destino[k] = origem[k]; });
+          window.ContractoUI.toast("Dados copiados do participante 1.", "success");
+          changed(); render();
+        });
+        header.append(copiar);
         const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.setAttribute("aria-label","Remover participante "+(index+1)); remove.dataset.editable="true";
         remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.toast("Participante removido.","warning");draft.people.splice(index,1);changed();render();$("btn-adicionar").focus();}); header.append(remove);
       }
@@ -285,15 +311,26 @@
     $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
     const badge=$("badge-participantes");
     if(badge) badge.textContent=draft.people.length+" participante(s)";
-    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato').forEach(el=>el.disabled=busy());
+    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato, #modo-conversao').forEach(el=>el.disabled=busy());
     const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
     btn.onclick=()=>{
       reviewing=true;atualizar();
+      // Fase 2 (DESIGN.md §7): escolher a pendência navega até a página dela
+      // e foca o campo; o foco nativo já torna o campo visível (sem
+      // scrollIntoView global).
+      const primeira=errors[0];
+      const alvoInicial=primeira && targetFor(primeira);
+      const ctrl=alvoInicial && controls.find(c=>c.input===alvoInicial);
+      if(ctrl && usarPaginacao && paginas.length>1){
+        const pag=form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral");
+        const idx=paginas.indexOf(pag);
+        if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();atualizar();}
+      }
       const comErro=errors.map(targetFor).find(el=>el && el.focus);
       const resumo=pending.slice(0,3).join(" | ");
       const resto=pending.length>3 ? " (mais "+(pending.length-3)+")" : "";
       window.ContractoUI.toast("Revise os dados: "+resumo+resto,"warning",8000);
-      if(comErro){comErro.focus();comErro.scrollIntoView({block:"center"});}
+      if(comErro){comErro.focus();}
     };
     return pending;
   }
@@ -425,8 +462,9 @@
       label.append(input,document.createTextNode(" "+p.name));
       $("lista-formularios").append(label);
     });
-    const search=$("buscar-perfis");
-    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfilesList());}
+    // Fase 0: #buscar-perfis pertence à tela Perfis e já é gerenciado por
+    // ligar()/carregarTelaPerfis() via renderProfilesManagement. Amarrá-lo
+    // aqui a renderProfilesList() disparava dois renders conflitantes.
   }
 
   function renderSeletorLista(filtrados, isSimple) {
@@ -435,15 +473,15 @@
     host.replaceChildren();
     const count = document.createElement("span");
     count.className = "seletor-count";
-    count.textContent = filtrados.length + " modelo" + (filtrados.length !== 1 ? "s" : ""); ;
+    count.textContent = filtrados.length + " modelo" + (filtrados.length !== 1 ? "s" : "");
+    host.append(count);
     filtrados.forEach(p => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "seletor-item";
       btn.value = p.profile_id;
       btn.setAttribute("aria-pressed", selected.includes(p.profile_id) ? "true" : "false");
-      const label = document.createTextNode(p.name);
-      btn.append(label, count.cloneNode(true));
+      btn.textContent = p.name;
       btn.addEventListener("click", () => {
         if (busy()) return;
         if (isSimple) {
@@ -656,6 +694,13 @@
     window.ContractoUI.mostrarTela("conferir");
   }
 
+  function preservarAtivo() {
+    // Fase 0: espelha o legado (chk_preservar_dados): quando marcado, o reset
+    // mantém pessoas + assinatura/destino; caso contrário, limpa tudo.
+    try { return localStorage.getItem("contracto-preservar") === "1"; }
+    catch (_) { return !!$("chk-preservar-dados")?.checked; }
+  }
+
   function novoTrabalho() {
     window.ContractoUI.abrirModal(
       "Iniciar novo trabalho",
@@ -665,13 +710,19 @@
           texto: "Preservar destino e data",
           aoClicar: () => {
             window.ContractoEtapa2?.recomecar?.();
-            draft.people = [{ nome_completo: "", cpf: "" }];
-            draft.globals.data_assinatura = "";
-            draft.globals.local_assinatura = "";
-            draft.output_id = null;
-            $("pasta-saida").value = "";
-            selected = []; fields = []; composed = false;
-            changed(); render();
+            if (preservarAtivo()) {
+              // Mantém pessoas e assinatura/destino; descarta só o trabalho.
+              selected = []; fields = []; composed = false;
+              changed(); render();
+            } else {
+              draft.people = [{ nome_completo: "", cpf: "" }];
+              draft.globals.data_assinatura = "";
+              draft.globals.local_assinatura = "";
+              draft.output_id = null;
+              $("pasta-saida").value = "";
+              selected = []; fields = []; composed = false;
+              changed(); render();
+            }
             window.ContractoUI.mostrarTela("inicio");
           }
         },
@@ -681,6 +732,14 @@
   }
 
   function limparCampos() {
+    if (preservarAtivo()) {
+      // Preservar ligado: mantém o preenchimento; só invalida o trabalho
+      // gerado para que "Gerar" reflita o estado atual.
+      window.ContractoEtapa2?.invalidar?.();
+      window.ContractoEtapa2.atualizar();
+      window.ContractoUI.toast("Preservar dados ativo: preenchimento mantido.", "info");
+      return;
+    }
     draft.people = [{nome_completo:"",cpf:""}];
     draft.globals.data_assinatura = "";
     draft.globals.local_assinatura = "";
@@ -741,6 +800,8 @@
     ["simples","contrato"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
       if(busy())return;mode=name;
       ["simples","contrato"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
+      $("modo-conversao")?.removeAttribute("aria-current");
+      window.ContractoUI.mostrarTela("inicio");
       selected=[];fields=[];composed=false;maximum=1;
       renderProfilesList();
       if(mode === "contrato") {
@@ -1080,7 +1141,30 @@
     const wrap = document.createElement("div");
     const dica = document.createElement("p");
     dica.className = "hint";
-    dica.textContent = `Edite as propriedades JSON do perfil "${p.nome || p.name}":`;
+    dica.textContent = `Edite a identificação abaixo ou o JSON completo do perfil "${p.nome || p.name}":`;
+    // Fase 3: cabeçalho estruturado (identificação/modo/formato/participantes)
+    // para não exigir JSON em ajustes simples; mesclado ao salvar.
+    const grade = document.createElement("div");
+    grade.className = "field-grid";
+    grade.style.marginTop = "10px";
+    const modos = [["contrato", "Contrato Completo"], ["formulario_simples", "Formulário Simples"]];
+    const modoAtual = p.modo_fluxo || p.mode || "contrato";
+    if (!modos.some(([v]) => v === modoAtual)) modos.push([modoAtual, modoAtual]);
+    const formatos = ["PDF/A-2b", "PDF"];
+    const formatoAtual = p.formato_saida || "PDF/A-2b";
+    if (!formatos.includes(formatoAtual)) formatos.push(formatoAtual);
+    // Valores vindos do perfil nunca vão crus ao innerHTML (DESIGN.md §9).
+    const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    grade.innerHTML = `
+      <div class="field"><label for="edit-nome">Nome do perfil</label><input id="edit-nome" autocomplete="off"></div>
+      <div class="field"><label for="edit-modo">Modo de fluxo</label><select id="edit-modo">${modos.map(([v, r]) => `<option value="${esc(v)}">${esc(r)}</option>`).join("")}</select></div>
+      <div class="field"><label for="edit-formato">Formato de saída</label><select id="edit-formato">${formatos.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select></div>
+      <div class="field"><label for="edit-max">Máx. participantes</label><input id="edit-max" type="number" min="1" max="4"></div>
+    `;
+    grade.querySelector("#edit-nome").value = p.nome || p.name || "";
+    grade.querySelector("#edit-modo").value = modoAtual;
+    grade.querySelector("#edit-formato").value = formatoAtual;
+    grade.querySelector("#edit-max").value = p.max_participantes || p.max_participants || 4;
     const campo = document.createElement("div");
     campo.className = "field";
     campo.style.marginTop = "10px";
@@ -1090,8 +1174,9 @@
     area.style.fontFamily = "monospace";
     area.style.fontSize = "0.85rem";
     area.value = jsonStr;
+    area.setAttribute("aria-label", "JSON completo do perfil");
     campo.append(area);
-    wrap.append(dica, campo);
+    wrap.append(dica, grade, campo);
     window.ContractoUI.abrirModal("Editar perfil", wrap, [
       { texto: "Cancelar", primario: false },
       {
@@ -1101,6 +1186,14 @@
           const text = wrap.querySelector("#edit-json-area").value.trim();
           try {
             const parsed = JSON.parse(text);
+            const nomeCabecalho = wrap.querySelector("#edit-nome").value.trim();
+            if (nomeCabecalho) { parsed.nome = nomeCabecalho; parsed.name = nomeCabecalho; }
+            parsed.modo_fluxo = wrap.querySelector("#edit-modo").value;
+            parsed.mode = wrap.querySelector("#edit-modo").value;
+            parsed.formato_saida = wrap.querySelector("#edit-formato").value;
+            const max = parseInt(wrap.querySelector("#edit-max").value || "4", 10);
+            parsed.max_participantes = Math.min(4, Math.max(1, max || 4));
+            parsed.max_participants = parsed.max_participantes;
             const nomeOriginal = p.nome || p.name;
             const r = await window.ContractoAPI.updateProfile(nomeOriginal, parsed);
             if (r.status === 200) {
