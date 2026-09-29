@@ -8,17 +8,10 @@
       polling = false, failures = 0, sending = false, bound = false, caps = null;
 
   function status(state, message, detail) {
+    // Sem pill na toolbar (foto 1): andamento em toast/modal + estado local.
     $("conversao-estado").dataset.state = state;
     $("conversao-status").textContent = message;
     $("conversao-detalhe").textContent = detail || "";
-    const badge = $("indicador-fila-global");
-    if (badge && (state === "running" || state === "queued" || state === "sending")) {
-      badge.hidden = false;
-      badge.dataset.state = state;
-      badge.textContent = "⚡ " + message;
-    } else if (badge && document.getElementById("estado-trabalho").dataset.state !== "running") {
-      badge.hidden = true;
-    }
   }
 
   function atualizar() {
@@ -112,6 +105,7 @@
         active = { job_id: r.data.job_id };
         failures = 0;
         status("queued", "Conversão agendada…", "Aguardando confirmação do servidor.");
+        ui().toast("Conversão iniciada. Acompanhe o andamento nesta tela.", "info");
         $("conversao-progresso").hidden = false;
         $("conversao-barra").style.width = "5%";
         poll();
@@ -156,11 +150,13 @@
           active = null;
           const msg = job.error?.message || "Ocorreu um erro na conversão.";
           status("failed", "Não foi possível concluir.", msg);
+          ui().toast(msg, "error", 8000);
           if (/Word/i.test(msg)) ui().toast("A conversão precisa do Microsoft Word instalado.", "error", 0);
         } else if (job.status === "cancelled") {
           $("conversao-progresso").hidden = true;
           active = null;
           status("cancelled", "Conversão cancelada.", "Nenhum arquivo foi alterado.");
+          ui().toast("Conversão cancelada.", "warning");
         }
       } else if (r.status === 404) {
         failures++;

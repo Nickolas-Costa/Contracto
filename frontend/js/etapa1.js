@@ -313,31 +313,59 @@
     if(badge) badge.textContent=draft.people.length+" participante(s)";
     document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato, #modo-conversao').forEach(el=>el.disabled=busy());
     const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
+    const listaPendencias=pending.slice();
     btn.onclick=()=>{
       reviewing=true;atualizar();
-      // Fase 2 (DESIGN.md §7): escolher a pendência navega até a página dela
-      // e foca o campo; o foco nativo já torna o campo visível (sem
-      // scrollIntoView global).
-      const primeira=errors[0];
-      const alvoInicial=primeira && targetFor(primeira);
-      const ctrl=alvoInicial && controls.find(c=>c.input===alvoInicial);
-      if(ctrl && usarPaginacao && paginas.length>1){
-        const pag=form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral");
-        const idx=paginas.indexOf(pag);
-        if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();atualizar();}
-      }
-      const comErro=errors.map(targetFor).find(el=>el && el.focus);
-      const resumo=pending.slice(0,3).join(" | ");
-      const resto=pending.length>3 ? " (mais "+(pending.length-3)+")" : "";
-      window.ContractoUI.toast("Revise os dados: "+resumo+resto,"warning",8000);
-      if(comErro){comErro.focus();}
+      // Foto 9: modal estilo Ajuda com a lista; cada item navega até o campo.
+      const wrap=document.createElement("div");
+      const intro=document.createElement("p");
+      intro.className="hint";
+      intro.textContent="Toque em um item para ir até o campo e corrigir.";
+      const lista=document.createElement("div");
+      lista.className="pendencias-lista";
+      listaPendencias.forEach(texto=>{
+        const item=document.createElement("button");
+        item.type="button";
+        item.className="pendencia-item";
+        item.textContent=texto;
+        item.addEventListener("click",()=>{
+          window.ContractoUI.fecharModal();
+          const erro=errors.find(e=>texto.includes(e.field) || (e.message && texto.includes(e.message)));
+          irParaPendencia(erro || errors[0]);
+        });
+        lista.append(item);
+      });
+      wrap.append(intro,lista);
+      window.ContractoUI.abrirModal("Revise os campos pendentes",wrap,[{texto:"Fechar",primario:true}]);
+      irParaPendencia(errors[0],true);
     };
     return pending;
+  }
+  function irParaPendencia(erro, semFoco) {
+    // Fase 2 (DESIGN.md §7): a pendência navega até a página dela e foca o
+    // campo; o foco nativo já torna o campo visível (sem scrollIntoView).
+    if(!erro)return;
+    reviewing=true;
+    const alvo=targetForGlobal(erro);
+    const ctrl=alvo && controls.find(c=>c.input===alvo);
+    if(ctrl && usarPaginacao && paginas.length>1){
+      const pag=form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral");
+      const idx=paginas.indexOf(pag);
+      if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();atualizar();}
+    }
+    const destino=controls.map(c=>c.input).find(el=>el===alvo) || alvo;
+    if(destino && destino.focus && !semFoco){destino.focus();}
+  }
+  function targetForGlobal(e) {
+    return controls.find(c=>c.id===form().canonical(e.field)&&!c.wrap.hidden&&(!e.participant||e.participant===c.index+1||c.field.escopo==="global"))?.input || $(e.field.replaceAll("_","-"));
   }
   async function selecionar(ids) {
     if(busy())return;
     const isSimple = mode === "simples";
     const finalIds = isSimple ? ids : (ids[0] ? [ids[0]] : []);
+    // Foto 10: guarda a última composição válida; se a nova falhar (ex.
+    // conflito 409), restaura em vez de zerar os campos.
+    const anterior = {selected, fields, maximum, paginas, paginaAtual, usarPaginacao, agrupamento, composed};
     changed(); const request=++compositionRevision; selected=finalIds; composing=!!finalIds.length; composed=false;
     atualizar();
     if(!finalIds.length){fields=[];render();return;}
@@ -345,7 +373,11 @@
     if(request!==compositionRevision)return;
     composing=false;
     if(r.status!==200){
-      issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];
+      selected=anterior.selected; fields=anterior.fields; maximum=anterior.maximum;
+      paginas=anterior.paginas; paginaAtual=anterior.paginaAtual;
+      usarPaginacao=anterior.usarPaginacao; agrupamento=anterior.agrupamento;
+      composed=anterior.composed;
+      issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos. Seleção anterior mantida."}];
       if (r.status === 409 && finalIds.length > 1) {
         // Bloco 4: conflito no modo simples — mesmo id com tipos/opções distintos.
         const nomes = finalIds.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || id) : id; });
@@ -357,8 +389,12 @@
         dica.textContent = "Ajuste um dos nomes internos nas configurações de perfis ou selecione formulários compatíveis.";
         detalhe.append(intro, dica);
         window.ContractoUI.abrirModal("Conflito entre formulários", detalhe, [{texto: "Entendi", primario: true}]);
+      } else if (!anterior.composed) {
+        window.ContractoUI.toast(r.data?.message || "Falha ao carregar campos.", "error");
+      } else {
+        window.ContractoUI.toast("Seleção incompatível — mantidos os formulários anteriores.", "warning");
       }
-      fields=[]; paginas=[]; usarPaginacao=false; composed=false; render();
+      render();
       return;
     }
     fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
@@ -436,28 +472,25 @@
     if(!filtrados.length){
       const msg = document.createElement("p"); msg.className="hint"; msg.textContent="Nenhum perfil disponível para este modo."; $("lista-formularios").append(msg); return;
     }
-    // Até 2 modelos em botões; mais que 2 vira seletor de lista (Contrato).
-    const usarSeletorLista = !isSimple && filtrados.length > 2;
+    // Foto 2: no modo Contrato os modelos são botões lado a lado (sem radio
+    // nativo, sem linha inteira); o Simples mantém checkboxes p/ multisseleção.
     const seletor = $("seletor-modelos");
-    if (seletor && !usarSeletorLista) seletor.replaceChildren();
-    if (usarSeletorLista) {
+    if (!isSimple) {
+      if (seletor) seletor.hidden = false;
+      $("lista-formularios").replaceChildren();
       renderSeletorLista(filtrados, isSimple);
       return;
     }
+    if (seletor) { seletor.replaceChildren(); seletor.hidden = true; }
     filtrados.forEach(p=>{
       const label=document.createElement("label");
       const input=document.createElement("input");
-      input.type = isSimple ? "checkbox" : "radio";
-      input.name = isSimple ? "" : "profile-radio";
+      input.type = "checkbox";
       input.value=p.profile_id;
       input.checked=selected.includes(p.profile_id);
       input.addEventListener("change",()=>{
         if(busy()){input.checked=!input.checked;return;}
-        if(isSimple){
-          selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value));
-        }else{
-          selecionar(input.checked ? [p.profile_id] : []);
-        }
+        selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value));
       });
       label.append(input,document.createTextNode(" "+p.name));
       $("lista-formularios").append(label);
@@ -503,6 +536,9 @@
     if(atualizar().length||busy())return;
     const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
     const r=await window.ContractoEtapa2.gerar(snapshot);
+    // Foto 1: não prender na Conferência — com o trabalho aceito, avança
+    // para Revisar documentos onde o andamento é visível.
+    if(r && r.status===202){window.ContractoUI.mostrarTela("etapa2");return;}
     if(r && r.status!==202){issues=r.data?.issues?.length ? r.data.issues : [{field:"Geração",message:r.data?.message || "Não foi possível gerar."}];atualizar();window.ContractoUI.toast(r.data?.message || "Confira os campos indicados.","error");controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus();}
   }
   function abrirCalendario(input) {

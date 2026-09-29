@@ -118,9 +118,15 @@ class TestFrontendBase(unittest.TestCase):
         # Sobre vive dentro de Configs; Config ocupa o lugar do Sobre na toolbar.
         self.assertIn('id="btn-config-topo"', html)
         self.assertNotIn('id="btn-sobre-topo"', html)
-        self.assertIn('id="secao-sobre"', html)
-        self.assertIn('id="sobre-versao"', html)
-        self.assertIn('carregarSobre', (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
+        # Foto 6: seção Sobre removida; versão dentro do modal de Ajuda.
+        self.assertNotIn('id="secao-sobre"', html)
+        self.assertNotIn('id="sobre-versao"', html)
+        ui_js = (RAIZ / "js/ui.js").read_text(encoding="utf-8")
+        self.assertNotIn('carregarSobre', ui_js)
+        self.assertIn('versao-app', ui_js)
+        # Foto 1: sem pill de fila na toolbar; andamento em toast/modal.
+        self.assertNotIn('indicador-fila-global', html)
+        self.assertIn('id="btn-fila"', html)
         # Loading de modelos com skeleton + retry; Revisar com destaque.
         etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
         for exigido in ["mostrarCarregamentoModelos", "mostrarErroModelos", "btn-recarregar-modelos"]:

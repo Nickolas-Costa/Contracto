@@ -171,7 +171,6 @@
     }
     if (nome === "config") {
       cfgCarregarRascunho();
-      carregarSobre();
     }
     window.scrollTo(0, 0);
   }
@@ -229,13 +228,6 @@
     b.addEventListener("click", () => irEtapa(Number(b.dataset.etapa)));
   });
 
-  const indicadorGlobal = document.getElementById("indicador-fila-global");
-  if (indicadorGlobal) {
-    indicadorGlobal.addEventListener("click", () => {
-      if (window.ContractoEtapa2 && window.ContractoEtapa2.painelFila) window.ContractoEtapa2.painelFila();
-      else mostrarTela("etapa2");
-    });
-  }
   document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
   const TEXTO_AJUDA = [
@@ -247,20 +239,23 @@
   function ajudaModal() {
     const wrap = document.createElement("div");
     TEXTO_AJUDA.forEach(t => { const p = document.createElement("p"); p.textContent = t; wrap.append(p); });
+    // Foto 6: a seção Sobre saiu da Config; a versão vive aqui.
+    const versao = document.createElement("p");
+    versao.className = "hint";
+    versao.id = "versao-app";
+    versao.textContent = "Consultando versão…";
+    wrap.append(versao);
     abrirModal("Ajuda — Contracto em 4 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
-  }
-  async function carregarSobre() {
-    const el = document.getElementById("sobre-versao");
-    if (!el) return;
-    try {
-      const r = await window.ContractoAPI.request("GET", "/api/v1/health");
-      if (r.status === 200 && r.data && r.data.version) {
-        el.textContent = "Contracto v" + r.data.version + " — pronto para uso.";
-        return;
-      }
-      el.textContent = "Não foi possível consultar a versão do serviço local.";
-    } catch (_) {
-      el.textContent = "Sem conexão com o serviço local.";
+    if (window.ContractoAPI) {
+      window.ContractoAPI.request("GET", "/api/v1/health").then(r => {
+        const el = document.getElementById("versao-app");
+        if (!el) return;
+        if (r.status === 200 && r.data && r.data.version) {
+          el.textContent = "Contracto v" + r.data.version + " — 100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
+        } else {
+          el.textContent = "100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
+        }
+      }).catch(() => {});
     }
   }
   async function boasVindasSePreciso() {
@@ -534,11 +529,11 @@
   document.addEventListener("DOMContentLoaded", ligarConfig);
 
   function desenharFundoSenoidal() {
-    // Fase 4 (DESIGN.md §5): sem ondas sob movimento reduzido ou alto
-    // contraste — remove resíduo de arranques anteriores e sai.
+    // Sonda WebView2 real: prefers-reduced-motion pode vir True mesmo sem
+    // animação na página. As ondas são ESTÁTICAS (sem animação contínua),
+    // então movimento reduzido não as remove — só alto contraste genuíno.
     try {
-      if ((window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
-          (window.matchMedia && window.matchMedia("(forced-colors: active)").matches)) {
+      if (window.matchMedia && window.matchMedia("(forced-colors: active)").matches) {
         document.querySelector(".bg-waves-container")?.remove();
         return;
       }

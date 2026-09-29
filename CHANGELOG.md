@@ -3,6 +3,18 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.20] - 2026-09-29
+
+### Corrigido (rodada visual/fluxo com fotos do uso real)
+- Fluxo avança da Conferência para Revisar documentos ao aceitar o trabalho;
+  andamento em toast/modal, sem pill de fila na toolbar (botão "Fila" na
+  Etapa 2).
+- Contrato com pills lado a lado (sem radio); fundo decorativo mantido sob
+  `prefers-reduced-motion` (sonda WebView2 real); padding do modal;
+  recursos em badges; margens de botões/listas; seção Sobre removida
+  (versão no modal de Ajuda); pendências em modal com itens navegáveis;
+  conflito no Simples preserva a seleção anterior.
+
 ## [4.5.19] - 2026-09-29
 
 ### Adicionado

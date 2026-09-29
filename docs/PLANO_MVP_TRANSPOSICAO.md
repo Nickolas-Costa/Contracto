@@ -2,7 +2,25 @@
 
 > Documento de trabalho (pós v4.5.18). Fases 0–4 e modo Conversão
 > implementados na v4.5.19 (branch `feat/mvp-transposicao-e-conversao`).
+> Rodada de 10 ajustes visuais/fluxo (fotos do usuário) na v4.5.20.
 > Resta o gate manual Windows/distribuição.
+
+## v4.5.20 — rodada de ajustes (fotos 1–10)
+
+| Foto | Correção |
+|---|---|
+| 1a | `gerar()` com 202 avança para "Revisar documentos" (não prende na Conferência); toasts de início/conclusão/falha/cancelamento. |
+| 1b | Pill de fila removido da toolbar (`#indicador-fila-global` excluído); fila acessível pelo botão "Fila" na Etapa 2 (`painelFila`). |
+| 2 | Contrato: modelos sempre em pills lado a lado (`renderSeletorLista`, sem radio nativo); Simples mantém checkboxes. |
+| fundo | Sonda WebView2 real mostrou `prefers-reduced-motion=True`: o guard da Fase 4 apagava as ondas. Ondas são estáticas → só `forced-colors` remove. |
+| 3 | `#modal-corpo` (o `div` tem id, não classe — a regra `.modal-corpo` nunca aplicava): padding/margem corrigidos. |
+| 4 | "Recursos deste computador" em badges (`.recurso-badge` ok/off). |
+| 5 | `.acoes` gap 12→14px + row-gap; `.field-section` com respiro. |
+| 6 | Seção Sobre removida da Config; versão no modal de Ajuda (`#versao-app`). |
+| 7 | `#lista-formularios` em coluna com gap 12px (removida regra concorrente em linha); "Selecionar todos" com margem 16px. |
+| 8 | Check marcado com `color` explícito + borda 2px; foco visível global já existente; botões secundários mantêm borda. |
+| 9 | "Revise os dados" virou modal estilo Ajuda com itens clicáveis (navegam à página e focam o campo). |
+| 10 | Conflito no Simples restaura a última seleção válida (não zera mais os campos); toast explica. |
 
 ## Fase 0 — Desbloqueio do fluxo (IMPLEMENTADA)
 

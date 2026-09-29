@@ -83,18 +83,22 @@ class TestP0Release(unittest.TestCase):
         html = (raiz / "index.html").read_text(encoding="utf-8")
         for exigido in ["chk-preservar-dados", "btn-backup-perfis",
                         "btn-restaurar-perfis", "btn-cfg-restaurar", 'id="cfg-tamanho"',
-                        'id="cfg-formato"', 'id="secao-sobre"', 'id="sobre-versao"']:
+                        'id="cfg-formato"']:
             self.assertIn(exigido, html, exigido)
+        # Foto 6: seção Sobre saiu da Config; a versão vive no modal de Ajuda.
+        self.assertNotIn('id="secao-sobre"', html)
+        self.assertNotIn('id="sobre-versao"', html)
         # btn-sobre-topo removido: Sobre agora vive dentro de Configs
         self.assertNotIn('id="btn-sobre-topo"', html)
         api = (raiz / "js/api.js").read_text(encoding="utf-8")
         for exigido in ["selectBackup", "activateProfile", "backupSystem", "restoreSystem", "restoreSettings"]:
             self.assertIn(exigido, api, exigido)
         ui = (raiz / "js/ui.js").read_text(encoding="utf-8")
-        for exigido in ["cfgRestaurar", "ajudaModal", "carregarSobre", "boasVindasSePreciso", "primeira_execucao"]:
+        for exigido in ["cfgRestaurar", "ajudaModal", "boasVindasSePreciso", "primeira_execucao", "versao-app"]:
             self.assertIn(exigido, ui, exigido)
-        # sobreModal substituído por carregarSobre (inline na seção Configs)
+        # sobreModal/carregarSobre substituídos pela versão dentro do modal de Ajuda
         self.assertNotIn("sobreModal", ui)
+        self.assertNotIn("carregarSobre", ui)
 
 
 if __name__ == "__main__":

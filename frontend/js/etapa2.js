@@ -10,29 +10,14 @@
   const originLabel={generated:"Gerado pelo Contracto",attachment:"Anexo do trabalho",imported:"PDF importado"};
 
   function status(state,message,detail="") {
+    // Foto 1: sem pill na toolbar — o andamento aparece em toast/modal.
     $("estado-trabalho").dataset.state=state;
     $("fila-status").textContent=message;
     $("fila-detalhe").textContent=detail;
     const summary=$("manifesto-status");
     if(summary)summary.textContent=message+(detail ? " — "+detail : "");
-    const badge=$("indicador-fila-global");
-    if(badge) {
-      if(state==="running"||state==="queued"||state==="sending") {
-        badge.hidden=false;
-        badge.dataset.state=state;
-        badge.textContent="⚡ "+message;
-      } else if(state==="completed") {
-        badge.hidden=false;
-        badge.dataset.state=state;
-        badge.textContent="✓ Concluído";
-      } else if(state==="failed" && (message.includes("Word") || detail.includes("Word"))) {
-        badge.hidden=false;
-        badge.dataset.state="failed";
-        badge.textContent="⚠️ Word travado";
-        alertaWordTravado();
-      } else {
-        badge.hidden=true;
-      }
+    if(state==="failed" && (message.includes("Word") || detail.includes("Word"))) {
+      alertaWordTravado();
     }
   }
 
@@ -177,6 +162,7 @@
           $("progresso-trabalho").hidden=true;active=null;busy=false;
           if(tipo==="generate"){
             receberBase(job);
+            ui().toast("PDFs gerados com sucesso. Revise os anexos ou conclua.", "success");
           } else {
             status("completed","Trabalho concluído com sucesso.","Documentos organizados na pasta de destino.");
             finalized=true;
@@ -185,10 +171,12 @@
           }
         } else if(job.status==="failed"){
           status("failed","Trabalho não concluído.",job.error || "Ocorreu um erro no processamento.");
+          ui().toast(job.error || "Ocorreu um erro no processamento.", "error", 8000);
           if (job.error?.includes("Word")) alertaWordTravado();
           $("progresso-trabalho").hidden=true;active=null;busy=false;
         } else if(job.status==="cancelled"){
           status("cancelled","Trabalho cancelado.","Nenhum documento foi alterado.");
+          ui().toast("Trabalho cancelado. Nenhum documento foi alterado.", "warning");
           $("progresso-trabalho").hidden=true;active=null;busy=false;
         }
       } else if(r.status===404){
@@ -210,6 +198,7 @@
     filaConhecida.unshift({job_id:jobId,tipo,status:"queued",progress:5,message:"Operação agendada…"});
     if(filaConhecida.length>8)filaConhecida.length=8;
     status("queued","Operação agendada…","Aguardando confirmação do servidor.");
+    ui().toast(tipo === "process" ? "Organização iniciada. Acompanhe em Revisar documentos." : "Geração iniciada. Acompanhe o andamento.", "info");
     $("progresso-trabalho").hidden=false;$("fila-barra").style.width="5%";
     atualizar();poll();
   }
@@ -379,6 +368,8 @@
     $("btn-cancelar").addEventListener("click",cancelar);
     $("btn-retomar").addEventListener("click",retomar);
     $("btn-voltar").addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
+    const btnFila=$("btn-fila");
+    if(btnFila)btnFila.addEventListener("click",()=>painelFila());
     $("formato-saida").addEventListener("change",()=>{alterarProcesso();atualizar();});
     api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
   }

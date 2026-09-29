@@ -14,13 +14,22 @@
     window.ContractoEtapa2?.atualizar();
   }
   function mostrarCapacidades(caps) {
-    // Tela Config ("Recursos deste computador"): resumo humano, sem caminhos locais.
+    // Tela Config ("Recursos deste computador"): badges, sem caminhos locais.
+    // Foto 4: apresentação em badges em vez de texto corrido.
     const el = document.getElementById("lista-capacidades");
     if (!el || !caps) return;
-    const partes = ["PDF simples: " + (caps.pdf === false ? "indisponível" : "disponível"),
-      "Conversão Word (RTF): " + (caps.word ? "disponível" : "indisponível"),
-      "PDF/A (Ghostscript): " + (caps.ghostscript ? "disponível" : "indisponível")];
-    el.textContent = partes.join(" · ");
+    el.replaceChildren();
+    const wrap = document.createElement("span");
+    wrap.className = "recurso-lista";
+    [["PDF simples", caps.pdf !== false],
+     ["Conversão Word (RTF/DOC/DOCX)", !!caps.word],
+     ["PDF/A (Ghostscript)", !!caps.ghostscript]].forEach(([rotulo, ok]) => {
+      const b = document.createElement("span");
+      b.className = "recurso-badge " + (ok ? "ok" : "off");
+      b.textContent = (ok ? "✓ " : "✕ ") + rotulo + ": " + (ok ? "disponível" : "indisponível");
+      wrap.append(b);
+    });
+    el.append(wrap);
   }
   function agendarReconexao() {
     clearTimeout(retryTimer);
