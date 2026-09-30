@@ -3,6 +3,29 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.21] - 2026-09-30
+
+### Corrigido (rodada 15 ajustes + auditoria)
+- Toolbar sem quebra de linha (`toolbar-actions`); toast com leve
+  transparência, blur e fundo mais escuro; foco de teclado restrito a
+  controles (fim do "quadro completo" ao dar Tab); stepper centralizado em
+  3 passos (Preencher → Conferir → Concluir).
+- Conferência redesenhada (chips de modelos, grade de assinatura/destino,
+  seções por participante/aba, valores humanizados); `Dados compartilhados`
+  agrupados por aba; MO 29300 com campos por seção e paginação.
+- Labels de `SELECAO` normalizadas (ex. "Autorizar ou alterar débito",
+  "Desconheço possuir") e valor-padrão exibido no controle; "Seguro"
+  exibido como "Form Seguro"; larguras 760/1080/1400.
+- "Recursos deste computador" removido da UI (capacidades seguem como gate
+  interno + Diagnóstico); label de backup removida dos Perfis; ações por
+  perfil em [Ativar][Editar][Mais ações]; formulários simples em grade de
+  cards; viewer PDF maior com Expandir + Abrir no leitor padrão
+  (`ShellBridge.open_file`, `abrir_arquivo` multiplataforma).
+- Auditoria: `open_file` corrigido no Linux (`abrir_pasta` rejeita arquivos),
+  classe `modal-viewer-expandido` limpa ao fechar, fluxo `webview_flow.js`
+  atualizado para botões do contrato/modal de pendências (smoke WebView2 e
+  motores reais OK: Word + Ghostscript).
+
 ## [4.5.20] - 2026-09-29
 
 ### Corrigido (rodada visual/fluxo com fotos do uso real)

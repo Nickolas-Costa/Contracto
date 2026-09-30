@@ -12,7 +12,7 @@
 
 | Foto | Correção |
 |---|---|
-| 1a | `gerar()` com 202 avança para "Revisar documentos" (não prende na Conferência); toasts de início/conclusão/falha/cancelamento. |
+| 1a | `gerar()` com 202 avança para "Concluir" (não prende na Conferência); toasts de início/conclusão/falha/cancelamento. |
 | 1b | Pill de fila removido da toolbar (`#indicador-fila-global` excluído); fila acessível pelo botão "Fila" na Etapa 2 (`painelFila`). |
 | 2 | Contrato: modelos sempre em pills lado a lado (`renderSeletorLista`, sem radio nativo); Simples mantém checkboxes. |
 | fundo | Sonda WebView2 real mostrou `prefers-reduced-motion=True`: o guard da Fase 4 apagava as ondas. Ondas são estáticas → só `forced-colors` remove. |

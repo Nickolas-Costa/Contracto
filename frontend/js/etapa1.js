@@ -99,6 +99,7 @@
       for (const value of ["", ...opcoes]) {
         const option = document.createElement("option"); option.value = value; option.textContent = humanizar(value); input.append(option);
       }
+      if (owner[id] && opcoes.includes(owner[id])) input.value = owner[id];
       if (field.apresentacao === "checkbox" && opcoes.length && opcoes.length <= 4) {
         // Fase 0: o <select> original sai do DOM via replaceWith; os listeners
         // precisam ir nos checkboxes criados (antes eram anexados ao select
@@ -578,8 +579,8 @@
     if(atualizar().length||busy())return;
     const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
     const r=await window.ContractoEtapa2.gerar(snapshot);
-    // Foto 1: não prender na Conferência — com o trabalho aceito, avança
-    // para Revisar documentos onde o andamento é visível.
+    // Não prender na Conferência — com o trabalho aceito, avança
+    // para Concluir onde o andamento é visível.
     if(r && r.status===202){window.ContractoUI.mostrarTela("etapa2");return;}
     if(r && r.status!==202){issues=r.data?.issues?.length ? r.data.issues : [{field:"Geração",message:r.data?.message || "Não foi possível gerar."}];atualizar();window.ContractoUI.toast(r.data?.message || "Confira os campos indicados.","error");controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus();}
   }
@@ -999,7 +1000,7 @@
 
       const title = document.createElement("h3");
       title.style.margin = "0";
-      title.textContent = p.nome || p.name || p.profile_id;
+      title.textContent = (typeof nomeExibicao === "function" ? nomeExibicao({ name: p.nome || p.name, nome: p.nome || p.name }) : (p.nome || p.name)) || p.profile_id;
 
       const badge = document.createElement("span");
       badge.style.fontSize = "0.75rem";

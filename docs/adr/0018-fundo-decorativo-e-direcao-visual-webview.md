@@ -9,7 +9,7 @@ A versão legada Tkinter do Contracto apresentava uma identidade visual marcante
 ## Decisão
 
 1. **Laboratório Visual Isolado (`frontend/lab.html`)**:
-   - Implementar um ambiente de testes visual desacoplado para exibição e validação contínua de todos os tokens CSS, variações de estado (hover, focus, disabled), cartões translúcidos, stepper em 4 passos, modais e o fundo decorativo.
+   - Implementar um ambiente de testes visual desacoplado para exibição e validação contínua de todos os tokens CSS, variações de estado (hover, focus, disabled), cartões translúcidos, stepper em 3 passos, modais e o fundo decorativo.
 
 2. **Sistema de Fundo Decorativo Orgânico (SVG + CSS/Canvas)**:
    - Renderizar em camada de fundo (`z-index: -1`) ondas senoidais vetoriais dinâmicas com destaque nas linhas primárias, acompanhando a cor de destaque do tema.

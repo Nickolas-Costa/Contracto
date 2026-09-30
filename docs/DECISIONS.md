@@ -82,7 +82,7 @@ Sem atualizador automático até a migração de shell (decisão consciente).
   atalhos documentados; nenhuma ação essencial exige mouse. Toda tela
   nova é testada só com teclado antes de liberada.
 - **Guia inicial (boas-vindas):** abre só na primeira execução, nunca se
-  esconde sozinho e apresenta o fluxo em 4 passos, sem jargão interno.
+   esconde sozinho e apresenta o fluxo em 3 passos, sem jargão interno.
 
 ## 10. Próximas decisões e evolução comercial
 
