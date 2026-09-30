@@ -24,3 +24,19 @@ def abrir_pasta(caminho: Path | str) -> bool:
         obter_logger("ui").warning("Não foi possível abrir a pasta '%s'.", p)
         return False
     return True
+
+
+def abrir_arquivo(caminho: Path | str) -> bool:
+    """Abre um arquivo no aplicativo padrão do SO; devolve False se falhar."""
+    p = Path(caminho) if isinstance(caminho, str) else caminho
+    if not p.exists() or not p.is_file():
+        return False
+    try:
+        if os.name == "nt":
+            os.startfile(str(p.resolve()))  # noqa: S606 - caminho de seleção validada
+        else:
+            subprocess.run(["xdg-open", str(p.resolve())], timeout=15)
+    except OSError:
+        obter_logger("ui").warning("Não foi possível abrir o arquivo '%s'.", p)
+        return False
+    return True

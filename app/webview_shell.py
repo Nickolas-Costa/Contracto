@@ -138,17 +138,14 @@ class ShellBridge:
         if not isinstance(file_id, str) or not re.fullmatch(r"[a-f0-9]{32}", file_id):
             return {"ok": False, "code": "invalid_request"}
         try:
-            from utils.files_fs import abrir_pasta
+            from utils.files_fs import abrir_arquivo
             from utils.logger import contexto_log_api
-            import os
             path = self._server.jobs.selections.resolve(file_id, "file")
             if path.suffix.lower() != ".pdf":
                 return {"ok": False, "code": "unsupported_preview"}
             with contexto_log_api():
-                if os.name == "nt":
-                    os.startfile(str(path))  # noqa: S606 - caminho de seleção validada
-                    return {"ok": True, "code": "opened"}
-                return {"ok": abrir_pasta(path), "code": "opened"}
+                ok = abrir_arquivo(path)
+            return {"ok": ok, "code": "opened" if ok else "open_failed"}
         except Exception:
             return {"ok": False, "code": "result_unavailable"}
 

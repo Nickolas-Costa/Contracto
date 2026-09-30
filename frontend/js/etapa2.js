@@ -206,7 +206,7 @@
     filaConhecida.unshift({job_id:jobId,tipo,status:"queued",progress:5,message:"Operação agendada…"});
     if(filaConhecida.length>8)filaConhecida.length=8;
     status("queued","Operação agendada…","Aguardando confirmação do servidor.");
-    ui().toast(tipo === "process" ? "Organização iniciada. Acompanhe em Revisar documentos." : "Geração iniciada. Acompanhe o andamento.", "info");
+    ui().toast(tipo === "process" ? "Organização iniciada. Acompanhe em Concluir." : "Geração iniciada. Acompanhe o andamento.", "info");
     $("progresso-trabalho").hidden=false;$("fila-barra").style.width="5%";
     atualizar();poll();
   }

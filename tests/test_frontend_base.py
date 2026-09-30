@@ -134,6 +134,22 @@ class TestFrontendBase(unittest.TestCase):
             self.assertIn(exigido, etapa1, exigido)
         for exigido in ["skeleton", "spinner", "btn-revisar", "btn-sm", "action-row"]:
             self.assertIn(exigido, css, exigido)
+        # v4.5.21: toolbar sem wrap, stepper 3 passos, recursos removidos.
+        self.assertIn('class="toolbar-actions"', html)
+        self.assertIn('>Concluir</button>', html)
+        self.assertNotIn('Revisar documentos', html)
+        self.assertNotIn('lista-capacidades', html)
+        self.assertNotIn('recurso-badge', css)
+        for exigido in ["toolbar-actions", "forms-grid", "form-card", "conf-resumo",
+                        "conf-grid", "profile-menu", "modal-viewer-expandido",
+                        "backdrop-filter"]:
+            self.assertIn(exigido, css, exigido)
+        etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
+        for exigido in ["Abrir no leitor padrão", "Expandir", "modal-viewer-expandido"]:
+            self.assertIn(exigido, etapa2, exigido)
+        for exigido in ["nomeExibicao", "Form Seguro", "ROTULOS_OPCOES", "profile-menu-box"]:
+            self.assertIn(exigido, etapa1, exigido)
+        self.assertNotIn('data-etapa="4"', ui_js)
 
     def test_toolbar_consolidada_adr0021(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")

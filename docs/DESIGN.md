@@ -70,7 +70,7 @@ Contracto automatiza localmente o preenchimento AcroForm, a organização de dos
 | Perfis | Criar, ativar, duplicar, editar, excluir, importar, exportar, backup e restaurar | Lista operacional e editor dedicado |
 | Configuração de modelos | PDF, campos AcroForm, mapeamento, conferência e pré-visualização | Área de trabalho ampla; preservar página inteira e alternativa por lista |
 | Configurações | Tema, destaque, local, largura dos quadros, restauração e diagnóstico/reparo | Grupos de ajustes; ações de manutenção separadas do salvamento |
-| Ajuda | Boas-vindas em quatro passos, termos, privacidade e terceiros | Conteúdo local, legível e reabrível |
+| Ajuda | Boas-vindas em três passos, termos, privacidade e terceiros | Conteúdo local, legível e reabrível |
 
 ## 4. Composição e navegação
 
@@ -299,7 +299,7 @@ Abrir a lista não muda a página. Ao escolher uma pendência, navegar até a p�
 - `Esc` fecha o elemento transitório mais interno. Se há modal, não deve também dispensar um toast atrás dele. Diálogo nativo de arquivos mantém prioridade enquanto aberto.
 - Processo em andamento: fechar/minimizar o painel de progresso não cancela o trabalho. **Parar processo** é explícito; `Esc` não dispara cancelamento irreversível.
 - Toast temporário sem ação necessária pode desaparecer após 6 segundos, pausando sob hover/foco. Erro que precisa de correção permanece no contexto da tarefa; não desaparece como único registro.
-- Boas-vindas: somente na primeira execução, quatro passos, fechamento explícito e reabertura em Ajuda. Nunca desaparece por temporizador.
+- Boas-vindas: somente na primeira execução, três passos, fechamento explícito e reabertura em Ajuda. Nunca desaparece por temporizador.
 - Resposta de foco/clique imediata; hover 120 ms, abertura até 180 ms e mudança de etapa até 200 ms. Respeitar movimento reduzido. Não bloquear interação aguardando animação.
 - Usar indicador indeterminado único quando o backend não conhece a fração concluída. Não reproduzir a rotação aleatória de GIFs do catálogo antigo como requisito web.
 

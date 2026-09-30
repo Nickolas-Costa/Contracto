@@ -41,7 +41,7 @@
    - ADRs 0019 e 0020 registradas.
 
 6. **Componentes Auxiliares e Responsividade**:
-   - Botões "Ajuda" (guia intuitivo em 4 passos) e "Sobre" (detalhes da versão 4.5.18, arquitetura local loopback sem telemetria LGPD).
+    - Botões "Ajuda" (guia intuitivo em 3 passos) e "Sobre" (detalhes da versão 4.5.18, arquitetura local loopback sem telemetria LGPD).
    - Layout responsivo adaptado com fallback em 1024px e navegação por teclado (foco e skip-link).
    - Polling automático seguro no arranque do frontend para conectar o `ShellBridge` com zero latência.
 
@@ -66,7 +66,7 @@ Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, hom
 
 ## P0 de release (26/09/2026) — ADR 0023/0024
 
-Paridade P0 Tk→WebView implementada: PUT/DELETE de perfis no `LocalOnly`, backup/restore via `selection_id` backup `.zip`, ativar-perfil, settings (`tamanho_quadros`, `formato_saida`, restaurar padrões), ajuda 4 passos + Sobre + boas-vindas (`primeira_execucao`), validações cliente `CNPJ/CPF_CNPJ/PIS/EMAIL/TELEFONE/ANO`, `chk-preservar-dados` persistido e `VERSION` sincronizado (4.5.18). Cobertura em `tests/test_p0_release.py`. Tauri segue planejado sem código (ADR 0024) até o release WebView estabilizar.
+Paridade P0 Tk→WebView implementada: PUT/DELETE de perfis no `LocalOnly`, backup/restore via `selection_id` backup `.zip`, ativar-perfil, settings (`tamanho_quadros`, `formato_saida`, restaurar padrões), ajuda 3 passos + Sobre + boas-vindas (`primeira_execucao`), validações cliente `CNPJ/CPF_CNPJ/PIS/EMAIL/TELEFONE/ANO`, `chk-preservar-dados` persistido e `VERSION` sincronizado (4.5.18). Cobertura em `tests/test_p0_release.py`. Tauri segue planejado sem código (ADR 0024) até o release WebView estabilizar.
 
 ## Próximos Passos (Pós v4.5.18)
 

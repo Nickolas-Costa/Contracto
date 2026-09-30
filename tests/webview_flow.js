@@ -7,7 +7,7 @@
   const checkboxes=()=>[...document.querySelectorAll('#lista-formularios input')];
   try {
     await wait(()=>$('campo-0-endereco'),'form ready: inputs=' + [...document.querySelectorAll('input')].map(i=>i.id).join(','));
-    assert(checkboxes().filter(c=>c.checked).length===1,'one initial profile');
+    assert([...document.querySelectorAll('#seletor-modelos .seletor-item')].filter(b=>b.getAttribute('aria-pressed')==='true').length===1,'one initial profile');
     const originalURL=location.href;$('pular-conteudo').click();
     assert(location.href===originalURL,'skip control moves focus without changing trusted URL');
     assert(document.querySelector('.toolbar .modos #modo-simples'),'modos inside toolbar (ADR 0021)');
@@ -17,7 +17,9 @@
     $('campo-0-cpf').dispatchEvent(new Event('blur'));
     assert($('campo-0-cpf').getAttribute('aria-invalid')==='true','blur reveals field error');
     $('btn-ver-pendencias').click();
-    await wait(()=>document.activeElement===$('campo-0-cpf') || document.querySelector('#toasts .toast'),'pending review focuses first field or shows toast');
+    await wait(()=>!document.getElementById('overlay').hidden && document.querySelector('.pendencia-item'),'pending review opens navigable modal');
+    [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Fechar').click();
+    await wait(()=>document.getElementById('overlay').hidden,'pending modal closes');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
     await wait(()=>$('lista-perfis').children.length===2,'profile catalog shows detailed cards');
     input('buscar-perfis','QA A');await wait(()=>$('lista-perfis').children.length===1,'profile catalog filters by name');
@@ -26,12 +28,21 @@
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
     assert(!$('lista-capacidades'),'resources section removed from settings');
     window.ContractoUI.mostrarTela('inicio');assert(!$('stepper').hidden,'workflow restores steps');
-    input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');input('campo-0-endereco','RUA QA');
-    checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose two profiles');
-    assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after composition');
-    $('modo-simples').click();$('modo-contrato').click();
+    input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');
+    $('modo-simples').click();
+    await wait(()=>checkboxes().length===2,'simple lists both profiles');
+    assert(checkboxes().filter(c=>c.checked).length===0,'simple starts unselected');
+    $('modo-contrato').click();
+    await wait(()=>document.querySelectorAll('#seletor-modelos .seletor-item').length===2,'contract lists both models');
+    $('modo-simples').click();
+    await wait(()=>checkboxes().length===2,'back to simple list');
     assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after mode change');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose single profile');
+    assert($('campo-0-nome_completo').value==='PESSOA QA UM','draft preserved after composition');
+    await wait(()=>$('campo-0-endereco'),'single profile fields rendered');
+    input('campo-0-endereco','RUA QA');
+    checkboxes()[0].click();await wait(()=>window.ContractoEtapa1.composto()&&checkboxes().filter(c=>c.checked).length===2,'compose two profiles');
+    checkboxes()[0].click();await wait(()=>window.ContractoEtapa1.composto()&&checkboxes().filter(c=>c.checked).length===1,'back to single profile');
     input('campo-global-regime','B');
     assert(!$('campo-0-detalhe').parentElement.hidden,'conditional field visible');
     input('campo-global-regime','A');
@@ -69,7 +80,10 @@
     await wait(()=>document.querySelector('.pdf-preview'),'viewer created');
     assert($('app').inert,'modal background inert');
     assert(document.querySelector('.pdf-preview').src.startsWith('blob:'),'viewer uses local blob');
-    window.ContractoUI.fecharModal();assert(!$('app').inert&&!document.querySelector('.modal').classList.contains('modal-viewer'),'modal releases background and viewer layout');
+    assert([...document.querySelectorAll('.modal .acoes button')].some(b=>b.textContent==='Abrir no leitor padrão'),'viewer offers external reader');
+    [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Expandir').click();
+    assert(document.querySelector('.modal').classList.contains('modal-viewer-expandido'),'viewer expands');
+    window.ContractoUI.fecharModal();assert(!$('app').inert&&!document.querySelector('.modal').classList.contains('modal-viewer')&&!document.querySelector('.modal').classList.contains('modal-viewer-expandido'),'modal releases background and viewer layout');
     if(window.__qaKeepResult){window.__qaResult={ok:true,checks};return;}
     window.ContractoUI.mostrarTela('inicio');
     assert(document.querySelector('[data-etapa="1"]').getAttribute('aria-current')==='step','navigation synchronized');

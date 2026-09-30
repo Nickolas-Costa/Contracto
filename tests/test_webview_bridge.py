@@ -77,6 +77,41 @@ class TestWebViewBridge(unittest.TestCase):
                 self.assertTrue(server.jobs.selections.resolve(sid, "convert").is_file())
             self.assertNotIn(folder, str(result))
 
+    def test_open_file_no_leitor_padrao(self):
+        import sys
+        with tempfile.TemporaryDirectory() as folder, LocalServer(profiles=[]) as server:
+            pdf = Path(folder, "doc.pdf")
+            pdf.write_bytes(b"%PDF-1.4 sintese")
+            sid = server.jobs.selections.register(pdf, "file")
+            window = Mock()
+            window.get_current_url.return_value = None
+            bridge = ShellBridge(server)
+            bridge._attach(window)
+            self.assertEqual(bridge.open_file("nao-hex"), {"ok": False, "code": "invalid_request"})
+            modest = sys.modules.get("utils.files_fs")
+            from unittest.mock import patch
+            with patch.object(modest, "abrir_arquivo", return_value=True) as abrir:
+                self.assertEqual(bridge.open_file(sid), {"ok": True, "code": "opened"})
+                abrir.assert_called_once()
+            rtf = Path(folder, "nota.rtf")
+            rtf.write_bytes(b"{\\rtf1 sintese}")
+            sid_rtf = server.jobs.selections.register(rtf, "file")
+            with patch.object(modest, "abrir_arquivo") as abrir:
+                self.assertEqual(bridge.open_file(sid_rtf), {"ok": False, "code": "unsupported_preview"})
+                abrir.assert_not_called()
+
+    def test_abrir_arquivo_puro(self):
+        from utils import files_fs
+        with tempfile.TemporaryDirectory() as folder:
+            pdf = Path(folder, "doc.pdf")
+            pdf.write_bytes(b"%PDF-1.4 sintese")
+            self.assertFalse(files_fs.abrir_arquivo(Path(folder, "ausente.pdf")))
+            self.assertFalse(files_fs.abrir_arquivo(Path(folder)))
+            from unittest.mock import patch
+            with patch.object(files_fs.os, "startfile", create=True) as abrir:
+                self.assertTrue(files_fs.abrir_arquivo(pdf))
+                abrir.assert_called_once()
+
     def test_url_about_blank_nao_deve_terminar_em_falha_temporaria(self):
         with LocalServer(profiles=[]) as server:
             bridge = ShellBridge(server)
