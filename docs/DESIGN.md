@@ -93,7 +93,7 @@ A faixa inferior deve participar do layout, por exemplo com grade de linhas `aut
 ### Proporções e adaptação
 
 - Meta desktop: 1024 × 768 CSS px; verificar também 1366 × 768 e 1920 × 1080. O mínimo atual do código é 920 × 680; preservar acesso aos controles nessa dimensão.
-- Larguras máximas propostas para `tamanho_quadros`: Pequeno 880, Médio 1120, Grande 1360 CSS px. Manter as chaves persistidas; esses valores são especificação web, não reprodução das dimensões Tk.
+- Larguras máximas propostas para `tamanho_quadros`: Pequeno 760, Médio 1080, Grande 1400 CSS px. Manter as chaves persistidas; esses valores são especificação web, não reprodução das dimensões Tk.
 - Margens externas de 24 px em janelas amplas, 16 px em janelas estreitas; conteúdo centralizado com `width: 100%` e limite de largura.
 - Abaixo de 960 CSS px, reorganizar navegação e grupos de campos. Abaixo de 720, usar uma coluna e permitir quebra na faixa de ações. Abaixo de 520, colocar a faixa no fluxo quando a altura útil for insuficiente.
 - Não fixar `min-width` global. Usar `min-width: 0` nos filhos de flex/grade e quebra de nomes/caminhos longos. Não esconder conteúdo para mascarar overflow.

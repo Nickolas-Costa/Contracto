@@ -221,9 +221,5 @@ __marimo__/
 saida/
 output/
 
-
-# Auditoria de Seguranca Interna (Scripts, Relatorios e Graficos)
-docs/security-audit/
-
 # Protótipo da webview (referência local, fora do versionamento)
 Protótipo-webview-do-sistema.zip

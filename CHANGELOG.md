@@ -3,7 +3,41 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.20] - 2026-09-29
+
+### Corrigido (rodada visual/fluxo com fotos do uso real)
+- Fluxo avança da Conferência para Revisar documentos ao aceitar o trabalho;
+  andamento em toast/modal, sem pill de fila na toolbar (botão "Fila" na
+  Etapa 2).
+- Contrato com pills lado a lado (sem radio); fundo decorativo mantido sob
+  `prefers-reduced-motion` (sonda WebView2 real); padding do modal;
+  recursos em badges; margens de botões/listas; seção Sobre removida
+  (versão no modal de Ajuda); pendências em modal com itens navegáveis;
+  conflito no Simples preserva a seleção anterior.
+
+## [4.5.19] - 2026-09-29
+
+### Adicionado
+- Modo Conversão (terceiro botão Simples/Contrato): tela com dropzone,
+  `POST /api/v1/jobs/convert` (PDF/RTF/DOC/DOCX → PDF ou PDF/A-2b, nome e
+  pasta de saída), `select_documents()` na ponte, `tests/test_convert_api.py`.
+- Transposição MVP (Fases 0–4, `docs/PLANO_MVP_TRANSPOSICAO.md`): correção do
+  seletor de modelos, boot resiliente, modais centralizados, SuccessModal de
+  conclusão, confirmação sem anexos, copiar-dados, pendências com navegação,
+  tema do sistema, editor de perfil com cabeçalho, largura dos quadros.
+- Build: `dist/Contracto_v4.5.19.exe` + ZIP + SHA-256 gerados (~74 MB);
+  instalador pulado sem Inno Setup; corrigido parêntese não escapado no
+  `echo` do passo 6/6 do `build_exe.bat` (quebrava o bloco `if`).
+
 ## [Não lançado]
+
+### Adicionado (P0 release 26/09/2026, ADR 0023/0024)
+- API: `LocalOnly` aceita PUT/DELETE; `POST /settings/restore`, `POST /profiles/active`, `POST /system/backup|restore` (backup via `selection_id`, sem vazar caminho); `select_backup()` na ponte.
+- WebView: Ativar perfil, Backup/Restaurar, `tamanho_quadros` + `formato_saida` + Restaurar padrões, Ajuda 4 passos + Sobre + boas-vindas (`primeira_execucao`), validações `CNPJ/CPF_CNPJ/PIS/EMAIL/TELEFONE/ANO`, `chk-preservar-dados`.
+- Testes: `tests/test_p0_release.py`. Tauri documentado sem código (ADR 0024).
+- Popups WebView auditados e corrigidos: alerta de Word travado com DOM (antes exibia tags literais), modais de perfil sem `innerHTML` com dados (XSS/quebra com `</textarea>`), calendário com botão de próximo mês (só havia anterior).
+- Isolamento de suíte: `gc.collect()` no `setUp` de `test_p0_release`/`test_local_api` — finalizadores `tkinter.font` pós-Tk travavam o worker Uvicorn em `json.dump` conforme a ordem dos testes.
+- Build: `app/dist/Contracto_v4.5.18.exe` gerado (~74 MB); instalador bloqueado sem Inno Setup (`ISCC.exe` ausente — falha explícita, sem fallback).
 
 ### Adicionado
 - Migração residual Tk → WebView2 (ADR-0021/0022, blocos 0–6):

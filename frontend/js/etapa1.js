@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id), form = () => window.ContractoForm;
   const draft = {people: [{nome_completo:"",cpf:""}], globals:{data_assinatura:"",local_assinatura:""}};
   let catalog = [], selected = [], fields = [], maximum = 1, revision = 0, compositionRevision = 0;
-  let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "avancado";
+  let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "contrato";
   let paginas = [], paginaAtual = 0, usarPaginacao = false, agrupamento = {};
   const controls = [];
   const touched = new WeakMap(), touchedGlobals = new Set();
@@ -56,7 +56,12 @@
   function sincronizarSelecao() {
     // A lista é montada antes da composição inicial; sem este sync o perfil
     // composto não aparece marcado (smoke: "one initial profile").
+    // Fase 0: sincroniza também os botões do seletor de modelos (>2
+    // contratos), que usam aria-pressed em vez de input:checked.
     document.querySelectorAll("#lista-formularios input").forEach(el=>{ el.checked=selected.includes(el.value); });
+    document.querySelectorAll("#seletor-modelos .seletor-item").forEach(btn=>{
+      btn.setAttribute("aria-pressed", selected.includes(btn.value) ? "true" : "false");
+    });
   }
   function fieldControl(field,index,host) {
     const id = form().canonical(field.id), global = field.escopo === "global";
@@ -79,19 +84,38 @@
     input.autocomplete = "off";
     if (field.tipo === "SELECAO") {
       const opcoes = field.opcoes || [];
-      const humanizar = (nome) => nome.replace(/_/g, " ").replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+      const ROTULOS_OPCOES = {
+        "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito",
+        "CANCELAR_DEBITO": "Cancelar débito",
+        "DESCONHECO_POSSUIR": "Desconheço possuir",
+        "DECLARO_POSSUIR": "Declaro possuir",
+        "SELECIONE": "Selecione"
+      };
+      const humanizar = (nome) => {
+        if (!nome) return "Selecione";
+        if (ROTULOS_OPCOES[nome]) return ROTULOS_OPCOES[nome];
+        return nome.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()).trim();
+      };
       for (const value of ["", ...opcoes]) {
-        const rotulo = (field.apresentacao === "checkbox") ? humanizar(value) : (value || "Selecione");
-        const option = document.createElement("option"); option.value = value; option.textContent = rotulo; input.append(option);
+        const option = document.createElement("option"); option.value = value; option.textContent = humanizar(value); input.append(option);
       }
       if (field.apresentacao === "checkbox" && opcoes.length && opcoes.length <= 4) {
-        input.replaceWith(...opcoes.map(value => {
+        // Fase 0: o <select> original sai do DOM via replaceWith; os listeners
+        // precisam ir nos checkboxes criados (antes eram anexados ao select
+        // já destacado — noop — e a escolha nunca chegava ao rascunho).
+        const caixas = opcoes.map(value => {
           const cb = document.createElement("label"); cb.className = "checkbox-inline";
           const chk = document.createElement("input"); chk.type = "checkbox"; chk.value = value; chk.checked = owner[id] === value; chk.id = input.id + "-" + value.replace(/[^A-Za-z0-9]/g, "_");
+          chk.addEventListener("change", () => {
+            if (busy()) { chk.checked = owner[id] === value; return; }
+            owner[id] = chk.checked ? value : "";
+            touch(owner, id);
+            changed();
+          });
           const lbl = document.createElement("span"); lbl.textContent = humanizar(value);
           cb.append(chk, lbl); return cb;
-        }));
-        input.addEventListener("change", () => {});
+        });
+        input.replaceWith(...caixas);
       }
     } else if (field.tipo === "CHECKBOX") {
       input.type="checkbox"; const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
@@ -213,15 +237,44 @@
       const personal=fields.filter(f=>f.escopo !== "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
       const address=personal.filter(f=>f.id === "endereco"),details=personal.filter(f=>f.id !== "endereco");
       if(address.length){const grid=group(card,"Endereço");address.forEach(f=>fieldControl(f,index,grid));}
-      if(details.length){const grid=group(card,"Dados do formulário");details.forEach(f=>fieldControl(f,index,grid));}
+      if(details.length){
+        const porAba = {};
+        details.forEach(f=>{ const aba=(f.aba || "Geral").trim() || "Geral"; (porAba[aba]=porAba[aba]||[]).push(f); });
+        const abas = Object.keys(porAba);
+        if (abas.length <= 1) { const grid=group(card,"Dados do formulário"); details.forEach(f=>fieldControl(f,index,grid)); }
+        else abas.forEach(aba=>{ const grid=group(card,aba); porAba[aba].forEach(f=>fieldControl(f,index,grid)); });
+      }
       if (index) {
+        // Fase 2 — paridade com o legado ("Copiar dados de [Participante X]"):
+        // reaproveita os campos idênticos do participante principal, mantendo
+        // nome e CPF próprios.
+        const copiar = document.createElement("button"); copiar.type = "button"; copiar.className = "btn btn-subtle"; copiar.textContent = "Copiar dados do participante 1"; copiar.setAttribute("aria-label", "Copiar dados do participante 1 para o participante " + (index + 1)); copiar.dataset.editable = "true";
+        copiar.addEventListener("click", () => {
+          if (busy()) return;
+          const origem = draft.people[0] || {}, destino = draft.people[index];
+          Object.keys(origem).forEach(k => { if (k !== "nome_completo" && k !== "cpf") destino[k] = origem[k]; });
+          window.ContractoUI.toast("Dados copiados do participante 1.", "success");
+          changed(); render();
+        });
+        header.append(copiar);
         const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.setAttribute("aria-label","Remover participante "+(index+1)); remove.dataset.editable="true";
         remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.toast("Participante removido.","warning");draft.people.splice(index,1);changed();render();$("btn-adicionar").focus();}); header.append(remove);
       }
       $("participantes").append(card);
     });
     const globals=fields.filter(f=>f.escopo === "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
-    if(globals.length){const card=document.createElement("div");card.className="card";const title=document.createElement("h2");title.textContent="Dados compartilhados";card.append(title);const grid=document.createElement("div");grid.className="field-grid";card.append(grid);globals.forEach(f=>fieldControl(f,0,grid));$("campos-globais").append(card);}
+    if(globals.length){
+      const card=document.createElement("div");card.className="card";
+      const header=document.createElement("div");header.className="card-header";
+      const heading=document.createElement("div"),title=document.createElement("h2");title.textContent="Dados compartilhados";
+      const hint=document.createElement("p");hint.className="hint";hint.textContent="Valem para todos os participantes.";
+      heading.append(title,hint);header.append(heading);card.append(header);
+      const porAba={}; globals.forEach(f=>{const aba=(f.aba||"Geral").trim()||"Geral";(porAba[aba]=porAba[aba]||[]).push(f);});
+      Object.keys(porAba).forEach(aba=>{
+        const grid=group(card,aba); porAba[aba].forEach(f=>fieldControl(f,0,grid));
+      });
+      $("campos-globais").append(card);
+    }
     recalcularLocal(); renderPaginacao(); sincronizarSelecao(); schedulePreview();atualizar();
   }
   function emPaginaAtual(c) {
@@ -241,6 +294,12 @@
       let message="";
       if(c.field.obrigatorio && !value && c.field.tipo !== "CHECKBOX")message="Preencha este campo.";
       if(value && c.field.tipo === "CPF" && !form().cpfValid(value))message="CPF inválido.";
+      if(value && c.field.tipo === "CNPJ" && form().cnpjValid && !form().cnpjValid(value))message="CNPJ inválido.";
+      if(value && c.field.tipo === "CPF_CNPJ" && form().docValid && !form().docValid(value))message="Documento inválido: use CPF ou CNPJ válido.";
+      if(value && c.field.tipo === "PIS_PASEP" && form().pisValid && !form().pisValid(value))message="PIS/PASEP inválido.";
+      if(value && c.field.tipo === "EMAIL" && form().emailValid && !form().emailValid(value))message="E-mail inválido.";
+      if(value && c.field.tipo === "TELEFONE" && form().telefoneValid && !form().telefoneValid(value))message="Telefone inválido: use DDD + número.";
+      if(value && c.field.tipo === "ANO" && form().anoValid && !form().anoValid(value))message="Ano inválido.";
       if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
       if(message)result.push({participant:c.index+1,field:c.id,message});
@@ -279,22 +338,61 @@
     $("limite-participantes").textContent=draft.people.length+" de "+maximum+" participante(s)";
     const badge=$("badge-participantes");
     if(badge) badge.textContent=draft.people.length+" participante(s)";
-    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato').forEach(el=>el.disabled=busy());
+    document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato, #modo-conversao').forEach(el=>el.disabled=busy());
     const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
+    const listaPendencias=pending.slice();
     btn.onclick=()=>{
       reviewing=true;atualizar();
-      const comErro=errors.map(targetFor).find(el=>el && el.focus);
-      const resumo=pending.slice(0,3).join(" | ");
-      const resto=pending.length>3 ? " (mais "+(pending.length-3)+")" : "";
-      window.ContractoUI.toast("Revise os dados: "+resumo+resto,"warning",8000);
-      if(comErro){comErro.focus();comErro.scrollIntoView({block:"center"});}
+      // Foto 9: modal estilo Ajuda com a lista; cada item navega até o campo.
+      const wrap=document.createElement("div");
+      const intro=document.createElement("p");
+      intro.className="hint";
+      intro.textContent="Toque em um item para ir até o campo e corrigir.";
+      const lista=document.createElement("div");
+      lista.className="pendencias-lista";
+      listaPendencias.forEach(texto=>{
+        const item=document.createElement("button");
+        item.type="button";
+        item.className="pendencia-item";
+        item.textContent=texto;
+        item.addEventListener("click",()=>{
+          window.ContractoUI.fecharModal();
+          const erro=errors.find(e=>texto.includes(e.field) || (e.message && texto.includes(e.message)));
+          irParaPendencia(erro || errors[0]);
+        });
+        lista.append(item);
+      });
+      wrap.append(intro,lista);
+      window.ContractoUI.abrirModal("Revise os campos pendentes",wrap,[{texto:"Fechar",primario:true}]);
+      irParaPendencia(errors[0],true);
     };
     return pending;
+  }
+  function irParaPendencia(erro, semFoco) {
+    // Fase 2 (DESIGN.md §7): a pendência navega até a página dela e foca o
+    // campo; o foco nativo já torna o campo visível (sem scrollIntoView).
+    if(!erro)return;
+    reviewing=true;
+    const alvo=targetForGlobal(erro);
+    const ctrl=alvo && controls.find(c=>c.input===alvo);
+    if(ctrl && usarPaginacao && paginas.length>1){
+      const pag=form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral");
+      const idx=paginas.indexOf(pag);
+      if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();atualizar();}
+    }
+    const destino=controls.map(c=>c.input).find(el=>el===alvo) || alvo;
+    if(destino && destino.focus && !semFoco){destino.focus();}
+  }
+  function targetForGlobal(e) {
+    return controls.find(c=>c.id===form().canonical(e.field)&&!c.wrap.hidden&&(!e.participant||e.participant===c.index+1||c.field.escopo==="global"))?.input || $(e.field.replaceAll("_","-"));
   }
   async function selecionar(ids) {
     if(busy())return;
     const isSimple = mode === "simples";
     const finalIds = isSimple ? ids : (ids[0] ? [ids[0]] : []);
+    // Foto 10: guarda a última composição válida; se a nova falhar (ex.
+    // conflito 409), restaura em vez de zerar os campos.
+    const anterior = {selected, fields, maximum, paginas, paginaAtual, usarPaginacao, agrupamento, composed};
     changed(); const request=++compositionRevision; selected=finalIds; composing=!!finalIds.length; composed=false;
     atualizar();
     if(!finalIds.length){fields=[];render();return;}
@@ -302,7 +400,11 @@
     if(request!==compositionRevision)return;
     composing=false;
     if(r.status!==200){
-      issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos."}];
+      selected=anterior.selected; fields=anterior.fields; maximum=anterior.maximum;
+      paginas=anterior.paginas; paginaAtual=anterior.paginaAtual;
+      usarPaginacao=anterior.usarPaginacao; agrupamento=anterior.agrupamento;
+      composed=anterior.composed;
+      issues=[{field:"Formulários",message:r.data?.message || "Falha ao carregar campos. Seleção anterior mantida."}];
       if (r.status === 409 && finalIds.length > 1) {
         // Bloco 4: conflito no modo simples — mesmo id com tipos/opções distintos.
         const nomes = finalIds.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || id) : id; });
@@ -314,8 +416,12 @@
         dica.textContent = "Ajuste um dos nomes internos nas configurações de perfis ou selecione formulários compatíveis.";
         detalhe.append(intro, dica);
         window.ContractoUI.abrirModal("Conflito entre formulários", detalhe, [{texto: "Entendi", primario: true}]);
+      } else if (!anterior.composed) {
+        window.ContractoUI.toast(r.data?.message || "Falha ao carregar campos.", "error");
+      } else {
+        window.ContractoUI.toast("Seleção incompatível — mantidos os formulários anteriores.", "warning");
       }
-      fields=[]; paginas=[]; usarPaginacao=false; composed=false; render();
+      render();
       return;
     }
     fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
@@ -324,53 +430,116 @@
     if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
+  function mostrarCarregamentoModelos(texto) {
+    const lista = $("lista-formularios"), seletor = $("seletor-modelos");
+    if (seletor) { seletor.replaceChildren(); seletor.setAttribute("aria-busy", "true"); }
+    if (!lista) return;
+    lista.replaceChildren();
+    lista.setAttribute("aria-busy", "true");
+    const status = document.createElement("div");
+    status.className = "loading-status";
+    status.setAttribute("role", "status");
+    const giro = document.createElement("span");
+    giro.className = "spinner";
+    giro.setAttribute("aria-hidden", "true");
+    const msg = document.createElement("span");
+    msg.textContent = texto || "Buscando modelos…";
+    status.append(giro, msg);
+    const skel = document.createElement("div");
+    skel.className = "skeleton";
+    skel.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 3; i++) skel.append(document.createElement("span"));
+    lista.append(status, skel);
+  }
+  function mostrarErroModelos() {
+    const lista = $("lista-formularios");
+    if (!lista) return;
+    lista.replaceChildren();
+    lista.removeAttribute("aria-busy");
+    const box = document.createElement("div");
+    box.className = "modelos-erro";
+    const msg = document.createElement("span");
+    msg.setAttribute("role", "alert");
+    msg.textContent = "Não foi possível carregar os modelos. Verifique a conexão com o serviço local.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.id = "btn-recarregar-modelos";
+    retry.className = "btn btn-secondary btn-sm";
+    retry.textContent = "↻ Tentar novamente";
+    retry.addEventListener("click", carregar);
+    box.append(msg, retry);
+    lista.append(box);
+  }
+  function finalizarCarregamentoModelos() {
+    ["lista-formularios", "seletor-modelos"].forEach(id => {
+      const el = $(id);
+      if (el) el.removeAttribute("aria-busy");
+    });
+  }
   async function carregar() {
+    mostrarCarregamentoModelos();
     const r=await window.ContractoAPI.request("GET","/api/v1/profiles");
-    if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];atualizar();return;}
+    if(r.status!==200){issues=[{field:"Formulários",message:"Não foi possível carregar o catálogo."}];mostrarErroModelos();atualizar();return;}
     catalog=r.data;loaded=true;
     renderProfilesList();
     const defaultProfile = catalog.find(p=>p.mode === "contrato") || catalog[0];
     await selecionar(mode === "simples" ? [] : (defaultProfile?.profile_id ? [defaultProfile.profile_id] : []));
   }
+  const NOMES_EXIBICAO = { "Seguro": "Form Seguro" };
+  const nomeExibicao = (p) => NOMES_EXIBICAO[p.name] || NOMES_EXIBICAO[p.nome] || p.name || p.nome || p.profile_id;
   function renderProfilesList() {
     $("lista-formularios").replaceChildren();
+    finalizarCarregamentoModelos();
     const isSimple = mode === "simples";
     const todosWrap = $("wrapper-selecionar-todos");
     const explicacao = $("modo-explicacao");
     const titulo = $("titulo-selecao-secao");
-    if(todosWrap) todosWrap.hidden = !isSimple;
+    if(todosWrap) { todosWrap.hidden = !isSimple; todosWrap.style.textAlign = "right"; }
     if(titulo) titulo.textContent = isSimple ? "Formulários simples" : "Modelo de contrato";
     if(explicacao) explicacao.innerHTML = isSimple ? "No modo <strong>Simples</strong> selecione um ou mais formulários em lote." : "No modo <strong>Contrato</strong> escolha apenas 1 contrato.";
     const filtrados = catalog.filter(p => isSimple ? (p.mode === "formulario_simples" || catalog.every(item => item.mode !== "formulario_simples")) : (p.mode === "contrato" || catalog.every(item => item.mode !== "contrato")));
     if(!filtrados.length){
       const msg = document.createElement("p"); msg.className="hint"; msg.textContent="Nenhum perfil disponível para este modo."; $("lista-formularios").append(msg); return;
     }
-    // Até 2 modelos em botões; mais que 2 vira seletor de lista (Contrato).
-    const usarSeletorLista = !isSimple && filtrados.length > 2;
-    if (usarSeletorLista) {
+    // Foto 2: no modo Contrato os modelos são botões lado a lado (sem radio
+    // nativo, sem linha inteira); o Simples mantém checkboxes p/ multisseleção.
+    const seletor = $("seletor-modelos");
+    if (!isSimple) {
+      if (seletor) seletor.hidden = false;
+      $("lista-formularios").replaceChildren();
       renderSeletorLista(filtrados, isSimple);
       return;
     }
+    if (seletor) { seletor.replaceChildren(); seletor.hidden = true; }
+    const grid = document.createElement("div");
+    grid.className = "forms-grid";
     filtrados.forEach(p=>{
       const label=document.createElement("label");
+      label.className = "form-card";
       const input=document.createElement("input");
-      input.type = isSimple ? "checkbox" : "radio";
-      input.name = isSimple ? "" : "profile-radio";
+      input.type = "checkbox";
       input.value=p.profile_id;
       input.checked=selected.includes(p.profile_id);
       input.addEventListener("change",()=>{
         if(busy()){input.checked=!input.checked;return;}
-        if(isSimple){
-          selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value));
-        }else{
-          selecionar(input.checked ? [p.profile_id] : []);
-        }
+        selecionar([...grid.querySelectorAll("input:checked")].map(el=>el.value));
       });
-      label.append(input,document.createTextNode(" "+p.name));
-      $("lista-formularios").append(label);
+      const corpo = document.createElement("span");
+      corpo.className = "form-card-corpo";
+      const nome = document.createElement("strong");
+      nome.textContent = nomeExibicao(p);
+      const meta = document.createElement("span");
+      meta.className = "hint";
+      const nCampos = (p.fields || []).length;
+      meta.textContent = (p.max_participants > 1 ? "Até " + p.max_participants + " participantes" : "1 participante") + (nCampos ? " · " + nCampos + " campos" : "");
+      corpo.append(nome, meta);
+      label.append(input, corpo);
+      grid.append(label);
     });
-    const search=$("buscar-perfis");
-    if(search&&!search.dataset.ligado){search.dataset.ligado="1";search.addEventListener("input",()=>renderProfilesList());}
+    $("lista-formularios").append(grid);
+    // Fase 0: #buscar-perfis pertence à tela Perfis e já é gerenciado por
+    // ligar()/carregarTelaPerfis() via renderProfilesManagement. Amarrá-lo
+    // aqui a renderProfilesList() disparava dois renders conflitantes.
   }
 
   function renderSeletorLista(filtrados, isSimple) {
@@ -379,15 +548,15 @@
     host.replaceChildren();
     const count = document.createElement("span");
     count.className = "seletor-count";
-    count.textContent = filtrados.length + " modelo" + (filtrados.length !== 1 ? "s" : ""); ;
+    count.textContent = filtrados.length + " modelo" + (filtrados.length !== 1 ? "s" : "");
+    host.append(count);
     filtrados.forEach(p => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "seletor-item";
       btn.value = p.profile_id;
       btn.setAttribute("aria-pressed", selected.includes(p.profile_id) ? "true" : "false");
-      const label = document.createTextNode(p.name);
-      btn.append(label, count.cloneNode(true));
+      btn.textContent = (typeof nomeExibicao === "function" ? nomeExibicao(p) : (p.name || p.profile_id));
       btn.addEventListener("click", () => {
         if (busy()) return;
         if (isSimple) {
@@ -409,6 +578,9 @@
     if(atualizar().length||busy())return;
     const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
     const r=await window.ContractoEtapa2.gerar(snapshot);
+    // Foto 1: não prender na Conferência — com o trabalho aceito, avança
+    // para Revisar documentos onde o andamento é visível.
+    if(r && r.status===202){window.ContractoUI.mostrarTela("etapa2");return;}
     if(r && r.status!==202){issues=r.data?.issues?.length ? r.data.issues : [{field:"Geração",message:r.data?.message || "Não foi possível gerar."}];atualizar();window.ContractoUI.toast(r.data?.message || "Confira os campos indicados.","error");controls.find(c=>c.input.hasAttribute("aria-invalid")&&!c.wrap.hidden)?.input.focus();}
   }
   function abrirCalendario(input) {
@@ -421,8 +593,9 @@
     overlay.innerHTML = `
       <div class="calendario-card">
         <div class="calendario-header">
-          <button type="button" class="cal-btn" data-acao="prev">◄</button>
+          <button type="button" class="cal-btn" data-acao="prev" aria-label="Mês anterior">◄</button>
           <strong id="cal-mes-ano">${months[month]} ${year}</strong>
+          <button type="button" class="cal-btn" data-acao="next" aria-label="Próximo mês">►</button>
           <button type="button" class="cal-btn cal-fechar" data-acao="fechar">✕</button>
         </div>
         <div class="cal-dias-semana">
@@ -507,31 +680,33 @@
     const container = $("corpo-conferencia");
     if (container) {
       container.replaceChildren();
-      const nomes = selected.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || p.nome || id) : id; });
-      const infoBox = document.createElement("div");
-      const titulo = document.createElement("div");
-      const forte = document.createElement("strong");
-      forte.style.fontSize = "16px"; forte.textContent = "Modelos selecionados:";
-      const lista = document.createElement("p");
-      lista.className = "hint"; lista.textContent = nomes.join(", ");
-      titulo.append(forte, lista); infoBox.className = "card-header"; infoBox.append(titulo);
-      container.appendChild(infoBox);
-
+      const nomes = selected.map(id => { const p = catalog.find(x => x.profile_id === id); const cru = p ? (p.name || p.nome || id) : id; return (typeof nomeExibicao === "function" && p) ? nomeExibicao(p) : cru; });
+      const resumoTopo = document.createElement("div");
+      resumoTopo.className = "conf-resumo";
+      const modelosBox = document.createElement("div");
+      modelosBox.className = "conf-bloco";
+      const hMod = document.createElement("h3"); hMod.textContent = "Modelos selecionados (" + nomes.length + ")";
+      const chips = document.createElement("div"); chips.className = "conf-chips";
+      nomes.forEach(n=>{ const c=document.createElement("span"); c.className="section-tag"; c.textContent=n; chips.append(c); });
+      modelosBox.append(hMod, chips);
+      const destBox = document.createElement("div");
+      destBox.className = "conf-bloco";
+      const hDest = document.createElement("h3"); hDest.textContent = "Assinatura e destino";
       const dl = document.createElement("dl");
-      dl.className = "field-grid";
-      dl.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
-      dl.style.margin = "16px 0";
-      [["Data da assinatura", draft.globals.data_assinatura || "Não informada"],
-       ["Local da assinatura", draft.globals.local_assinatura || "Não informado"],
-       ["Salvar em", $("pasta-saida")?.value || "Nenhuma pasta selecionada"]
+      dl.className = "conf-grid";
+      [["Data da assinatura", draft.globals.data_assinatura || "—"],
+       ["Local da assinatura", draft.globals.local_assinatura || "—"],
+       ["Salvar em", $("pasta-saida")?.value || "—"],
+       ["Participantes", draft.people.length + " de " + maximum]
       ].forEach(([rot, val]) => {
-        const dt = document.createElement("dt");
-        const b = document.createElement("strong"); b.textContent = rot + ": ";
-        dt.append(b, document.createTextNode(val));
-        container.appendChild(dl);
-        dl.append(dt);
+        const wrap = document.createElement("div"); wrap.className = "conf-item";
+        const dt = document.createElement("dt"); dt.textContent = rot;
+        const dd = document.createElement("dd"); dd.textContent = val;
+        wrap.append(dt, dd); dl.append(wrap);
       });
-      container.appendChild(dl);
+      destBox.append(hDest, dl);
+      resumoTopo.append(modelosBox, destBox);
+      container.appendChild(resumoTopo);
 
       // Agrupa campos por página/seção.
       const porPagina = {};
@@ -540,20 +715,45 @@
         const chave = form().paginaDe ? form().paginaDe(f, agrupamento) : (f.aba || "Geral");
         (porPagina[chave] = porPagina[chave] || []).push(f);
       });
+      const HUMAN_CONF = (v) => {
+        if (v === true || v === "SIM") return "Sim";
+        if (v === false || v === "NÃO" || v === "NAO") return "Não";
+        if (!v) return "—";
+        const mapa = { "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito", "CANCELAR_DEBITO": "Cancelar débito", "DESCONHECO_POSSUIR": "Desconheço possuir", "DECLARO_POSSUIR": "Declaro possuir" };
+        return mapa[v] || String(v);
+      };
+      // Globais compartilhados também aparecem na conferência.
+      const globaisConf = fields.filter(f=>f.escopo === "global" && !["data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
+      if (globaisConf.length) {
+        const gBox = document.createElement("div");
+        gBox.className = "conferencia-secao conf-participante";
+        const hG = document.createElement("h3"); hG.textContent = "Dados compartilhados";
+        const gridG = document.createElement("div"); gridG.className = "conf-grid";
+        globaisConf.forEach(f=>{
+          const id = form().canonical(f.id);
+          const val = draft.globals[id];
+          if (val === undefined || String(val ?? "").trim() === "") return;
+          const wrap=document.createElement("div"); wrap.className="conf-item";
+          const dt=document.createElement("dt"); dt.textContent=(f.rotulo||id);
+          const dd=document.createElement("dd"); dd.textContent=HUMAN_CONF(val);
+          wrap.append(dt,dd); gridG.append(wrap);
+        });
+        if (gridG.children.length) { gBox.append(hG, gridG); container.appendChild(gBox); }
+      }
       draft.people.forEach((p, idx) => {
-        const pBox = document.createElement("fieldset");
-        pBox.className = "field-section";
-        const legend = document.createElement("legend");
+        const pBox = document.createElement("div");
+        pBox.className = "conferencia-secao conf-participante";
+        const legend = document.createElement("h3");
         const nomeP = p.nome_completo || ("Participante " + (idx + 1));
         legend.textContent = (idx ? "Participante " + (idx + 1) : "Participante principal") + " — " + nomeP;
         pBox.appendChild(legend);
         const base = document.createElement("div");
-        base.className = "field-grid";
-        [["Nome", p.nome_completo || "Pendente"], ["CPF", p.cpf || "Pendente"]].forEach(([rot, val]) => {
-          const item = document.createElement("div");
-          const b = document.createElement("strong"); b.textContent = rot + ": ";
-          item.append(b, document.createTextNode(val));
-          base.append(item);
+        base.className = "conf-grid";
+        [["Nome", p.nome_completo || "—"], ["CPF", p.cpf || "—"]].forEach(([rot, val]) => {
+          const wrap = document.createElement("div"); wrap.className = "conf-item";
+          const dt = document.createElement("dt"); dt.textContent = rot;
+          const dd = document.createElement("dd"); dd.textContent = val;
+          wrap.append(dt, dd); base.append(wrap);
         });
         pBox.appendChild(base);
         Object.entries(porPagina).forEach(([pagina, listaCampos]) => {
@@ -565,15 +765,15 @@
           });
           if (!visiveis.length) return;
           const secao = document.createElement("div");
-          secao.className = "conferencia-secao";
-          const h = document.createElement("h3"); h.textContent = pagina;
-          const grid = document.createElement("div"); grid.className = "field-grid";
+          secao.className = "conf-subsecao";
+          const h = document.createElement("h4"); h.textContent = pagina;
+          const grid = document.createElement("div"); grid.className = "conf-grid";
           visiveis.forEach(f => {
             const id = form().canonical(f.id);
-            const item = document.createElement("div");
-            const b = document.createElement("strong"); b.textContent = (f.rotulo || id) + ": ";
-            item.append(b, document.createTextNode(String(p[id])));
-            grid.append(item);
+            const wrap = document.createElement("div"); wrap.className = "conf-item";
+            const dt = document.createElement("dt"); dt.textContent = (f.rotulo || id);
+            const dd = document.createElement("dd"); dd.textContent = HUMAN_CONF(p[id]);
+            wrap.append(dt, dd); grid.append(wrap);
           });
           secao.append(h, grid);
           pBox.appendChild(secao);
@@ -599,6 +799,13 @@
     window.ContractoUI.mostrarTela("conferir");
   }
 
+  function preservarAtivo() {
+    // Fase 0: espelha o legado (chk_preservar_dados): quando marcado, o reset
+    // mantém pessoas + assinatura/destino; caso contrário, limpa tudo.
+    try { return localStorage.getItem("contracto-preservar") === "1"; }
+    catch (_) { return !!$("chk-preservar-dados")?.checked; }
+  }
+
   function novoTrabalho() {
     window.ContractoUI.abrirModal(
       "Iniciar novo trabalho",
@@ -608,13 +815,19 @@
           texto: "Preservar destino e data",
           aoClicar: () => {
             window.ContractoEtapa2?.recomecar?.();
-            draft.people = [{ nome_completo: "", cpf: "" }];
-            draft.globals.data_assinatura = "";
-            draft.globals.local_assinatura = "";
-            draft.output_id = null;
-            $("pasta-saida").value = "";
-            selected = []; fields = []; composed = false;
-            changed(); render();
+            if (preservarAtivo()) {
+              // Mantém pessoas e assinatura/destino; descarta só o trabalho.
+              selected = []; fields = []; composed = false;
+              changed(); render();
+            } else {
+              draft.people = [{ nome_completo: "", cpf: "" }];
+              draft.globals.data_assinatura = "";
+              draft.globals.local_assinatura = "";
+              draft.output_id = null;
+              $("pasta-saida").value = "";
+              selected = []; fields = []; composed = false;
+              changed(); render();
+            }
             window.ContractoUI.mostrarTela("inicio");
           }
         },
@@ -624,6 +837,14 @@
   }
 
   function limparCampos() {
+    if (preservarAtivo()) {
+      // Preservar ligado: mantém o preenchimento; só invalida o trabalho
+      // gerado para que "Gerar" reflita o estado atual.
+      window.ContractoEtapa2?.invalidar?.();
+      window.ContractoEtapa2.atualizar();
+      window.ContractoUI.toast("Preservar dados ativo: preenchimento mantido.", "info");
+      return;
+    }
     draft.people = [{nome_completo:"",cpf:""}];
     draft.globals.data_assinatura = "";
     draft.globals.local_assinatura = "";
@@ -640,10 +861,19 @@
   }
 
   function ligar() {
+    // Pinta o skeleton imediatamente: a ponte pode levar segundos no boot.
+    mostrarCarregamentoModelos();
     const btnNovoTrabalho = $("btn-novo-trabalho");
     if (btnNovoTrabalho) btnNovoTrabalho.addEventListener("click", novoTrabalho);
     const btnLimparCampos = $("btn-limpar-campos");
     if (btnLimparCampos) btnLimparCampos.addEventListener("click", limparCampos);
+    const chkPreservar = $("chk-preservar-dados");
+    if (chkPreservar) {
+      try { chkPreservar.checked = localStorage.getItem("contracto-preservar") === "1"; } catch (_) {}
+      chkPreservar.addEventListener("change", () => {
+        try { localStorage.setItem("contracto-preservar", chkPreservar.checked ? "1" : "0"); } catch (_) {}
+      });
+    }
     $("btn-gerar").addEventListener("click", conferir);
     const todos=$("btn-selecionar-todos");
     if(todos)todos.addEventListener("click",()=>{
@@ -675,6 +905,8 @@
     ["simples","contrato"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
       if(busy())return;mode=name;
       ["simples","contrato"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
+      $("modo-conversao")?.removeAttribute("aria-current");
+      window.ContractoUI.mostrarTela("inicio");
       selected=[];fields=[];composed=false;maximum=1;
       renderProfilesList();
       if(mode === "contrato") {
@@ -686,9 +918,13 @@
       window.ContractoEtapa2.atualizar();
     }));
     const btnNovoPerfil = $("btn-novo-perfil");
-    if (btnNovoPerfil) btnNovoPerfil.addEventListener("click", novoPerfilModal);
+    if (btnNovoPerfil && !btnNovoPerfil.dataset.ligado) { btnNovoPerfil.dataset.ligado = "1"; btnNovoPerfil.addEventListener("click", novoPerfilModal); }
     const btnImpPerfil = $("btn-importar-perfil");
-    if (btnImpPerfil) btnImpPerfil.addEventListener("click", importarPerfilModal);
+    if (btnImpPerfil && !btnImpPerfil.dataset.ligado) { btnImpPerfil.dataset.ligado = "1"; btnImpPerfil.addEventListener("click", importarPerfilModal); }
+    const btnBackup = $("btn-backup-perfis");
+    if (btnBackup && !btnBackup.dataset.ligado) { btnBackup.dataset.ligado = "1"; btnBackup.addEventListener("click", backupPerfis); }
+    const btnRestore = $("btn-restaurar-perfis");
+    if (btnRestore && !btnRestore.dataset.ligado) { btnRestore.dataset.ligado = "1"; btnRestore.addEventListener("click", restaurarPerfis); }
     const busqPerfil = $("buscar-perfis");
     if (busqPerfil && !busqPerfil.dataset.gerenciado) {
       busqPerfil.dataset.gerenciado = "1";
@@ -777,36 +1013,35 @@
       titleGroup.append(title, badge);
 
       const actionsGroup = document.createElement("div");
-      actionsGroup.style.display = "flex";
-      actionsGroup.style.gap = "6px";
-      actionsGroup.style.flexWrap = "wrap";
-
-      const btnDup = document.createElement("button");
-      btnDup.type = "button";
-      btnDup.className = "btn btn-secondary";
-      btnDup.textContent = "Duplicar";
-      btnDup.addEventListener("click", () => duplicarPerfilModal(p));
-
+      actionsGroup.className = "profile-actions";
+      const btnAtivar = document.createElement("button");
+      btnAtivar.type = "button";
+      btnAtivar.className = "btn btn-primary btn-sm";
+      btnAtivar.textContent = "Ativar";
+      btnAtivar.addEventListener("click", () => ativarPerfil(p.nome || p.name));
       const btnEdt = document.createElement("button");
       btnEdt.type = "button";
-      btnEdt.className = "btn btn-secondary";
+      btnEdt.className = "btn btn-secondary btn-sm";
       btnEdt.textContent = "Editar";
       btnEdt.addEventListener("click", () => editarPerfilModal(p));
-
-      const btnExp = document.createElement("button");
-      btnExp.type = "button";
-      btnExp.className = "btn btn-secondary";
-      btnExp.textContent = "Exportar";
-      btnExp.addEventListener("click", () => exportarPerfilModal(p));
-
-      const btnExc = document.createElement("button");
-      btnExc.type = "button";
-      btnExc.className = "btn btn-secondary";
-      btnExc.style.color = "var(--color-error, #d93025)";
-      btnExc.textContent = "Excluir";
-      btnExc.addEventListener("click", () => excluirPerfilModal(p));
-
-      actionsGroup.append(btnDup, btnEdt, btnExp, btnExc);
+      const menu = document.createElement("details");
+      menu.className = "profile-menu";
+      const sum = document.createElement("summary");
+      sum.className = "btn btn-secondary btn-sm";
+      sum.textContent = "Mais ações";
+      menu.append(sum);
+      const menuBox = document.createElement("div");
+      menuBox.className = "profile-menu-box";
+      [["Duplicar", () => duplicarPerfilModal(p)], ["Exportar", () => exportarPerfilModal(p)], ["Excluir", () => excluirPerfilModal(p)]].forEach(([rot, fn])=>{
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "btn btn-secondary btn-sm";
+        b.textContent = rot;
+        if (rot === "Excluir") b.classList.add("btn-danger");
+        b.addEventListener("click", ()=>{ menu.open = false; fn(); });
+        menuBox.append(b);
+      });
+      menu.append(menuBox);
+      actionsGroup.append(btnAtivar, btnEdt, menu);
       header.append(titleGroup, actionsGroup);
 
       const details = document.createElement("p");
@@ -823,13 +1058,21 @@
   function duplicarPerfilModal(p) {
     const nomeAtual = p.nome || p.name;
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Digite o nome para a cópia do perfil "${nomeAtual}":</p>
-      <div class="field" style="margin-top:10px;">
-        <label for="dup-nome-input">Novo nome</label>
-        <input id="dup-nome-input" value="${nomeAtual} (Cópia)" autocomplete="off">
-      </div>
-    `;
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Digite o nome para a cópia do perfil "${nomeAtual}":`;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const rotulo = document.createElement("label");
+    rotulo.htmlFor = "dup-nome-input";
+    rotulo.textContent = "Novo nome";
+    const entrada = document.createElement("input");
+    entrada.id = "dup-nome-input";
+    entrada.autocomplete = "off";
+    entrada.value = nomeAtual + " (Cópia)";
+    campo.append(rotulo, entrada);
+    wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Duplicar perfil", wrap, [
       { texto: "Cancelar", primario: false },
       {
@@ -873,12 +1116,21 @@
   function exportarPerfilModal(p) {
     const jsonStr = JSON.stringify(p, null, 2);
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Copie o JSON do perfil "${p.nome || p.name}":</p>
-      <div class="field" style="margin-top:10px;">
-        <textarea id="json-export-area" rows="12" readonly style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
-      </div>
-    `;
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Copie o JSON do perfil "${p.nome || p.name}":`;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const area = document.createElement("textarea");
+    area.id = "json-export-area";
+    area.rows = 12;
+    area.readOnly = true;
+    area.style.fontFamily = "monospace";
+    area.style.fontSize = "0.85rem";
+    area.value = jsonStr;
+    campo.append(area);
+    wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Exportar perfil", wrap, [
       {
         texto: "Copiar JSON",
@@ -985,12 +1237,44 @@
   function editarPerfilModal(p) {
     const jsonStr = JSON.stringify(p, null, 2);
     const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <p class="hint">Edite as propriedades JSON do perfil "${p.nome || p.name}":</p>
-      <div class="field" style="margin-top:10px;">
-        <textarea id="edit-json-area" rows="12" style="font-family:monospace; font-size:0.85rem;">${jsonStr}</textarea>
-      </div>
+    const dica = document.createElement("p");
+    dica.className = "hint";
+    dica.textContent = `Edite a identificação abaixo ou o JSON completo do perfil "${p.nome || p.name}":`;
+    // Fase 3: cabeçalho estruturado (identificação/modo/formato/participantes)
+    // para não exigir JSON em ajustes simples; mesclado ao salvar.
+    const grade = document.createElement("div");
+    grade.className = "field-grid";
+    grade.style.marginTop = "10px";
+    const modos = [["contrato", "Contrato Completo"], ["formulario_simples", "Formulário Simples"]];
+    const modoAtual = p.modo_fluxo || p.mode || "contrato";
+    if (!modos.some(([v]) => v === modoAtual)) modos.push([modoAtual, modoAtual]);
+    const formatos = ["PDF/A-2b", "PDF"];
+    const formatoAtual = p.formato_saida || "PDF/A-2b";
+    if (!formatos.includes(formatoAtual)) formatos.push(formatoAtual);
+    // Valores vindos do perfil nunca vão crus ao innerHTML (DESIGN.md §9).
+    const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    grade.innerHTML = `
+      <div class="field"><label for="edit-nome">Nome do perfil</label><input id="edit-nome" autocomplete="off"></div>
+      <div class="field"><label for="edit-modo">Modo de fluxo</label><select id="edit-modo">${modos.map(([v, r]) => `<option value="${esc(v)}">${esc(r)}</option>`).join("")}</select></div>
+      <div class="field"><label for="edit-formato">Formato de saída</label><select id="edit-formato">${formatos.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select></div>
+      <div class="field"><label for="edit-max">Máx. participantes</label><input id="edit-max" type="number" min="1" max="4"></div>
     `;
+    grade.querySelector("#edit-nome").value = p.nome || p.name || "";
+    grade.querySelector("#edit-modo").value = modoAtual;
+    grade.querySelector("#edit-formato").value = formatoAtual;
+    grade.querySelector("#edit-max").value = p.max_participantes || p.max_participants || 4;
+    const campo = document.createElement("div");
+    campo.className = "field";
+    campo.style.marginTop = "10px";
+    const area = document.createElement("textarea");
+    area.id = "edit-json-area";
+    area.rows = 12;
+    area.style.fontFamily = "monospace";
+    area.style.fontSize = "0.85rem";
+    area.value = jsonStr;
+    area.setAttribute("aria-label", "JSON completo do perfil");
+    campo.append(area);
+    wrap.append(dica, grade, campo);
     window.ContractoUI.abrirModal("Editar perfil", wrap, [
       { texto: "Cancelar", primario: false },
       {
@@ -1000,6 +1284,14 @@
           const text = wrap.querySelector("#edit-json-area").value.trim();
           try {
             const parsed = JSON.parse(text);
+            const nomeCabecalho = wrap.querySelector("#edit-nome").value.trim();
+            if (nomeCabecalho) { parsed.nome = nomeCabecalho; parsed.name = nomeCabecalho; }
+            parsed.modo_fluxo = wrap.querySelector("#edit-modo").value;
+            parsed.mode = wrap.querySelector("#edit-modo").value;
+            parsed.formato_saida = wrap.querySelector("#edit-formato").value;
+            const max = parseInt(wrap.querySelector("#edit-max").value || "4", 10);
+            parsed.max_participantes = Math.min(4, Math.max(1, max || 4));
+            parsed.max_participants = parsed.max_participantes;
             const nomeOriginal = p.nome || p.name;
             const r = await window.ContractoAPI.updateProfile(nomeOriginal, parsed);
             if (r.status === 200) {
@@ -1016,16 +1308,43 @@
     ]);
   }
 
-  function revisar() {
-    const btn=$("btn-ver-pendencias");
-    if(btn && !btn.hidden){btn.click();return;}
-    atualizar();
-    window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
+  async function ativarPerfil(nome) {
+    const r = await window.ContractoAPI.activateProfile(nome);
+    if (r.status === 200) {
+      window.ContractoUI.toast(`Perfil "${nome}" ativado.`, "success");
+      await carregarTelaPerfis();
+    } else {
+      window.ContractoUI.toast(r.data?.message || "Não foi possível ativar o perfil.", "error");
+    }
+  }
+  async function backupPerfis() {
+    const r = await window.ContractoAPI.backupSystem();
+    if (r.status === 200) window.ContractoUI.toast(`Backup criado (${r.data.name}).`, "success");
+    else window.ContractoUI.toast(r.data?.message || "Não foi possível criar o backup.", "error");
+  }
+  async function restaurarPerfis() {
+    const sel = await window.ContractoAPI.selectBackup();
+    if (!sel || sel.cancelled) return;
+    if (!sel.selection_id) { window.ContractoUI.toast("Não foi possível selecionar o backup.", "error"); return; }
+    const r = await window.ContractoAPI.restoreSystem(sel.selection_id);
+    if (r.status === 200) {
+      window.ContractoUI.toast("Backup restaurado. Recarregando perfis.", "success");
+      await carregar();
+      await carregarTelaPerfis();
+    } else {
+      window.ContractoUI.toast(r.data?.message || "Backup inválido.", "error");
+    }
+  }
+
+  // Skeleton visível antes mesmo da ponte: evita o texto morto no arranque.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!catalog.length && $("lista-formularios") && !$("lista-formularios").children.length) mostrarCarregamentoModelos();
+    });
   }
   window.ContractoEtapa1={
     ligar,
     atualizar,
-    revisar,
     conferir,
     novoTrabalho,
     carregarTelaPerfis,

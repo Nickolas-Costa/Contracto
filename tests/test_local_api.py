@@ -54,6 +54,10 @@ class TestLocalAPI(unittest.TestCase):
         self.assertEqual(error["code"], "request_conflict")
 
     def setUp(self):
+        # Mesmo isolamento de test_p0_release: finalizadores de tkinter.font
+        # após testes Tk podem travar o worker do Uvicorn em json.dump.
+        import gc
+        gc.collect()
         self.temp = tempfile.TemporaryDirectory(prefix="contracto-api-test-")
         self.root = Path(self.temp.name)
         self.env = patch.dict(os.environ, {"APPDATA": self.temp.name, "LOCALAPPDATA": self.temp.name})

@@ -64,6 +64,10 @@ Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, hom
 
 ---
 
+## P0 de release (26/09/2026) — ADR 0023/0024
+
+Paridade P0 Tk→WebView implementada: PUT/DELETE de perfis no `LocalOnly`, backup/restore via `selection_id` backup `.zip`, ativar-perfil, settings (`tamanho_quadros`, `formato_saida`, restaurar padrões), ajuda 4 passos + Sobre + boas-vindas (`primeira_execucao`), validações cliente `CNPJ/CPF_CNPJ/PIS/EMAIL/TELEFONE/ANO`, `chk-preservar-dados` persistido e `VERSION` sincronizado (4.5.18). Cobertura em `tests/test_p0_release.py`. Tauri segue planejado sem código (ADR 0024) até o release WebView estabilizar.
+
 ## Próximos Passos (Pós v4.5.18)
 
 > **Atualização em 20/09/2026:** os blocos 0–6 do plano residual foram implementados na branch `fix/ui-escopos-validacao` e a suíte completa (362 testes) passa. Resta apenas o gate final Windows/distribuição.

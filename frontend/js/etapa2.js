@@ -10,36 +10,40 @@
   const originLabel={generated:"Gerado pelo Contracto",attachment:"Anexo do trabalho",imported:"PDF importado"};
 
   function status(state,message,detail="") {
+    // Foto 1: sem pill na toolbar — o andamento aparece em toast/modal.
     $("estado-trabalho").dataset.state=state;
     $("fila-status").textContent=message;
     $("fila-detalhe").textContent=detail;
     const summary=$("manifesto-status");
     if(summary)summary.textContent=message+(detail ? " — "+detail : "");
-    const badge=$("indicador-fila-global");
-    if(badge) {
-      if(state==="running"||state==="queued"||state==="sending") {
-        badge.hidden=false;
-        badge.dataset.state=state;
-        badge.textContent="⚡ "+message;
-      } else if(state==="completed") {
-        badge.hidden=false;
-        badge.dataset.state=state;
-        badge.textContent="✓ Concluído";
-      } else if(state==="failed" && (message.includes("Word") || detail.includes("Word"))) {
-        badge.hidden=false;
-        badge.dataset.state="failed";
-        badge.textContent="⚠️ Word travado";
-        alertaWordTravado();
-      } else {
-        badge.hidden=true;
-      }
+    if(state==="failed" && (message.includes("Word") || detail.includes("Word"))) {
+      alertaWordTravado();
     }
   }
 
   function alertaWordTravado() {
+    // Fase 2 (DESIGN.md §8): contagem real desde o aviso + ação prevista
+    // (reparo limitado ao processo filho); sem oferta de LibreOffice.
+    const corpo = document.createElement("div");
+    const p1 = document.createElement("p");
+    p1.textContent = "O Microsoft Word está demorando para converter os arquivos RTF.";
+    const tempo = document.createElement("p");
+    tempo.className = "hint";
+    tempo.setAttribute("role", "status");
+    const inicio = Date.now();
+    const tick = () => {
+      const s = Math.floor((Date.now() - inicio) / 1000);
+      tempo.textContent = "Aguardando há " + s + "s. O trabalho continua em segundo plano; fechar este aviso não cancela a conversão.";
+    };
+    tick();
+    const relogio = setInterval(() => { if (document.contains(tempo)) tick(); else clearInterval(relogio); }, 1000);
+    const p2 = document.createElement("p");
+    p2.className = "hint";
+    p2.textContent = "Você pode tentar forçar o encerramento do Word (só o processo da conversão) e reprocessar o trabalho.";
+    corpo.append(p1, tempo, p2);
     ui().abrirModal(
       "Aviso: Microsoft Word travado",
-      "<p>O Microsoft Word está demorando para converter os arquivos RTF.</p><p class='hint'>Você pode tentar forçar o encerramento do Word e reprocessar o trabalho.</p>",
+      corpo,
       [
         {
           texto: "Forçar encerramento do Word",
@@ -52,8 +56,9 @@
             }
           }
         },
-        { texto: "Fechar" }
-      ]
+        { texto: "Aguardar" }
+      ],
+      () => clearInterval(relogio)
     );
   }
 
@@ -127,7 +132,15 @@
     const revision=++previewRevision;
     let url=null,timeout=null;
     const panel=document.createElement("div"),message=document.createElement("p");panel.className="viewer-panel";message.className="viewer-message";message.setAttribute("role","status");message.textContent="Carregando PDF…";panel.append(message);
-    ui().abrirModal("Visualização — "+name,panel,[{texto:"Fechar"}],()=>{if(url)URL.revokeObjectURL(url);clearTimeout(timeout);});
+    ui().abrirModal("Visualização — "+name,panel,[
+      { texto: "Abrir no leitor padrão", aoClicar: async () => {
+        try { const r = await api().openFile(id); if (!r.ok) ui().toast("Não foi possível abrir no leitor padrão.", "error"); }
+        catch (_) { ui().toast("Falha ao abrir no leitor padrão.", "error"); }
+      } },
+      { texto: "Expandir", aoClicar: () => { document.querySelector(".modal")?.classList.toggle("modal-viewer-expandido"); } },
+      { texto: "Fechar", primario: true }
+    ],()=>{if(url)URL.revokeObjectURL(url);clearTimeout(timeout);});
+    document.querySelector(".modal")?.classList.add("modal-viewer");
     try {
       const res=await api().getFile(id);
       if(revision!==previewRevision)return;
@@ -157,17 +170,21 @@
           $("progresso-trabalho").hidden=true;active=null;busy=false;
           if(tipo==="generate"){
             receberBase(job);
+            ui().toast("PDFs gerados com sucesso. Revise os anexos ou conclua.", "success");
           } else {
             status("completed","Trabalho concluído com sucesso.","Documentos organizados na pasta de destino.");
             finalized=true;
             resultados(job.file_ids || job.result?.output_file_ids || [],job.job_id,job.files || job.result?.files || []);
+            modalConclusao(job.job_id);
           }
         } else if(job.status==="failed"){
           status("failed","Trabalho não concluído.",job.error || "Ocorreu um erro no processamento.");
+          ui().toast(job.error || "Ocorreu um erro no processamento.", "error", 8000);
           if (job.error?.includes("Word")) alertaWordTravado();
           $("progresso-trabalho").hidden=true;active=null;busy=false;
         } else if(job.status==="cancelled"){
           status("cancelled","Trabalho cancelado.","Nenhum documento foi alterado.");
+          ui().toast("Trabalho cancelado. Nenhum documento foi alterado.", "warning");
           $("progresso-trabalho").hidden=true;active=null;busy=false;
         }
       } else if(r.status===404){
@@ -189,6 +206,7 @@
     filaConhecida.unshift({job_id:jobId,tipo,status:"queued",progress:5,message:"Operação agendada…"});
     if(filaConhecida.length>8)filaConhecida.length=8;
     status("queued","Operação agendada…","Aguardando confirmação do servidor.");
+    ui().toast(tipo === "process" ? "Organização iniciada. Acompanhe em Revisar documentos." : "Geração iniciada. Acompanhe o andamento.", "info");
     $("progresso-trabalho").hidden=false;$("fila-barra").style.width="5%";
     atualizar();poll();
   }
@@ -248,8 +266,45 @@
     return [...rid].map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
+  // Fase 1 — paridade com SuccessModal/ConfirmModal do legado
+  // (success_modal.py / mw_etapa2.py:287): conclusão celebra com ações
+  // explícitas; ausência total de anexos pede confirmação antes de enviar.
+  function modalConclusao(jobId) {
+    ui().abrirModal("Trabalho concluído", "Documentos organizados na pasta de destino.", [
+      {
+        texto: "Abrir pasta", primario: true, aoClicar: async () => {
+          try { const r = await api().openResult(jobId); if (!r.ok) ui().toast("Não foi possível abrir a pasta.", "error"); }
+          catch (_) { ui().toast("Falha ao abrir pasta.", "error"); }
+        }
+      },
+      {
+        texto: "Ver documentos", aoClicar: () => {
+          window.ContractoUI.mostrarTela("etapa2");
+          document.getElementById("lista-resultados")?.scrollIntoView({ block: "center" });
+        }
+      },
+      { texto: "Concluir" }
+    ]);
+  }
+
   async function finalizar() {
     // Single-flight + idempotência (request_id): o segundo clique não duplica o processo.
+    if(busy||sending||!base||!online()||finalized)return;
+    if (!attachments.length) {
+      ui().abrirModal(
+        "Concluir sem anexos?",
+        "Nenhum anexo foi adicionado a este trabalho. Deseja concluir somente com os documentos gerados?",
+        [
+          { texto: "Voltar e anexar" },
+          { texto: "Concluir mesmo assim", primario: true, aoClicar: () => _prosseguirFinalizar() }
+        ]
+      );
+      return;
+    }
+    _prosseguirFinalizar();
+  }
+
+  async function _prosseguirFinalizar() {
     if(busy||sending||!base||!online()||finalized)return;
     const format=$("formato-saida").value;
     if(format==="PDF/A-2b"&&!capabilities?.ghostscript){ui().toast("PDF/A requer Ghostscript.","error");return;}
@@ -321,6 +376,8 @@
     $("btn-cancelar").addEventListener("click",cancelar);
     $("btn-retomar").addEventListener("click",retomar);
     $("btn-voltar").addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
+    const btnFila=$("btn-fila");
+    if(btnFila)btnFila.addEventListener("click",()=>painelFila());
     $("formato-saida").addEventListener("change",()=>{alterarProcesso();atualizar();});
     api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
   }
@@ -375,5 +432,15 @@
     atualizar();
   }
 
-  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,ocupado:()=>busy,temBase:()=>!!base};
+  function reconectar() {
+    // Fase 0: invocado pelo boot (app.js) quando a ponte cai e volta. Sem
+    // esta função o arranque caía no catch "interface não pôde ser
+    // inicializada". Reconsulta capacidades, retoma o polling se havia
+    // trabalho ativo e atualiza os controles.
+    api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
+    if(active)poll();
+    else atualizar();
+  }
+
+  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,ocupado:()=>busy,temBase:()=>!!base};
 })();

@@ -32,6 +32,12 @@
     return window.pywebview.api.open_result(jobId);
   }
 
+  async function openFile(fileId) {
+    if (!disponivel()) return { ok: false, code: "sem_ponte" };
+    if (window.pywebview.api.open_file) return window.pywebview.api.open_file(fileId);
+    return { ok: false, code: "unsupported" };
+  }
+
   async function getFile(fileId) {
     if (!disponivel()) return { ok: false, code: "sem_ponte" };
     const r = await window.pywebview.api.get_file(fileId);
@@ -63,6 +69,34 @@
   async function selectAttachment() {
     if (!disponivel()) return { code: "sem_ponte" };
     return window.pywebview.api.select_file();
+  }
+
+  async function selectBackup() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    if (window.pywebview.api.select_backup) return window.pywebview.api.select_backup();
+    return window.pywebview.api.select_file();
+  }
+
+  async function selectDocuments() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    if (window.pywebview.api.select_documents) return window.pywebview.api.select_documents();
+    return window.pywebview.api.select_file();
+  }
+
+  async function activateProfile(nome) {
+    return request("POST", "/api/v1/profiles/active", { nome });
+  }
+
+  async function backupSystem() {
+    return request("POST", "/api/v1/system/backup", {});
+  }
+
+  async function restoreSystem(selectionId) {
+    return request("POST", "/api/v1/system/restore", { selection_id: selectionId });
+  }
+
+  async function restoreSettings() {
+    return request("POST", "/api/v1/settings/restore", {});
   }
 
   async function getSettings() {
@@ -100,6 +134,7 @@
     selectFile,
     selectAttachment,
     openResult,
+    openFile,
     getFile,
     getJob,
     listJobs,
@@ -110,6 +145,12 @@
     createProfile,
     updateProfile,
     deleteProfile,
-    duplicateProfile
+    duplicateProfile,
+    selectBackup,
+    selectDocuments,
+    activateProfile,
+    backupSystem,
+    restoreSystem,
+    restoreSettings
   };
 })();

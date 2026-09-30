@@ -78,6 +78,46 @@ class ShellBridge:
     def select_output(self):
         return self._select("directory")
 
+    def select_backup(self):
+        if not self._authorized():
+            return {"code": "unauthorized_page"}
+        try:
+            path = self._dialogs.selecionar_backup()
+            if path is None:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            return {"selection_id": self._server.jobs.selections.register(path, "backup"), "name": path.name}
+        except Exception:
+            return {"code": "selection_failed"}
+
+    def select_documents(self):
+        """Multi-seleção de documentos para o modo Conversão (kind `convert`)."""
+        if not self._authorized():
+            return {"code": "unauthorized_page"}
+        try:
+            paths = self._dialogs.selecionar_documentos()
+            if not paths:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            items, rejected = [], 0
+            for path in paths:
+                try:
+                    items.append({"selection_id": self._server.jobs.selections.register(path, "convert"),
+                                  "name": path.name})
+                except Exception:
+                    rejected += 1
+            if not items:
+                return {"code": "selection_failed"}
+            result = {"selection_ids": [i["selection_id"] for i in items],
+                      "names": [i["name"] for i in items]}
+            if rejected:
+                result["rejected"] = rejected
+            return result
+        except Exception:
+            return {"code": "selection_failed"}
+
     def open_result(self, job_id):
         if not self._authorized():
             return {"ok": False, "code": "unauthorized_page"}
@@ -88,6 +128,27 @@ class ShellBridge:
             with contexto_log_api():
                 ok = abrir_pasta(path)
             return {"ok": ok, "code": "opened" if ok else "open_failed"}
+        except Exception:
+            return {"ok": False, "code": "result_unavailable"}
+
+    def open_file(self, file_id):
+        """Abre um PDF de seleção válida no leitor padrão do SO."""
+        if not self._authorized():
+            return {"ok": False, "code": "unauthorized_page"}
+        if not isinstance(file_id, str) or not re.fullmatch(r"[a-f0-9]{32}", file_id):
+            return {"ok": False, "code": "invalid_request"}
+        try:
+            from utils.files_fs import abrir_pasta
+            from utils.logger import contexto_log_api
+            import os
+            path = self._server.jobs.selections.resolve(file_id, "file")
+            if path.suffix.lower() != ".pdf":
+                return {"ok": False, "code": "unsupported_preview"}
+            with contexto_log_api():
+                if os.name == "nt":
+                    os.startfile(str(path))  # noqa: S606 - caminho de seleção validada
+                    return {"ok": True, "code": "opened"}
+                return {"ok": abrir_pasta(path), "code": "opened"}
         except Exception:
             return {"ok": False, "code": "result_unavailable"}
 

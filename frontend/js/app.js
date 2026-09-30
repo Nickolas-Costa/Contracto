@@ -13,15 +13,7 @@
     window.ContractoEtapa1?.atualizar();
     window.ContractoEtapa2?.atualizar();
   }
-  function mostrarCapacidades(caps) {
-    // Tela Config ("Recursos deste computador"): resumo humano, sem caminhos locais.
-    const el = document.getElementById("lista-capacidades");
-    if (!el || !caps) return;
-    const partes = ["PDF simples: " + (caps.pdf === false ? "indisponível" : "disponível"),
-      "Conversão Word (RTF): " + (caps.word ? "disponível" : "indisponível"),
-      "PDF/A (Ghostscript): " + (caps.ghostscript ? "disponível" : "indisponível")];
-    el.textContent = partes.join(" · ");
-  }
+
   function agendarReconexao() {
     clearTimeout(retryTimer);
     // O shell e a API são criados no mesmo processo. Uma espera progressiva
@@ -63,7 +55,6 @@
         try {
           const caps = await window.ContractoAPI.request("GET", "/api/v1/capabilities");
           if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);
-          if (caps.status === 200) mostrarCapacidades(caps.data);
         } catch (_) { /* sem capacidades: PDF/A segue desativado por segurança */ }
         // A conexão foi confirmada. A partir daqui, falhas da interface não
         // podem reiniciar a ponte HTTP nem se passar por erro de backend.
@@ -77,9 +68,14 @@
             ligado = true;
             window.ContractoEtapa2.ligar();
             window.ContractoEtapa1.ligar();
+            if (window.ContractoConversao) window.ContractoConversao.ligar();
           } else {
-            await window.ContractoEtapa1.reconectar();
-            window.ContractoEtapa2.reconectar();
+            // Fase 0: chamadas defensivas — se um módulo ainda não expuser
+            // reconectar (cache antigo), atualiza em vez de quebrar o boot.
+            if (window.ContractoEtapa1?.reconectar) await window.ContractoEtapa1.reconectar();
+            else window.ContractoEtapa1?.atualizar?.();
+            if (window.ContractoEtapa2?.reconectar) window.ContractoEtapa2.reconectar();
+            else window.ContractoEtapa2?.atualizar?.();
           }
         } catch (_) {
           window.ContractoUI?.toast("A interface não pôde ser inicializada corretamente. Feche e abra o Contracto novamente.", "error", 0);

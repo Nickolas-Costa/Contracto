@@ -19,12 +19,13 @@
       <button data-tela="perfis" type="button">Perfis</button>
     </nav>
     <div class="modos toolbar-mode" role="group" aria-label="Modo de geração">
-      <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Simples</button><button id="modo-contrato" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Contrato</button>
+      <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Simples</button><button id="modo-contrato" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Contrato</button><button id="modo-conversao" type="button" data-tooltip="Converta arquivos avulsos para PDF ou PDF/A-2b.">Conversão</button>
     </div>
-    <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
-    <span id="indicador-fila-global" class="queue-global-badge" hidden role="status"></span>
-    <button type="button" id="btn-ajuda-topo">Ajuda</button>
-    <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
+    <div class="toolbar-actions">
+      <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
+      <button type="button" id="btn-ajuda-topo">Ajuda</button>
+      <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
+    </div>
   </header>
 
   <ol class="stepper" id="stepper" aria-label="Etapas">
@@ -32,9 +33,7 @@
     <li class="step-divider" aria-hidden="true"></li>
     <li><button data-etapa="2" type="button"><span class="step-number">2</span>Conferir</button></li>
     <li class="step-divider" aria-hidden="true"></li>
-    <li><button data-etapa="3" type="button"><span class="step-number">3</span>Revisar documentos</button></li>
-    <li class="step-divider" aria-hidden="true"></li>
-    <li><button data-etapa="4" type="button"><span class="step-number">4</span>Enviar</button></li>
+    <li><button data-etapa="3" type="button"><span class="step-number">3</span>Concluir</button></li>
   </ol>
 
   <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
@@ -46,8 +45,11 @@
         <div class="card-header">
           <div><h2 id="titulo-selecao-secao">Seleção de modelo</h2><p class="hint" id="modo-explicacao">No modo <strong>Contrato</strong> escolha apenas 1 contrato.</p></div>
         </div>
-        <div id="seletor-modelos" class="modos-seletor" role="group" aria-label="Modelos disponíveis">Carregando modelos…</div>
-        <div id="lista-formularios" aria-label="Formulários disponíveis">Carregando formulários…</div>
+        <div id="seletor-modelos" class="modos-seletor" role="group" aria-label="Modelos disponíveis" aria-busy="true"></div>
+        <div id="lista-formularios" aria-label="Formulários disponíveis" aria-busy="true">
+          <div class="loading-status" role="status"><span class="spinner" aria-hidden="true"></span><span>Buscando modelos…</span></div>
+          <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
         <div id="wrapper-selecionar-todos" style="margin-top:10px;text-align:right" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
       </div>
       <div id="paginacao-form" class="paginacao-form" hidden></div>
@@ -83,7 +85,10 @@
       </div>
       <div class="acoes form-actions">
         <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
-        <button class="btn-link" id="btn-ver-pendencias" type="button" hidden>Revisar campos pendentes</button></div>
+        <div class="action-row">
+          <button class="btn btn-secondary btn-revisar" id="btn-ver-pendencias" type="button" hidden>⚠ Revisar campos pendentes</button>
+          <label class="checkbox-inline"><input type="checkbox" id="chk-preservar-dados"> Preservar dados após gerar</label>
+        </div></div>
         <button class="btn btn-secondary" id="btn-limpar-campos" type="button">Limpar campos</button>
         <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
       </div>
@@ -104,8 +109,8 @@
       </div>
     </section>
 
-    <section id="tela-etapa2" aria-label="Etapa 2" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Seu trabalho</p><h1>Revise os documentos.</h1><p class="hint">Confira os PDFs gerados antes de concluir a organização.</p></div></div>
+    <section id="tela-etapa2" aria-label="Concluir" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Etapa 3 — Conclusão</p><h1>Confira e conclua.</h1><p class="hint">Revise os PDFs gerados, anexe o que faltar e conclua a organização.</p></div></div>
       <div class="card process-card">
         <div class="card-header"><div><h2>Documentos deste trabalho</h2><p class="hint" id="manifesto-resumo"></p></div><span class="section-tag" id="manifesto-status">Aguardando geração</span></div>
         <div id="lista-anexos"></div>
@@ -143,6 +148,7 @@
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
           <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
+          <button class="btn btn-secondary" id="btn-fila" type="button">Fila</button>
           <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar ao formulário</button>
         </div>
       </div>
@@ -155,9 +161,8 @@
           <h1>Perfis de documentos</h1>
           <p class="hint">Gerencie, crie, duplique, edite, importe e exporte perfis de documentos em WebView.</p>
         </div>
-        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
-          <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
         </div>
       </div>
       <div class="card profiles-card">
@@ -176,6 +181,52 @@
       </div>
     </section>
 
+    <section id="tela-conversao" aria-label="Conversão de arquivos" hidden>
+      <div class="page-heading">
+        <div><p class="eyebrow">Arquivo avulso</p><h1>Converter documentos.</h1><p class="hint">Sem participantes nem perfis: escolha os arquivos, o formato, o nome e a pasta de saída.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><h2>Arquivos para converter</h2><p class="hint" id="conversao-capacidades">Conferindo recursos locais…</p></div></div>
+        <div id="drop-conversao" class="dropzone" role="button" tabindex="0" aria-label="Selecionar arquivos para converter">
+          <span class="dropzone-icone" aria-hidden="true">⇪</span>
+          <strong>Arraste para cá ou clique para anexar</strong>
+          <span class="hint">PDF, RTF, DOC e DOCX. O original nunca é alterado.</span>
+        </div>
+        <div id="lista-conversao"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><h2>Saída da conversão</h2><p class="hint">Vale para todos os arquivos da lista.</p></div></div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="conversao-formato">Formato de saída</label>
+            <select id="conversao-formato">
+              <option value="PDF">PDF</option>
+              <option value="PDF/A-2b">PDF/A-2b</option>
+            </select>
+            <p class="field-note" id="conversao-formato-nota"></p>
+          </div>
+          <div class="field">
+            <label for="conversao-nome">Nome do arquivo (só com 1 arquivo)</label>
+            <input id="conversao-nome" autocomplete="off" placeholder="Opcional — mantém o original">
+          </div>
+          <div class="field field-wide">
+            <label for="conversao-pasta">Salvar convertidos em *</label>
+            <div class="folder-picker"><input id="conversao-pasta" readonly placeholder="Nenhuma pasta selecionada">
+            <button class="btn btn-secondary" id="btn-conversao-pasta" type="button">Escolher pasta</button></div>
+          </div>
+        </div>
+        <div class="job-state" id="conversao-estado" data-state="idle" role="status"><span class="job-state-mark" aria-hidden="true"></span><div><strong id="conversao-status">Nenhuma conversão</strong><p id="conversao-detalhe" class="hint">Selecione ao menos um arquivo e a pasta de saída.</p></div></div>
+        <div class="progresso" id="conversao-progresso" role="progressbar" aria-label="Progresso da conversão" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="conversao-barra"></div></div>
+        <div id="conversao-resultados"></div>
+        <div class="acoes">
+          <button class="btn btn-primary" id="btn-converter" type="button" disabled>Converter</button>
+          <button class="btn btn-secondary" id="btn-conversao-cancelar" type="button" hidden>Cancelar</button>
+          <button class="btn btn-secondary" id="btn-conversao-abrir" type="button" hidden>Abrir pasta</button>
+          <button class="btn btn-secondary" id="btn-conversao-limpar" type="button">Limpar lista</button>
+        </div>
+      </div>
+    </section>
+
     <section id="tela-config" aria-label="Configurações" hidden>
       <div class="page-heading"><div><p class="eyebrow">Preferências do Sistema</p><h1>Configurações</h1><p class="hint">Ajuste a aparência e padrões para trabalhar com conforto.</p></div></div>
       <div class="card compact-page">
@@ -183,7 +234,7 @@
         <div class="field-grid">
           <div class="field">
             <label for="cfg-tema">Tema visual</label>
-            <select id="cfg-tema"><option value="light">Claro</option><option value="dark">Escuro</option></select>
+            <select id="cfg-tema"><option value="sistema">Padrão do sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select>
           </div>
           <div class="field field-wide">
             <label for="cfg-cor">Cor de destaque</label>
@@ -199,15 +250,32 @@
             <input id="cfg-local-padrao" placeholder="Cidade - UF" autocomplete="off">
             <p class="field-note">Salvo nativamente na configuração do aplicativo (%APPDATA%/Contracto).</p>
           </div>
+          <div class="field">
+            <label for="cfg-tamanho">Largura dos quadros</label>
+            <select id="cfg-tamanho"><option value="Pequeno">Pequeno</option><option value="Médio">Médio</option><option value="Grande">Grande</option></select>
+          </div>
+          <div class="field">
+            <label for="cfg-formato">Formato de saída padrão</label>
+            <select id="cfg-formato"><option value="PDF">PDF</option><option value="PDF/A-2b">PDF/A-2b</option></select>
+          </div>
         </div>
 
         <div class="acoes form-actions" style="margin-top:20px;">
           <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
           <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
+          <button class="btn btn-secondary" id="btn-cfg-restaurar" type="button">Restaurar padrões</button>
           <button class="btn btn-secondary" id="btn-cfg-reparo" type="button">Diagnóstico e reparo do sistema</button>
         </div>
 
-        <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
+        <div class="field-section"><h2>Dados e backup</h2><p class="hint">O backup é um ZIP com perfis e configurações, guardado em %APPDATA%/Contracto/backups.</p>
+          <div class="page-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
+            <button class="btn btn-secondary" id="btn-backup-perfis" type="button">Fazer backup</button>
+            <button class="btn btn-secondary" id="btn-restaurar-perfis" type="button">Restaurar backup</button>
+          </div>
+        </div>
+
+
       </div>
     </section>
   </main>
@@ -227,6 +295,7 @@
 <script src="js/form-state.js"></script>
 <script src="js/etapa1.js"></script>
 <script src="js/etapa2.js"></script>
+<script src="js/conversao.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

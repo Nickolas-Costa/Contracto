@@ -5,12 +5,20 @@
   const ICONES = { success: "✓", info: "i", warning: "!", error: "✕" };
   // Foco local: um fragmento na URL alteraria a origem exata autorizada da ponte.
   document.getElementById("pular-conteudo").addEventListener("click",()=>{
-    const main=document.getElementById("telas");main.focus();main.scrollIntoView({block:"start"});
+    const main=document.getElementById("telas");main.scrollIntoView({block:"start"});
+    const primeiro=document.querySelector("#tela-inicio:not([hidden]) button:not(:disabled), #tela-inicio:not([hidden]) input, #tela-inicio:not([hidden]) select");
+    if(primeiro)primeiro.focus({preventScroll:true});
   });
 
+  // Fase 1 (DESIGN.md §7): temporário some em 6s com pausa sob hover/foco;
+  // erro que exige correção permanece no contexto (duration 0 = persistente).
+  // Máximo 3 visíveis: o mais antigo temporário é dispensado.
   function toast(message, type, duration) {
     type = type || "success";
     const caixa = document.getElementById("toasts");
+    caixa.querySelectorAll(".toast").forEach(el => {
+      if (caixa.children.length > 2 && !el.dataset.persistente) el.remove();
+    });
     const el = document.createElement("div");
     el.className = "toast " + type;
     el.setAttribute("role", "status");
@@ -21,12 +29,31 @@
     txt.textContent = message;
     el.append(ins, txt);
     caixa.append(el);
-    // duration 0 = persistente (dispensa com Escape); padrão 4s.
-    const ms = duration === undefined ? 4000 : duration;
-    const timer = ms === 0 ? null : setTimeout(() => el.remove(), ms);
+    // duration 0 = persistente (dispensa com Escape); padrão 6s.
+    const ms = duration === undefined ? 6000 : duration;
+    let timer = null, restante = ms, inicio = 0;
+    const remover = () => { if (timer) clearTimeout(timer); timer = null; el.remove(); };
+    const pausar = () => { if (!timer) return; clearTimeout(timer); timer = null; restante -= Date.now() - inicio; };
+    const retomar = () => {
+      if (ms === 0 || timer || restante <= 0) return;
+      inicio = Date.now();
+      timer = setTimeout(remover, restante);
+    };
+    if (ms === 0) {
+      el.dataset.persistente = "1";
+    } else {
+      retomar();
+      el.addEventListener("mouseenter", pausar);
+      el.addEventListener("mouseleave", retomar);
+      el.addEventListener("focusin", pausar);
+      el.addEventListener("focusout", retomar);
+    }
     el.tabIndex = 0;
     el.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape") { if (timer) clearTimeout(timer); el.remove(); }
+      // Se há modal aberto, o Escape pertence a ele (elemento mais interno);
+      // não dispensa o toast atrás do overlay.
+      if (ev.key === "Escape" && !document.getElementById("overlay").hidden) return;
+      if (ev.key === "Escape") remover();
     });
     return el;
   }
@@ -75,6 +102,10 @@
     });
     overlay.hidden = false;
     document.getElementById("app").inert = true;
+    // Convenção (DESIGN.md §7): o foco inicial vai ao primeiro botão, que
+    // deve ser a opção segura — confirmações destrutivas listam "Cancelar" /
+    // "Voltar" antes da ação irreversível. Modais nunca empilham: abrir um
+    // novo fecha o anterior (linha acima).
     const primeiro = acoes.querySelector("button");
     if (primeiro) primeiro.focus();
   }
@@ -110,6 +141,9 @@
     if (n >= 3) return !!(window.ContractoEtapa1 && window.ContractoEtapa1.composto()) && !!(window.ContractoEtapa2 && window.ContractoEtapa2.temBase());
     return true;
   }
+  function etapaAtiva(nome) {
+    return nome === "inicio" ? 1 : nome === "conferir" ? 2 : nome === "etapa2" ? 3 : 0;
+  }
   function sincronizarStepper() {
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       const n = Number(b.dataset.etapa);
@@ -119,9 +153,9 @@
     });
   }
   function mostrarTela(nome) {
-    if (!["inicio", "conferir", "etapa2", "perfis", "config"].includes(nome)) return;
+    if (!["inicio", "conferir", "etapa2", "perfis", "config", "conversao"].includes(nome)) return;
     document.getElementById("stepper").hidden = !["inicio", "conferir", "etapa2"].includes(nome);
-    ["inicio", "conferir", "etapa2", "perfis", "config"].forEach((t) => {
+    ["inicio", "conferir", "etapa2", "perfis", "config", "conversao"].forEach((t) => {
       const el = document.getElementById("tela-" + t);
       if (el) el.hidden = t !== nome;
     });
@@ -129,7 +163,7 @@
       if (b.dataset.tela === nome || (["conferir", "etapa2"].includes(nome) && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    const etapa = nome === "inicio" ? 1 : nome === "conferir" ? 2 : nome === "etapa2" ? 3 : 0;
+    const etapa = etapaAtiva(nome);
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
@@ -137,7 +171,7 @@
     if (nome === "perfis" && window.ContractoEtapa1?.carregarTelaPerfis) {
       window.ContractoEtapa1.carregarTelaPerfis();
     }
-    if (nome === "inicio" || nome === "config") {
+    if (nome === "inicio" || nome === "config" || nome === "conversao") {
       window.ContractoEtapa2?.atualizar();
     }
     if (nome === "config") {
@@ -169,17 +203,15 @@
         return;
       }
       mostrarTela("etapa2");
-      return;
-    }
-    if (n === 4) {
-      if (window.ContractoEtapa1 && !window.ContractoEtapa1.composto()) {
-        toast("Gere os documentos primeiro para poder concluir o trabalho.", "warning");
-        mostrarTela("inicio");
-        return;
+      const avancado = window.ContractoEtapa1 && window.ContractoEtapa1.modo() !== "simples";
+      const alvo = avancado ? document.getElementById("btn-finalizar") : null;
+      if (alvo && !alvo.hidden && !alvo.disabled) {
+        alvo.focus({ preventScroll: true });
+        alvo.scrollIntoView({ block: "nearest" });
+      } else {
+        document.getElementById("tela-etapa2")?.scrollIntoView({ block: "start" });
       }
-      mostrarTela("etapa2");
-      const btn = document.getElementById("btn-finalizar");
-      if (btn) { btn.focus(); btn.scrollIntoView({ block: "center" }); }
+      return;
     }
   }
 
@@ -190,21 +222,50 @@
     b.addEventListener("click", () => irEtapa(Number(b.dataset.etapa)));
   });
 
-  const indicadorGlobal = document.getElementById("indicador-fila-global");
-  if (indicadorGlobal) {
-    indicadorGlobal.addEventListener("click", () => {
-      if (window.ContractoEtapa2 && window.ContractoEtapa2.painelFila) window.ContractoEtapa2.painelFila();
-      else mostrarTela("etapa2");
-    });
-  }
   document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
-  const btnAjuda = document.getElementById("btn-ajuda-topo");
-  if (btnAjuda) {
-    btnAjuda.addEventListener("click", () => {
-      toast("Contracto em 4 passos. 1. Escolha o modo e o modelo. 2. Preencha os dados de cada participante. 3. Confira e gere os PDFs. 4. Anexe e conclua em Enviar.", "info", 12000);
-    });
+  const TEXTO_AJUDA = [
+    "1. Escolha o modo (Simples para vários formulários, Contrato para processo completo) e o modelo.",
+    "2. Preencha os dados de cada participante e confira o resumo antes de gerar.",
+    "3. Em Concluir, revise os PDFs, anexe comprovantes se preciso, escolha PDF ou PDF/A-2b e finalize."
+  ];
+  function ajudaModal() {
+    const wrap = document.createElement("div");
+    TEXTO_AJUDA.forEach(t => { const p = document.createElement("p"); p.textContent = t; wrap.append(p); });
+    // Foto 6: a seção Sobre saiu da Config; a versão vive aqui.
+    const versao = document.createElement("p");
+    versao.className = "hint";
+    versao.id = "versao-app";
+    versao.textContent = "Consultando versão…";
+    wrap.append(versao);
+    abrirModal("Ajuda — Contracto em 3 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
+    if (window.ContractoAPI) {
+      window.ContractoAPI.request("GET", "/api/v1/health").then(r => {
+        const el = document.getElementById("versao-app");
+        if (!el) return;
+        if (r.status === 200 && r.data && r.data.version) {
+          el.textContent = "Contracto v" + r.data.version + " — 100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
+        } else {
+          el.textContent = "100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
+        }
+      }).catch(() => {});
+    }
   }
+  async function boasVindasSePreciso() {
+    try {
+      const r = await window.ContractoAPI.getSettings();
+      if (r.status === 200 && r.data && r.data.primeira_execucao) {
+        ajudaModal();
+        await window.ContractoAPI.updateSettings({ primeira_execucao: false });
+      }
+    } catch (_) { /* sem ponte: não bloqueia o arranque */ }
+  }
+  const btnAjuda = document.getElementById("btn-ajuda-topo");
+  if (btnAjuda && !btnAjuda.dataset.ligado) {
+    btnAjuda.dataset.ligado = "1";
+    btnAjuda.addEventListener("click", ajudaModal);
+  }
+  document.addEventListener("DOMContentLoaded", () => { setTimeout(boasVindasSePreciso, 800); });
 
   function aplicarTema(nome) {
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
@@ -223,25 +284,47 @@
     document.body.style.backgroundImage = "none";
   }
 
+  // Fase 3 — paridade com o legado (settings_frame.py): "Padrão do Sistema"
+  // resolve via matchMedia e acompanha trocas do SO enquanto ativo.
+  function resolverTema(pref) {
+    if (pref === "dark") return "dark";
+    if (pref === "light") return "light";
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    } catch (_) {}
+    return "light";
+  }
+
   function aplicarTemaInicial() {
     // Arranque: aplica SOMENTE os valores já salvos; edição na tela Config
     // usa rascunho e só persiste/aplica em "Salvar configurações".
-    let tema = "light";
+    let pref = "sistema";
     let corSalva = null;
     try {
       const salvo = localStorage.getItem("contracto-tema");
-      if (salvo === "light" || salvo === "dark") {
-        tema = salvo;
-      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        tema = "dark";
+      if (salvo === "light" || salvo === "dark" || salvo === "sistema") {
+        pref = salvo;
+      } else if (salvo === "system") {
+        pref = "sistema"; // valor legado do backend
       }
       const cor = localStorage.getItem("contracto-cor");
       if (cor && /^#[0-9A-Fa-f]{6}$/.test(cor)) corSalva = cor;
     } catch (e) { /* sem armazenamento: segue o claro */ }
-    aplicarTema(tema);
-    if (corSalva) aplicarCor(corSalva);
+    aplicarTema(resolverTema(pref));
+    if (window.matchMedia) {
+      try {
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        const acompanhar = (e) => {
+          let atual = "sistema";
+          try { atual = localStorage.getItem("contracto-tema") || "sistema"; } catch (_) {}
+          if (atual === "sistema" || atual === "system") aplicarTema(e.matches ? "dark" : "light");
+        };
+        if (mq.addEventListener) mq.addEventListener("change", acompanhar);
+        else if (mq.addListener) mq.addListener(acompanhar);
+      } catch (_) {}
+    }
     const sel = document.getElementById("cfg-tema");
-    if (sel) sel.value = tema;
+    if (sel) sel.value = (pref === "light" || pref === "dark") ? pref : "sistema";
     const input = document.getElementById("cfg-cor");
     const texto = document.getElementById("cfg-cor-texto");
     if (input && corSalva) input.value = corSalva;
@@ -249,10 +332,11 @@
   }
 
   function cfgLerSalvos() {
-    let tema = "light", cor = "#005CA9";
+    let tema = "sistema", cor = "#005CA9";
     try {
       const t = localStorage.getItem("contracto-tema");
       if (t === "light" || t === "dark") tema = t;
+      else if (t === "sistema" || t === "system" || t === null) tema = "sistema";
       const c = localStorage.getItem("contracto-cor");
       if (c && /^#[0-9A-Fa-f]{6}$/.test(c)) cor = c;
     } catch (e) { /* sem armazenamento */ }
@@ -298,6 +382,14 @@
     });
   }
 
+  // Larguras proporcionais: 760 / 1080 / 1400 (deltas 320/320).
+  const LARGURAS = { "Pequeno": 760, "Médio": 1080, "Medio": 1080, "Grande": 1400 };
+  function aplicarLargura(tamanho) {
+    const px = LARGURAS[tamanho];
+    if (px) document.documentElement.style.setProperty("--largura-quadros", px + "px");
+    else document.documentElement.style.removeProperty("--largura-quadros");
+  }
+
   async function cfgCarregarRascunho() {
     const salvos = cfgLerSalvos();
     const sel = document.getElementById("cfg-tema");
@@ -307,12 +399,17 @@
     const texto = document.getElementById("cfg-cor-texto");
     if (texto) texto.value = salvos.cor;
     marcarSwatch(salvos.cor);
-    const local = document.getElementById("cfg-local-padrao");
-    if (local && window.ContractoAPI && window.ContractoAPI.getSettings) {
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
       try {
         const r = await window.ContractoAPI.getSettings();
-        if (r.status === 200 && r.data && typeof r.data.local_padrao === "string") {
-          local.value = r.data.local_padrao;
+        if (r.status === 200 && r.data) {
+          const local = document.getElementById("cfg-local-padrao");
+          if (local && typeof r.data.local_padrao === "string") local.value = r.data.local_padrao;
+          const tam = document.getElementById("cfg-tamanho");
+          if (tam && typeof r.data.tamanho_quadros === "string") tam.value = r.data.tamanho_quadros;
+          const fmt = document.getElementById("cfg-formato");
+          if (fmt && typeof r.data.formato_saida === "string") fmt.value = r.data.formato_saida;
+          aplicarLargura(r.data.tamanho_quadros);
         }
       } catch (_) { /* mantém o que está digitado */ }
     }
@@ -323,22 +420,33 @@
     const cor = document.getElementById("cfg-cor");
     const texto = document.getElementById("cfg-cor-texto");
     const local = document.getElementById("cfg-local-padrao");
+    const tam = document.getElementById("cfg-tamanho");
+    const fmt = document.getElementById("cfg-formato");
     const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#005CA9";
+    const prefFinal = (sel && (sel.value === "dark" || sel.value === "light")) ? sel.value : "sistema";
     try {
-      localStorage.setItem("contracto-tema", sel.value);
+      localStorage.setItem("contracto-tema", prefFinal);
       localStorage.setItem("contracto-cor", corFinal);
     } catch (e) { /* sem armazenamento */ }
-    aplicarTema(sel.value);
+    aplicarTema(resolverTema(prefFinal));
     aplicarCor(corFinal);
     desenharFundoSenoidal();
     if (cor) cor.value = corFinal;
     if (texto) texto.value = corFinal;
     try {
-      const r = await window.ContractoAPI.updateSettings({ local_padrao: ((local && local.value) || "").trim() });
-      if (r.status !== 200) toast("Tema e cor salvos; o local padrão não foi persistido.", "warning");
+      const payload = {
+        local_padrao: ((local && local.value) || "").trim(),
+        aparencia: prefFinal === "sistema" ? "system" : prefFinal, // canônico do backend
+        cor_destaque: corFinal
+      };
+      if (tam && tam.value) payload.tamanho_quadros = tam.value;
+      if (fmt && fmt.value) payload.formato_saida = fmt.value;
+      aplicarLargura(tam && tam.value);
+      const r = await window.ContractoAPI.updateSettings(payload);
+      if (r.status !== 200) toast("Tema e cor salvos; preferências do computador não foram persistidas.", "warning");
       else toast("Configurações salvas.", "success");
     } catch (_) {
-      toast("Tema e cor salvos; sem conexão para persistir o local padrão.", "warning");
+      toast("Tema e cor salvos; sem conexão para persistir as preferências.", "warning");
     }
   }
 
@@ -357,8 +465,38 @@
     }
   }
 
+  async function cfgRestaurar() {
+    const wrap = document.createElement("div");
+    const p = document.createElement("p");
+    p.textContent = "Restaurar tema, cor, local, largura dos quadros e formato para os padrões? Esta ação não apaga perfis nem documentos.";
+    wrap.append(p);
+    abrirModal("Restaurar padrões", wrap, [
+      { texto: "Cancelar", primario: false },
+      {
+        texto: "Restaurar padrões", primario: true, aoClicar: async () => {
+          try {
+            const r = await window.ContractoAPI.restoreSettings();
+            if (r.status !== 200) { toast("Não foi possível restaurar os padrões.", "error"); return; }
+            const pref = (r.data.aparencia === "dark" || r.data.aparencia === "light") ? r.data.aparencia : "sistema";
+            try { localStorage.setItem("contracto-tema", pref); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#005CA9"); } catch (_) {}
+            aplicarTema(resolverTema(pref));
+            aplicarCor(r.data.cor_destaque || "#005CA9");
+            aplicarLargura(r.data.tamanho_quadros);
+            await cfgCarregarRascunho();
+            toast("Padrões restaurados.", "success");
+          } catch (_) { toast("Sem conexão para restaurar os padrões.", "error"); }
+        }
+      }
+    ]);
+  }
   function ligarConfig() {
     renderizarSwatches();
+    // Aplica a largura salva logo no arranque (sem exigir abrir Config).
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
+      window.ContractoAPI.getSettings()
+        .then(r => { if (r.status === 200 && r.data) aplicarLargura(r.data.tamanho_quadros); })
+        .catch(() => {});
+    }
     const salvar = document.getElementById("btn-cfg-salvar");
     if (salvar && !salvar.dataset.ligado) {
       salvar.dataset.ligado = "1";
@@ -369,6 +507,11 @@
       descartar.dataset.ligado = "1";
       descartar.addEventListener("click", cfgDescartar);
     }
+    const restaurar = document.getElementById("btn-cfg-restaurar");
+    if (restaurar && !restaurar.dataset.ligado) {
+      restaurar.dataset.ligado = "1";
+      restaurar.addEventListener("click", cfgRestaurar);
+    }
     const reparo = document.getElementById("btn-cfg-reparo");
     if (reparo && !reparo.dataset.ligado) {
       reparo.dataset.ligado = "1";
@@ -378,6 +521,15 @@
   document.addEventListener("DOMContentLoaded", ligarConfig);
 
   function desenharFundoSenoidal() {
+    // Sonda WebView2 real: prefers-reduced-motion pode vir True mesmo sem
+    // animação na página. As ondas são ESTÁTICAS (sem animação contínua),
+    // então movimento reduzido não as remove — só alto contraste genuíno.
+    try {
+      if (window.matchMedia && window.matchMedia("(forced-colors: active)").matches) {
+        document.querySelector(".bg-waves-container")?.remove();
+        return;
+      }
+    } catch (_) {}
     let container = document.querySelector(".bg-waves-container");
     if (!container) {
       container = document.createElement("div");

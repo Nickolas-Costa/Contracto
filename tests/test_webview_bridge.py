@@ -52,7 +52,30 @@ class TestWebViewBridge(unittest.TestCase):
             window.get_current_url.return_value = None
             self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
             public = {name for name in dir(bridge) if not name.startswith("_") and callable(getattr(bridge, name))}
-            self.assertEqual(public, {"request", "select_file", "select_output", "open_result", "get_file"})
+            self.assertEqual(public, {"request", "select_file", "select_output", "select_backup", "select_documents", "open_result", "open_file", "get_file"})
+
+    def test_select_documents_registra_multiplos_para_conversao(self):
+        with tempfile.TemporaryDirectory() as folder, LocalServer(profiles=[]) as server:
+            a = Path(folder, "a.pdf")
+            b = Path(folder, "b.docx")
+            a.write_bytes(b"%PDF-1.4 sintese")
+            b.write_bytes(b"PK sintese")
+            txt = Path(folder, "c.txt")
+            txt.write_text("ignorado")
+            window = Mock()
+            window.get_current_url.return_value = None
+            bridge = ShellBridge(server)
+            bridge._attach(window)
+            window.create_file_dialog.return_value = None
+            self.assertEqual(bridge.select_documents(), {"cancelled": True})
+            window.create_file_dialog.return_value = [str(a), str(b), str(txt)]
+            result = bridge.select_documents()
+            self.assertEqual(len(result["selection_ids"]), 2)
+            self.assertEqual(result["names"], ["a.pdf", "b.docx"])
+            self.assertEqual(result["rejected"], 1)
+            for sid in result["selection_ids"]:
+                self.assertTrue(server.jobs.selections.resolve(sid, "convert").is_file())
+            self.assertNotIn(folder, str(result))
 
     def test_url_about_blank_nao_deve_terminar_em_falha_temporaria(self):
         with LocalServer(profiles=[]) as server:

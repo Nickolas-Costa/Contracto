@@ -51,6 +51,15 @@ class ProcessInput(Model):
     format: Literal["PDF", "PDF/A-2b"] = "PDF"
 
 
+class ConvertInput(Model):
+    """Conversão direta de arquivos (modo Conversão): sem perfis nem participantes."""
+    request_id: Id | None = None
+    file_ids: list[Id] = Field(min_length=1, max_length=20)
+    output_id: Id
+    format: Literal["PDF", "PDF/A-2b"] = "PDF"
+    nome_saida: Annotated[str, StringConstraints(pattern=r"^[\w\-. ]{1,100}$")] | None = None
+
+
 class Error(Model):
     code: str
     message: str

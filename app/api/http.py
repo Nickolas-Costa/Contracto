@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse, Response
 from utils.logger import contexto_log_api
 from version import __version__
 from .jobs import ApiError, capabilities
-from .models import ComposeInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
+from .models import ComposeInput, ConvertInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
 import sys
 import subprocess
@@ -52,9 +52,9 @@ class LocalOnly:
             response = error("unauthorized", "Autenticação necessária", 401)
         elif scope.get("query_string"):
             response = error("invalid_query", "Parâmetros de URL não são aceitos", 400)
-        elif scope["method"] not in {"GET", "POST"}:
+        elif scope["method"] not in {"GET", "POST", "PUT", "DELETE"}:
             response = error("invalid_method", "Método não permitido", 405)
-        elif scope["method"] == "POST" and headers.get(b"content-type", "").split(";", 1)[0] != "application/json":
+        elif scope["method"] in {"POST", "PUT"} and headers.get(b"content-type", "").split(";", 1)[0] != "application/json":
             response = error("invalid_content_type", "Envie JSON", 415)
         if response is not None:
             await response(scope, receive, send)
@@ -226,6 +226,10 @@ def create_app(session):
     def process(request: ProcessInput):
         return session.jobs.process(request)
 
+    @app.post("/api/v1/jobs/convert", response_model=JobState, status_code=202)
+    def convert(request: ConvertInput):
+        return session.jobs.convert(request)
+
     @app.get("/api/v1/jobs", response_model=list[JobState])
     def list_jobs():
         return session.jobs.list_jobs()
@@ -263,5 +267,44 @@ def create_app(session):
             return {"status": "success" if ok else "warning", "message": msg}
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+    @app.post("/api/v1/settings/restore")
+    def restore_settings():
+        from utils import config_manager
+        return config_manager.restaurar_padroes()
+
+    @app.post("/api/v1/profiles/active")
+    def activate_profile(dados: dict):
+        from utils import config_manager, profile_manager
+        nome = (dados or {}).get("nome", "")
+        if not isinstance(nome, str) or not nome.strip():
+            return error("invalid_request", "Informe o nome do perfil", 422)
+        perfil = profile_manager.obter_perfil(nome.strip())
+        if perfil is None:
+            return error("unknown_profile", "Perfil não encontrado", 404)
+        config_manager.definir("perfil_ativo", perfil.nome)
+        return {"status": "activated", "nome": perfil.nome}
+
+    @app.post("/api/v1/system/backup")
+    def system_backup():
+        from utils import backup as backup_util
+        pacote = backup_util.criar_backup()
+        return {"status": "created", "name": pacote.name}
+
+    @app.post("/api/v1/system/restore")
+    def system_restore(dados: dict):
+        from utils import backup as backup_util
+        selection_id = (dados or {}).get("selection_id", "")
+        try:
+            caminho = session.jobs.selections.resolve(selection_id, kind="backup")
+        except Exception:
+            raise SelectionError()
+        if caminho.suffix.lower() != ".zip":
+            return error("invalid_request", "Selecione um backup .zip válido", 422)
+        try:
+            backup_util.restaurar_backup(caminho)
+        except ValueError as exc:
+            return error("invalid_backup", str(exc), 422)
+        return {"status": "restored"}
 
     return app
