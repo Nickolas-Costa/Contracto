@@ -21,9 +21,11 @@
     <div class="modos toolbar-mode" role="group" aria-label="Modo de geração">
       <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Simples</button><button id="modo-contrato" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Contrato</button><button id="modo-conversao" type="button" data-tooltip="Converta arquivos avulsos para PDF ou PDF/A-2b.">Conversão</button>
     </div>
-    <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
-    <button type="button" id="btn-ajuda-topo">Ajuda</button>
-    <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
+    <div class="toolbar-actions">
+      <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
+      <button type="button" id="btn-ajuda-topo">Ajuda</button>
+      <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
+    </div>
   </header>
 
   <ol class="stepper" id="stepper" aria-label="Etapas">
@@ -31,9 +33,7 @@
     <li class="step-divider" aria-hidden="true"></li>
     <li><button data-etapa="2" type="button"><span class="step-number">2</span>Conferir</button></li>
     <li class="step-divider" aria-hidden="true"></li>
-    <li><button data-etapa="3" type="button"><span class="step-number">3</span>Revisar documentos</button></li>
-    <li class="step-divider" aria-hidden="true"></li>
-    <li><button data-etapa="4" type="button"><span class="step-number">4</span>Enviar</button></li>
+    <li><button data-etapa="3" type="button"><span class="step-number">3</span>Concluir</button></li>
   </ol>
 
   <main id="telas" tabindex="-1">    <section id="tela-inicio" aria-label="Preencher dados">
@@ -109,8 +109,8 @@
       </div>
     </section>
 
-    <section id="tela-etapa2" aria-label="Etapa 2" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Seu trabalho</p><h1>Revise os documentos.</h1><p class="hint">Confira os PDFs gerados antes de concluir a organização.</p></div></div>
+    <section id="tela-etapa2" aria-label="Concluir" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Etapa 3 — Conclusão</p><h1>Confira e conclua.</h1><p class="hint">Revise os PDFs gerados, anexe o que faltar e conclua a organização.</p></div></div>
       <div class="card process-card">
         <div class="card-header"><div><h2>Documentos deste trabalho</h2><p class="hint" id="manifesto-resumo"></p></div><span class="section-tag" id="manifesto-status">Aguardando geração</span></div>
         <div id="lista-anexos"></div>
@@ -163,7 +163,6 @@
         </div>
         <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
-          <span class="hint">Backup, restauração e importação ficam em Configurações › Dados.</span>
         </div>
       </div>
       <div class="card profiles-card">
@@ -276,7 +275,7 @@
           </div>
         </div>
 
-        <div class="field-section"><h2>Recursos deste computador</h2><p class="hint" id="lista-capacidades">Conferindo recursos locais…</p></div>
+
       </div>
     </section>
   </main>

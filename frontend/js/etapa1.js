@@ -84,10 +84,20 @@
     input.autocomplete = "off";
     if (field.tipo === "SELECAO") {
       const opcoes = field.opcoes || [];
-      const humanizar = (nome) => nome.replace(/_/g, " ").replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+      const ROTULOS_OPCOES = {
+        "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito",
+        "CANCELAR_DEBITO": "Cancelar débito",
+        "DESCONHECO_POSSUIR": "Desconheço possuir",
+        "DECLARO_POSSUIR": "Declaro possuir",
+        "SELECIONE": "Selecione"
+      };
+      const humanizar = (nome) => {
+        if (!nome) return "Selecione";
+        if (ROTULOS_OPCOES[nome]) return ROTULOS_OPCOES[nome];
+        return nome.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()).trim();
+      };
       for (const value of ["", ...opcoes]) {
-        const rotulo = (field.apresentacao === "checkbox") ? humanizar(value) : (value || "Selecione");
-        const option = document.createElement("option"); option.value = value; option.textContent = rotulo; input.append(option);
+        const option = document.createElement("option"); option.value = value; option.textContent = humanizar(value); input.append(option);
       }
       if (field.apresentacao === "checkbox" && opcoes.length && opcoes.length <= 4) {
         // Fase 0: o <select> original sai do DOM via replaceWith; os listeners
@@ -227,7 +237,13 @@
       const personal=fields.filter(f=>f.escopo !== "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
       const address=personal.filter(f=>f.id === "endereco"),details=personal.filter(f=>f.id !== "endereco");
       if(address.length){const grid=group(card,"Endereço");address.forEach(f=>fieldControl(f,index,grid));}
-      if(details.length){const grid=group(card,"Dados do formulário");details.forEach(f=>fieldControl(f,index,grid));}
+      if(details.length){
+        const porAba = {};
+        details.forEach(f=>{ const aba=(f.aba || "Geral").trim() || "Geral"; (porAba[aba]=porAba[aba]||[]).push(f); });
+        const abas = Object.keys(porAba);
+        if (abas.length <= 1) { const grid=group(card,"Dados do formulário"); details.forEach(f=>fieldControl(f,index,grid)); }
+        else abas.forEach(aba=>{ const grid=group(card,aba); porAba[aba].forEach(f=>fieldControl(f,index,grid)); });
+      }
       if (index) {
         // Fase 2 — paridade com o legado ("Copiar dados de [Participante X]"):
         // reaproveita os campos idênticos do participante principal, mantendo
@@ -247,7 +263,18 @@
       $("participantes").append(card);
     });
     const globals=fields.filter(f=>f.escopo === "global" && !["nome_completo","cpf","data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
-    if(globals.length){const card=document.createElement("div");card.className="card";const title=document.createElement("h2");title.textContent="Dados compartilhados";card.append(title);const grid=document.createElement("div");grid.className="field-grid";card.append(grid);globals.forEach(f=>fieldControl(f,0,grid));$("campos-globais").append(card);}
+    if(globals.length){
+      const card=document.createElement("div");card.className="card";
+      const header=document.createElement("div");header.className="card-header";
+      const heading=document.createElement("div"),title=document.createElement("h2");title.textContent="Dados compartilhados";
+      const hint=document.createElement("p");hint.className="hint";hint.textContent="Valem para todos os participantes.";
+      heading.append(title,hint);header.append(heading);card.append(header);
+      const porAba={}; globals.forEach(f=>{const aba=(f.aba||"Geral").trim()||"Geral";(porAba[aba]=porAba[aba]||[]).push(f);});
+      Object.keys(porAba).forEach(aba=>{
+        const grid=group(card,aba); porAba[aba].forEach(f=>fieldControl(f,0,grid));
+      });
+      $("campos-globais").append(card);
+    }
     recalcularLocal(); renderPaginacao(); sincronizarSelecao(); schedulePreview();atualizar();
   }
   function emPaginaAtual(c) {
@@ -458,6 +485,8 @@
     const defaultProfile = catalog.find(p=>p.mode === "contrato") || catalog[0];
     await selecionar(mode === "simples" ? [] : (defaultProfile?.profile_id ? [defaultProfile.profile_id] : []));
   }
+  const NOMES_EXIBICAO = { "Seguro": "Form Seguro" };
+  const nomeExibicao = (p) => NOMES_EXIBICAO[p.name] || NOMES_EXIBICAO[p.nome] || p.name || p.nome || p.profile_id;
   function renderProfilesList() {
     $("lista-formularios").replaceChildren();
     finalizarCarregamentoModelos();
@@ -465,7 +494,7 @@
     const todosWrap = $("wrapper-selecionar-todos");
     const explicacao = $("modo-explicacao");
     const titulo = $("titulo-selecao-secao");
-    if(todosWrap) todosWrap.hidden = !isSimple;
+    if(todosWrap) { todosWrap.hidden = !isSimple; todosWrap.style.textAlign = "right"; }
     if(titulo) titulo.textContent = isSimple ? "Formulários simples" : "Modelo de contrato";
     if(explicacao) explicacao.innerHTML = isSimple ? "No modo <strong>Simples</strong> selecione um ou mais formulários em lote." : "No modo <strong>Contrato</strong> escolha apenas 1 contrato.";
     const filtrados = catalog.filter(p => isSimple ? (p.mode === "formulario_simples" || catalog.every(item => item.mode !== "formulario_simples")) : (p.mode === "contrato" || catalog.every(item => item.mode !== "contrato")));
@@ -482,19 +511,32 @@
       return;
     }
     if (seletor) { seletor.replaceChildren(); seletor.hidden = true; }
+    const grid = document.createElement("div");
+    grid.className = "forms-grid";
     filtrados.forEach(p=>{
       const label=document.createElement("label");
+      label.className = "form-card";
       const input=document.createElement("input");
       input.type = "checkbox";
       input.value=p.profile_id;
       input.checked=selected.includes(p.profile_id);
       input.addEventListener("change",()=>{
         if(busy()){input.checked=!input.checked;return;}
-        selecionar([...$("lista-formularios").querySelectorAll("input:checked")].map(el=>el.value));
+        selecionar([...grid.querySelectorAll("input:checked")].map(el=>el.value));
       });
-      label.append(input,document.createTextNode(" "+p.name));
-      $("lista-formularios").append(label);
+      const corpo = document.createElement("span");
+      corpo.className = "form-card-corpo";
+      const nome = document.createElement("strong");
+      nome.textContent = nomeExibicao(p);
+      const meta = document.createElement("span");
+      meta.className = "hint";
+      const nCampos = (p.fields || []).length;
+      meta.textContent = (p.max_participants > 1 ? "Até " + p.max_participants + " participantes" : "1 participante") + (nCampos ? " · " + nCampos + " campos" : "");
+      corpo.append(nome, meta);
+      label.append(input, corpo);
+      grid.append(label);
     });
+    $("lista-formularios").append(grid);
     // Fase 0: #buscar-perfis pertence à tela Perfis e já é gerenciado por
     // ligar()/carregarTelaPerfis() via renderProfilesManagement. Amarrá-lo
     // aqui a renderProfilesList() disparava dois renders conflitantes.
@@ -514,7 +556,7 @@
       btn.className = "seletor-item";
       btn.value = p.profile_id;
       btn.setAttribute("aria-pressed", selected.includes(p.profile_id) ? "true" : "false");
-      btn.textContent = p.name;
+      btn.textContent = (typeof nomeExibicao === "function" ? nomeExibicao(p) : (p.name || p.profile_id));
       btn.addEventListener("click", () => {
         if (busy()) return;
         if (isSimple) {
@@ -638,31 +680,33 @@
     const container = $("corpo-conferencia");
     if (container) {
       container.replaceChildren();
-      const nomes = selected.map(id => { const p = catalog.find(x => x.profile_id === id); return p ? (p.name || p.nome || id) : id; });
-      const infoBox = document.createElement("div");
-      const titulo = document.createElement("div");
-      const forte = document.createElement("strong");
-      forte.style.fontSize = "16px"; forte.textContent = "Modelos selecionados:";
-      const lista = document.createElement("p");
-      lista.className = "hint"; lista.textContent = nomes.join(", ");
-      titulo.append(forte, lista); infoBox.className = "card-header"; infoBox.append(titulo);
-      container.appendChild(infoBox);
-
+      const nomes = selected.map(id => { const p = catalog.find(x => x.profile_id === id); const cru = p ? (p.name || p.nome || id) : id; return (typeof nomeExibicao === "function" && p) ? nomeExibicao(p) : cru; });
+      const resumoTopo = document.createElement("div");
+      resumoTopo.className = "conf-resumo";
+      const modelosBox = document.createElement("div");
+      modelosBox.className = "conf-bloco";
+      const hMod = document.createElement("h3"); hMod.textContent = "Modelos selecionados (" + nomes.length + ")";
+      const chips = document.createElement("div"); chips.className = "conf-chips";
+      nomes.forEach(n=>{ const c=document.createElement("span"); c.className="section-tag"; c.textContent=n; chips.append(c); });
+      modelosBox.append(hMod, chips);
+      const destBox = document.createElement("div");
+      destBox.className = "conf-bloco";
+      const hDest = document.createElement("h3"); hDest.textContent = "Assinatura e destino";
       const dl = document.createElement("dl");
-      dl.className = "field-grid";
-      dl.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
-      dl.style.margin = "16px 0";
-      [["Data da assinatura", draft.globals.data_assinatura || "Não informada"],
-       ["Local da assinatura", draft.globals.local_assinatura || "Não informado"],
-       ["Salvar em", $("pasta-saida")?.value || "Nenhuma pasta selecionada"]
+      dl.className = "conf-grid";
+      [["Data da assinatura", draft.globals.data_assinatura || "—"],
+       ["Local da assinatura", draft.globals.local_assinatura || "—"],
+       ["Salvar em", $("pasta-saida")?.value || "—"],
+       ["Participantes", draft.people.length + " de " + maximum]
       ].forEach(([rot, val]) => {
-        const dt = document.createElement("dt");
-        const b = document.createElement("strong"); b.textContent = rot + ": ";
-        dt.append(b, document.createTextNode(val));
-        container.appendChild(dl);
-        dl.append(dt);
+        const wrap = document.createElement("div"); wrap.className = "conf-item";
+        const dt = document.createElement("dt"); dt.textContent = rot;
+        const dd = document.createElement("dd"); dd.textContent = val;
+        wrap.append(dt, dd); dl.append(wrap);
       });
-      container.appendChild(dl);
+      destBox.append(hDest, dl);
+      resumoTopo.append(modelosBox, destBox);
+      container.appendChild(resumoTopo);
 
       // Agrupa campos por página/seção.
       const porPagina = {};
@@ -671,20 +715,45 @@
         const chave = form().paginaDe ? form().paginaDe(f, agrupamento) : (f.aba || "Geral");
         (porPagina[chave] = porPagina[chave] || []).push(f);
       });
+      const HUMAN_CONF = (v) => {
+        if (v === true || v === "SIM") return "Sim";
+        if (v === false || v === "NÃO" || v === "NAO") return "Não";
+        if (!v) return "—";
+        const mapa = { "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito", "CANCELAR_DEBITO": "Cancelar débito", "DESCONHECO_POSSUIR": "Desconheço possuir", "DECLARO_POSSUIR": "Declaro possuir" };
+        return mapa[v] || String(v);
+      };
+      // Globais compartilhados também aparecem na conferência.
+      const globaisConf = fields.filter(f=>f.escopo === "global" && !["data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
+      if (globaisConf.length) {
+        const gBox = document.createElement("div");
+        gBox.className = "conferencia-secao conf-participante";
+        const hG = document.createElement("h3"); hG.textContent = "Dados compartilhados";
+        const gridG = document.createElement("div"); gridG.className = "conf-grid";
+        globaisConf.forEach(f=>{
+          const id = form().canonical(f.id);
+          const val = draft.globals[id];
+          if (val === undefined || String(val ?? "").trim() === "") return;
+          const wrap=document.createElement("div"); wrap.className="conf-item";
+          const dt=document.createElement("dt"); dt.textContent=(f.rotulo||id);
+          const dd=document.createElement("dd"); dd.textContent=HUMAN_CONF(val);
+          wrap.append(dt,dd); gridG.append(wrap);
+        });
+        if (gridG.children.length) { gBox.append(hG, gridG); container.appendChild(gBox); }
+      }
       draft.people.forEach((p, idx) => {
-        const pBox = document.createElement("fieldset");
-        pBox.className = "field-section";
-        const legend = document.createElement("legend");
+        const pBox = document.createElement("div");
+        pBox.className = "conferencia-secao conf-participante";
+        const legend = document.createElement("h3");
         const nomeP = p.nome_completo || ("Participante " + (idx + 1));
         legend.textContent = (idx ? "Participante " + (idx + 1) : "Participante principal") + " — " + nomeP;
         pBox.appendChild(legend);
         const base = document.createElement("div");
-        base.className = "field-grid";
-        [["Nome", p.nome_completo || "Pendente"], ["CPF", p.cpf || "Pendente"]].forEach(([rot, val]) => {
-          const item = document.createElement("div");
-          const b = document.createElement("strong"); b.textContent = rot + ": ";
-          item.append(b, document.createTextNode(val));
-          base.append(item);
+        base.className = "conf-grid";
+        [["Nome", p.nome_completo || "—"], ["CPF", p.cpf || "—"]].forEach(([rot, val]) => {
+          const wrap = document.createElement("div"); wrap.className = "conf-item";
+          const dt = document.createElement("dt"); dt.textContent = rot;
+          const dd = document.createElement("dd"); dd.textContent = val;
+          wrap.append(dt, dd); base.append(wrap);
         });
         pBox.appendChild(base);
         Object.entries(porPagina).forEach(([pagina, listaCampos]) => {
@@ -696,15 +765,15 @@
           });
           if (!visiveis.length) return;
           const secao = document.createElement("div");
-          secao.className = "conferencia-secao";
-          const h = document.createElement("h3"); h.textContent = pagina;
-          const grid = document.createElement("div"); grid.className = "field-grid";
+          secao.className = "conf-subsecao";
+          const h = document.createElement("h4"); h.textContent = pagina;
+          const grid = document.createElement("div"); grid.className = "conf-grid";
           visiveis.forEach(f => {
             const id = form().canonical(f.id);
-            const item = document.createElement("div");
-            const b = document.createElement("strong"); b.textContent = (f.rotulo || id) + ": ";
-            item.append(b, document.createTextNode(String(p[id])));
-            grid.append(item);
+            const wrap = document.createElement("div"); wrap.className = "conf-item";
+            const dt = document.createElement("dt"); dt.textContent = (f.rotulo || id);
+            const dd = document.createElement("dd"); dd.textContent = HUMAN_CONF(p[id]);
+            wrap.append(dt, dd); grid.append(wrap);
           });
           secao.append(h, grid);
           pBox.appendChild(secao);
@@ -944,42 +1013,35 @@
       titleGroup.append(title, badge);
 
       const actionsGroup = document.createElement("div");
-      actionsGroup.style.display = "flex";
-      actionsGroup.style.gap = "6px";
-      actionsGroup.style.flexWrap = "wrap";
-
-      const btnDup = document.createElement("button");
-      btnDup.type = "button";
-      btnDup.className = "btn btn-secondary";
-      btnDup.textContent = "Duplicar";
-      btnDup.addEventListener("click", () => duplicarPerfilModal(p));
-
-      const btnEdt = document.createElement("button");
-      btnEdt.type = "button";
-      btnEdt.className = "btn btn-secondary";
-      btnEdt.textContent = "Editar";
-      btnEdt.addEventListener("click", () => editarPerfilModal(p));
-
-      const btnExp = document.createElement("button");
-      btnExp.type = "button";
-      btnExp.className = "btn btn-secondary";
-      btnExp.textContent = "Exportar";
-      btnExp.addEventListener("click", () => exportarPerfilModal(p));
-
-      const btnExc = document.createElement("button");
-      btnExc.type = "button";
-      btnExc.className = "btn btn-secondary";
-      btnExc.style.color = "var(--color-error, #d93025)";
-      btnExc.textContent = "Excluir";
-      btnExc.addEventListener("click", () => excluirPerfilModal(p));
-
+      actionsGroup.className = "profile-actions";
       const btnAtivar = document.createElement("button");
       btnAtivar.type = "button";
-      btnAtivar.className = "btn btn-secondary";
+      btnAtivar.className = "btn btn-primary btn-sm";
       btnAtivar.textContent = "Ativar";
       btnAtivar.addEventListener("click", () => ativarPerfil(p.nome || p.name));
-
-      actionsGroup.append(btnAtivar, btnDup, btnEdt, btnExp, btnExc);
+      const btnEdt = document.createElement("button");
+      btnEdt.type = "button";
+      btnEdt.className = "btn btn-secondary btn-sm";
+      btnEdt.textContent = "Editar";
+      btnEdt.addEventListener("click", () => editarPerfilModal(p));
+      const menu = document.createElement("details");
+      menu.className = "profile-menu";
+      const sum = document.createElement("summary");
+      sum.className = "btn btn-secondary btn-sm";
+      sum.textContent = "Mais ações";
+      menu.append(sum);
+      const menuBox = document.createElement("div");
+      menuBox.className = "profile-menu-box";
+      [["Duplicar", () => duplicarPerfilModal(p)], ["Exportar", () => exportarPerfilModal(p)], ["Excluir", () => excluirPerfilModal(p)]].forEach(([rot, fn])=>{
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "btn btn-secondary btn-sm";
+        b.textContent = rot;
+        if (rot === "Excluir") b.classList.add("btn-danger");
+        b.addEventListener("click", ()=>{ menu.open = false; fn(); });
+        menuBox.append(b);
+      });
+      menu.append(menuBox);
+      actionsGroup.append(btnAtivar, btnEdt, menu);
       header.append(titleGroup, actionsGroup);
 
       const details = document.createElement("p");
@@ -1273,12 +1335,7 @@
       window.ContractoUI.toast(r.data?.message || "Backup inválido.", "error");
     }
   }
-  function revisar() {
-    const btn=$("btn-ver-pendencias");
-    if(btn && !btn.hidden){btn.click();return;}
-    atualizar();
-    window.ContractoUI.abrirModal("Revise os dados","Tudo pronto para gerar.",[{texto:"Voltar ao formulário"}]);
-  }
+
   // Skeleton visível antes mesmo da ponte: evita o texto morto no arranque.
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
@@ -1288,7 +1345,6 @@
   window.ContractoEtapa1={
     ligar,
     atualizar,
-    revisar,
     conferir,
     novoTrabalho,
     carregarTelaPerfis,

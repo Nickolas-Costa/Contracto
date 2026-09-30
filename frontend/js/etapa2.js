@@ -132,7 +132,15 @@
     const revision=++previewRevision;
     let url=null,timeout=null;
     const panel=document.createElement("div"),message=document.createElement("p");panel.className="viewer-panel";message.className="viewer-message";message.setAttribute("role","status");message.textContent="Carregando PDF…";panel.append(message);
-    ui().abrirModal("Visualização — "+name,panel,[{texto:"Fechar"}],()=>{if(url)URL.revokeObjectURL(url);clearTimeout(timeout);});
+    ui().abrirModal("Visualização — "+name,panel,[
+      { texto: "Abrir no leitor padrão", aoClicar: async () => {
+        try { const r = await api().openFile(id); if (!r.ok) ui().toast("Não foi possível abrir no leitor padrão.", "error"); }
+        catch (_) { ui().toast("Falha ao abrir no leitor padrão.", "error"); }
+      } },
+      { texto: "Expandir", aoClicar: () => { document.querySelector(".modal")?.classList.toggle("modal-viewer-expandido"); } },
+      { texto: "Fechar", primario: true }
+    ],()=>{if(url)URL.revokeObjectURL(url);clearTimeout(timeout);});
+    document.querySelector(".modal")?.classList.add("modal-viewer");
     try {
       const res=await api().getFile(id);
       if(revision!==previewRevision)return;

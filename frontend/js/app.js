@@ -13,24 +13,7 @@
     window.ContractoEtapa1?.atualizar();
     window.ContractoEtapa2?.atualizar();
   }
-  function mostrarCapacidades(caps) {
-    // Tela Config ("Recursos deste computador"): badges, sem caminhos locais.
-    // Foto 4: apresentação em badges em vez de texto corrido.
-    const el = document.getElementById("lista-capacidades");
-    if (!el || !caps) return;
-    el.replaceChildren();
-    const wrap = document.createElement("span");
-    wrap.className = "recurso-lista";
-    [["PDF simples", caps.pdf !== false],
-     ["Conversão Word (RTF/DOC/DOCX)", !!caps.word],
-     ["PDF/A (Ghostscript)", !!caps.ghostscript]].forEach(([rotulo, ok]) => {
-      const b = document.createElement("span");
-      b.className = "recurso-badge " + (ok ? "ok" : "off");
-      b.textContent = (ok ? "✓ " : "✕ ") + rotulo + ": " + (ok ? "disponível" : "indisponível");
-      wrap.append(b);
-    });
-    el.append(wrap);
-  }
+
   function agendarReconexao() {
     clearTimeout(retryTimer);
     // O shell e a API são criados no mesmo processo. Uma espera progressiva
@@ -72,7 +55,6 @@
         try {
           const caps = await window.ContractoAPI.request("GET", "/api/v1/capabilities");
           if (caps.status === 200 && window.ContractoEtapa2) window.ContractoEtapa2.capacidades(caps.data);
-          if (caps.status === 200) mostrarCapacidades(caps.data);
         } catch (_) { /* sem capacidades: PDF/A segue desativado por segurança */ }
         // A conexão foi confirmada. A partir daqui, falhas da interface não
         // podem reiniciar a ponte HTTP nem se passar por erro de backend.

@@ -97,9 +97,10 @@ class TestFrontendBase(unittest.TestCase):
         # Logo no lugar do "C" genérico + favicon.
         self.assertIn('assets/logo.png', html)
         self.assertIn('rel="icon"', html)
-        # Stepper em 4 etapas: preencher, conferir, revisar, enviar.
-        for n in ["1", "2", "3", "4"]:
+        # Stepper em 3 etapas: preencher, conferir, concluir.
+        for n in ["1", "2", "3"]:
             self.assertIn(f'data-etapa="{n}"', html)
+        self.assertNotIn('data-etapa="4"', html)
         # Sem contador de selecionados e sem bloco "antes de gerar".
         self.assertNotIn("selecao-resumo", html)
         self.assertNotIn("Antes de gerar", html)
@@ -211,7 +212,7 @@ class TestFrontendBase(unittest.TestCase):
 
     def test_ponte_api_completa(self):
         api = (RAIZ / "js/api.js").read_text(encoding="utf-8")
-        for exigido in ["getJob(", "listJobs", "getCapabilities", "selectAttachment", "atob("]:
+        for exigido in ["getJob(", "listJobs", "getCapabilities", "selectAttachment", "openFile", "atob("]:
             self.assertIn(exigido, api, exigido)
 
     def test_fila_painel_e_paginacao(self):
@@ -228,8 +229,8 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("sincronizarStepper", ui)
         self.assertIn("etapaLiberada", ui)
         app = (RAIZ / "js/app.js").read_text(encoding="utf-8")
-        self.assertIn("mostrarCapacidades", app)
-        self.assertIn("lista-capacidades", app)
+        self.assertNotIn("lista-capacidades", app)
+        self.assertIn("/api/v1/capabilities", app)
         ui = (RAIZ / "js/ui.js").read_text(encoding="utf-8")
         # Config com rascunho: aplica somente ao salvar; sem densidade.
         for exigido in ["cfgCarregarRascunho", "cfgSalvar", "cfgDescartar", "btn-cfg-salvar", "local_padrao"]:

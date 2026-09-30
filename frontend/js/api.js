@@ -32,6 +32,12 @@
     return window.pywebview.api.open_result(jobId);
   }
 
+  async function openFile(fileId) {
+    if (!disponivel()) return { ok: false, code: "sem_ponte" };
+    if (window.pywebview.api.open_file) return window.pywebview.api.open_file(fileId);
+    return { ok: false, code: "unsupported" };
+  }
+
   async function getFile(fileId) {
     if (!disponivel()) return { ok: false, code: "sem_ponte" };
     const r = await window.pywebview.api.get_file(fileId);
@@ -128,6 +134,7 @@
     selectFile,
     selectAttachment,
     openResult,
+    openFile,
     getFile,
     getJob,
     listJobs,

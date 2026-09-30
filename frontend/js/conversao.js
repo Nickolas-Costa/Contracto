@@ -201,7 +201,6 @@
   }
 
   async function visualizarViaEtapa2(f) {
-    // Reaproveita o visualizador de PDF da Etapa 2 sem duplicar código.
     try {
       const r = await api().getFile(f.file_id);
       if (!r.ok) { ui().toast("Não foi possível carregar a pré-visualização.", "error"); return; }
@@ -213,8 +212,16 @@
       frame.title = "Pré-visualização de " + f.name;
       frame.src = url;
       panel.append(frame);
-      ui().abrirModal("Visualização — " + f.name, panel, [{ texto: "Fechar" }],
+      ui().abrirModal("Visualização — " + f.name, panel, [
+        { texto: "Abrir no leitor padrão", aoClicar: async () => {
+          try { const o = await api().openFile(f.file_id); if (!o.ok) ui().toast("Não foi possível abrir no leitor padrão.", "error"); }
+          catch (_) { ui().toast("Falha ao abrir no leitor padrão.", "error"); }
+        } },
+        { texto: "Expandir", aoClicar: () => { document.querySelector(".modal")?.classList.toggle("modal-viewer-expandido"); } },
+        { texto: "Fechar", primario: true }
+      ],
         () => URL.revokeObjectURL(url));
+      document.querySelector(".modal")?.classList.add("modal-viewer");
     } catch (_) { ui().toast("Falha ao carregar o PDF.", "error"); }
   }
 

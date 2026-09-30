@@ -5,7 +5,9 @@
   const ICONES = { success: "✓", info: "i", warning: "!", error: "✕" };
   // Foco local: um fragmento na URL alteraria a origem exata autorizada da ponte.
   document.getElementById("pular-conteudo").addEventListener("click",()=>{
-    const main=document.getElementById("telas");main.focus();main.scrollIntoView({block:"start"});
+    const main=document.getElementById("telas");main.scrollIntoView({block:"start"});
+    const primeiro=document.querySelector("#tela-inicio:not([hidden]) button:not(:disabled), #tela-inicio:not([hidden]) input, #tela-inicio:not([hidden]) select");
+    if(primeiro)primeiro.focus({preventScroll:true});
   });
 
   // Fase 1 (DESIGN.md §7): temporário some em 6s com pausa sob hover/foco;
@@ -139,6 +141,9 @@
     if (n >= 3) return !!(window.ContractoEtapa1 && window.ContractoEtapa1.composto()) && !!(window.ContractoEtapa2 && window.ContractoEtapa2.temBase());
     return true;
   }
+  function etapaAtiva(nome) {
+    return nome === "inicio" ? 1 : nome === "conferir" ? 2 : nome === "etapa2" ? 3 : 0;
+  }
   function sincronizarStepper() {
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       const n = Number(b.dataset.etapa);
@@ -158,7 +163,7 @@
       if (b.dataset.tela === nome || (["conferir", "etapa2"].includes(nome) && b.dataset.tela === "inicio")) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    const etapa = nome === "inicio" ? 1 : nome === "conferir" ? 2 : nome === "etapa2" ? 3 : 0;
+    const etapa = etapaAtiva(nome);
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
@@ -198,26 +203,15 @@
         return;
       }
       mostrarTela("etapa2");
-      return;
-    }
-    if (n === 4) {
-      if (window.ContractoEtapa1 && !window.ContractoEtapa1.composto()) {
-        toast("Gere os documentos primeiro para poder concluir o trabalho.", "warning");
-        mostrarTela("inicio");
-        return;
-      }
-      mostrarTela("etapa2");
-      // Fase 2: no modo Simples não há "Concluir e organizar" (sem Etapa 2 de
-      // processamento) — foca os documentos gerados em vez de botão oculto.
-      const simples = window.ContractoEtapa1 && window.ContractoEtapa1.modo() === "simples";
-      const alvo = simples
-        ? document.getElementById("lista-resultados")
-        : document.getElementById("btn-finalizar");
-      if (alvo) {
-        if (!alvo.hasAttribute("tabindex")) alvo.setAttribute("tabindex", "-1");
+      const avancado = window.ContractoEtapa1 && window.ContractoEtapa1.modo() !== "simples";
+      const alvo = avancado ? document.getElementById("btn-finalizar") : null;
+      if (alvo && !alvo.hidden && !alvo.disabled) {
         alvo.focus({ preventScroll: true });
-        alvo.scrollIntoView({ block: "center" });
+        alvo.scrollIntoView({ block: "nearest" });
+      } else {
+        document.getElementById("tela-etapa2")?.scrollIntoView({ block: "start" });
       }
+      return;
     }
   }
 
@@ -232,9 +226,8 @@
 
   const TEXTO_AJUDA = [
     "1. Escolha o modo (Simples para vários formulários, Contrato para processo completo) e o modelo.",
-    "2. Preencha os dados de cada participante; use Revisar campos pendentes para corrigir.",
-    "3. Confira o resumo e gere os PDFs.",
-    "4. Em Enviar, anexe comprovantes se preciso, escolha PDF ou PDF/A-2b e conclua."
+    "2. Preencha os dados de cada participante e confira o resumo antes de gerar.",
+    "3. Em Concluir, revise os PDFs, anexe comprovantes se preciso, escolha PDF ou PDF/A-2b e finalize."
   ];
   function ajudaModal() {
     const wrap = document.createElement("div");
@@ -245,7 +238,7 @@
     versao.id = "versao-app";
     versao.textContent = "Consultando versão…";
     wrap.append(versao);
-    abrirModal("Ajuda — Contracto em 4 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
+    abrirModal("Ajuda — Contracto em 3 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
     if (window.ContractoAPI) {
       window.ContractoAPI.request("GET", "/api/v1/health").then(r => {
         const el = document.getElementById("versao-app");
@@ -389,9 +382,8 @@
     });
   }
 
-  // Fase 4 (DESIGN.md §4): larguras máximas Pequeno 880 / Médio 1120 /
-  // Grande 1360 CSS px. O valor já era persistido e nunca aplicado.
-  const LARGURAS = { "Pequeno": 880, "Médio": 1120, "Medio": 1120, "Grande": 1360 };
+  // Larguras proporcionais: 760 / 1080 / 1400 (deltas 320/320).
+  const LARGURAS = { "Pequeno": 760, "Médio": 1080, "Medio": 1080, "Grande": 1400 };
   function aplicarLargura(tamanho) {
     const px = LARGURAS[tamanho];
     if (px) document.documentElement.style.setProperty("--largura-quadros", px + "px");

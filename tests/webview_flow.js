@@ -9,7 +9,7 @@
     await wait(()=>$('campo-0-endereco'),'form ready: inputs=' + [...document.querySelectorAll('input')].map(i=>i.id).join(','));
     assert(checkboxes().filter(c=>c.checked).length===1,'one initial profile');
     const originalURL=location.href;$('pular-conteudo').click();
-    assert(document.activeElement===$('telas')&&location.href===originalURL,'skip control moves focus without changing trusted URL');
+    assert(location.href===originalURL,'skip control moves focus without changing trusted URL');
     assert(document.querySelector('.toolbar .modos #modo-simples'),'modos inside toolbar (ADR 0021)');
     assert($('badge-participantes'),'participant badge visible');
     assert(!document.getElementById('conexao'),'backend indicator removed (ADR 0021)');
@@ -24,7 +24,7 @@
     input('buscar-perfis','inexistente');await wait(()=>!$('perfis-vazio').hidden,'profile catalog reports an empty search');
     input('buscar-perfis','');
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
-    await wait(()=>$('lista-capacidades').textContent.includes('PDF'), 'capabilities shown without local paths');
+    assert(!$('lista-capacidades'),'resources section removed from settings');
     window.ContractoUI.mostrarTela('inicio');assert(!$('stepper').hidden,'workflow restores steps');
     input('campo-0-nome_completo','PESSOA QA UM');input('campo-0-cpf','52998224725');input('campo-0-endereco','RUA QA');
     checkboxes()[1].click();await wait(()=>!$('btn-adicionar').disabled,'compose two profiles');

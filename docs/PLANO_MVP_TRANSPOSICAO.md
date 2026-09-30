@@ -3,6 +3,9 @@
 > Documento de trabalho (pós v4.5.18). Fases 0–4 e modo Conversão
 > implementados na v4.5.19 (branch `feat/mvp-transposicao-e-conversao`).
 > Rodada de 10 ajustes visuais/fluxo (fotos do usuário) na v4.5.20.
+> Rodada de 15 ajustes (toolbar/toast, stepper 3 passos, conferência,
+> MO 29300, Cliente/Seguro, larguras 760/1080/1400, perfis, viewer PDF)
+> na v4.5.21 (branch `fix/ui-feedback-15-ajustes`).
 > Resta o gate manual Windows/distribuição.
 
 ## v4.5.20 — rodada de ajustes (fotos 1–10)
@@ -14,7 +17,7 @@
 | 2 | Contrato: modelos sempre em pills lado a lado (`renderSeletorLista`, sem radio nativo); Simples mantém checkboxes. |
 | fundo | Sonda WebView2 real mostrou `prefers-reduced-motion=True`: o guard da Fase 4 apagava as ondas. Ondas são estáticas → só `forced-colors` remove. |
 | 3 | `#modal-corpo` (o `div` tem id, não classe — a regra `.modal-corpo` nunca aplicava): padding/margem corrigidos. |
-| 4 | "Recursos deste computador" em badges (`.recurso-badge` ok/off). |
+| 4 | "Recursos deste computador" removido da UI (v4.5.21); capacidades seguem internas como gate de PDF/A + diagnóstico via `POST /system/repair`. |
 | 5 | `.acoes` gap 12→14px + row-gap; `.field-section` com respiro. |
 | 6 | Seção Sobre removida da Config; versão no modal de Ajuda (`#versao-app`). |
 | 7 | `#lista-formularios` em coluna com gap 12px (removida regra concorrente em linha); "Selecionar todos" com margem 16px. |
@@ -81,7 +84,7 @@ um modelo "apenas piscava e nada alterava", sendo preciso voltar ao legado.
 
 | # | Arquivo | Correção |
 |---|---|---|
-| 4.1 | `frontend/js/ui.js` (`aplicarLargura`) + `layout.css` | `tamanho_quadros` (Pequeno 880 / Médio 1120 / Grande 1360, `DESIGN.md §4`) aplicado via `--largura-quadros` no arranque, ao salvar e ao restaurar. Antes era persistido e ignorado. |
+| 4.1 | `frontend/js/ui.js` (`aplicarLargura`) + `layout.css` | `tamanho_quadros` (Pequeno 760 / Médio 1080 / Grande 1400, `DESIGN.md §4`) aplicado via `--largura-quadros` no arranque, ao salvar e ao restaurar. Antes era persistido e ignorado. |
 | 4.2 | `frontend/js/ui.js` (`desenharFundoSenoidal`) | Sem ondas sob `prefers-reduced-motion` ou `forced-colors` (`DESIGN.md §5`); remove resíduo de arranques anteriores. |
 | 4.3 | auditado | `localStorage` só guarda tema/cor/preservar/local-assinatura; nenhum CPF/CNPJ/nome/token/fila (`DESIGN.md §9`); CSP `default-src 'none'` mantida. |
 | Gate manual restante | — | `smoke_webview_ui.py --visible`, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, zoom 200%, teclado-only + leitor de tela, instalador (`packaging/Contracto.iss`, ADR 0008) ou decisão Tauri (ADR 0024). |
