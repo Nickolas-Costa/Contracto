@@ -62,6 +62,26 @@ class Jobs:
                  "fields": [asdict(c) for c in p.campos_entrada]}
                 for key, p in self.profiles.items()]
 
+    def refresh_profiles(self):
+        """Recarrega o catálogo do disco após CRUD, preservando os IDs da
+        sessão para não invalidar seleções/composições já feitas na UI.
+        Perfis exclusivos da sessão (ex. sintéticos de teste, sem par no
+        disco) são mantidos."""
+        with self._lock:
+            atuais = {(p.identificador or p.nome): (key, p) for key, p in self.profiles.items()}
+            with contexto_log_api():
+                disco = carregar_perfis()
+            chaves_disco = {(p.identificador or p.nome) for p in disco}
+            por_chave = {}
+            for perfil in disco:
+                chave = perfil.identificador or perfil.nome
+                antiga = atuais.get(chave)
+                por_chave[antiga[0] if antiga else secrets.token_hex(16)] = copy.deepcopy(perfil)
+            for chave, (key, perfil) in atuais.items():
+                if chave not in chaves_disco:
+                    por_chave[key] = perfil
+            self.profiles = por_chave
+
     def _profiles(self, ids):
         if len(ids) != len(set(ids)):
             raise ApiError("duplicate_profiles", "Não repita perfis")

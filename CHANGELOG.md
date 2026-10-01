@@ -3,6 +3,23 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.22] - 2026-10-01
+
+### Corrigido (paridade prod: P0 + principais)
+- Form Cliente/ITBI: checkboxes "Boleto/WhatsApp", "tarifa de avaliação" e
+  isenção voltam a marcar o PDF — condições `["Sim"]` canonizadas para
+  `["SIM"]` no seed e comparador insensível a caixa em `mapping_engine`,
+  `form_validation` e `form-state.js`.
+- Catálogo da sessão atualiza após criar/editar/excluir/duplicar/importar
+  perfil (`Jobs.refresh_profiles`, IDs preservados) — perfil novo aparece
+  sem reiniciar o app, inclusive na Etapa 1.
+- Importar/exportar perfil por arquivo `.json` (diálogos nativos +
+  `ShellBridge.import_profile/export_profile`).
+- `local_padrao` da Config pré-preenche o Local da assinatura (paridade Tk).
+- Validações `MOEDA/AREA/INTEIRO` no frontend + `inputmode`
+  email/tel/decimal; conferência com rótulos legíveis e valores calculados.
+- Docs temporários concluídos anotados para exclusão futura (nada movido).
+
 ## [4.5.21] - 2026-09-30
 
 ### Corrigido (rodada 15 ajustes + auditoria)

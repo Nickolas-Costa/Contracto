@@ -150,6 +150,13 @@ class TestFrontendBase(unittest.TestCase):
         for exigido in ["nomeExibicao", "Form Seguro", "ROTULOS_OPCOES", "profile-menu-box"]:
             self.assertIn(exigido, etapa1, exigido)
         self.assertNotIn('data-etapa="4"', ui_js)
+        # v4.5.22: prefill local_padrao, import/export por arquivo, validações.
+        for exigido in ["local_padrao", "recarregarCatalogo", "importProfile",
+                        "exportProfile", "Salvar .json", "Escolher arquivo .json",
+                        "valorNumericoValid", "valorConf"]:
+            self.assertIn(exigido, etapa1, exigido)
+        form_js = (RAIZ / "js/form-state.js").read_text(encoding="utf-8")
+        self.assertIn("valorNumericoValid", form_js)
 
     def test_toolbar_consolidada_adr0021(self):
         html = (RAIZ / "index.html").read_text(encoding="utf-8")
@@ -228,7 +235,7 @@ class TestFrontendBase(unittest.TestCase):
 
     def test_ponte_api_completa(self):
         api = (RAIZ / "js/api.js").read_text(encoding="utf-8")
-        for exigido in ["getJob(", "listJobs", "getCapabilities", "selectAttachment", "openFile", "atob("]:
+        for exigido in ["getJob(", "listJobs", "getCapabilities", "selectAttachment", "openFile", "importProfile", "exportProfile", "atob("]:
             self.assertIn(exigido, api, exigido)
 
     def test_fila_painel_e_paginacao(self):

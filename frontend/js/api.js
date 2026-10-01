@@ -77,6 +77,18 @@
     return window.pywebview.api.select_file();
   }
 
+  async function importProfile() {
+    if (!disponivel()) return { code: "sem_ponte" };
+    if (window.pywebview.api.import_profile) return window.pywebview.api.import_profile();
+    return { ok: false, code: "unsupported" };
+  }
+
+  async function exportProfile(nome) {
+    if (!disponivel()) return { ok: false, code: "sem_ponte" };
+    if (window.pywebview.api.export_profile) return window.pywebview.api.export_profile(nome);
+    return { ok: false, code: "unsupported" };
+  }
+
   async function selectDocuments() {
     if (!disponivel()) return { code: "sem_ponte" };
     if (window.pywebview.api.select_documents) return window.pywebview.api.select_documents();
@@ -147,6 +159,8 @@
     deleteProfile,
     duplicateProfile,
     selectBackup,
+    importProfile,
+    exportProfile,
     selectDocuments,
     activateProfile,
     backupSystem,

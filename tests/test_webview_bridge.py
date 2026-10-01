@@ -52,7 +52,7 @@ class TestWebViewBridge(unittest.TestCase):
             window.get_current_url.return_value = None
             self.assertEqual(bridge.request("GET", "/api/v1/health")["status"], 200)
             public = {name for name in dir(bridge) if not name.startswith("_") and callable(getattr(bridge, name))}
-            self.assertEqual(public, {"request", "select_file", "select_output", "select_backup", "select_documents", "open_result", "open_file", "get_file"})
+            self.assertEqual(public, {"request", "select_file", "select_output", "select_backup", "select_documents", "open_result", "open_file", "import_profile", "export_profile", "get_file"})
 
     def test_select_documents_registra_multiplos_para_conversao(self):
         with tempfile.TemporaryDirectory() as folder, LocalServer(profiles=[]) as server:
@@ -99,6 +99,54 @@ class TestWebViewBridge(unittest.TestCase):
             with patch.object(modest, "abrir_arquivo") as abrir:
                 self.assertEqual(bridge.open_file(sid_rtf), {"ok": False, "code": "unsupported_preview"})
                 abrir.assert_not_called()
+
+    def test_import_export_profile_por_arquivo(self):
+        import json
+        import os
+        with tempfile.TemporaryDirectory() as appdata, tempfile.TemporaryDirectory() as folder:
+            anterior = {k: os.environ.get(k) for k in ("APPDATA", "LOCALAPPDATA")}
+            os.environ["APPDATA"] = os.environ["LOCALAPPDATA"] = appdata
+            try:
+                from utils import profile_manager
+                profile_manager.invalidar_cache()
+                with LocalServer(profiles=[]) as server:
+                    window = Mock()
+                    window.get_current_url.return_value = None
+                    bridge = ShellBridge(server)
+                    bridge._attach(window)
+                    dados = {"nome": "QA Arquivo", "modo_fluxo": "formulario_simples",
+                             "formato_saida": "PDF", "max_participantes": 1,
+                             "campos_entrada": [], "formularios": []}
+                    origem = Path(folder, "qa.json")
+                    origem.write_text(json.dumps(dados), encoding="utf-8")
+                    window.create_file_dialog.return_value = [str(origem)]
+                    r = bridge.import_profile()
+                    self.assertEqual(r, {"ok": True, "nome": "QA Arquivo"})
+                    self.assertIn("QA Arquivo", [p["name"] for p in server.jobs.catalog()])
+                    # Reimportar o mesmo nome falha com validação, sem crash.
+                    window.create_file_dialog.return_value = [str(origem)]
+                    r2 = bridge.import_profile()
+                    self.assertFalse(r2.get("ok"))
+                    # Exporta para .json válido e reimportável.
+                    destino = Path(folder, "saida.json")
+                    window.create_file_dialog.return_value = [str(destino)]
+                    re = bridge.export_profile("QA Arquivo")
+                    self.assertEqual(re, {"ok": True, "nome": "QA Arquivo"})
+                    recarregado = json.loads(destino.read_text(encoding="utf-8"))
+                    self.assertEqual(recarregado["nome"], "QA Arquivo")
+                    # Cancelamento e nomes inválidos.
+                    window.create_file_dialog.return_value = None
+                    self.assertEqual(bridge.import_profile(), {"cancelled": True})
+                    self.assertEqual(bridge.export_profile("Inexistente"),
+                                     {"ok": False, "code": "profile_not_found"})
+                    self.assertEqual(bridge.export_profile(""), {"ok": False, "code": "invalid_request"})
+                profile_manager.invalidar_cache()
+            finally:
+                for k, v in anterior.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
 
     def test_abrir_arquivo_puro(self):
         from utils import files_fs

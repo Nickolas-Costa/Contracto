@@ -63,8 +63,11 @@ def preparar_participantes(participantes, perfil):
     def visible(field, participant, index):
         if field.ate_participante and index > field.ate_participante:
             return False
+        # Insensível a caixa (mesmo motivo de mapping_engine._condicoes_atendidas).
         return not field.visivel_quando or any(
-            all(str(participant.obter_campo(key, "")) in accepted for key, accepted in condition.items())
+            all(str(participant.obter_campo(key, "")).casefold()
+                in [str(a).casefold() for a in accepted]
+                for key, accepted in condition.items())
             for condition in field.visivel_quando)
     for index, participant in enumerate(result, 1):
         for field in fields:

@@ -1,5 +1,9 @@
 # Plano de Transposição MVP — Legado Tk → WebView + Modo Conversão
 
+> **AVISO DE LIMPEZA (anotado em 01/10/2026, nada movido):** plano 100%
+> executado — **candidato a APAGAR após a release 4.5.22** (decisões de UX
+> já resumidas no `CHANGELOG.md`). Não apagar ADRs nem evidências de QA.
+
 > Documento de trabalho (pós v4.5.18). Fases 0–4 e modo Conversão
 > implementados na v4.5.19 (branch `feat/mvp-transposicao-e-conversao`).
 > Rodada de 10 ajustes visuais/fluxo (fotos do usuário) na v4.5.20.

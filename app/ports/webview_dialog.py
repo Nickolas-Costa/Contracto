@@ -23,6 +23,28 @@ class WebViewDialogs:
         )
         return Path(values[0]) if values else None
 
+    def selecionar_json(self):
+        """Abre um arquivo .json (importação de perfil)."""
+        from webview import FileDialog
+        values = self._window.create_file_dialog(
+            FileDialog.OPEN, allow_multiple=False,
+            file_types=("Perfil Contracto (*.json)",),
+        )
+        return Path(values[0]) if values else None
+
+    def salvar_json(self, nome_inicial="perfil.json"):
+        """Destino .json para exportação de perfil."""
+        from webview import FileDialog
+        seguro = "".join(c for c in Path(nome_inicial).name if c not in '<>:"/\\|?*') or "perfil.json"
+        if not seguro.lower().endswith(".json"):
+            seguro += ".json"
+        downloads = Path(os.path.expanduser("~/Downloads"))
+        values = self._window.create_file_dialog(
+            FileDialog.SAVE, save_filename=seguro,
+            file_types=("Perfil Contracto (*.json)",), directory=str(downloads)
+        )
+        return Path(values[0]) if values else None
+
     def selecionar_documentos(self):
         """Multi-seleção para o modo Conversão (PDF, RTF, DOC, DOCX)."""
         from webview import FileDialog

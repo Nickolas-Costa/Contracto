@@ -1,5 +1,9 @@
 # Plano de Implementação — Migração Residual WebView2 (Pós v4.5.18)
 
+> **AVISO DE LIMPEZA (anotado em 01/10/2026, nada movido):** blocos 0–6
+> 100% concluídos — **candidato a APAGAR após a release 4.5.22** (rastro
+> permanente em ADR 0022 + `CHANGELOG.md`). Não apagar ADRs.
+
 > **Documento de trabalho.** Não cria versão nem release. Cada bloco concluído deve ser marcado e referenciado no commit correspondente.
 >
 > Estado inicial: **2026-09-17**. Atualização **2026-09-20**: blocos 0–6 implementados e suíte 362 OK; pendente apenas o gate final Windows/distribuição.

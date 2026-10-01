@@ -118,6 +118,59 @@ class ShellBridge:
         except Exception:
             return {"code": "selection_failed"}
 
+    def import_profile(self):
+        """Importa um perfil de um arquivo .json escolhido no diálogo nativo."""
+        if not self._authorized():
+            return {"ok": False, "code": "unauthorized_page"}
+        try:
+            path = self._dialogs.selecionar_json()
+            if path is None:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            if path.suffix.lower() != ".json" or path.stat().st_size > 1024 * 1024:
+                return {"ok": False, "code": "invalid_file"}
+            import json
+            try:
+                dados = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return {"ok": False, "code": "invalid_json"}
+            if not isinstance(dados, dict):
+                return {"ok": False, "code": "invalid_profile"}
+            from utils import profile_manager
+            try:
+                perfil = profile_manager._perfil_de_dict(dados)
+                profile_manager.adicionar_perfil(perfil)
+            except (ValueError, TypeError, KeyError) as exc:
+                return {"ok": False, "code": "invalid_profile", "message": str(exc)}
+            self._server.jobs.refresh_profiles()
+            return {"ok": True, "nome": perfil.nome}
+        except Exception:
+            return {"ok": False, "code": "import_failed"}
+
+    def export_profile(self, nome):
+        """Exporta um perfil para um arquivo .json no destino escolhido."""
+        if not self._authorized():
+            return {"ok": False, "code": "unauthorized_page"}
+        if not isinstance(nome, str) or not nome.strip():
+            return {"ok": False, "code": "invalid_request"}
+        try:
+            from utils import profile_manager
+            perfil = next((p for p in profile_manager.carregar_perfis() if p.nome == nome), None)
+            if perfil is None:
+                return {"ok": False, "code": "profile_not_found"}
+            path = self._dialogs.salvar_json(nome + ".json")
+            if path is None:
+                return {"cancelled": True}
+            if not self._authorized():
+                return {"code": "unauthorized_page"}
+            import json
+            from dataclasses import asdict
+            path.write_text(json.dumps(asdict(perfil), ensure_ascii=False, indent=2), encoding="utf-8")
+            return {"ok": True, "nome": perfil.nome}
+        except Exception:
+            return {"ok": False, "code": "export_failed"}
+
     def open_result(self, job_id):
         if not self._authorized():
             return {"ok": False, "code": "unauthorized_page"}
