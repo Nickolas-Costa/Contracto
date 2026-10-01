@@ -1,7 +1,6 @@
 """Base do frontend web: arquivos, tokens, CSP, integridade do HTML, IDs únicos e shell."""
 
 import re
-import sys
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
@@ -175,10 +174,9 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("ContractoEtapa2.ligar()", app_js)
 
     def test_build_embarca_frontend(self):
-        sys.path.insert(0, str(RAIZ.parent / "app"))
-        import version as versao_app
-        spec = (RAIZ.parent / "app" / f"Contracto_v{versao_app.__version__}.spec").read_text(encoding="utf-8")
-        self.assertIn("('../frontend', 'frontend')", spec)
+        spec_path = RAIZ.parent / "scripts" / "generate_spec.py"
+        spec_code = spec_path.read_text(encoding="utf-8")
+        self.assertIn("(str(root_dir / 'frontend'), 'frontend')", spec_code)
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         # Capacidades carregadas no arranque para não desativar PDF/A à toa.
         self.assertIn("/api/v1/capabilities", app_js)

@@ -275,7 +275,7 @@ class TestLocalAPI(unittest.TestCase):
         self.assertEqual(self.wait_job(job["job_id"])["status"], "completed")
         with patch("utils.files_fs.abrir_pasta", return_value=True) as open_folder:
             self.assertTrue(bridge.open_result(job["job_id"])["ok"])
-            self.assertEqual(open_folder.call_args.args[0].parent, self.output)
+            self.assertEqual(open_folder.call_args.args[0].parent.resolve(), self.output.resolve())
 
     def test_undeclared_dynamic_field_rejected(self):
         participant = {**self.participant, "campos_dinamicos": {"undeclared": "value"}}

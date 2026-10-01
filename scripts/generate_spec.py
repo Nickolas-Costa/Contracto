@@ -47,7 +47,7 @@ hiddenimports = [
     'pypdf',
     'pikepdf',
     'pypdfium2',
-    'pywebview',
+    'webview',
     'win32com.client',
 ]
 

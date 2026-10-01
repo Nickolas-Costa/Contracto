@@ -76,7 +76,7 @@ class BaseHardening(unittest.TestCase):
             except HTTPError as exc:
                 response = exc
                 break
-            except (ConnectionAbortedError, ConnectionResetError) as exc:
+            except (ConnectionAbortedError, ConnectionResetError, TimeoutError, OSError) as exc:
                 # Loopback sob carga pode derrubar a conexão; o alvo do
                 # teste é o comportamento HTTP, não o TCP. Uma repetição.
                 ultimo_erro = exc

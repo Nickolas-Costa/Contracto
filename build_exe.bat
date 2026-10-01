@@ -27,19 +27,58 @@ echo ==========================================
 echo.
 
 if not exist .\.venv\Scripts\python.exe (
-    echo [ERRO] Ambiente virtual .venv nao foi encontrado nesta maquina!
+    echo [AVISO] Ambiente virtual .venv nao encontrado!
+    echo [INFO] Criando ambiente virtual em .venv e instalando dependencias...
     echo.
-    echo Para solucionar, execute os comandos abaixo no terminal CMD ou PowerShell:
-    echo   python -m venv .venv
-    echo   .\.venv\Scripts\python.exe -m pip install --upgrade pip
-    echo   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+    where python >nul 2>nul
+    if errorlevel 1 (
+        echo [ERRO] O comando 'python' nao foi encontrado no PATH do Windows nesta maquina!
+        echo        Instale o Python 3.12 ou superior e marque a opcao 'Add python.exe to PATH'.
+        echo.
+        pause
+        exit /b 1
+    )
+    python -m venv .venv
+    if errorlevel 1 (
+        echo [ERRO] Falha ao criar o ambiente virtual com 'python -m venv .venv'.
+        echo.
+        pause
+        exit /b 1
+    )
+    echo [INFO] Instalando dependencias do projeto - requirements-dev.txt...
     echo.
-    pause
-    exit /b 1
+    .\.venv\Scripts\python.exe -m pip install --upgrade pip
+    .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+    if errorlevel 1 (
+        echo [ERRO] Falha ao instalar dependencias no .venv!
+        echo.
+        pause
+        exit /b 1
+    )
+    echo [OK] Ambiente virtual .venv criado e configurado com sucesso!
+    echo.
+)
+
+.\.venv\Scripts\python.exe -c "import PyInstaller" 2>nul
+if errorlevel 1 (
+    echo [AVISO] PyInstaller nao foi encontrado no ambiente virtual .venv!
+    echo [INFO] Instalando dependencias de desenvolvimento - requirements-dev.txt...
+    echo.
+    .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+    if errorlevel 1 (
+        echo [ERRO] Falha ao instalar PyInstaller via pip.
+        echo        Certifique-se de que a maquina esta conectada a internet ou execute manualmente:
+        echo        .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+        echo.
+        pause
+        exit /b 1
+    )
+    echo [OK] PyInstaller instalado com sucesso.
+    echo.
 )
 
 set APP_VERSION=
-for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'app'); import version; print(version.__version__)"') do set APP_VERSION=%%v
+for /f "delims=" %%v in ('.\.venv\Scripts\python.exe -c "from app import version; print(version.__version__)"') do set APP_VERSION=%%v
 echo Versao detectada: %APP_VERSION%
 echo.
 
