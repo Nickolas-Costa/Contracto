@@ -11,9 +11,11 @@
   }
   function visible(field, values, index) {
     const f = norm(field);
+    // Insensível a caixa, espelhando mapping_engine/form_validation no backend.
+    const same = (a, b) => String(a ?? "").toLowerCase() === String(b ?? "").toLowerCase();
     return (!f.ate_participante || index <= f.ate_participante) &&
       (!f.visivel_quando?.length || f.visivel_quando.some(group =>
-        Object.entries(group).every(([id, accepted]) => accepted.includes(String(values[canonical(id)] ?? "")))));
+        Object.entries(group).every(([id, accepted]) => (accepted || []).some(v => same(v, values[canonical(id)])))));
   }
   function paginaDe(campo, agrupamento) {
     const f = norm(campo);
@@ -89,6 +91,14 @@
   function emailValid(value) { return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(String(value).trim()); }
   function telefoneValid(value) { const d = onlyDigits(value); return d.length >= 10 && d.length <= 11; }
   function anoValid(value) { return /^\d{4}$/.test(String(value).trim()) && Number(value) >= 1900 && Number(value) <= 2100; }
+  function valorNumericoValid(value) {
+    // Espelha form_validation MOEDA/AREA: milhar com ponto, decimal com vírgula, >= 0.
+    const text = String(value).replace("R$", "").replace(/ /g, "");
+    if (!text) return false;
+    const norm = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
+    if (!/^\d+(\.\d+)?$/.test(norm)) return false;
+    return Number(norm) >= 0;
+  }
   function participants(draft, fields) {
     return draft.people.map((person,index) => {
       const values = {...person, ...draft.globals, ...(draft.computed?.[index] || {})};
@@ -108,5 +118,5 @@
         local_assinatura: draft.globals.local_assinatura || "", campos_dinamicos: dynamic};
     });
   }
-  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
+  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, valorNumericoValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
 })();

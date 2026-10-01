@@ -18,8 +18,11 @@ def _condicoes_atendidas(
 ) -> bool:
     if not alternativas:
         return True
+    # Comparação insensível a caixa: valores canônicos ("SIM") precisam casar
+    # com condições legadas ("Sim") sem exigir migração dos perfis do usuário.
     return any(
-        all(_normalizar(resolver(origem)) in [_normalizar(v) for v in aceitos]
+        all(_normalizar(resolver(origem)).casefold()
+            in [_normalizar(v).casefold() for v in aceitos]
             for origem, aceitos in alternativa.items())
         for alternativa in alternativas
     )

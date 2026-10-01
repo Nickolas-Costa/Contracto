@@ -124,8 +124,11 @@
       input.checked = owner[id] === options[0] || owner[id] === true;
     } else {
       input.type = "text";
-      if (["CPF","CNPJ","CPF_CNPJ","INTEIRO","ANO","DATA","MOEDA","AREA"].includes(field.tipo)) input.inputMode = "decimal";
+      if (["CPF","CNPJ","CPF_CNPJ","INTEIRO","ANO","DATA","MOEDA","AREA","PIS_PASEP"].includes(field.tipo)) input.inputMode = "decimal";
+      if (field.tipo === "EMAIL") input.inputMode = "email";
+      if (field.tipo === "TELEFONE") input.inputMode = "tel";
       if (field.tipo === "DATA") input.placeholder="DD/MM/AAAA";
+      if (field.tipo === "MOEDA") input.placeholder="0,00";
       input.maxLength = 4000;
     }
     if (field.tipo !== "CHECKBOX" && field.tipo !== "SELECAO") input.value=owner[id];
@@ -302,6 +305,8 @@
       if(value && c.field.tipo === "TELEFONE" && form().telefoneValid && !form().telefoneValid(value))message="Telefone inválido: use DDD + número.";
       if(value && c.field.tipo === "ANO" && form().anoValid && !form().anoValid(value))message="Ano inválido.";
       if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
+      if(value && ["MOEDA","AREA"].includes(c.field.tipo) && !form().valorNumericoValid(value))message="Use um valor numérico válido (ex. 1.234,56).";
+      if(value && c.field.tipo === "INTEIRO" && !/^\d+$/.test(value.trim()))message="Use um número inteiro.";
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
       if(message)result.push({participant:c.index+1,field:c.id,message});
     });
@@ -485,6 +490,15 @@
     renderProfilesList();
     const defaultProfile = catalog.find(p=>p.mode === "contrato") || catalog[0];
     await selecionar(mode === "simples" ? [] : (defaultProfile?.profile_id ? [defaultProfile.profile_id] : []));
+  }
+  async function recarregarCatalogo() {
+    // Re-GET sem resetar a seleção (refresh_profiles preserva os IDs por
+    // identificador/nome): novo perfil aparece sem perder o trabalho atual.
+    const r = await window.ContractoAPI.request("GET", "/api/v1/profiles");
+    if (r.status !== 200) return;
+    catalog = r.data;
+    renderProfilesList();
+    atualizar();
   }
   const NOMES_EXIBICAO = { "Seguro": "Form Seguro" };
   const nomeExibicao = (p) => NOMES_EXIBICAO[p.name] || NOMES_EXIBICAO[p.nome] || p.name || p.nome || p.profile_id;
@@ -719,9 +733,17 @@
       const HUMAN_CONF = (v) => {
         if (v === true || v === "SIM") return "Sim";
         if (v === false || v === "NÃO" || v === "NAO") return "Não";
-        if (!v) return "—";
+        if (v === undefined || v === null || String(v).trim() === "") return "—";
         const mapa = { "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito", "CANCELAR_DEBITO": "Cancelar débito", "DESCONHECO_POSSUIR": "Desconheço possuir", "DECLARO_POSSUIR": "Declaro possuir" };
-        return mapa[v] || String(v);
+        if (mapa[v]) return mapa[v];
+        // SELECAO genérica: "APOSENTADO_OU_PENSIONISTA" → "Aposentado Ou Pensionista".
+        return String(v).replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()).trim() || "—";
+      };
+      // Valores calculados (preview do servidor) têm precedência sobre o rascunho.
+      const valorConf = (owner, comp, id) => {
+        const c = comp && comp[id];
+        if (c !== undefined && c !== null && String(c).trim() !== "") return c;
+        return owner[id];
       };
       // Globais compartilhados também aparecem na conferência.
       const globaisConf = fields.filter(f=>f.escopo === "global" && !["data_assinatura","local_assinatura"].includes(form().canonical(f.id)));
@@ -732,7 +754,7 @@
         const gridG = document.createElement("div"); gridG.className = "conf-grid";
         globaisConf.forEach(f=>{
           const id = form().canonical(f.id);
-          const val = draft.globals[id];
+          const val = valorConf(draft.globals, draft.computed && draft.computed[0], id);
           if (val === undefined || String(val ?? "").trim() === "") return;
           const wrap=document.createElement("div"); wrap.className="conf-item";
           const dt=document.createElement("dt"); dt.textContent=(f.rotulo||id);
@@ -773,7 +795,7 @@
             const id = form().canonical(f.id);
             const wrap = document.createElement("div"); wrap.className = "conf-item";
             const dt = document.createElement("dt"); dt.textContent = (f.rotulo || id);
-            const dd = document.createElement("dd"); dd.textContent = HUMAN_CONF(p[id]);
+            const dd = document.createElement("dd"); dd.textContent = HUMAN_CONF(valorConf(p, draft.computed && draft.computed[idx], id));
             wrap.append(dt, dd); grid.append(wrap);
           });
           secao.append(h, grid);
@@ -898,6 +920,19 @@
         if(inputLocal) inputLocal.value = salvoLocal;
       }
     } catch(e) {}
+    // Paridade Tk (mw_etapa1: entry_local pré-preenchido com local_padrao):
+    // o padrão do backend vale quando o usuário ainda não digitou nada.
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
+      window.ContractoAPI.getSettings().then(r => {
+        const padrao = r.status === 200 && r.data && typeof r.data.local_padrao === "string" ? r.data.local_padrao.trim() : "";
+        if (padrao && !draft.globals.local_assinatura) {
+          draft.globals.local_assinatura = padrao;
+          const inputLocal = $("local-assinatura");
+          if (inputLocal && !inputLocal.value) inputLocal.value = padrao;
+          changed();
+        }
+      }).catch(() => {});
+    }
     ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().formatDateProgressive(val);input.value=val;draft.globals[id]=val.trim();if(id==="local_assinatura"){try{localStorage.setItem("contracto-local-assinatura",val.trim());}catch(e){}}changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
     const calBtn=$("btn-calendario-data");
     const dateInput=$("data-assinatura");
@@ -955,6 +990,8 @@
       if (r.status === 200 && Array.isArray(r.data)) {
         catalog = r.data;
         renderProfilesManagement();
+        // CRUD na aba Perfis também atualiza a Etapa 1 sem perder a seleção.
+        if (loaded) { renderProfilesList(); atualizar(); }
       }
     });
   }
@@ -1134,8 +1171,21 @@
     wrap.append(dica, campo);
     window.ContractoUI.abrirModal("Exportar perfil", wrap, [
       {
-        texto: "Copiar JSON",
+        texto: "Salvar .json",
         primario: true,
+        aoClicar: async () => {
+          const nome = p.nome || p.name;
+          try {
+            const r = await window.ContractoAPI.exportProfile(nome);
+            if (r.cancelled) return;
+            if (r.ok) window.ContractoUI.toast(`Perfil "${nome}" salvo em .json.`, "success");
+            else window.ContractoUI.toast("Não foi possível salvar o arquivo.", "error");
+          } catch (_) { window.ContractoUI.toast("Falha ao salvar o arquivo.", "error"); }
+        }
+      },
+      {
+        texto: "Copiar JSON",
+        primario: false,
         aoClicar: () => {
           const area = wrap.querySelector("#json-export-area");
           area.select();
@@ -1211,9 +1261,26 @@
       </div>
     `;
     window.ContractoUI.abrirModal("Importar perfil JSON", wrap, [
+      {
+        texto: "Escolher arquivo .json",
+        primario: true,
+        aoClicar: async () => {
+          try {
+            const r = await window.ContractoAPI.importProfile();
+            if (r.cancelled) return;
+            if (r.ok) {
+              window.ContractoUI.toast(`Perfil "${r.nome}" importado com sucesso!`, "success");
+              await recarregarCatalogo();
+              await carregarTelaPerfis();
+            } else {
+              window.ContractoUI.toast("Arquivo inválido: selecione um .json de perfil.", "error");
+            }
+          } catch (_) { window.ContractoUI.toast("Falha ao importar o arquivo.", "error"); }
+        }
+      },
       { texto: "Cancelar", primario: false },
       {
-        texto: "Importar",
+        texto: "Importar texto colado",
         primario: true,
         aoClicar: async () => {
           const text = wrap.querySelector("#import-json-area").value.trim();

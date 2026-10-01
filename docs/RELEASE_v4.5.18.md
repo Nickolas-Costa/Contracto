@@ -1,5 +1,9 @@
 # Release Notes — Contracto v4.5.18
 
+> **AVISO DE LIMPEZA (anotado em 01/10/2026, nada movido):** release pontual
+> já coberta por `docs/releases/` + `CHANGELOG.md` — **candidata a MOVER para
+> `docs/releases/` ou APAGAR após a release 4.5.22** (única release fora da pasta).
+
 ## Resumo das Novidades
 
 Esta versão consolida a migração completa do **Contracto** para a arquitetura moderna de interface gráfica em **WebView2**, substituindo a antiga interface CustomTkinter por uma aplicação web desktop elegante, de altíssimo desempenho e acessível.

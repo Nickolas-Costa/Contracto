@@ -188,6 +188,7 @@ def create_app(session):
         from utils import profile_manager
         perfil = profile_manager._perfil_de_dict(dados)
         profile_manager.adicionar_perfil(perfil)
+        session.jobs.refresh_profiles()
         return {"status": "created", "nome": perfil.nome}
 
     @app.put("/api/v1/profiles/{nome}")
@@ -195,12 +196,14 @@ def create_app(session):
         from utils import profile_manager
         perfil_novo = profile_manager._perfil_de_dict(dados)
         profile_manager.atualizar_perfil(nome, perfil_novo)
+        session.jobs.refresh_profiles()
         return {"status": "updated", "nome": perfil_novo.nome}
 
     @app.delete("/api/v1/profiles/{nome}")
     def delete_profile(nome: str):
         from utils import profile_manager
         profile_manager.excluir_perfil(nome)
+        session.jobs.refresh_profiles()
         return {"status": "deleted", "nome": nome}
 
     @app.post("/api/v1/profiles/{nome}/duplicate")
@@ -208,6 +211,7 @@ def create_app(session):
         from utils import profile_manager
         novo_nome = payload.get("novo_nome")
         novo = profile_manager.duplicar_perfil(nome, novo_nome)
+        session.jobs.refresh_profiles()
         return {"status": "duplicated", "nome": novo.nome}
 
     @app.post("/api/v1/profiles/compose")
