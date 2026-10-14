@@ -35,11 +35,14 @@ class PreviewInput(ComposeInput):
 class GenerateInput(PreviewInput):
     request_id: Id | None = None
     output_id: Id
+    forms_selecionados: list[Annotated[str, StringConstraints(min_length=1, max_length=200)]] | None = Field(default=None, max_length=50)
 
 
 class Attachment(Model):
     file_id: Id
-    document_type: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,50}$")]
+    # Chave do documento extra (nome_padrao do perfil, ex. "CONTRATO",
+    # "PLANILHA DE EVOLUCAO") ou categoria legada (ANEXO/COMPROVANTE/...).
+    document_type: Annotated[str, StringConstraints(pattern=r"^[\w \-.À-ÿ]{1,60}$")]
 
 
 class ProcessInput(Model):

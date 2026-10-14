@@ -101,17 +101,16 @@ def main() -> None:
     logger.info("Iniciando aplicação Contracto")
 
     # Impede múltiplas instâncias da aplicação e evita sobreposição de janelas.
+    # A segunda execução só traz a janela existente para frente e sai em
+    # silêncio — sem nenhum modal de aviso.
     try:
         guarda_instancia = InstanciaUnica()
         guarda_instancia.adquirir()
     except InstanciaJaEmExecucao:
-        logger.info("Segunda instância bloqueada pelo mutex.")
-        from tkinter import messagebox
+        logger.info("Segunda instância: focando janela existente e encerrando sem aviso.")
         try:
-            messagebox.showinfo(
-                "Contracto",
-                "O Contracto já está aberto. Use a janela existente.",
-            )
+            from utils.instancia_unica import focar_janela_existente
+            focar_janela_existente()
         except Exception:
             pass
         sys.exit(0)

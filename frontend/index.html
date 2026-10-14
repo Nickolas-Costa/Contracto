@@ -83,14 +83,16 @@
         </div>
         </div>
       </div>
-      <div class="acoes form-actions">
+      <div class="acoes form-actions form-actions-etapa1">
         <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
         <div class="action-row">
           <button class="btn btn-secondary btn-revisar" id="btn-ver-pendencias" type="button" hidden>⚠ Revisar campos pendentes</button>
           <label class="checkbox-inline"><input type="checkbox" id="chk-preservar-dados"> Preservar dados após gerar</label>
         </div></div>
+        <div class="action-botoes">
         <button class="btn btn-secondary" id="btn-limpar-campos" type="button">Limpar campos</button>
         <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
+        </div>
       </div>
       </div>
     </section>
@@ -115,7 +117,16 @@
         <div class="card-header"><div><h2>Documentos deste trabalho</h2><p class="hint" id="manifesto-resumo"></p></div><span class="section-tag" id="manifesto-status">Aguardando geração</span></div>
         <div id="lista-anexos"></div>
         <div id="opcoes-processamento">
-        <div class="field field-inline">
+        <div class="field-section" id="secao-forms-dinamicos">
+          <div class="card-header"><div><h2>Formulários Dinâmicos Gerados</h2><p class="hint">Selecione quais formulários preenchidos serão gerados e convertidos para o pacote final:</p></div><button class="btn btn-secondary btn-sm" id="btn-gerenciar-perfis" type="button">Gerenciar Perfis</button></div>
+          <div id="lista-forms-etapa2"></div>
+        </div>
+        <div class="field-section" id="secao-docs-extras">
+          <div><h2>Adicionar documentos extras (opcional)</h2><p class="hint">Arquivos selecionados aqui serão renomeados e organizados.</p></div>
+          <div id="lista-docs-extras"></div>
+          <p class="field-note">PDF e RTF são aceitos. O original não é alterado.</p>
+        </div>
+        <div class="field field-inline" id="legado-anexo" hidden>
           <label for="anexo-tipo">Categoria do anexo</label>
           <select id="anexo-tipo">
             <option value="ANEXO">Anexo complementar</option>
@@ -123,12 +134,12 @@
             <option value="IDENTIFICACAO">Documento de identificação</option>
             <option value="OUTRO">Outro documento</option>
           </select>
-          <p class="field-note">PDF e RTF são aceitos. O original não é alterado.</p>
         </div>
-        <button class="btn btn-secondary" id="btn-anexo" type="button" disabled>Adicionar anexo</button>
+        <button class="btn btn-secondary" id="btn-anexo" type="button" disabled hidden>Adicionar anexo</button>
         </div>
       </div>
       <div class="card process-card">
+        <div class="card-header"><div><h2>Organização de Arquivos</h2><p class="hint" id="organizacao-pasta">Pasta: —</p><p class="hint" id="organizacao-formato">Formato de saída: PDF/A-2b</p></div></div>
         <div class="card-header"><div><h2>Concluir o trabalho</h2><p class="hint">Escolha o formato e acompanhe o andamento.</p></div></div>
         <div id="formato-opcoes">
         <div class="field">
@@ -144,7 +155,8 @@
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>Concluir e organizar</button>
+          <button class="btn btn-secondary" id="btn-voltar-etapa2" type="button">Voltar</button>
+          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>FINALIZAR PROCESSO</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
           <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
@@ -161,7 +173,7 @@
           <h1>Perfis de documentos</h1>
           <p class="hint">Gerencie, crie, duplique, edite, importe e exporte perfis de documentos em WebView.</p>
         </div>
-        <div class="page-actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div class="page-actions">
           <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
         </div>
       </div>
@@ -176,7 +188,7 @@
           <label for="buscar-perfis">Buscar perfil</label>
           <input id="buscar-perfis" type="search" placeholder="Nome, modo ou campo" autocomplete="off">
         </div>
-        <div id="lista-perfis" style="display:flex; flex-direction:column; gap:16px; margin-top:16px;"></div>
+        <div id="lista-perfis" class="perfis-lista"></div>
         <p id="perfis-vazio" class="hint" hidden>Nenhum perfil corresponde à busca.</p>
       </div>
     </section>
@@ -260,15 +272,20 @@
           </div>
         </div>
 
-        <div class="acoes form-actions" style="margin-top:20px;">
+        <div class="acoes form-actions form-actions-config">
           <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
           <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
-          <button class="btn btn-secondary" id="btn-cfg-restaurar" type="button">Restaurar padrões</button>
-          <button class="btn btn-secondary" id="btn-cfg-reparo" type="button">Diagnóstico e reparo do sistema</button>
+        </div>
+
+        <div class="field-section alerta-manutencao"><h2>Manutenção e recuperação</h2><p class="hint">Ações de reparo e restauração. Restaurar padrões não apaga perfis nem documentos.</p>
+          <div class="page-actions alerta-acoes">
+            <button class="btn btn-secondary btn-alerta" id="btn-cfg-restaurar" type="button">⚠ Restaurar padrões</button>
+            <button class="btn btn-secondary btn-alerta" id="btn-cfg-reparo" type="button">⚠ Diagnóstico e reparo do sistema</button>
+          </div>
         </div>
 
         <div class="field-section"><h2>Dados e backup</h2><p class="hint">O backup é um ZIP com perfis e configurações, guardado em %APPDATA%/Contracto/backups.</p>
-          <div class="page-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="page-actions">
             <button class="btn btn-secondary" id="btn-importar-perfil" type="button">Importar JSON</button>
             <button class="btn btn-secondary" id="btn-backup-perfis" type="button">Fazer backup</button>
             <button class="btn btn-secondary" id="btn-restaurar-perfis" type="button">Restaurar backup</button>

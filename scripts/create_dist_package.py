@@ -34,6 +34,16 @@ def main():
     
     # Pasta temporária para montar o pacote
     dist_dir = projeto_raiz / "dist"
+    # Arquivar versões antigas antes de gerar a nova (raiz só com a versão atual).
+    try:
+        sys.path.insert(0, str(projeto_raiz / "scripts"))
+        from archive_dist import arquivar
+        arquivar(versao, dist_dir)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        print(f"[ERRO] Falha ao arquivar versões antigas: {exc}")
+        sys.exit(1)
     contracto_dir = dist_dir / f"Contracto_v{versao}"
     
     # Limpar anterior

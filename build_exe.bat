@@ -145,6 +145,11 @@ echo.
 
 echo [4/6] Copiando .exe para dist\ e gerando pacote versionado + SHA-256...
 if not exist dist mkdir dist
+.\.venv\Scripts\python.exe scripts\archive_dist.py %APP_VERSION%
+if errorlevel 1 (
+    echo [ERRO] Falha ao arquivar versoes antigas de dist\.
+    exit /b 1
+)
 copy /y "app\dist\Contracto_v%APP_VERSION%.exe" "dist\Contracto_v%APP_VERSION%.exe" >nul
 if errorlevel 1 (
     echo [ERRO] Falha ao copiar o executavel para dist\.

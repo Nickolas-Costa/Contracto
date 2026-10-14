@@ -117,7 +117,7 @@ class TestConfigDampRegressao(unittest.TestCase):
             caminho_recurso("assets", "config", "geometria_modelos.json").read_text(encoding="utf-8")
         )
         self.assertIn("modelo_01", config)
-        self.assertIn("valor_imovel_concluido", config["modelo_01"]["ajustar_borda_esquerda"])
+        self.assertIn("aquisicao_imovel_concluido_valor", config["modelo_01"]["ajustar_borda_esquerda"])
 
     def test_regras_mantem_geometria_do_asset(self):
         config = json.loads(
@@ -130,7 +130,7 @@ class TestConfigDampRegressao(unittest.TestCase):
             shutil.copy2(str(origem), copia)
             esperados = (
                 set(config["ajustar_borda_esquerda"])
-                | set(config["dividir_campo"]["partes"])
+                | set(config.get("dividir_campo", {}).get("partes", {}))
             )
             aplicadas = aplicar_correcoes(copia, copia, carregar_regras(config), esperados)
             self.assertTrue(set(aplicadas) >= esperados)
@@ -139,8 +139,14 @@ class TestConfigDampRegressao(unittest.TestCase):
             for pagina in leitor.pages:
                 for ref in pagina.get("/Annots", []) or []:
                     w = ref.get_object()
-                    if w.get("/T"):
-                        widgets[str(w["/T"])] = [float(v) for v in w["/Rect"]]
+                    nome = w.get("/T")
+                    if not nome and w.get("/Parent"):
+                        try:
+                            nome = w.get("/Parent").get_object().get("/T")
+                        except Exception:
+                            nome = None
+                    if nome:
+                        widgets[str(nome)] = [float(v) for v in w["/Rect"]]
             for campo, esquerda in config["ajustar_borda_esquerda"].items():
                 self.assertEqual(widgets[campo][0], esquerda, campo)
 

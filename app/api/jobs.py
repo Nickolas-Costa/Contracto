@@ -59,6 +59,9 @@ class Jobs:
         # Caminhos e mapeamentos internos dos templates nunca saem pelo HTTP.
         return [{"profile_id": key, "name": p.nome, "mode": p.modo_fluxo,
                  "max_participants": p.max_participantes,
+                 "formularios": [{"nome": f.nome, "geracao": f.geracao} for f in p.formularios],
+                 "documentos_extras": [{"rotulo": d.rotulo, "nome_padrao": d.nome_padrao}
+                                        for d in p.documentos_extras],
                  "fields": [asdict(c) for c in p.campos_entrada]}
                 for key, p in self.profiles.items()]
 
@@ -104,6 +107,9 @@ class Jobs:
                 "usar_paginacao": perfil.usar_paginacao,
                 "paginas": perfil.obter_abas_disponiveis(),
                 "agrupamento_paginas": dict(perfil.agrupamento_paginas),
+                "formularios": [{"nome": f.nome, "geracao": f.geracao} for f in perfil.formularios],
+                "documentos_extras": [{"rotulo": d.rotulo, "nome_padrao": d.nome_padrao}
+                                       for d in perfil.documentos_extras],
                 "fields": [asdict(c) for c in perfil.campos_entrada]}
 
     def _participants(self, values):
@@ -158,11 +164,13 @@ class Jobs:
                 errors = validar_antes_de_gerar(participants, profile, output)
             if errors:
                 raise ApiError("invalid_generation", "Confira campos obrigatórios, data e modelos do perfil", 422)
+        forms = getattr(request, "forms_selecionados", None) or None
 
         metadata = {}
         def operation(folder, job, progress):
             result = gerar_documentos_de_perfis(participants, profiles, folder,
-                                               cancel_event=job.cancel_event, on_progress=progress)
+                                               cancel_event=job.cancel_event, on_progress=progress,
+                                               formularios_ativos=forms)
             if result.avisos or not result.arquivos_gerados:
                 raise ApiError("generation_failed", "Não foi possível gerar todos os formulários")
             metadata.update({path: {"origin": "generated", "participants": result.participantes_por_arquivo.get(path, [])}

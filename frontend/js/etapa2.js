@@ -3,6 +3,10 @@
   "use strict";
   const $=id=>document.getElementById(id), api=()=>window.ContractoAPI, ui=()=>window.ContractoUI;
   let bound=false, busy=false, base=null, attachments=[], active=null, timer=null, polling=false, failures=0, previewRevision=0, pending=null, sending=false, finalized=false;
+  // Modelo antigo (paridade Tk v4.5.15): formulários com checkbox + documentos
+  // extras nomeados (nome_padrao). "attachments" genérico é mantido como
+  // derivação para o payload (document_type) e compatibilidade de testes.
+  let formsDisponiveis=[], formsSelecionados=new Set(), extrasDisponiveis=[], extrasMap=new Map();
   let filaConhecida=[];
   let eraEnvio=0;
   const online=()=>window.ContractoApp?.pronto() || false;
@@ -77,12 +81,24 @@
     $("formato-saida").querySelector('[value="PDF/A-2b"]').disabled=!capabilities?.ghostscript;
     if($("formato-saida").value==="PDF/A-2b"&&!capabilities?.ghostscript)$("btn-finalizar").disabled=true;
     $("capacidade-formato").textContent=capabilities?.ghostscript ? "PDF/A disponível para arquivamento." : "PDF comum disponível. PDF/A requer Ghostscript nesta instalação.";
-    $("btn-anexo").disabled=!online()||busy||!base;
-    $("anexo-tipo").disabled=busy||!base;
+    const btnAnexo=$("btn-anexo"), selTipo=$("anexo-tipo");
+    if(btnAnexo)btnAnexo.disabled=!online()||busy||!base;
+    if(selTipo)selTipo.disabled=busy||!base;
+    const orgPasta=$("organizacao-pasta"), orgFmt=$("organizacao-formato");
+    try {
+      const pasta=document.getElementById("pasta-saida");
+      if(orgPasta&&pasta&&pasta.value)orgPasta.textContent="Pasta: "+pasta.value;
+      if(orgFmt)orgFmt.textContent="Formato de saída: "+$("formato-saida").value;
+    } catch(_){}
+    renderForms();renderExtras();
     $("formato-saida").disabled=busy;
     $("btn-cancelar").hidden=!active;
     $("btn-cancelar").disabled=!online()||!active||active.cancelRequested;
-    $("btn-retomar").hidden=(!active||failures<3)&&!pending;
+    // "Recuperar andamento" só existe quando há andamento real: envio
+    // ambíguo (pending) ou trabalho ativo cujo polling se perdeu
+    // (cancelado/ocultado/queda de conexão). Erro de validação nunca acende.
+    const andamentoPerdido = !!(active && (failures >= 3 || document.hidden));
+    $("btn-retomar").hidden = !pending && !andamentoPerdido;
     $("btn-retomar").disabled=sending;
     $("btn-voltar").disabled=busy;
     $("fila-barra").parentElement.hidden=!busy;
@@ -90,25 +106,104 @@
     window.ContractoEtapa1?.atualizar();
   }
 
+  function rotuloGeracao(g){return g==="unico"||g==="por_processo" ? "Documento único" : "Por participante";}
+
+  async function carregarContexto() {
+    // Fonte: última composição da Etapa 1 (já tem formularios/documentos_extras).
+    // Fallback: compose direto com os perfilIds selecionados.
+    try {
+      let comp = window.ContractoEtapa1?.composicao?.();
+      if((!comp || (!comp.formularios && !comp.documentos_extras)) && window.ContractoEtapa1?.perfilIds){
+        const ids=window.ContractoEtapa1.perfilIds();
+        if(ids && ids.length){
+          const r=await api().request("POST","/api/v1/profiles/compose",{profile_ids:ids});
+          if(r.status===200)comp=r.data;
+        }
+      }
+      if(!comp)return;
+      if(Array.isArray(comp.formularios)&&comp.formularios.length){
+        formsDisponiveis=comp.formularios;
+        if(!formsSelecionados.size)formsDisponiveis.forEach(f=>formsSelecionados.add(f.nome));
+        // Remove seleções de perfil trocado.
+        [...formsSelecionados].forEach(n=>{if(!formsDisponiveis.some(f=>f.nome===n))formsSelecionados.delete(n);});
+      }
+      if(Array.isArray(comp.documentos_extras)){
+        extrasDisponiveis=comp.documentos_extras;
+        [...extrasMap.keys()].forEach(k=>{if(!extrasDisponiveis.some(d=>d.nome_padrao===k))extrasMap.delete(k);});
+      }
+    } catch(_){}
+  }
+
+  function renderForms(){
+    const host=$("lista-forms-etapa2");if(!host)return;host.replaceChildren();
+    if(!formsDisponiveis.length){
+      const p=document.createElement("p");p.className="hint";p.textContent="Nenhum formulário no perfil ativo.";host.append(p);return;
+    }
+    formsDisponiveis.forEach(f=>{
+      const label=document.createElement("label");label.className="doc-extra-linha";
+      const chk=document.createElement("input");chk.type="checkbox";chk.checked=formsSelecionados.has(f.nome);chk.disabled=busy;
+      chk.setAttribute("aria-label",f.nome);
+      chk.addEventListener("change",()=>{if(busy)return;if(chk.checked)formsSelecionados.add(f.nome);else formsSelecionados.delete(f.nome);alterarProcesso();manifesto();atualizar();});
+      const txt=document.createElement("span");txt.textContent=" "+f.nome+"  ("+rotuloGeracao(f.geracao)+")";
+      label.append(chk,txt);host.append(label);
+    });
+  }
+
+  function renderExtras(){
+    const host=$("lista-docs-extras");if(!host)return;host.replaceChildren();
+    if(!extrasDisponiveis.length){
+      const p=document.createElement("p");p.className="hint";p.textContent="Este perfil não tem documentos extras.";host.append(p);return;
+    }
+    extrasDisponiveis.forEach(doc=>{
+      const atual=extrasMap.get(doc.nome_padrao);
+      const row=document.createElement("div");row.className="doc-extra-linha";
+      const radio=document.createElement("span");radio.className="doc-extra-marcador";radio.textContent=atual?"●":"○";radio.setAttribute("aria-hidden","true");
+      const rot=document.createElement("span");rot.className="doc-extra-rotulo";rot.textContent=doc.rotulo+":";
+      const campo=document.createElement("input");campo.readOnly=true;campo.placeholder="Nenhum arquivo selecionado";campo.value=atual?atual.name:"";campo.setAttribute("aria-label",doc.rotulo);
+      const btn=document.createElement("button");btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent=atual?"Trocar":"Selecionar";btn.disabled=busy||!base;
+      btn.addEventListener("click",()=>selecionarExtra(doc));
+      if(atual){
+        const rm=document.createElement("button");rm.type="button";rm.className="btn btn-secondary btn-sm";rm.textContent="Remover";rm.disabled=busy;
+        rm.addEventListener("click",()=>{if(busy)return;extrasMap.delete(doc.nome_padrao);sincronizarAttachments();alterarProcesso();manifesto();atualizar();});
+        row.append(radio,rot,campo,btn,rm);
+      } else row.append(radio,rot,campo,btn);
+      host.append(row);
+    });
+  }
+
+  async function selecionarExtra(doc){
+    if(busy||!base||!online())return;
+    try{
+      const r=await api().selectAttachment();
+      if(r.cancelled)return;
+      if(r.selection_id){extrasMap.set(doc.nome_padrao,{selection_id:r.selection_id,name:r.name});sincronizarAttachments();alterarProcesso();manifesto();atualizar();}
+      else ui().toast("Não foi possível adicionar o documento.","error");
+    }catch(_){ui().toast("Falha ao selecionar documento.","error");}
+  }
+
+  function sincronizarAttachments(){
+    // Mantém o vetor legado derivado do mapa nomeado (payload usa document_type).
+    attachments=[...extrasMap.entries()].map(([nome_padrao,v])=>({selection_id:v.selection_id,name:v.name,type:nome_padrao,label:nome_padrao}));
+  }
+
+  function formsSelecionadosLista(){return [...formsSelecionados];}
+
   function manifesto() {
     const box=$("lista-anexos");box.replaceChildren();
     (base?.file_ids || []).forEach((id,i)=>{const file=base.files?.find(f=>f.file_id===id) || {},row=document.createElement("div");row.className="documento-linha";const info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("p");name.textContent=fileLabel(file,i);detail.className="hint";detail.textContent=fileDescription(file);info.append(name,detail);row.append(info);box.append(row);});
-    attachments.forEach((a,i)=>{
-      const row=document.createElement("div");row.className="documento-linha";
-      const name=document.createElement("span");name.textContent="Anexo: "+a.name+" — "+a.label;
-      const remove=document.createElement("button");remove.type="button";remove.className="btn btn-secondary";remove.textContent="Remover";remove.setAttribute("aria-label","Remover "+a.name);
-      remove.addEventListener("click",()=>{if(busy)return;attachments.splice(i,1);alterarProcesso();manifesto();atualizar();});row.append(name,remove);box.append(row);
-    });
-    $("manifesto-resumo").textContent=base ? base.file_ids.length+" gerado(s) + "+attachments.length+" anexo(s) no processo." : "Gere os documentos na Etapa 1 para organizar este processo.";
+    const nForms=formsSelecionados.size || (base?.file_ids?.length || 0);
+    const nExtras=extrasMap.size;
+    const totalExtras=extrasDisponiveis.length;
+    $("manifesto-resumo").textContent=base ? base.file_ids.length+" gerado(s) · "+nForms+" formulário(s) marcado(s) · "+nExtras+"/"+totalExtras+" documento(s) extra(s) no processo." : "Gere os documentos na Etapa 1 para organizar este processo.";
   }
 
   function invalidar() {
     if(busy)return;
     previewRevision++;
     if(base){status("changed","Os dados foram alterados.","Gere novamente para que os documentos reflitam as alterações.");}
-    base=null;attachments=[];finalized=false;$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;
+    base=null;attachments=[];extrasMap.clear();finalized=false;$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;
     manifesto();
-    $("btn-finalizar").disabled=true;$("btn-anexo").disabled=true;
+    $("btn-finalizar").disabled=true;const ba=$("btn-anexo");if(ba)ba.disabled=true;
   }
 
   function alterarProcesso() {
@@ -253,11 +348,30 @@
       const r=await api().selectAttachment();
       if(r.cancelled)return;
       if(r.selection_id){
-        const select=$("anexo-tipo"),tipo=select.value,label=select.selectedOptions[0]?.text || tipo;
+        const select=$("anexo-tipo"),tipo=(select&&select.value)||"ANEXO",label=(select&&select.selectedOptions[0]?.text)||tipo;
         attachments.push({selection_id:r.selection_id,name:r.name,type:tipo,label});
         alterarProcesso();manifesto();atualizar();
       } else ui().toast("Não foi possível adicionar o anexo.","error");
     } catch(_){ui().toast("Falha ao selecionar anexo.","error");}
+  }
+
+  function mensagemErro(r, padrao) {
+    // O backend retorna {code,message,issues}; nunca "detail".
+    // Sem esta leitura o motivo real (422/409) era mascarado pelo fallback genérico.
+    const data = r && r.data ? r.data : {};
+    const issues = Array.isArray(data.issues) && data.issues.length
+      ? " (" + data.issues.slice(0, 3).map(i => i.field || i.code || "?").join(", ") + ")"
+      : "";
+    return (data.message || data.detail || padrao) + issues;
+  }
+
+  function envioAmbiguo(r, excecao) {
+    // Só envio ambíguo (rede/timeout/5xx) justifica "Recuperar andamento".
+    // Erro 4xx determinístico (validação, seleção expirada, duplicado,
+    // Word/GS indisponível) nunca cura no retry e não cria pendência.
+    if (excecao) return true;
+    const status = r ? r.status : 0;
+    return status >= 500 || status === 408 || status === 429 || status === 503 || status === 0;
   }
 
   function novoRequestId() {
@@ -288,12 +402,20 @@
   }
 
   async function finalizar() {
-    // Single-flight + idempotência (request_id): o segundo clique não duplica o processo.
+    // Paridade Tk (mw_etapa2.py): vazio bloqueia, parcial pede confirmação.
+    // Single-flight + idempotência (request_id): o segundo clique não duplica.
     if(busy||sending||!base||!online()||finalized)return;
-    if (!attachments.length) {
+    await carregarContexto();
+    const totalDocs=(base?.file_ids?.length||0)+extrasDisponiveis.length;
+    const marcados=formsSelecionados.size+extrasMap.size;
+    if(totalDocs>0&&marcados===0){
+      ui().toast("Nenhum documento selecionado. Marque ao menos um formulário ou extra.","error",8000);
+      return;
+    }
+    if(!extrasMap.size){
       ui().abrirModal(
-        "Concluir sem anexos?",
-        "Nenhum anexo foi adicionado a este trabalho. Deseja concluir somente com os documentos gerados?",
+        "Concluir sem documentos extras?",
+        "Nenhum documento extra foi adicionado a este trabalho. Deseja concluir somente com os documentos gerados?",
         [
           { texto: "Voltar e anexar" },
           { texto: "Concluir mesmo assim", primario: true, aoClicar: () => _prosseguirFinalizar() }
@@ -301,7 +423,31 @@
       );
       return;
     }
+    if(extrasDisponiveis.length&&extrasMap.size<extrasDisponiveis.length){
+      const faltam=extrasDisponiveis.filter(d=>!extrasMap.has(d.nome_padrao)).map(d=>d.rotulo).join(", ");
+      ui().abrirModal(
+        "Documentos incompletos",
+        "Faltam documentos extras ("+faltam+"). Deseja finalizar mesmo assim?",
+        [
+          { texto: "Voltar e anexar" },
+          { texto: "Finalizar mesmo assim", primario: true, aoClicar: () => _prosseguirFinalizar() }
+        ]
+      );
+      return;
+    }
     _prosseguirFinalizar();
+  }
+
+  function fileIdsFiltrados(){
+    // Checkbox de formulários filtra os gerados pelo prefixo do nome
+    // ("PPE - ...", "1º Imóvel - ..."). Sem contexto, envia todos.
+    if(!formsDisponiveis.length||!formsSelecionados.size)return [...base.file_ids];
+    if(formsSelecionados.size>=formsDisponiveis.length)return [...base.file_ids];
+    return (base.file_ids||[]).filter(id=>{
+      const f=(base.files||[]).find(x=>x.file_id===id);
+      const nome=(f&&f.name)||"";
+      return [...formsSelecionados].some(sel=>nome.startsWith(sel+" -")||nome.startsWith(sel+" ")||nome===sel||nome.includes(sel));
+    });
   }
 
   async function _prosseguirFinalizar() {
@@ -310,17 +456,23 @@
     if(format==="PDF/A-2b"&&!capabilities?.ghostscript){ui().toast("PDF/A requer Ghostscript.","error");return;}
     const pacote=window.ContractoEtapa1?.pacoteProcesso?.();
     if(!pacote){ui().toast("Reabra o formulário e confira os dados antes de concluir.","error");return;}
+    sincronizarAttachments();
+    const fileIds=fileIdsFiltrados();
+    if(!fileIds.length&&!attachments.length){ui().toast("Nenhum documento selecionado para concluir.","error");return;}
     const payload={participants:pacote.participants,output_id:pacote.output_id,
-      file_ids:[...base.file_ids],
+      file_ids:fileIds,
       attachments:attachments.map(a=>({file_id:a.selection_id,document_type:a.type})),
       format,request_id:novoRequestId()};
     sending=true;atualizar();
     try {
       const r=await api().request("POST","/api/v1/jobs/process",payload);
       if(r.status===202){pending=null;iniciar(r.data.job_id,"process");}
-      else {
+      else if(envioAmbiguo(r,false)){
         pending={tipo:"process",payload};
-        ui().toast(r.data?.detail || "Falha ao iniciar processamento. Clique em 'Recuperar andamento' para tentar novamente.","error");
+        ui().toast(mensagemErro(r, "Conexão interrompida. Clique em 'Recuperar andamento' para tentar novamente."),"error");
+      } else {
+        pending=null;
+        ui().toast(mensagemErro(r, "Não foi possível iniciar o processamento. Confira os dados."),"error", 8000);
       }
     } catch(_){
       pending={tipo:"process",payload};
@@ -345,8 +497,9 @@
       sending=true;atualizar();
       try {
         const r=await api().request("POST","/api/v1/jobs/"+(pending.tipo==="generate"?"generate":"process"),pending.payload);
-        if(r.status===202){iniciar(r.data.job_id,pending.tipo);}
-        else ui().toast(r.data?.detail || "Não foi possível retomar o trabalho.","error");
+        if(r.status===202){const tipo=pending.tipo;pending=null;iniciar(r.data.job_id,tipo);}
+        else if(envioAmbiguo(r,false)){ui().toast(mensagemErro(r,"Ainda sem resposta do servidor. Tente recuperar novamente."),"error");}
+        else {pending=null;ui().toast(mensagemErro(r,"Não foi possível retomar o trabalho."),"error",8000);}
       } catch(_){ui().toast("Falha ao conectar com o servidor.","error");}
       finally {sending=false;atualizar();}
       return;
@@ -371,14 +524,18 @@
 
   function ligar() {
     if(bound)return;bound=true;
-    $("btn-anexo").addEventListener("click",anexar);
+    const ba=$("btn-anexo");if(ba)ba.addEventListener("click",anexar);
     $("btn-finalizar").addEventListener("click",finalizar);
     $("btn-cancelar").addEventListener("click",cancelar);
     $("btn-retomar").addEventListener("click",retomar);
     $("btn-voltar").addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
+    const bv2=$("btn-voltar-etapa2");if(bv2)bv2.addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
+    const gp=$("btn-gerenciar-perfis");if(gp)gp.addEventListener("click",()=>{window.ContractoUI.mostrarTela("perfis");});
     const btnFila=$("btn-fila");
     if(btnFila)btnFila.addEventListener("click",()=>painelFila());
     $("formato-saida").addEventListener("change",()=>{alterarProcesso();atualizar();});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden&&active&&failures>=1)poll();});
+    carregarContexto().finally(atualizar);
     api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
   }
 
@@ -388,6 +545,7 @@
     if (busy || sending || !online() || !snapshot) return Promise.resolve(null);
     const requestId = novoRequestId();
     const payload = { profile_ids: snapshot.profile_ids, participants: snapshot.participants, output_id: snapshot.output_id, request_id: requestId };
+    if (Array.isArray(snapshot.forms_selecionados) && snapshot.forms_selecionados.length) payload.forms_selecionados = snapshot.forms_selecionados;
     const era = eraEnvio;
     sending = true; busy = true; atualizar();
     return api().request("POST", "/api/v1/jobs/generate", payload).then(r => {
@@ -396,13 +554,13 @@
       if (r.status === 202) {
         pending = null;
         iniciar(r.data.job_id, "generate");
-      } else if (r.status >= 500) {
+      } else if (envioAmbiguo(r, false)) {
         // Envio ambíguo (resposta perdida/erro do servidor): mantém busy para
         // bloquear duplicatas; a retomada reusa o mesmo request_id (idempotente).
         registrarPendente(payload);
       } else {
         busy = false;
-        registrarPendente(payload);
+        pending = null; atualizar();
       }
       atualizar();
       return r;
@@ -419,8 +577,9 @@
     const ids = jobData.file_ids || jobData.result?.output_file_ids || [];
     const files = jobData.files || jobData.result?.files || [];
     base={job_id:jobData.job_id,file_ids:ids,files};
-    attachments=[];finalized=false;
-    manifesto();status("completed","PDFs gerados com sucesso.","Revise os anexos ou escolha o formato antes de concluir.");
+    attachments=[];extrasMap.clear();finalized=false;
+    carregarContexto().then(()=>{manifesto();atualizar();});
+    status("completed","PDFs gerados com sucesso.","Revise os documentos extras ou escolha o formato antes de concluir.");
     // Gerados também aparecem como linhas com "Visualizar" (paridade com o fluxo anterior).
     resultados(ids,jobData.job_id,files);
     atualizar();
@@ -442,5 +601,5 @@
     else atualizar();
   }
 
-  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,ocupado:()=>busy,temBase:()=>!!base};
+  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,ocupado:()=>busy,temBase:()=>!!base,formsSelecionados:formsSelecionadosLista,extrasSelecionados:()=>[...extrasMap.keys()]};
 })();

@@ -3,6 +3,40 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.23] - 2026-10-14
+
+### Corrigido
+- Segunda instância silenciosa: em vez do modal "já está aberto", o app
+  apenas traz a janela existente para frente (`SetForegroundWindow` +
+  `SW_RESTORE`) e encerra sem nenhuma mensagem.
+- Fluxo de finalização (modos Simples/Contrato): o motivo real do backend
+  (`message`+`issues`, nunca `detail`) agora aparece no toast em vez do
+  genérico "Falha ao iniciar processamento"; "Recuperar andamento" só
+  aparece em envio ambíguo (5xx/rede) ou trabalho ativo com polling perdido.
+- Etapa Concluir no modelo da interface antiga: `Formulários Dinâmicos
+  Gerados` (checkboxes por formulário) + `Adicionar documentos extras`
+  nomeados por perfil (`document_type` = `nome_padrao`, ex. CONTRATO);
+  vazio bloqueia, parcial pede confirmação; botão `FINALIZAR PROCESSO`.
+- Configurações: tema/cor agora reconciliam com o backend
+  (`%APPDATA%/Contracto/contracto_config.json`) pós-conexão — limpar o
+  Local Storage do WebView não reseta mais para o padrão.
+- Layout: quadro Salvar/Descartar com margem; `Restaurar padrões` e
+  `Diagnóstico e reparo` em seção de alerta separada; lista de Perfis com
+  ritmo vertical; footer da Etapa 1 realinhado.
+- Build: `dist/_versoes_anteriores/` arquiva artefatos de versões antigas
+  antes de gerar a nova; raiz de `dist/` fica só com a versão corrente.
+
+### Atualizado (MO 29300 v039)
+- Template `MO29300-039 (DAMP).pdf` substituído pelo modelo novo (6 págs.,
+  65 campos; checkboxes normalizados para `/Yes`/`/Off`; geometria dos
+  campos de valor aplicada).
+- Mapeamento do perfil refeito para os nomes novos preservando
+  origens/condições/formatos; tabela de contas FGTS (20 campos) e total de
+  saque removidos — sem célula preenchível no modelo novo.
+- Migração automática de perfis salvos (`%APPDATA%`) com nomes antigos para
+  os novos; `geometria_modelos.json` atualizado (`dividir_campo` removido —
+  dia/mês/ano já são campos separados).
+
 ## [4.5.22] - 2026-10-01
 
 ### Corrigido (paridade prod: P0 + principais)

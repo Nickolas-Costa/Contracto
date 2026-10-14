@@ -64,6 +64,11 @@
         clearTimeout(retryTimer);
         retryTimer = null;
         try {
+          if (window.ContractoUI && window.ContractoUI.sincronizarTemaBackend) {
+            window.ContractoUI.sincronizarTemaBackend().catch(() => {});
+          }
+        } catch (_) {}
+        try {
           if (!ligado) {
             ligado = true;
             window.ContractoEtapa2.ligar();

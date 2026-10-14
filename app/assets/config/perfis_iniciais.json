@@ -97,24 +97,24 @@
             "caminho": "",
             "geracao": "por_processo",
             "mapeamento": {
-              "proponente_nome_completo_principal": {
+              "PROPONENTE_NOME": {
                 "origem": "participante.nome_completo"
               },
-              "proponente_data_nascimento": {
+              "PROPONENTE_DATA_NASCIMENTO": {
                 "origem": "participante.dataNascimento"
               },
-              "proponente_cpf": {
+              "cpf_0n6f": {
                 "origem": "participante.cpf",
                 "formato": "CPF"
               },
-              "proponente_pis_pasep": {
+              "PROPONENTE_PIS_PASEP": {
                 "origem": "participante.pisPasep",
                 "formato": "PIS_PASEP"
               },
-              "estado_civil": {
+              "PROPONENTE_ESTADO_CIVIL": {
                 "origem": "participante.estadoCivil"
               },
-              "regime_bens_casamento": {
+              "regime_de_comunhao": {
                 "origem": "participante.regimeCasamento",
                 "condicoes": [
                   {
@@ -125,7 +125,7 @@
                 ],
                 "valor_falso": ""
               },
-              "data_casamento": {
+              "DATA_CASAMENTO": {
                 "origem": "participante.dataCasamentoOuUniaoEstavel",
                 "condicoes": [
                   {
@@ -136,7 +136,24 @@
                 ],
                 "valor_falso": ""
               },
-              "data_inicio_uniao_estavel": {
+              "mantenho_uniao_estavel": {
+                "condicoes": [
+                  {
+                    "participante.estadoCivil": [
+                      "SOLTEIRO(A)",
+                      "DIVORCIADO(A)",
+                      "SEPARADO(A) JUDICIALMENTE",
+                      "VIÚVO(A)"
+                    ],
+                    "participante.mantemUniaoEstavel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "uniao_estavel_desde_DATA": {
                 "origem": "participante.dataCasamentoOuUniaoEstavel",
                 "condicoes": [
                   {
@@ -153,24 +170,7 @@
                 ],
                 "valor_falso": ""
               },
-              "uniao_estavel_sim": {
-                "condicoes": [
-                  {
-                    "participante.estadoCivil": [
-                      "SOLTEIRO(A)",
-                      "DIVORCIADO(A)",
-                      "SEPARADO(A) JUDICIALMENTE",
-                      "VIÚVO(A)"
-                    ],
-                    "participante.mantemUniaoEstavel": [
-                      "SIM"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "uniao_estavel_nao": {
+              "nao_mantenho_uniao": {
                 "condicoes": [
                   {
                     "participante.estadoCivil": [
@@ -187,13 +187,13 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "profissao_maior_rendimento": {
+              "profissao_PROPONENTE": {
                 "origem": "participante.profissaoMaiorRendimento"
               },
-              "municipio_ocupacao_principal": {
+              "municipio_da_ocupacao": {
                 "origem": "participante.municipioUfOcupacaoPrincipal"
               },
-              "situacao_desempregado": {
+              "estou_desempregado": {
                 "condicoes": [
                   {
                     "participante.situacaoOcupacional": [
@@ -204,7 +204,7 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "situacao_aposentado_pensionista": {
+              "sou_aposentado_pensionista": {
                 "condicoes": [
                   {
                     "participante.situacaoOcupacional": [
@@ -215,27 +215,16 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "municipio_residencia_atual": {
+              "resido_em_2p3z": {
                 "origem": "participante.municipioUfResidencia"
               },
-              "tempo_residencia_anos": {
+              "anos_residencia": {
                 "origem": "participante.tempoResidenciaAnos"
               },
-              "tempo_residencia_meses": {
+              "meses_residencia": {
                 "origem": "participante.tempoResidenciaMeses"
               },
-              "residencia_possui_imovel": {
-                "condicoes": [
-                  {
-                    "participante.possuiImovel": [
-                      "SIM"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "residencia_nao_possui_imovel": {
+              "nao_possuo_imovel": {
                 "condicoes": [
                   {
                     "participante.possuiImovel": [
@@ -246,7 +235,18 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "municipio_imovel_possuido": {
+              "possuo_imovel_": {
+                "condicoes": [
+                  {
+                    "participante.possuiImovel": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "possuo_imovel_local": {
                 "origem": "participante.municipioUfImovelPossuido",
                 "condicoes": [
                   {
@@ -257,7 +257,7 @@
                 ],
                 "valor_falso": ""
               },
-              "ir_isento": {
+              "sou_isento_ir_": {
                 "condicoes": [
                   {
                     "participante.situacaoImpostoRenda": [
@@ -279,7 +279,7 @@
                 ],
                 "valor_falso": ""
               },
-              "ir_isento_exercicio": {
+              "ir_isento_ano_exerc": {
                 "origem": "participante.irExercicio",
                 "condicoes": [
                   {
@@ -290,7 +290,7 @@
                 ],
                 "valor_falso": ""
               },
-              "ir_declaracao_entregue": {
+              "declarei_ir": {
                 "condicoes": [
                   {
                     "participante.situacaoImpostoRenda": [
@@ -301,7 +301,7 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "ir_entregue_ano_base": {
+              "ir_dec_ano_base": {
                 "origem": "participante.irAnoBase",
                 "condicoes": [
                   {
@@ -312,7 +312,7 @@
                 ],
                 "valor_falso": ""
               },
-              "ir_entregue_exercicio": {
+              "ir_dec_ano_exerc": {
                 "origem": "participante.irExercicio",
                 "condicoes": [
                   {
@@ -323,7 +323,7 @@
                 ],
                 "valor_falso": ""
               },
-              "endereco_imovel_financiado": {
+              "local_imovel": {
                 "origem": "participante.enderecoImovelFinanciado"
               },
               "usufruto_nao": {
@@ -342,6 +342,317 @@
                   {
                     "participante.usufruto": [
                       "RENUNCIEI_AO_USUFRUTO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "imovel_concluido": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_CONCLUIDO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "aquisicao_imovel_concluido_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_CONCLUIDO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "construcao_empreendimento": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "aquisicao_imovel_construcao_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "terreno_e_construcao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "aquisicao_terreno_construcao_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "terreno_proprio": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "construcao_terreno_proprio_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ccfgts_reforma": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_REFORMA_OU_AMPLIACAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_reforma_ampliacao_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_REFORMA_OU_AMPLIACAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "ccfgts_conclusao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_CONCLUSAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_conclusao_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_CONCLUSAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "aquisicao_de_material_construcao": {
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_aquisicao_material_valor": {
+                "origem": "participante.valorModalidade",
+                "formato": "MOEDA_SEM_SIMBOLO",
+                "condicoes": [
+                  {
+                    "participante.modalidade": [
+                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
+                    ]
+                  }
+                ],
+                "valor_falso": ""
+              },
+              "aquisicao_construcao_a_vista_0b9j": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_OU_CONSTRUCAO_A_VISTA"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "fgts_operacoes_especiais": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "36_meses_sim": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "36_meses_nao": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "beneficiado_desconto_sim": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.jaRecebeuSubsidio": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "beneficiado_desconto_nao": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
+                    ],
+                    "participante.jaRecebeuSubsidio": [
+                      "NÃO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "carta_de_credito_pro_cotista_7j9t": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "PRO_COTISTA"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "carta_de_credito_SBPE1": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "SBPE_COM_USO_DO_FGTS"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "carta_de_credito_SBPE_CONJUGE": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "SBPE_CONJUGE_OU_COMPANHEIRO"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "ccfgts_amc": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "possui_36_meses_sim-amc": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "valor_verdadeiro": "/Yes",
+                "valor_falso": "/Off"
+              },
+              "possui_36_meses_nao-amc": {
+                "condicoes": [
+                  {
+                    "participante.enquadramento": [
+                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
+                    ],
+                    "participante.possui36MesesFgts": [
+                      "NÃO"
                     ]
                   }
                 ],
@@ -370,7 +681,7 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "utiliza_conta_fgts_sim": {
+              "operacao_utilizacao_fgts_sim": {
                 "condicoes": [
                   {
                     "participante.utilizaContaFgts": [
@@ -381,7 +692,7 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "utiliza_conta_fgts_nao": {
+              "operacao_utilizacao_fgts_nao": {
                 "condicoes": [
                   {
                     "participante.utilizaContaFgts": [
@@ -392,7 +703,7 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "numero_operacao_fgts": {
+              "n_da_operacao_fgts": {
                 "origem": "participante.numeroOperacaoFgts",
                 "condicoes": [
                   {
@@ -403,7 +714,7 @@
                 ],
                 "valor_falso": ""
               },
-              "autoriza_saque_fgts": {
+              "autorizo_a_caixa_fgts": {
                 "condicoes": [
                   {
                     "participante.utilizaContaFgts": [
@@ -417,329 +728,18 @@
                 "valor_verdadeiro": "/Yes",
                 "valor_falso": "/Off"
               },
-              "local_assinatura_titular": {
+              "local_assinatura": {
                 "origem": "participante.local_assinatura"
               },
-              "data_assinatura_dia": {
+              "dia_assinatura": {
                 "origem": "data.dia"
               },
-              "data_assinatura_mes": {
+              "mes_assinatura": {
                 "origem": "data.mes",
                 "formato": "MAIUSCULAS"
               },
-              "data_assinatura_ano": {
+              "ano_assinatura": {
                 "origem": "data.ano"
-              },
-              "modalidade_imovel_concluido": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_IMOVEL_CONCLUIDO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_imovel_concluido": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_IMOVEL_CONCLUIDO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_imovel_construcao": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_imovel_construcao": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_IMOVEL_EM_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_terreno_construcao": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_terreno_construcao": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "AQUISICAO_TERRENO_E_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_construcao_terreno_proprio": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_construcao_terreno_proprio": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CONSTRUCAO_EM_TERRENO_PROPRIO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_reforma_ampliacao": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_REFORMA_OU_AMPLIACAO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_reforma_ampliacao": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_REFORMA_OU_AMPLIACAO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_conclusao": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_CONCLUSAO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_conclusao": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_CONCLUSAO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "modalidade_material_construcao": {
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "valor_material_construcao": {
-                "origem": "participante.valorModalidade",
-                "formato": "MOEDA_SEM_SIMBOLO",
-                "condicoes": [
-                  {
-                    "participante.modalidade": [
-                      "CCFGTS_MATERIAL_DE_CONSTRUCAO"
-                    ]
-                  }
-                ],
-                "valor_falso": ""
-              },
-              "enquadramento_a_vista": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "AQUISICAO_OU_CONSTRUCAO_A_VISTA"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "enquadramento_ccfgts_pmcmv": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "enquadramento_pro_cotista": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "PRO_COTISTA"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "enquadramento_sbpe_uso_fgts": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "SBPE_COM_USO_DO_FGTS"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "enquadramento_sbpe_conjuge_fgts": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "SBPE_CONJUGE_OU_COMPANHEIRO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "enquadramento_amc": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "ccfgts_possui_36_meses_fgts_sim": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
-                    ],
-                    "participante.possui36MesesFgts": [
-                      "SIM"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "ccfgts_ja_recebeu_subsidio_sim": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
-                    ],
-                    "participante.jaRecebeuSubsidio": [
-                      "SIM"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "amc_possui_36_meses_fgts_sim": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
-                    ],
-                    "participante.possui36MesesFgts": [
-                      "SIM"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "ccfgts_possui_36_meses_fgts_nao": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
-                    ],
-                    "participante.possui36MesesFgts": [
-                      "NÃO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "ccfgts_ja_recebeu_subsidio_nao": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS"
-                    ],
-                    "participante.jaRecebeuSubsidio": [
-                      "NÃO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
-              },
-              "amc_possui_36_meses_fgts_nao": {
-                "condicoes": [
-                  {
-                    "participante.enquadramento": [
-                      "AQUISICAO_MATERIAL_CONSTRUCAO_AMC"
-                    ],
-                    "participante.possui36MesesFgts": [
-                      "NÃO"
-                    ]
-                  }
-                ],
-                "valor_verdadeiro": "/Yes",
-                "valor_falso": "/Off"
               }
             },
             "identificador": "principal"

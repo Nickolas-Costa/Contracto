@@ -344,25 +344,98 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 if not formulario_existente.recurso:
                     formulario_existente.recurso = formulario_inicial.recurso
 
-                # Migra somente a regra oficial antiga do DAMP. Mapeamentos
+                # Migra somente regras oficiais antigas do DAMP. Mapeamentos
                 # personalizados pelo usuário permanecem intactos.
                 regra_data_legada = {
                     "origem": "participante.data_assinatura",
                     "formato": "DATA_EXTENSO",
                 }
-                if (
-                    inicial.identificador == "inicial_01"
-                    and formulario_existente.mapeamento.get("data_assinatura_titular") == regra_data_legada
-                ):
-                    formulario_existente.mapeamento.pop("data_assinatura_titular", None)
-                    for campo_data in (
-                        "data_assinatura_dia",
-                        "data_assinatura_mes",
-                        "data_assinatura_ano",
+                if inicial.identificador == "inicial_01":
+                    if (
+                        formulario_existente.mapeamento.get("data_assinatura_titular")
+                        == regra_data_legada
                     ):
-                        formulario_existente.mapeamento[campo_data] = copy.deepcopy(
-                            formulario_inicial.mapeamento[campo_data]
-                        )
+                        formulario_existente.mapeamento.pop("data_assinatura_titular", None)
+                    # Modelo v039: o PDF ganhou novos nomes de campo. Renomeia as
+                    # chaves preservando as regras do usuário; campos sem
+                    # equivalente preenchível no modelo novo são descartados.
+                    equivalencias_v039 = {
+                        "proponente_nome_completo_principal": "PROPONENTE_NOME",
+                        "proponente_data_nascimento": "PROPONENTE_DATA_NASCIMENTO",
+                        "proponente_cpf": "cpf_0n6f",
+                        "proponente_pis_pasep": "PROPONENTE_PIS_PASEP",
+                        "estado_civil": "PROPONENTE_ESTADO_CIVIL",
+                        "regime_bens_casamento": "regime_de_comunhao",
+                        "data_casamento": "DATA_CASAMENTO",
+                        "data_inicio_uniao_estavel": "uniao_estavel_desde_DATA",
+                        "uniao_estavel_sim": "mantenho_uniao_estavel",
+                        "uniao_estavel_nao": "nao_mantenho_uniao",
+                        "profissao_maior_rendimento": "profissao_PROPONENTE",
+                        "municipio_ocupacao_principal": "municipio_da_ocupacao",
+                        "situacao_desempregado": "estou_desempregado",
+                        "situacao_aposentado_pensionista": "sou_aposentado_pensionista",
+                        "municipio_residencia_atual": "resido_em_2p3z",
+                        "tempo_residencia_anos": "anos_residencia",
+                        "tempo_residencia_meses": "meses_residencia",
+                        "residencia_possui_imovel": "possuo_imovel_",
+                        "residencia_nao_possui_imovel": "nao_possuo_imovel",
+                        "municipio_imovel_possuido": "possuo_imovel_local",
+                        "ir_isento": "sou_isento_ir_",
+                        "ir_isento_exercicio": "ir_isento_ano_exerc",
+                        "ir_declaracao_entregue": "declarei_ir",
+                        "ir_entregue_ano_base": "ir_dec_ano_base",
+                        "ir_entregue_exercicio": "ir_dec_ano_exerc",
+                        "endereco_imovel_financiado": "local_imovel",
+                        "utiliza_conta_fgts_sim": "operacao_utilizacao_fgts_sim",
+                        "utiliza_conta_fgts_nao": "operacao_utilizacao_fgts_nao",
+                        "numero_operacao_fgts": "n_da_operacao_fgts",
+                        "autoriza_saque_fgts": "autorizo_a_caixa_fgts",
+                        "local_assinatura_titular": "local_assinatura",
+                        "data_assinatura_dia": "dia_assinatura",
+                        "data_assinatura_mes": "mes_assinatura",
+                        "data_assinatura_ano": "ano_assinatura",
+                        "modalidade_imovel_concluido": "imovel_concluido",
+                        "valor_imovel_concluido": "aquisicao_imovel_concluido_valor",
+                        "modalidade_imovel_construcao": "construcao_empreendimento",
+                        "valor_imovel_construcao": "aquisicao_imovel_construcao_valor",
+                        "modalidade_terreno_construcao": "terreno_e_construcao",
+                        "valor_terreno_construcao": "aquisicao_terreno_construcao_valor",
+                        "modalidade_construcao_terreno_proprio": "terreno_proprio",
+                        "valor_construcao_terreno_proprio": "construcao_terreno_proprio_valor",
+                        "modalidade_reforma_ampliacao": "ccfgts_reforma",
+                        "valor_reforma_ampliacao": "ccfgts_reforma_ampliacao_valor",
+                        "modalidade_conclusao": "ccfgts_conclusao",
+                        "valor_conclusao": "ccfgts_conclusao_valor",
+                        "modalidade_material_construcao": "aquisicao_de_material_construcao",
+                        "valor_material_construcao": "ccfgts_aquisicao_material_valor",
+                        "enquadramento_a_vista": "aquisicao_construcao_a_vista_0b9j",
+                        "enquadramento_ccfgts_pmcmv": "fgts_operacoes_especiais",
+                        "enquadramento_pro_cotista": "carta_de_credito_pro_cotista_7j9t",
+                        "enquadramento_sbpe_uso_fgts": "carta_de_credito_SBPE1",
+                        "enquadramento_sbpe_conjuge_fgts": "carta_de_credito_SBPE_CONJUGE",
+                        "enquadramento_amc": "ccfgts_amc",
+                        "ccfgts_possui_36_meses_fgts_sim": "36_meses_sim",
+                        "ccfgts_possui_36_meses_fgts_nao": "36_meses_nao",
+                        "ccfgts_ja_recebeu_subsidio_sim": "beneficiado_desconto_sim",
+                        "ccfgts_ja_recebeu_subsidio_nao": "beneficiado_desconto_nao",
+                        "amc_possui_36_meses_fgts_sim": "possui_36_meses_sim-amc",
+                        "amc_possui_36_meses_fgts_nao": "possui_36_meses_nao-amc",
+                    }
+                    for nome_antigo, nome_novo in equivalencias_v039.items():
+                        if (
+                            nome_antigo in formulario_existente.mapeamento
+                            and nome_novo not in formulario_existente.mapeamento
+                        ):
+                            formulario_existente.mapeamento[nome_novo] = (
+                                formulario_existente.mapeamento.pop(nome_antigo)
+                            )
+                    for prefixo in ("conta_fgts_",):
+                        for chave in [
+                            k for k in formulario_existente.mapeamento
+                            if k.startswith(prefixo)
+                        ]:
+                            formulario_existente.mapeamento.pop(chave, None)
+                    formulario_existente.mapeamento.pop("valor_total_saque_fgts", None)
 
         for correcao in entrada.get("correcoes", []):
             chave = str(correcao.get("chave", "")).strip()

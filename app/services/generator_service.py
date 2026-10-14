@@ -324,6 +324,7 @@ def gerar_documentos_de_perfis(
     pasta_saida: Path,
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
+    formularios_ativos: Optional[list[str] | set[str]] = None,
 ) -> ResultadoGeracao:
     """Gera todos os formulários dos perfis escolhidos em uma única operação."""
     resultado = ResultadoGeracao()
@@ -342,6 +343,7 @@ def gerar_documentos_de_perfis(
             participantes=participantes,
             perfil=perfil,
             pasta_saida=pasta_saida,
+            formularios_ativos=formularios_ativos,
             cancel_event=cancel_event,
             on_progress=progresso,
             nomes_de_arquivo_usados=nomes_usados,

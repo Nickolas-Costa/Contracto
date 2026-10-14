@@ -1,8 +1,9 @@
 """Garante uma única instância do aplicativo por sessão do Windows.
 
 Usa um mutex nomeado do sistema (`Local\\ContractoDesktopApp`): a segunda
-execução detecta o cadeado existente e encerra com aviso, em vez de abrir
-outra janela concorrendo pelos mesmos arquivos em `%APPDATA%\\Contracto`.
+execução apenas traz a janela existente para frente e encerra em silêncio,
+sem nenhum modal — em vez de abrir outra janela concorrendo pelos mesmos
+arquivos em `%APPDATA%\\Contracto`.
 """
 
 import sys
@@ -13,6 +14,50 @@ _ERRO_JA_EXISTE = 183  # ERROR_ALREADY_EXISTS (Win32)
 
 class InstanciaJaEmExecucao(Exception):
     """Levantado quando outra cópia do aplicativo já está rodando."""
+
+
+def focar_janela_existente(prefixo: str = "Contracto") -> bool:
+    """Traz a janela existente do app para frente (sem nenhum modal).
+
+    Procura a primeira janela visível de nível superior cujo título comece
+    com `prefixo`, restaura se estiver minimizada e dá o foco do Windows.
+    Retorna True se encontrou e focou, False caso contrário.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        hwnd_encontrado = []
+
+        @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        def _enum_proc(hwnd, _lparam):
+            try:
+                if not user32.IsWindowVisible(hwnd):
+                    return True
+                tamanho = user32.GetWindowTextLengthW(hwnd)
+                if tamanho <= 0:
+                    return True
+                buffer = ctypes.create_unicode_buffer(tamanho + 1)
+                user32.GetWindowTextW(hwnd, buffer, tamanho + 1)
+                if buffer.value.startswith(prefixo):
+                    hwnd_encontrado.append(hwnd)
+                    return False  # Para a enumeração.
+            except Exception:
+                pass
+            return True
+
+        user32.EnumWindows(_enum_proc, 0)
+        if not hwnd_encontrado:
+            return False
+        hwnd = hwnd_encontrado[0]
+        SW_RESTORE = 9
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        user32.SetForegroundWindow(hwnd)
+        return True
+    except Exception:
+        return False
 
 
 class InstanciaUnica:

@@ -93,6 +93,26 @@ class ContextoCorrecao:
         acroform["/Fields"].append(referencia)
 
 
+def _nome_widget(widget: DictionaryObject) -> str:
+    """Nome do campo do widget, caindo para o /T do pai.
+
+    PDFs com campos pai/filhos (como o MO 29300 v039) guardam o nome só no
+    pai; os widgets filhos trazem apenas /AP e /Rect.
+    """
+    nome = widget.get("/T")
+    if nome:
+        return str(nome)
+    try:
+        pai_ref = widget.get("/Parent")
+        pai = pai_ref.get_object() if pai_ref else None
+        nome_pai = pai.get("/T") if pai else None
+        if nome_pai:
+            return str(nome_pai)
+    except Exception:
+        pass
+    return ""
+
+
 def ler_widgets(caminho_pdf: Path) -> tuple[list[WidgetInfo], list[tuple[float, float, float, float]]]:
     """Lê widgets e caixas das páginas (somente leitura, sem alterar o arquivo)."""
     leitor = PdfReader(str(caminho_pdf))
@@ -107,7 +127,7 @@ def ler_widgets(caminho_pdf: Path) -> tuple[list[WidgetInfo], list[tuple[float, 
                 widget = referencia.get_object()
             except Exception:
                 continue
-            nome = widget.get("/T")
+            nome = _nome_widget(widget)
             ret = widget.get("/Rect")
             if nome and ret and len(ret) == 4:
                 try:
@@ -298,7 +318,7 @@ def aplicar_correcoes(
                 widget = referencia.get_object()
             except Exception:
                 continue
-            nome = widget.get("/T")
+            nome = _nome_widget(widget)
             if nome:
                 nome = str(nome)
                 ctx.widgets.setdefault(nome, widget)

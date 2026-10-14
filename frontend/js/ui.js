@@ -295,9 +295,17 @@
     return "light";
   }
 
+  function normalizarPref(valor) {
+    if (valor === "dark" || valor === "light") return valor;
+    return "sistema";
+  }
+
   function aplicarTemaInicial() {
     // Arranque: aplica SOMENTE os valores já salvos; edição na tela Config
     // usa rascunho e só persiste/aplica em "Salvar configurações".
+    // Backend (%APPDATA%/Contracto/contracto_config.json) é a fonte canônica;
+    // localStorage é cache rápido para o primeiro paint. A reconciliação com
+    // o backend acontece em sincronizarTemaBackend() pós-conexão.
     let pref = "sistema";
     let corSalva = null;
     try {
@@ -311,6 +319,7 @@
       if (cor && /^#[0-9A-Fa-f]{6}$/.test(cor)) corSalva = cor;
     } catch (e) { /* sem armazenamento: segue o claro */ }
     aplicarTema(resolverTema(pref));
+    aplicarCor(corSalva || "#005CA9");
     if (window.matchMedia) {
       try {
         const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -390,6 +399,34 @@
     else document.documentElement.style.removeProperty("--largura-quadros");
   }
 
+  async function sincronizarTemaBackend() {
+    // Reconciliação pós-conexão: o backend vence. Sem ela, limpar o
+    // Local Storage do WebView fazia o tema voltar ao padrão mesmo com
+    // contracto_config.json correto em %APPDATA%/Contracto/.
+    if (!window.ContractoAPI || !window.ContractoAPI.getSettings) return;
+    try {
+      const r = await window.ContractoAPI.getSettings();
+      if (r.status !== 200 || !r.data) return;
+      const backend = r.data;
+      const pref = backend.aparencia === "dark" || backend.aparencia === "light" ? backend.aparencia : "sistema";
+      const cor = /^#[0-9A-Fa-f]{6}$/.test(backend.cor_destaque || "") ? backend.cor_destaque : "#005CA9";
+      try {
+        localStorage.setItem("contracto-tema", pref);
+        localStorage.setItem("contracto-cor", cor);
+      } catch (_) {}
+      aplicarTema(resolverTema(pref));
+      aplicarCor(cor);
+      aplicarLargura(backend.tamanho_quadros);
+      desenharFundoSenoidal();
+      const sel = document.getElementById("cfg-tema");
+      if (sel) sel.value = pref;
+      const input = document.getElementById("cfg-cor");
+      if (input) input.value = cor;
+      const texto = document.getElementById("cfg-cor-texto");
+      if (texto) texto.value = cor;
+    } catch (_) { /* offline: mantém cache local */ }
+  }
+
   async function cfgCarregarRascunho() {
     const salvos = cfgLerSalvos();
     const sel = document.getElementById("cfg-tema");
@@ -403,6 +440,16 @@
       try {
         const r = await window.ContractoAPI.getSettings();
         if (r.status === 200 && r.data) {
+          const backend = r.data;
+          if (backend.aparencia === "dark" || backend.aparencia === "light" || backend.aparencia === "system") {
+            const pref = backend.aparencia === "system" ? "sistema" : backend.aparencia;
+            if (sel) sel.value = pref;
+          }
+          if (/^#[0-9A-Fa-f]{6}$/.test(backend.cor_destaque || "")) {
+            if (cor) cor.value = backend.cor_destaque;
+            if (texto) texto.value = backend.cor_destaque;
+            marcarSwatch(backend.cor_destaque);
+          }
           const local = document.getElementById("cfg-local-padrao");
           if (local && typeof r.data.local_padrao === "string") local.value = r.data.local_padrao;
           const tam = document.getElementById("cfg-tamanho");
@@ -492,9 +539,25 @@
   function ligarConfig() {
     renderizarSwatches();
     // Aplica a largura salva logo no arranque (sem exigir abrir Config).
+    // Tema/cor vêm do backend via sincronizarTemaBackend() (fonte canônica).
     if (window.ContractoAPI && window.ContractoAPI.getSettings) {
       window.ContractoAPI.getSettings()
-        .then(r => { if (r.status === 200 && r.data) aplicarLargura(r.data.tamanho_quadros); })
+        .then(r => { if (r.status === 200 && r.data) {
+          aplicarLargura(r.data.tamanho_quadros);
+          const pref = r.data.aparencia === "dark" || r.data.aparencia === "light" ? r.data.aparencia : "sistema";
+          const cor = /^#[0-9A-Fa-f]{6}$/.test(r.data.cor_destaque || "") ? r.data.cor_destaque : null;
+          if (cor || pref !== "sistema") {
+            try {
+              const atualTema = localStorage.getItem("contracto-tema");
+              const atualCor = localStorage.getItem("contracto-cor");
+              if (!atualTema || !atualCor) {
+                if (cor) { aplicarCor(cor); }
+                aplicarTema(resolverTema(pref));
+                desenharFundoSenoidal();
+              }
+            } catch (_) {}
+          }
+        } })
         .catch(() => {});
     }
     const salvar = document.getElementById("btn-cfg-salvar");
@@ -584,5 +647,5 @@
     window.addEventListener("resize", desenharFundoSenoidal);
   });
 
-  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, desenharFundoSenoidal };
+  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
 })();

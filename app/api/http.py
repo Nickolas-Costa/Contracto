@@ -258,9 +258,17 @@ def create_app(session):
     @app.post("/api/v1/settings")
     def update_settings(dados: dict):
         from utils import config_manager
+        normalizados = dict(dados or {})
+        # Frontend usa "sistema"; canônico no disco é "system" (legado) —
+        # ambos resolvem para o tema do SO. Normaliza sem rejeitar.
+        if normalizados.get("aparencia") == "sistema":
+            normalizados["aparencia"] = "system"
         config = config_manager.carregar_config()
-        config.update({k: v for k, v in dados.items() if k in config_manager._DEFAULTS})
+        ignoradas = [k for k in normalizados if k not in config_manager._DEFAULTS]
+        config.update({k: v for k, v in normalizados.items() if k in config_manager._DEFAULTS})
         config_manager.salvar_config(config)
+        if ignoradas:
+            config["_ignoradas"] = sorted(ignoradas)
         return config
 
     @app.post("/api/v1/system/repair")

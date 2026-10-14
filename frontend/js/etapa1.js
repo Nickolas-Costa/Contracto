@@ -4,6 +4,7 @@
   const $ = id => document.getElementById(id), form = () => window.ContractoForm;
   const draft = {people: [{nome_completo:"",cpf:""}], globals:{data_assinatura:"",local_assinatura:""}};
   let catalog = [], selected = [], fields = [], maximum = 1, revision = 0, compositionRevision = 0;
+  let ultimaComposicao = null;
   let composing = false, composed = false, loaded = false, bound = false, issues = [], mode = "contrato";
   let paginas = [], paginaAtual = 0, usarPaginacao = false, agrupamento = {};
   const controls = [];
@@ -433,6 +434,7 @@
     fields=r.data.fields || []; draft.computed=[]; maximum=r.data.max_participants || 1;
     usarPaginacao=!!r.data.usar_paginacao; agrupamento=r.data.agrupamento_paginas || {};
     paginas=r.data.paginas || resolverPaginas(fields, agrupamento); paginaAtual=0;
+    ultimaComposicao=r.data || null;
     if(catalog.some(p=>finalIds.includes(p.profile_id)&&p.mode === "contrato") && !fields.some(f=>f.id === "endereco"))fields.push({id:"endereco",tipo:"TEXTO",rotulo:"Endereço",obrigatorio:true});
     composed=true;render();
   }
@@ -592,6 +594,10 @@
   async function gerar() {
     if(atualizar().length||busy())return;
     const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
+    try {
+      const forms = window.ContractoEtapa2?.formsSelecionados?.();
+      if (Array.isArray(forms) && forms.length) snapshot.forms_selecionados = forms;
+    } catch (_) {}
     const r=await window.ContractoEtapa2.gerar(snapshot);
     // Não prender na Conferência — com o trabalho aceito, avança
     // para Concluir onde o andamento é visível.
@@ -1017,35 +1023,19 @@
 
     filtrados.forEach(p => {
       const card = document.createElement("div");
-      card.className = "card profile-item-card";
-      card.style.padding = "16px";
-      card.style.display = "flex";
-      card.style.flexDirection = "column";
-      card.style.gap = "8px";
+      card.className = "profile-item-card";
 
       const header = document.createElement("div");
-      header.style.display = "flex";
-      header.style.justifyContent = "space-between";
-      header.style.alignItems = "center";
-      header.style.flexWrap = "wrap";
-      header.style.gap = "10px";
+      header.className = "profile-item-header";
 
       const titleGroup = document.createElement("div");
-      titleGroup.style.display = "flex";
-      titleGroup.style.alignItems = "center";
-      titleGroup.style.gap = "10px";
+      titleGroup.className = "profile-item-title";
 
       const title = document.createElement("h3");
-      title.style.margin = "0";
       title.textContent = (typeof nomeExibicao === "function" ? nomeExibicao({ name: p.nome || p.name, nome: p.nome || p.name }) : (p.nome || p.name)) || p.profile_id;
 
       const badge = document.createElement("span");
-      badge.style.fontSize = "0.75rem";
-      badge.style.padding = "2px 8px";
-      badge.style.borderRadius = "12px";
-      badge.style.background = "var(--bg-accent-soft, #e6f0fa)";
-      badge.style.color = "var(--color-primary, #005ca9)";
-      badge.style.fontWeight = "600";
+      badge.className = "profile-badge";
       badge.textContent = (p.modo_fluxo || p.mode) === "formulario_simples" ? "Formulário Simples" : "Contrato Completo";
 
       titleGroup.append(title, badge);
@@ -1083,8 +1073,7 @@
       header.append(titleGroup, actionsGroup);
 
       const details = document.createElement("p");
-      details.className = "hint";
-      details.style.margin = "0";
+      details.className = "hint profile-item-meta";
       const campos = p.campos_entrada || p.fields || [];
       details.textContent = `${campos.length} campos configurados • Formato: ${p.formato_saida || "PDF/A-2b"} • Máx. participantes: ${p.max_participantes || 4}`;
 
@@ -1419,6 +1408,8 @@
     pacoteProcesso,
     composto:()=>composed,
     modo:()=>mode,
+    perfilIds:()=>[...selected],
+    composicao:()=>ultimaComposicao,
     reconectar:()=>!loaded ? carregar() : (!composed && selected.length ? selecionar(selected) : (schedulePreview(),atualizar()))
   };
 })();
