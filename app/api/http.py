@@ -277,8 +277,8 @@ def create_app(session):
         try:
             ok, msg = system_repair.executar_reparo_completo()
             return {"status": "success" if ok else "warning", "message": msg}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        except Exception:
+            return {"status": "error", "message": "Falha ao executar reparo do sistema."}
 
     @app.post("/api/v1/settings/restore")
     def restore_settings():
