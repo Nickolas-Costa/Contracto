@@ -70,9 +70,15 @@
     await wait(()=>$('lista-resultados').children.length===2 && !window.ContractoEtapa2.ocupado(),'generation terminal');
     assert($('manifesto-resumo').textContent.includes('2 gerado'),'generated manifest');
     assert($('lista-anexos').textContent.includes('Gerado pelo Contracto'),'generated document has safe metadata');
-    $('btn-anexo').click();await wait(()=>$('lista-anexos').textContent.includes('anexo-qa.pdf'),'attachment appears');
-    assert($('manifesto-resumo').textContent.includes('1 anexo'),'attachment retained with generated');
-    $('btn-finalizar').click();$('btn-finalizar').click();
+    const seletorExtra=[...$('lista-docs-extras').querySelectorAll('button')].find(b=>/^(Selecionar|Trocar)$/.test(b.textContent));
+    assert(seletorExtra,'conference offers a named extra selector');
+    seletorExtra.click();
+    await wait(()=>[...$('lista-docs-extras').querySelectorAll('button')].some(b=>b.textContent==='Remover'),'named extra attached');
+    assert($('manifesto-resumo').textContent.includes('1/1 documento(s) extra(s)'),'named extra retained with generated');
+    $('btn-finalizar').click();
+    await wait(()=>[...document.querySelectorAll('.modal .acoes button')].some(b=>/mesmo assim/.test(b.textContent))||$('lista-resultados').children.length===3,'finalize confirm prompts or terminal');
+    const confirmaFinal=[...document.querySelectorAll('.modal .acoes button')].find(b=>/mesmo assim/.test(b.textContent));
+    if(confirmaFinal)confirmaFinal.click();
     await wait(()=>$('lista-resultados').children.length===3 && !window.ContractoEtapa2.ocupado(),'processing terminal');
     assert(!$('btn-abrir-pasta').hidden,'final folder available');
     assert($('btn-finalizar').disabled,'unchanged completed process cannot duplicate');

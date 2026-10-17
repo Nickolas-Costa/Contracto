@@ -114,7 +114,9 @@ def combinar_perfis(perfis: list[Perfil]) -> ResultadoComposicao:
     perfil_combinado = Perfil(
         nome=nomes[0] if len(nomes) == 1 else f"{len(nomes)} formulários selecionados",
         formularios=[copy.deepcopy(formulario) for perfil in perfis for formulario in perfil.formularios],
-        documentos_extras=[],
+        # Perfil único (ex. modo Contrato) mantém seus extras; a combinação de
+        # vários perfis simples não tem etapa de organização.
+        documentos_extras=copy.deepcopy(perfis[0].documentos_extras) if len(perfis) == 1 else [],
         campos_entrada=campos,
         formato_saida="PDF",
         modo_fluxo="formulario_simples",

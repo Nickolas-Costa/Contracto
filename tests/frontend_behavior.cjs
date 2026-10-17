@@ -139,4 +139,45 @@ function modal() {
   assert.equal(overlay.hidden, true);
   console.log("PASS modal com faixa, X e Escape");
 }
-(async()=>{fields();await bootstrap();modal();})().catch(error=>{console.error(error);process.exitCode=1});
+async function extrasLifecycle(){
+  const registry=new Map();
+  function el(tag,id){
+    const e={tag,id:id||null,children:[],attrs:{},dataset:{},handlers:{},textContent:"",hidden:false,disabled:false,value:"",style:{},parentElement:null,_classes:new Set(),
+      get className(){return [...e._classes].join(" ");},
+      set className(v){e._classes=new Set(String(v||"").split(/\s+/).filter(Boolean));},
+      get classList(){return{add:c=>e._classes.add(c),remove:c=>e._classes.delete(c),contains:c=>e._classes.has(c),toggle:(c,on)=>{on?e._classes.add(c):e._classes.delete(c);}};},
+      setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];},
+      addEventListener(k,fn){this.handlers[k]=fn;},
+      append(...ns){for(const n of ns){n.parentElement=this;this.children.push(n);}},
+      replaceChildren(){this.children=[];},
+      querySelector(){return el("input");},
+      querySelectorAll(){const out=[];const walk=n=>{for(const c of n.children||[]){if(["button","input","select","iframe"].includes(c.tag))out.push(c);walk(c);}};walk(this);return out;},
+      click(){if(this.handlers.click)this.handlers.click();},
+      focus(){}};
+    if(id)registry.set(id,e);
+    return e;
+  }
+  for(const id of ['opcoes-processamento','secao-forms-dinamicos','secao-docs-extras','btn-finalizar','formato-opcoes','formato-saida','capacidade-formato','btn-anexo','anexo-tipo','organizacao-pasta','organizacao-formato','pasta-saida','btn-cancelar','btn-retomar','btn-voltar','fila-barra','btn-fila','lista-anexos','lista-forms-etapa2','lista-docs-extras','estado-trabalho','fila-status','fila-detalhe','manifesto-status','manifesto-resumo','lista-resultados','btn-abrir-pasta'])registry.set(id,el("div",id));
+  registry.get("fila-barra").parentElement=el("div");
+  const document={readyState:"complete",hidden:false,getElementById:id=>registry.get(id)||null,createElement:t=>el(t),addEventListener(){},querySelectorAll:()=>[],querySelector:()=>el("div")};
+  const window={
+    ContractoAPI:{selectAttachment:async()=>({selection_id:"s1",name:"extra-qa.pdf"}),request:async()=>({status:200,data:{}}),openResult:async()=>({ok:true})},
+    ContractoUI:{toast(){},mostrarTela(){},sincronizarStepper(){}},
+    ContractoEtapa1:{modo:()=>"contrato",atualizar(){},composicao:()=>({formularios:[{nome:"DOC A",geracao:"por_participante"}],documentos_extras:[{rotulo:"Contrato",nome_padrao:"CONTRATO"}]})},
+    ContractoApp:{pronto:()=>true}};
+  vm.runInNewContext(source("etapa2.js"),{window,document,setTimeout,clearTimeout,console});
+  const etapa2=window.ContractoEtapa2;
+  await etapa2.sincronizarContexto();
+  const btn=registry.get("lista-docs-extras").querySelectorAll().find(n=>n.tag==="button");
+  assert.ok(btn,"botão Selecionar do documento extra na Conferência");
+  btn.click();await flush();
+  const sel=()=>Array.from(etapa2.extrasSelecionados());
+  assert.deepEqual(sel(),["CONTRATO"],"extra escolhido na Conferência");
+  // Regressão: gerar (receberBase) não pode descartar os extras antes do FINALIZAR.
+  etapa2.receberBase({job_id:"j",file_ids:["f1"],files:[]});await flush();
+  assert.deepEqual(sel(),["CONTRATO"],"extra preservado após gerar");
+  etapa2.recomecar();
+  assert.deepEqual(sel(),[],"novo trabalho limpa extras");
+  console.log("PASS extras da Conferência sobrevivem à geração");
+}
+(async()=>{fields();await bootstrap();modal();await extrasLifecycle();})().catch(error=>{console.error(error);process.exitCode=1});

@@ -30,4 +30,14 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0013 | Bootstrap recuperável e origem imutável da ponte | aceita |
 | 0014 | Rascunho canônico e validação compartilhada | aceita |
 | 0015 | Snapshot, manifesto e retomada sem duplicação | aceita |
+| 0016 | Integridade de HTML e validação de DOM | aceita |
+| 0017 | Persistência no backend de preferências e configurações | aceita |
+| 0018 | Fundo decorativo e direção visual da WebView | aceita |
+| 0019 | API CRUD no backend de perfis | aceita |
+| 0020 | Gerenciador de perfis e auxiliares na WebView | aceita |
+| 0021 | Consolidação da toolbar e modo na WebView | aceita |
+| 0022 | Plano de migração residual Tk → WebView2 | concluída (blocos 0–6) |
+| 0023 | Paridade P0 Tk → WebView para release | aceita |
+| 0024 | Rota Tauri v2 pós-WebView | futura |
+| 0025 | Publicação de resultados e Conferência (Etapa 2) | aceita |
 | — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |

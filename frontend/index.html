@@ -99,33 +99,33 @@
 
     <section id="tela-conferir" aria-label="Conferir dados" hidden>
       <div class="page-heading">
-        <div><p class="eyebrow">Etapa 2 — Conferência</p><h1>Conferir dados antes de gerar.</h1><p class="hint">Revise todas as informações preenchidas para garantir que os documentos sejam gerados corretamente.</p></div>
+        <div><p class="eyebrow">Etapa 2 — Conferência</p><h1>Conferir dados antes de gerar.</h1><p class="hint">Selecione os formulários, anexe os documentos extras do processo e confira o resumo antes de gerar.</p></div>
       </div>
-      <div class="card">
+      <div class="card" id="secao-forms-dinamicos" hidden>
+        <div class="card-header"><div><h2>Formulários Dinâmicos Gerados</h2><p class="hint">Selecione quais formulários preenchidos serão gerados e convertidos para o pacote final:</p></div><button class="btn btn-secondary btn-sm" id="btn-gerenciar-perfis" type="button">Gerenciar Perfis</button></div>
+        <div id="lista-forms-etapa2"></div>
+      </div>
+      <div class="card" id="secao-docs-extras" hidden>
+        <div class="card-header"><div><h2>Adicionar documentos extras (opcional)</h2><p class="hint">Arquivos selecionados aqui serão renomeados e organizados.</p></div></div>
+        <div id="lista-docs-extras"></div>
+        <p class="field-note">PDF e RTF são aceitos. O original não é alterado.</p>
+      </div>
+      <div class="card conf-card">
         <div class="card-header"><div><h2>Resumo dos dados preenchidos</h2><p class="hint">Confira a lista de participantes, campos e modelos selecionados.</p></div></div>
         <div id="corpo-conferencia">Carregando dados para conferência…</div>
-        <div class="acoes form-actions" style="margin-top:20px;">
-          <button class="btn btn-secondary" id="btn-conferir-voltar" type="button">Voltar ao formulário</button>
-          <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos</button>
-        </div>
+      </div>
+      <div class="acoes form-actions">
+        <button class="btn btn-secondary" id="btn-conferir-voltar" type="button">Voltar ao formulário</button>
+        <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos</button>
       </div>
     </section>
 
     <section id="tela-etapa2" aria-label="Concluir" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Etapa 3 — Conclusão</p><h1>Confira e conclua.</h1><p class="hint">Revise os PDFs gerados, anexe o que faltar e conclua a organização.</p></div></div>
+      <div class="page-heading"><div><p class="eyebrow">Etapa 3 — Conclusão</p><h1>Confira e conclua.</h1><p class="hint">Revise os PDFs gerados, acompanhe o andamento e conclua a organização.</p></div></div>
       <div class="card process-card">
         <div class="card-header"><div><h2>Documentos deste trabalho</h2><p class="hint" id="manifesto-resumo"></p></div><span class="section-tag" id="manifesto-status">Aguardando geração</span></div>
         <div id="lista-anexos"></div>
         <div id="opcoes-processamento">
-        <div class="field-section" id="secao-forms-dinamicos">
-          <div class="card-header"><div><h2>Formulários Dinâmicos Gerados</h2><p class="hint">Selecione quais formulários preenchidos serão gerados e convertidos para o pacote final:</p></div><button class="btn btn-secondary btn-sm" id="btn-gerenciar-perfis" type="button">Gerenciar Perfis</button></div>
-          <div id="lista-forms-etapa2"></div>
-        </div>
-        <div class="field-section" id="secao-docs-extras">
-          <div><h2>Adicionar documentos extras (opcional)</h2><p class="hint">Arquivos selecionados aqui serão renomeados e organizados.</p></div>
-          <div id="lista-docs-extras"></div>
-          <p class="field-note">PDF e RTF são aceitos. O original não é alterado.</p>
-        </div>
         <div class="field field-inline" id="legado-anexo" hidden>
           <label for="anexo-tipo">Categoria do anexo</label>
           <select id="anexo-tipo">
@@ -140,7 +140,6 @@
       </div>
       <div class="card process-card">
         <div class="card-header"><div><h2>Organização de Arquivos</h2><p class="hint" id="organizacao-pasta">Pasta: —</p><p class="hint" id="organizacao-formato">Formato de saída: PDF/A-2b</p></div></div>
-        <div class="card-header"><div><h2>Concluir o trabalho</h2><p class="hint">Escolha o formato e acompanhe o andamento.</p></div></div>
         <div id="formato-opcoes">
         <div class="field">
           <label for="formato-saida">Formato de saída</label>
@@ -155,13 +154,12 @@
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-secondary" id="btn-voltar-etapa2" type="button">Voltar</button>
+          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
           <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>FINALIZAR PROCESSO</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
-          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
           <button class="btn btn-secondary" id="btn-fila" type="button">Fila</button>
-          <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar ao formulário</button>
+          <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar</button>
         </div>
       </div>
     </section>

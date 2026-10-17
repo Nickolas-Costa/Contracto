@@ -67,6 +67,12 @@
   }
 
   function fileLabel(file,index) {return file?.name || "Documento "+(index+1);}
+  function destacarAbrirPasta(ativo) {
+    // Destaque maior em "Abrir pasta" quando o trabalho já está finalizado.
+    const b=$("btn-abrir-pasta");if(!b)return;
+    b.classList.toggle("btn-primary",!!ativo);
+    b.classList.toggle("btn-secondary",!ativo);
+  }
   function fileDescription(file) {
     const participants=file.participants?.length ? "Participante"+(file.participants.length>1?"s ":" ")+file.participants.join(", ") : "Participante não informado";
     return [originLabel[file.origin] || "Documento",participants,file.size_bytes ? Math.max(1,Math.ceil(file.size_bytes/1024))+" KB" : ""].filter(Boolean).join(" · ");
@@ -75,7 +81,13 @@
   function atualizar() {
     const advanced=window.ContractoEtapa1?.modo() !== "simples";
     $("opcoes-processamento").hidden=!advanced;
-    $("btn-finalizar").hidden=!advanced;
+    // Formulários e documentos extras vivem na Etapa 2 (Conferir), só no
+    // fluxo de Contrato.
+    const secaoForms=$("secao-forms-dinamicos"), secaoExtras=$("secao-docs-extras");
+    if(secaoForms)secaoForms.hidden=!advanced;
+    if(secaoExtras)secaoExtras.hidden=!advanced;
+    // "FINALIZAR PROCESSO" só aparece quando há o que finalizar.
+    $("btn-finalizar").hidden=!advanced||!base||finalized;
     $("btn-finalizar").disabled=!online()||busy||!base||finalized;
     $("formato-opcoes").hidden=!advanced;
     $("formato-saida").querySelector('[value="PDF/A-2b"]').disabled=!capabilities?.ghostscript;
@@ -102,6 +114,9 @@
     $("btn-retomar").disabled=sending;
     $("btn-voltar").disabled=busy;
     $("fila-barra").parentElement.hidden=!busy;
+    // "Fila" só quando existe trabalho conhecido ou ativo.
+    const btnFila=$("btn-fila");
+    if(btnFila)btnFila.hidden=!(filaConhecida.length||active||pending);
     $("lista-anexos").querySelectorAll("button").forEach(el=>el.disabled=busy);
     window.ContractoEtapa1?.atualizar();
   }
@@ -160,7 +175,7 @@
       const radio=document.createElement("span");radio.className="doc-extra-marcador";radio.textContent=atual?"●":"○";radio.setAttribute("aria-hidden","true");
       const rot=document.createElement("span");rot.className="doc-extra-rotulo";rot.textContent=doc.rotulo+":";
       const campo=document.createElement("input");campo.readOnly=true;campo.placeholder="Nenhum arquivo selecionado";campo.value=atual?atual.name:"";campo.setAttribute("aria-label",doc.rotulo);
-      const btn=document.createElement("button");btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent=atual?"Trocar":"Selecionar";btn.disabled=busy||!base;
+      const btn=document.createElement("button");btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent=atual?"Trocar":"Selecionar";btn.disabled=busy||!online();
       btn.addEventListener("click",()=>selecionarExtra(doc));
       if(atual){
         const rm=document.createElement("button");rm.type="button";rm.className="btn btn-secondary btn-sm";rm.textContent="Remover";rm.disabled=busy;
@@ -172,7 +187,7 @@
   }
 
   async function selecionarExtra(doc){
-    if(busy||!base||!online())return;
+    if(busy||!online())return;
     try{
       const r=await api().selectAttachment();
       if(r.cancelled)return;
@@ -201,13 +216,13 @@
     if(busy)return;
     previewRevision++;
     if(base){status("changed","Os dados foram alterados.","Gere novamente para que os documentos reflitam as alterações.");}
-    base=null;attachments=[];extrasMap.clear();finalized=false;$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;
+    base=null;attachments=[];extrasMap.clear();finalized=false;$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;destacarAbrirPasta(false);
     manifesto();
     $("btn-finalizar").disabled=true;const ba=$("btn-anexo");if(ba)ba.disabled=true;
   }
 
   function alterarProcesso() {
-    if(finalized){$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;status("changed","Processo alterado.","Finalize novamente para atualizar os resultados.");}
+    if(finalized){$("lista-resultados").replaceChildren();$("btn-abrir-pasta").hidden=true;destacarAbrirPasta(false);status("changed","Processo alterado.","Finalize novamente para atualizar os resultados.");}
     finalized=false;
   }
 
@@ -220,6 +235,7 @@
       btn.addEventListener("click",()=>visualizar(id,fileLabel(file,i)));row.append(info,btn);$("lista-resultados").append(row);
     });
     $("btn-abrir-pasta").hidden=false;
+    destacarAbrirPasta(finalized);
     $("btn-abrir-pasta").onclick=async()=>{try{const r=await api().openResult(jobId);if(!r.ok)ui().toast("Não foi possível abrir a pasta.","error");}catch(_){ui().toast("Falha ao abrir pasta.","error");}};
   }
 
@@ -380,9 +396,7 @@
     return [...rid].map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  // Fase 1 — paridade com SuccessModal/ConfirmModal do legado
-  // (success_modal.py / mw_etapa2.py:287): conclusão celebra com ações
-  // explícitas; ausência total de anexos pede confirmação antes de enviar.
+  // Tela de conclusão simplificada: só abre a pasta (primário) ou fecha.
   function modalConclusao(jobId) {
     ui().abrirModal("Trabalho concluído", "Documentos organizados na pasta de destino.", [
       {
@@ -391,13 +405,7 @@
           catch (_) { ui().toast("Falha ao abrir pasta.", "error"); }
         }
       },
-      {
-        texto: "Ver documentos", aoClicar: () => {
-          window.ContractoUI.mostrarTela("etapa2");
-          document.getElementById("lista-resultados")?.scrollIntoView({ block: "center" });
-        }
-      },
-      { texto: "Concluir" }
+      { texto: "Fechar" }
     ]);
   }
 
@@ -514,6 +522,7 @@
     pending=null; sending=false; busy=false;
     if(timer){clearTimeout(timer);timer=null;}
     active=null; failures=0; finalized=false;
+    attachments=[];extrasMap.clear();
     atualizar();
   }
 
@@ -529,7 +538,6 @@
     $("btn-cancelar").addEventListener("click",cancelar);
     $("btn-retomar").addEventListener("click",retomar);
     $("btn-voltar").addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
-    const bv2=$("btn-voltar-etapa2");if(bv2)bv2.addEventListener("click",()=>{window.ContractoUI.mostrarTela("inicio");});
     const gp=$("btn-gerenciar-perfis");if(gp)gp.addEventListener("click",()=>{window.ContractoUI.mostrarTela("perfis");});
     const btnFila=$("btn-fila");
     if(btnFila)btnFila.addEventListener("click",()=>painelFila());
@@ -577,7 +585,9 @@
     const ids = jobData.file_ids || jobData.result?.output_file_ids || [];
     const files = jobData.files || jobData.result?.files || [];
     base={job_id:jobData.job_id,file_ids:ids,files};
-    attachments=[];extrasMap.clear();finalized=false;
+    // Preserva os extras escolhidos na Conferência (Etapa 2): limpar aqui os
+    // descartava antes do FINALIZAR. Rescisão acontece em invalidar/recomecar.
+    finalized=false;
     carregarContexto().then(()=>{manifesto();atualizar();});
     status("completed","PDFs gerados com sucesso.","Revise os documentos extras ou escolha o formato antes de concluir.");
     // Gerados também aparecem como linhas com "Visualizar" (paridade com o fluxo anterior).
@@ -601,5 +611,7 @@
     else atualizar();
   }
 
-  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,ocupado:()=>busy,temBase:()=>!!base,formsSelecionados:formsSelecionadosLista,extrasSelecionados:()=>[...extrasMap.keys()]};
+  async function sincronizarContexto(){await carregarContexto();atualizar();}
+
+  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,sincronizarContexto,ocupado:()=>busy,temBase:()=>!!base,formsSelecionados:formsSelecionadosLista,extrasSelecionados:()=>[...extrasMap.keys()]};
 })();

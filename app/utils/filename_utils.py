@@ -110,6 +110,24 @@ def nome_documento_processo(tipo: str, participantes: list["Participant"]) -> st
     return _sanitizar_nome_arquivo(nome)
 
 
+def nome_pasta_processo(participantes: list["Participant"]) -> str:
+    """Nome legível da pasta de destino do processo (modo Contrato).
+
+    Usa o primeiro nome de cada participante em Title Case, preservando
+    acentos, separados por " e ".
+
+    Exemplo:
+        [Participant("Francisca Maria"), Participant("João Silva")]
+        → "Contrato Francisca e João"
+    """
+    nomes = []
+    for p in participantes:
+        partes = (p.nome_completo or "").strip().split()
+        nomes.append(_sanitizar_nome_arquivo(partes[0].title()) if partes else "Participante")
+    sufixo = " e ".join(nomes) or "Participante"
+    return _sanitizar_nome_arquivo(f"Contrato {sufixo}")
+
+
 def nome_documento_individual(tipo: str, nome_completo: str) -> str:
     """Gera o nome padronizado de um documento individual (por participante).
 

@@ -171,7 +171,7 @@
     if (nome === "perfis" && window.ContractoEtapa1?.carregarTelaPerfis) {
       window.ContractoEtapa1.carregarTelaPerfis();
     }
-    if (nome === "inicio" || nome === "config" || nome === "conversao") {
+    if (nome === "inicio" || nome === "config" || nome === "conversao" || nome === "conferir") {
       window.ContractoEtapa2?.atualizar();
     }
     if (nome === "config") {
@@ -267,16 +267,25 @@
   }
   document.addEventListener("DOMContentLoaded", () => { setTimeout(boasVindasSePreciso, 800); });
 
+  let corAtual = "#005CA9";
+
   function aplicarTema(nome) {
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
+    // As variáveis derivadas (--c-primary-light/-hover) dependem do tema;
+    // recomputa quando o tema muda (manual ou pelo sistema).
+    aplicarCor(corAtual);
   }
 
   function aplicarCor(cor) {
+    corAtual = cor;
     document.documentElement.style.setProperty("--c-primary", cor);
     const r = parseInt(cor.slice(1, 3), 16), g = parseInt(cor.slice(3, 5), 16), b = parseInt(cor.slice(5, 7), 16);
     const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     const onPrimary = luminance > 0.5 ? "#172435" : "#FFFFFF";
-    const light = `color-mix(in srgb, ${cor} 15%, ${luminance > 0.5 ? "#FFFFFF" : "#0F1419"})`;
+    // Base do mix do fundo claro depende do TEMA: no claro usa branco, senão
+    // destaques escuros geravam azul-escuro sobre azul-escuro (badges/pills).
+    const lightBase = document.documentElement.dataset.theme === "dark" ? "#0F1419" : "#FFFFFF";
+    const light = `color-mix(in srgb, ${cor} 15%, ${lightBase})`;
     const hover = `color-mix(in srgb, ${cor} 85%, ${luminance > 0.5 ? "#FFFFFF" : "#0F1419"})`;
     document.documentElement.style.setProperty("--c-on-primary", onPrimary);
     document.documentElement.style.setProperty("--c-primary-light", light);

@@ -275,7 +275,36 @@ class TestLocalAPI(unittest.TestCase):
         self.assertEqual(self.wait_job(job["job_id"])["status"], "completed")
         with patch("utils.files_fs.abrir_pasta", return_value=True) as open_folder:
             self.assertTrue(bridge.open_result(job["job_id"])["ok"])
-            self.assertEqual(open_folder.call_args.args[0].parent.resolve(), self.output.resolve())
+            # Formulario simples publica na própria pasta escolhida (sem subpasta).
+            self.assertEqual(open_folder.call_args.args[0].resolve(), self.output.resolve())
+
+    def test_generate_contract_uses_legible_subfolder_and_process_final_folder(self):
+        self.server.jobs.profiles[self.profile_id].modo_fluxo = "contrato"
+        # Modo Contrato exige endereço do participante principal.
+        self.participant["endereco"] = "Rua QA, 1"
+        status, job = self.http("/api/v1/jobs/generate", self.payload)
+        self.assertEqual(status, 202, job)
+        generated = self.wait_job(job["job_id"])
+        self.assertEqual(generated["status"], "completed")
+        gerados = self.output / "Contrato Pessoa (gerados)"
+        self.assertTrue(gerados.is_dir())
+        self.assertTrue(any(p.is_file() for p in gerados.iterdir()))
+        pstatus, process = self.http("/api/v1/jobs/process", {
+            "participants": [self.participant], "output_id": self.output_id,
+            "file_ids": generated["file_ids"], "format": "PDF"})
+        self.assertEqual(pstatus, 202, process)
+        self.assertEqual(self.wait_job(process["job_id"])["status"], "completed")
+        final = self.output / "Contrato Pessoa"
+        self.assertTrue(final.is_dir())
+        # O processamento organiza os PDFs em PDF-A/ (com ASSINADOS/REGISTRADOS).
+        self.assertTrue(any(p.is_file() for p in (final / "PDF-A").iterdir()))
+        # Colisão não sobrescreve: uma segunda execução recebe sufixo.
+        pstatus, again = self.http("/api/v1/jobs/process", {
+            "participants": [self.participant], "output_id": self.output_id,
+            "file_ids": generated["file_ids"], "format": "PDF"})
+        self.assertEqual(pstatus, 202, again)
+        self.assertEqual(self.wait_job(again["job_id"])["status"], "completed")
+        self.assertTrue((self.output / "Contrato Pessoa (2)").is_dir())
 
     def test_undeclared_dynamic_field_rejected(self):
         participant = {**self.participant, "campos_dinamicos": {"undeclared": "value"}}

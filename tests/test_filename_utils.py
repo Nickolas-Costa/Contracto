@@ -14,6 +14,7 @@ from utils.filename_utils import (
     gerar_sufixo_nomes,
     nome_documento_individual,
     nome_documento_processo,
+    nome_pasta_processo,
     remover_acentos,
 )
 
@@ -104,6 +105,24 @@ class TestNomeDocumentoIndividual(unittest.TestCase):
             nome_documento_individual("PRIMEIRO IMOVEL", "João Carlos Pereira"),
             "PRIMEIRO IMOVEL - JOAO.pdf",
         )
+
+
+class TestNomePastaProcesso(unittest.TestCase):
+    def test_dois_participantes_com_acentos(self):
+        participantes = [
+            Participant(nome_completo="Francisca Maria"),
+            Participant(nome_completo="João Silva"),
+        ]
+        self.assertEqual(nome_pasta_processo(participantes), "Contrato Francisca e João")
+
+    def test_um_participante(self):
+        self.assertEqual(
+            nome_pasta_processo([Participant(nome_completo="maria da silva")]),
+            "Contrato Maria",
+        )
+
+    def test_sem_participantes(self):
+        self.assertEqual(nome_pasta_processo([]), "Contrato Participante")
 
 
 if __name__ == "__main__":

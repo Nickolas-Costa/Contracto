@@ -18,6 +18,7 @@ from services.form_validation import preparar_participantes
 from services.queue_manager import QueueManager
 from services.stage2_service import executar_etapa2
 from utils.cpf_validator import validar_cpf
+from utils.filename_utils import nome_pasta_processo
 from utils.logger import contexto_log_api
 from utils.profile_manager import carregar_perfis
 
@@ -38,6 +39,38 @@ def capabilities():
             "pdf": True,
             "convert_in": [".pdf", ".rtf", ".doc", ".docx"],
             "convert_out": ["PDF", "PDF/A-2b"]}
+
+
+def _destino_unico(output: Path, nome: str) -> Path:
+    """Primeiro caminho livre para a pasta do trabalho, sem sobrescrever nada."""
+    destino = output / nome
+    contador = 1
+    while destino.exists():
+        contador += 1
+        destino = output / f"{nome} ({contador})"
+    return destino
+
+
+def _mover_inline(output: Path, files: list[Path]) -> list[Path]:
+    """Publica os arquivos direto na pasta escolhida (Simples/Conversão).
+
+    Sufixo " (2)" evita sobrescrever arquivos existentes.
+    shortcut: se o processo for interrompido no meio da movimentação, parte dos
+    arquivos já publicados permanece; atualizar se a publicação precisar ser
+    tudo-ou-nada nesses modos.
+    """
+    ocupados = {p.name.lower() for p in output.iterdir() if p.is_file()}
+    finais = []
+    for source in files:
+        nome, contador = source.name, 1
+        while nome.lower() in ocupados:
+            contador += 1
+            nome = f"{source.stem} ({contador}){source.suffix}"
+        ocupados.add(nome.lower())
+        alvo = output / nome
+        shutil.move(str(source), str(alvo))
+        finais.append(alvo)
+    return finais
 
 
 class Jobs:
@@ -177,7 +210,11 @@ class Jobs:
                              for path in result.arquivos_gerados})
             return result.arquivos_gerados
 
-        return self._submit(request.output_id, operation, "generate", request, metadata)
+        if any(p.modo_fluxo == "contrato" for p in profiles):
+            # Geração no modo Contrato é intermediária: PDFs brutos para revisão.
+            return self._submit(request.output_id, operation, "generate", request, metadata,
+                                folder_name=f"{nome_pasta_processo(participants)} (gerados)")
+        return self._submit(request.output_id, operation, "generate", request, metadata, inline=True)
 
     def process(self, request):
         retry = self._request_retry("process", request)
@@ -238,7 +275,8 @@ class Jobs:
             metadata.update(zip(outputs, sources))
             return outputs
 
-        return self._submit(request.output_id, operation, "process", request, metadata)
+        return self._submit(request.output_id, operation, "process", request, metadata,
+                            folder_name=nome_pasta_processo(participants))
 
     def convert(self, request):
         """Conversão direta de arquivos (modo Conversão): sem perfis nem participantes.
@@ -300,7 +338,7 @@ class Jobs:
             progress(total, total, "")
             return saidas
 
-        return self._submit(request.output_id, operation, "convert", request, metadata)
+        return self._submit(request.output_id, operation, "convert", request, metadata, inline=True)
 
     @staticmethod
     def _fingerprint(kind, request):
@@ -318,7 +356,8 @@ class Jobs:
                 return self.snapshot(key)
         return None
 
-    def _submit(self, output_id, operation, kind=None, request=None, metadata=None):
+    def _submit(self, output_id, operation, kind=None, request=None, metadata=None,
+                folder_name=None, inline=False):
         with self._lock:
             if request is not None:
                 retry = self._request_retry(kind, request)
@@ -357,24 +396,34 @@ class Jobs:
                         relative = [p.relative_to(staging) for p in files]
                         with self._lock:
                             self._check_cancel(job)
-                            self.selections.resolve(output_id, "directory")
-                            destination = output / f"Contracto-{key}"
-                            if destination.exists():
-                                raise ApiError("output_conflict", "Destino já existe")
-                            staging.rename(destination)
-                            published, staging = destination, None
+                            dest_dir = self.selections.resolve(output_id, "directory")
+                            publish_dir = dest_dir
+                            if inline:
+                                # Simples/Conversão: arquivos direto na pasta
+                                # escolhida, sem subpasta (paridade com o legado).
+                                finales = _mover_inline(dest_dir, files)
+                                shutil.rmtree(staging)
+                                published, staging = None, None
+                            else:
+                                # Contrato: subpasta com nome legível; staging
+                                # privado garante publicação atômica no sucesso.
+                                destination = _destino_unico(dest_dir, folder_name or f"Contracto-{key}")
+                                staging.rename(destination)
+                                published, staging = destination, None
+                                finales = [destination / name for name in relative]
+                                publish_dir = destination
                             results = []
-                            for source, path in zip(files, relative):
-                                file_id = self.selections.register(destination / path, "file")
+                            for source, path in zip(files, finales):
+                                file_id = self.selections.register(path, "file")
                                 registered.append(file_id)
                                 detail = (metadata or {}).get(source, {"origin": "imported", "participants": []})
                                 self._file_details[file_id] = {"origin": detail["origin"], "participants": list(detail["participants"])}
                                 results.append(FileResult(file_id=file_id, name=path.name,
-                                                          size_bytes=(destination/path).stat().st_size,
+                                                          size_bytes=path.stat().st_size,
                                                           **self._file_details[file_id]))
                             state.file_ids = registered
                             state.files = results
-                            self._outputs[key] = self.selections.register(destination, "directory")
+                            self._outputs[key] = self.selections.register(publish_dir, "directory")
                             state.status = "completed"
                             state.completed = state.total = len(files)
                             published = None  # Saída concluída pertence ao usuário.

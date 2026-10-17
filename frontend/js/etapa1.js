@@ -825,6 +825,8 @@
       });
     }
 
+    // Reflete a composição atual nos formulários/extras da Etapa 2 antes de abrir.
+    try { await window.ContractoEtapa2?.sincronizarContexto?.(); } catch (_) {}
     window.ContractoUI.mostrarTela("conferir");
   }
 

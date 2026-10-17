@@ -12,7 +12,7 @@ from models.participant import Participant
 from services.generator_service import gerar_documentos_de_perfis
 from services.mapping_audit import conferir_mapeamento, renderizar_pagina_destacada
 from services.profile_composer import combinar_perfis, limite_participantes_para_pagina
-from utils.profile_manager import CampoEntrada, FormularioModelo, Perfil
+from utils.profile_manager import CampoEntrada, DocumentoExtra, FormularioModelo, Perfil
 
 
 def _criar_pdf(caminho: Path, campo: str) -> None:
@@ -68,6 +68,23 @@ class TestComposicaoPerfis(unittest.TestCase):
             resultado.perfil.obter_abas_disponiveis(),
             ["ITBI • Partes da operação", "DAMP • Operação"],
         )
+
+    def test_preserva_extras_de_perfil_unico_e_limpa_na_combinacao(self):
+        contrato = Perfil(
+            nome="Contrato",
+            campos_entrada=[CampoEntrada(id="nome", rotulo="Nome")],
+            documentos_extras=[DocumentoExtra(rotulo="Contrato", nome_padrao="CONTRATO")],
+        )
+        outro = Perfil(
+            nome="Outro",
+            campos_entrada=[CampoEntrada(id="telefone", rotulo="Telefone")],
+        )
+
+        self.assertEqual(
+            [d.nome_padrao for d in combinar_perfis([contrato]).perfil.documentos_extras],
+            ["CONTRATO"],
+        )
+        self.assertEqual(combinar_perfis([contrato, outro]).perfil.documentos_extras, [])
 
     def test_respeita_limite_de_proponentes_do_formulario_da_pagina(self):
         damp = Perfil(nome="DAMP", max_participantes=1)

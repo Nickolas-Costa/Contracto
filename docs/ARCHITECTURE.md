@@ -1,9 +1,12 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v4.5.15) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v4.5.24) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v4.5.15) — desktop CustomTkinter + PyInstaller
+## Estado atual (v4.5.24) — UI WebView2 sobre API local loopback
+
+A UI de produção migrou de CustomTkinter para WebView2 (concluída na v4.5.18);
+o esqueleto Tk abaixo permanece como legado de referência/paridade.
 
 ```
 app/main.py             → entrypoint (CTk, maximizado, instância única via mutex)
@@ -58,6 +61,14 @@ Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
 
 Migração incremental: ports → headless proof → shell pywebview →
 Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
+
+## Convenção de publicação de resultados (ADR 0025)
+
+- **Contrato:** geração intermediária em `Contrato <Nomes> (gerados)`; trabalho
+  final em `Contrato <Nomes>` (`nome_pasta_processo`, Title Case com acentos).
+- **Simples/Conversão:** arquivos publicados direto na pasta escolhida.
+- Colisões recebem sufixo ` (2)`, ` (3)`… — nunca sobrescreve. Em Contrato o
+  trabalho usa pasta privada `.contracto-*` e só a renomeia no sucesso.
 
 O shell WebView chama uma API FastAPI apenas em loopback, documentada em `SPEC_PRE_WEBVIEW.md`. Essa fronteira também prepara futura integração empresarial por agente local; não representa uma API pública nem hospedada.
 

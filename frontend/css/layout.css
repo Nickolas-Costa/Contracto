@@ -81,17 +81,20 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 @media(max-width:680px){.forms-grid{grid-template-columns:minmax(0,1fr)}}
 .modos-seletor{align-items:center}
 .modos-seletor .seletor-count{align-self:center;margin-right:4px}
-.conf-resumo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
-.conf-bloco{border:1px solid var(--c-border);border-radius:10px;padding:14px 16px;background:var(--c-surface)}
-.conf-bloco h3{margin:0 0 8px;font-size:14px}
+.conf-card{margin-top:0}
+.conf-resumo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:0 0 14px;align-items:start}
+.conf-bloco{border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;background:var(--c-surface-variant)}
+.conf-bloco h3{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-secondary)}
 .conf-chips{display:flex;flex-wrap:wrap;gap:8px}
 .conf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;margin:0}
 .conf-item{display:flex;flex-direction:column;gap:2px;min-width:0}
 .conf-item dt{font-size:12px;color:var(--c-text-secondary);font-weight:600}
 .conf-item dd{margin:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
-.conf-subsecao{border-top:1px solid var(--c-border);padding:12px 0 0;margin:12px 0 0}
-.conf-subsecao h4{margin:0 0 8px;font-size:13px}
-.conf-participante{margin:12px 0}
+.conf-subsecao{border-top:1px solid var(--c-border);padding:14px 0 0;margin:14px 0 0}
+.conf-subsecao h4{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-secondary)}
+.conf-participante{margin:14px 0 0;background:var(--c-surface)}
+.conf-participante h3{display:flex;align-items:baseline;gap:8px;font-size:15px}
+.conf-participante h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-primary);flex:none;transform:translateY(-1px)}
 @media(max-width:680px){.conf-resumo{grid-template-columns:minmax(0,1fr)}.conf-grid{grid-template-columns:minmax(0,1fr)}}
 .profile-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .profile-menu{position:relative}

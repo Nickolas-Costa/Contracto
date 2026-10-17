@@ -1,7 +1,12 @@
-# Base de Migração de UI — WebView2 Concluída
+﻿# Base de Migração de UI — WebView2 Concluída
 
 > **Estado em 17/09/2026:** A migração do aplicativo **Contracto** de CustomTkinter para a nova interface **WebView2** foi integralmente concluída e homologada (v4.5.18).
 > A suíte completa de 355 testes unitários e os testes de fluxo de ponta a ponta DOM em WebView real (`tests/smoke_webview_ui.py`) passam com 100% de sucesso.
+
+> **Atualização v4.5.24 (17/10/2026):** publicação com nome legível
+> (`Contrato <Nomes>` / `(gerados)`), publicação inline em Simples/Conversão,
+> conferência (formulários/extras) movida para a Etapa 2 e cores derivadas
+> por tema. Ver ADR 0025. Suíte: 390 testes OK.
 
 ---
 
@@ -60,7 +65,7 @@
 | Smoke motores reais via HTTP | **PASS** | RTF→Word→PDF/A com Ghostscript real, PDF/A validado e RTF preservado (`tests/smoke_api_engines.py`) |
 | `pip check` | **PASS** | Nenhuma dependência quebrada |
 
-Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` ainda não existe). Release só após esse gate.
+Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` existe com `IsWebView2Installed`). Release só após esse gate.
 
 ---
 
@@ -78,7 +83,7 @@ As pendências identificadas após a entrega da v4.5.18 estão formalmente regis
 - **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2 — ✅ blocos 0–6 concluídos.
 - **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo — ✅ concluído, ver tabela de rastreamento.
 
-Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` ainda não existe). Release só após esse gate.
+Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` existe com `IsWebView2Installed`). Release só após esse gate.
 
 ---
 

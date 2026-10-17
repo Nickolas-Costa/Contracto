@@ -3,6 +3,27 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.24] - 2026-10-17
+
+### Corrigido
+- Legibilidade no tema claro: as variáveis derivadas da cor de destaque
+  (`--c-primary-light`/`--c-primary-hover`) são recalculadas por tema; antes
+  os badges/pills claros recebiam azul-escuro sobre azul-escuro. A cor é
+  reaplicada ao trocar de tema (manual ou do sistema).
+- Modo Contrato: a geração intermediária publica em
+  `Contrato <Nomes> (gerados)` (nome legível, Title Case com acentos) em vez
+  de `Contracto-<job_id>`; o trabalho final usa `Contrato <Nomes>`.
+  Colisões recebem sufixo ` (2)` — nunca sobrescreve (ADR 0025).
+- Modos Simples/Conversão publicam os arquivos direto na pasta escolhida
+  (sem subpasta), com o mesmo sufixo de colisão; paridade com o legado.
+
+### Alterado
+- Formulários Dinâmicos Gerados e Documentos Extras agora ficam na Etapa 2
+  (Conferir), refletindo a composição atual antes de gerar; a Etapa 3
+  (Concluir) fica enxuta e seu modal final só abre a pasta ou fecha.
+- Documentos extras de um perfil único deixam de ser descartados ao compor
+  (`combinar_perfis`); combinações de múltiplos perfis seguem sem extras.
+
 ## [4.5.23] - 2026-10-14
 
 ### Corrigido

@@ -20,7 +20,7 @@ def main():
     from pypdf import PdfReader
     from server import LocalServer
     from webview_shell import ShellBridge
-    from utils.profile_manager import CampoEntrada, FormularioModelo, Perfil
+    from utils.profile_manager import CampoEntrada, DocumentoExtra, FormularioModelo, Perfil
 
     errors = []
     with tempfile.TemporaryDirectory(prefix="contracto-ui-flow-") as temp:
@@ -42,6 +42,7 @@ def main():
                   CampoEntrada(id="detalhe", rotulo="Detalhe B", obrigatorio=True, visivel_quando=[{"regime":["B"]}])]
         profiles = [Perfil(nome="QA "+name, modo_fluxo="formulario_simples", max_participantes=2, formato_saida="PDF",
                            campos_entrada=fields,
+                           documentos_extras=[DocumentoExtra("Contrato assinado", "CONTRATO QA")],
                            formularios=[FormularioModelo("DOC"+name,str(template),mapeamento={"NOME":"participante.nome", "CPF":"participante.cpf", "ENDERECO":"participante.endereco"})])
                     for name in ("A", "B")]
         with LocalServer(profiles=profiles) as server:
