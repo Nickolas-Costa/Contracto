@@ -42,10 +42,9 @@ Fluxo: **Preencher (Etapa 1) → Anexar/Converter PDF/A (Etapa 2) → Pastas pad
 ## Base da Fase A — implementada em 13/09/2026
 
 `app/server.py` e `app/api/` implementam a API loopback; `app/webview_shell.py`
-é o bootstrap de diagnóstico com ponte nativa e diálogos WebView. A fila existente
-foi estendida para operações independentes. A UI de produção ainda é Tk.
-Veja `BASE_UI_STATUS.md` e ADR 0011 para o contrato, testes e pendências.
-Não há projeto Rust/Tauri ou frontend de produção implementado.
+é o shell de produção com ponte nativa e diálogos WebView. A fila existente
+foi estendida para operações independentes. Veja `BASE_UI_STATUS.md` e ADR 0011
+para o contrato, testes e pendências. Não há projeto Rust/Tauri implementado.
 
 ```
 Fase A (base implementada, telas pendentes): WebView2 + Python loopback 127.0.0.1

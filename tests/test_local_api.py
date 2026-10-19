@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 import unittest
+from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 from unittest.mock import patch
@@ -146,6 +147,22 @@ class TestLocalAPI(unittest.TestCase):
         self.assertEqual(self.http("/api/v1/jobs/generate", raw=b"x" * (1024 * 1024 + 1))[0], 413)
         self.assertEqual(self.http("/api/v1/jobs/generate", self.payload, headers={"Content-Type": "text/plain"})[0], 415)
         self.assertFalse(list(self.output.iterdir()))
+
+    def test_system_repair_maps_service_result(self):
+        # Regressão: o endpoint precisa chamar o serviço real de reparo (nome
+        # do módulo errado deixava o recurso morto mesmo com HTTP 200).
+        alvo = "services.system_repair_service.executar_diagnostico_e_reparo"
+        with patch(alvo, return_value=SimpleNamespace(sucesso=True, titulo="Reparo Concluído")):
+            status, body = self.http("/api/v1/system/repair", {})
+        self.assertEqual(status, 200)
+        self.assertEqual((body["status"], body["message"]), ("success", "Reparo Concluído"))
+        with patch(alvo, return_value=SimpleNamespace(sucesso=False, titulo="Com Alertas")):
+            self.assertEqual(self.http("/api/v1/system/repair", {})[1]["status"], "warning")
+        with patch(alvo, side_effect=RuntimeError("detalhe interno")):
+            status, body = self.http("/api/v1/system/repair", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "error")
+        self.assertNotIn("detalhe interno", json.dumps(body))
 
     def test_unknown_selection_profile_and_job(self):
         self.assertEqual(self.http("/api/v1/jobs/generate", {**self.payload, "output_id": "a" * 32})[0], 422)

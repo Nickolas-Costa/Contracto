@@ -273,12 +273,12 @@ def create_app(session):
 
     @app.post("/api/v1/system/repair")
     def system_repair():
-        from services import system_repair
+        from services.system_repair_service import executar_diagnostico_e_reparo
         try:
-            ok, msg = system_repair.executar_reparo_completo()
-            return {"status": "success" if ok else "warning", "message": msg}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+            resultado = executar_diagnostico_e_reparo()
+        except Exception:
+            return {"status": "error", "message": "Falha ao executar reparo do sistema."}
+        return {"status": "success" if resultado.sucesso else "warning", "message": resultado.titulo}
 
     @app.post("/api/v1/settings/restore")
     def restore_settings():

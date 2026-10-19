@@ -43,7 +43,7 @@
         const r = await window.ContractoAPI.request("GET", "/api/v1/health");
         if (r.status !== 200) { falhaConexao(); return false; }
         // Item 8: diagnóstico WebView2 amigável
-        if (typeof navigator !== "undefined" && navigator.userAgent?.includes("Windows") && window.chrome?.webview) {
+        if (window.ContractoAPI.ehShellWebView2()) {
           try {
             const diag = await window.ContractoAPI.request("GET", "/api/v1/diagnostics/webview2");
             if (diag.status === 200 && diag.data && !diag.data.available) {
@@ -114,9 +114,7 @@
     }, 15000);
   }
   window.ContractoApp = { iniciar, verificar: finalizarArranque, pronto: () => pronto, falha: falhaConexao };
-  window.addEventListener("pywebviewready", () => {
-    finalizarArranque();
-  });
+  window.ContractoAPI.aoPronto(finalizarArranque);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();
 })();

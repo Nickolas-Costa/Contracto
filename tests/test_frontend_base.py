@@ -167,11 +167,29 @@ class TestFrontendBase(unittest.TestCase):
 
     def test_boot_aguarda_ponte(self):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
-        self.assertIn("pywebviewready", app_js)
+        api_js = (RAIZ / "js/api.js").read_text(encoding="utf-8")
+        # O boot depende do adaptador, não do shell (contrato congelado).
+        self.assertIn("ContractoAPI.aoPronto", app_js)
+        self.assertNotIn("pywebview", app_js)
+        self.assertIn("pywebviewready", api_js)
         self.assertIn("finalizarArranque", app_js)
         # Corridas e recuperação são exercitadas no teste de comportamento JS.
         self.assertIn("conectando", app_js)
         self.assertIn("ContractoEtapa2.ligar()", app_js)
+
+    def test_shell_isolado_no_adaptador(self):
+        # ADR 0024 §1: só api.js conhece o shell nativo; trocar pywebview→Tauri
+        # é um único arquivo. Qualquer outro arquivo referenciando o shell falha.
+        alvos = sorted((RAIZ / "js").glob("*.js")) + [RAIZ / "index.html", RAIZ / "lab.html"]
+        for caminho in alvos:
+            if caminho.name == "api.js":
+                continue
+            texto = caminho.read_text(encoding="utf-8")
+            self.assertNotIn("pywebview", texto, caminho.name)
+            self.assertNotIn("__TAURI__", texto, caminho.name)
+        api_js = (RAIZ / "js/api.js").read_text(encoding="utf-8")
+        for exigido in ["aoPronto", "ehShellWebView2", "__TAURI__"]:
+            self.assertIn(exigido, api_js, exigido)
 
     def test_build_embarca_frontend(self):
         spec_path = RAIZ.parent / "scripts" / "generate_spec.py"

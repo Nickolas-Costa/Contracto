@@ -8,6 +8,7 @@ Regras:
 
 from __future__ import annotations
 
+import glob
 import os
 import shutil
 import subprocess
@@ -28,13 +29,28 @@ def read_version() -> str:
     return str(version.__version__).strip()
 
 
+def _iscc_descobertos() -> list[str]:
+    # Inno Setup pode estar por usuário (%LOCALAPPDATA%\Programs\Inno Setup 6)
+    # ou por máquina; o instalador por usuário não fica no PATH.
+    raizes = [
+        os.environ.get("LOCALAPPDATA"),
+        os.environ.get("ProgramFiles"),
+        os.environ.get("ProgramFiles(x86)"),
+    ]
+    achados: list[str] = []
+    for raiz in raizes:
+        if raiz:
+            achados += glob.glob(os.path.join(raiz, "Programs", "Inno Setup *", "ISCC.exe"))
+            achados += glob.glob(os.path.join(raiz, "Inno Setup *", "ISCC.exe"))
+    return achados
+
+
 def find_iscc() -> str:
     candidates = [
         os.environ.get("ISCC_PATH"),
         shutil.which("iscc"),
         shutil.which("iscc.exe"),
-        r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-        r"C:\Program Files\Inno Setup 6\ISCC.exe",
+        *_iscc_descobertos(),
     ]
     for candidate in candidates:
         if candidate and os.path.exists(candidate):
@@ -45,6 +61,15 @@ def find_iscc() -> str:
 
 
 def main() -> int:
+    if "--check" in sys.argv[1:]:
+        # Gate do build_exe.bat: só imprime o ISCC localizado (exit 0) ou avisa (exit 1).
+        try:
+            print(find_iscc())
+        except FileNotFoundError as exc:
+            print(f"[AVISO] {exc}")
+            return 1
+        return 0
+
     try:
         version = read_version()
     except Exception as exc:  # pragma: no cover - bloqueio de build de release
@@ -72,7 +97,7 @@ def main() -> int:
         print(f"[ERRO] {exc}")
         return 1
 
-    cmd = [iscc, str(ISS_FILE)]
+    cmd = [iscc, f"/DMyAppVersion={version}", str(ISS_FILE)]
     print(f"[1/2] Compilando instalador Contracto v{version}...")
     print(f"  comando: {' '.join(cmd)}")
     try:

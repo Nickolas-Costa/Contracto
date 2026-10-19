@@ -203,7 +203,9 @@ Para compilar o executável autônomo da versão 4.5.24, execute:
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.24.zip` (+ `.sha256.txt`).
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.24.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.24.exe`.
+
+> O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
 
 ---
 

@@ -11,3 +11,4 @@
   5. Trocar `Contracto.iss` por bundler/updater Tauri somente se confirmado; preservar dados na desinstalação; versionar por `app/version.py` + `VERSION` + tag.
 - **Consequências:** nenhum código Tauri neste release; nenhum serviço reescrito em Rust; sem SQLite/updater antes da decisão.
 - **Testes:** os mesmos do gate WebView, reexecutados no shell Tauri quando existir.
+- **Andamento (2026-10-18, branch `chore/pre-tauri-prep`):** transporte confirmado como **A (manter HTTP loopback)**: o sidecar Python continua expondo `app/server.py` + `app/api/`, então `api.js` quase não muda e o gate de `http.py` (token/loopback/limites) segue valendo. Passo 1 (congelar contrato) implementado: `pywebview`/`webview2` isolados em `frontend/js/api.js` (`aoPronto`, `ehShellWebView2`); `app.js` não referencia mais o shell, com guarda em `tests/test_frontend_base.py::test_shell_isolado_no_adaptador`. Restam os passos 2–5.

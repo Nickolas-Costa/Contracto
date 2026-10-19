@@ -6,6 +6,20 @@
     return !!(window.pywebview && window.pywebview.api);
   }
 
+  // Ponte pronta no shell nativo. pywebview dispara "pywebviewready"; um shell
+  // sem evento (ex.: Tauri) chama no arranque. Mantém o resto do app ignorante
+  // do shell: componentes não referenciam pywebview/Tauri diretamente.
+  function aoPronto(callback) {
+    if (window.__TAURI__) { callback(); return; }
+    window.addEventListener("pywebviewready", callback);
+  }
+
+  // Shell Windows com WebView2 — único ponto que conhece o host para decidir o
+  // diagnóstico do runtime WebView2. Sob Tauri (WebView2 embutido) retorna false.
+  function ehShellWebView2() {
+    return typeof navigator !== "undefined" && !!navigator.userAgent?.includes("Windows") && !!(window.chrome && window.chrome.webview);
+  }
+
   async function request(method, path, payload) {
     if (!disponivel()) {
       return { status: 503, data: { code: "sem_ponte", message: "Abra pelo aplicativo." } };
@@ -141,6 +155,8 @@
 
   window.ContractoAPI = {
     disponivel,
+    aoPronto,
+    ehShellWebView2,
     request,
     selectOutput,
     selectFile,

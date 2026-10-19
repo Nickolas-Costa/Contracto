@@ -8,13 +8,21 @@ class TestReleaseInstallerGate(unittest.TestCase):
     def test_build_script_uses_installer_gate(self):
         texto = (RAIZ / "build_exe.bat").read_text(encoding="utf-8")
         self.assertIn("build_installer.py", texto)
-        # Gate: o passo do instalador só roda com ISCC no PATH (`where /q`).
-        self.assertRegex(texto.lower(), r"where( /q)? iscc")
+        # Gate: a detecção do ISCC (inclusive instalação por usuário, fora do
+        # PATH) fica em build_installer.py --check; sem ele, o passo é pulado.
+        self.assertIn("build_installer.py --check", texto)
 
     def test_iss_uses_versioned_variable(self):
         texto = (RAIZ / "packaging" / "Contracto.iss").read_text(encoding="utf-8")
-        self.assertIn("#define MyAppVersion", texto)
+        self.assertIn("#ifndef MyAppVersion", texto)
         self.assertIn("AppVersion={#MyAppVersion}", texto)
+
+    def test_iscc_check_mode(self):
+        # `--check` reconhece a instalação por usuário e não é fatal sem ISCC.
+        script = (RAIZ / "scripts" / "build_installer.py").read_text(encoding="utf-8")
+        self.assertIn("_iscc_descobertos", script)
+        self.assertIn("Inno Setup *", script)
+        self.assertIn('"--check"', script)
 
 
 if __name__ == "__main__":

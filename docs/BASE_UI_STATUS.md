@@ -8,6 +8,13 @@
 > conferência (formulários/extras) movida para a Etapa 2 e cores derivadas
 > por tema. Ver ADR 0025. Suíte: 390 testes OK.
 
+> **Atualização (18/10/2026):** o instalador Inno Setup voltou a compilar
+> (`scripts/build_installer.py` reconhece a instalação por usuário e o
+> `packaging/Contracto.iss` foi corrigido — ver ADR 0008);
+> `Contracto_Installer_v4.5.24.exe` publicado no release v4.5.24. Contrato
+> UI↔shell congelado: `pywebview`/WebView2 isolados em `frontend/js/api.js`
+> (ADR 0024 §1, branch `chore/pre-tauri-prep`).
+
 ---
 
 ## O que foi Concluído e Entregue (v4.5.18)
@@ -65,7 +72,7 @@
 | Smoke motores reais via HTTP | **PASS** | RTF→Word→PDF/A com Ghostscript real, PDF/A validado e RTF preservado (`tests/smoke_api_engines.py`) |
 | `pip check` | **PASS** | Nenhuma dependência quebrada |
 
-Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` existe com `IsWebView2Installed`). Release só após esse gate.
+Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções. O instalador Inno Setup é gerado por `scripts/build_installer.py` (ADR 0008 — `packaging/Contracto.iss`). Release só após esse gate.
 
 ---
 
@@ -83,7 +90,7 @@ As pendências identificadas após a entrega da v4.5.18 estão formalmente regis
 - **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2 — ✅ blocos 0–6 concluídos.
 - **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo — ✅ concluído, ver tabela de rastreamento.
 
-Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento e instalador Inno Setup (ADR 0008 — `packaging/Contracto.iss` existe com `IsWebView2Installed`). Release só após esse gate.
+Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento. O instalador Inno Setup é gerado por `scripts/build_installer.py` (ADR 0008 — `packaging/Contracto.iss`). Release só após esse gate.
 
 ---
 

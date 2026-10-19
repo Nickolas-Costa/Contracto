@@ -2,7 +2,10 @@
 ; Professional Windows Installer (ADR 0008)
 
 #define MyAppName "Contracto"
-#define MyAppVersion GetFileVersion("..\app\dist\Contracto_v" + GetVersionString("..\app\version.py") + ".exe")
+; Versão canônica vem de app/version.py via build_installer.py (/DMyAppVersion=...).
+#ifndef MyAppVersion
+  #define MyAppVersion "0.0.0"
+#endif
 
 [Setup]
 AppName={#MyAppName}
@@ -19,8 +22,8 @@ OutputBaseFilename=Contracto_Installer_v{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 PrivilegesRequired=lowest
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 AppId=Contracto
 AppMutex=ContractoMutex
 CreateAppDir=yes
@@ -46,7 +49,7 @@ Name: "{group}\{cm:UninstallProgram,Contracto}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Contracto"; Filename: "{app}\Contracto.exe"; IconFilename: "{app}\assets\icons\app_icon.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{sys}\cmd.exe"; Parameters: "/c reg query HKLM\\SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5} /v pv"; Flags: skipifdoesntexist unchecked waituntilterminated hidden; Check: not IsWebView2Installed
+Filename: "{sys}\cmd.exe"; Parameters: "/c reg query HKLM\\SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5} /v pv"; Flags: skipifdoesntexist unchecked waituntilterminated runhidden; Check: not IsWebView2Installed
 
 [Code]
 function IsWebView2Installed(): Boolean;
