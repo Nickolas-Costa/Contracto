@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v4.5.24-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v4.5.25-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -66,6 +66,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
+## Atualizações da Versão 4.5.25
+
+Preparação pré-Tauri (contrato UI↔shell isolado em `api.js`), correção do endpoint de reparo do sistema e do alvo do atalho de reparo; o instalador Inno Setup passa a reconhecer a instalação por usuário. Detalhes em [CHANGELOG.md](CHANGELOG.md).
+
 ## Atualizações da Versão 4.5.24
 
 Pastas de destino com nome legível (`Contrato <Nomes>` / `(gerados)`), conferência de formulários/documentos extras na Etapa 2 e cores derivadas por tema. Detalhes em [CHANGELOG.md](CHANGELOG.md).
@@ -101,7 +105,7 @@ CONTRACTO/
 ├── build_exe.bat                       # Script de compilação automatizada (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.5.24)
+│   ├── version.py                      # Versão centralizada do sistema (v4.5.25)
 │   ├── ui/                             # Componentes visuais, telas, temas e modais
 │   │   ├── alert_modal.py              # Modal de alertas informativos e de erro
 │   │   ├── animated_loader.py          # Indicador visual leve de carregamento
@@ -197,13 +201,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 4.5.24, execute:
+Para compilar o executável autônomo da versão 4.5.25, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.24.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.24.exe`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.25.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.25.exe`.
 
 > O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
 

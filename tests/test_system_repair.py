@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -8,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 from services.system_repair_service import (
     _encerrar_processos_orfaos,
     _limpar_arquivos_temporarios,
+    _melhor_exe_dist,
     _verificar_modelos_padrao,
     executar_diagnostico_e_reparo,
 )
@@ -43,6 +45,14 @@ class TestSystemRepairService(unittest.TestCase):
         self.assertIsNotNone(resultado.titulo)
         self.assertIsInstance(resultado.detalhes, list)
         self.assertGreater(len(resultado.detalhes), 0)
+
+    def test_melhor_exe_dist_escolhe_a_maior_versao(self):
+        """Regression: o atalho do reparo deve mirar o build mais novo, não o 1º da pasta."""
+        with tempfile.TemporaryDirectory() as pasta:
+            for nome in ("Contracto_v4.5.9.exe", "Contracto_v4.5.22.exe", "Contracto_v4.5.25.exe"):
+                (Path(pasta) / nome).write_bytes(b"x")
+            self.assertEqual(_melhor_exe_dist(Path(pasta)).name, "Contracto_v4.5.25.exe")
+        self.assertIsNone(_melhor_exe_dist(Path(tempfile.gettempdir()) / "contracto-sem-build"))
 
 
 if __name__ == "__main__":

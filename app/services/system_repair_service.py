@@ -6,6 +6,7 @@ remoção de arquivos temporários, verificação de dependências e atualizaç�
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -134,6 +135,16 @@ def _verificar_modelos_padrao() -> bool:
     return bool(modelos) and all(modelo.exists() for modelo in modelos)
 
 
+def _melhor_exe_dist(pasta: Path) -> Path | None:
+    """Executável de maior versão em `pasta` (evita mirar um build antigo)."""
+    def chave(p: Path) -> tuple[int, ...]:
+        encontrado = re.search(r"v(\d+)\.(\d+)\.(\d+)", p.name)
+        return tuple(int(x) for x in encontrado.groups()) if encontrado else (0, 0, 0)
+
+    exes = list(pasta.glob("Contracto_v*.exe"))
+    return max(exes, key=chave) if exes else None
+
+
 def _atualizar_atalho_desktop() -> bool:
     """Tenta recriar o atalho da aplicação na área de trabalho se estiver no Windows."""
     if sys.platform != "win32":
@@ -167,11 +178,10 @@ def _atualizar_atalho_desktop() -> bool:
         if "python" in exe_path.name.lower() and getattr(sys, "frozen", False) is False:
             # Em modo dev, buscar na pasta dist se existir
             projeto_raiz = Path(__file__).resolve().parent.parent.parent
-            dist_exes = list((projeto_raiz / "app" / "dist").glob("Contracto_v*.exe"))
-            if dist_exes:
-                exe_path = dist_exes[0]
-            else:
+            encontrado = _melhor_exe_dist(projeto_raiz / "app" / "dist")
+            if encontrado is None:
                 return False
+            exe_path = encontrado
 
         icon_path = caminho_recurso("assets", "icons", "app_icon.ico")
 

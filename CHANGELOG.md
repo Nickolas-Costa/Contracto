@@ -3,6 +3,27 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.25] - 2026-10-18
+
+### Corrigido
+- `POST /api/v1/system/repair` chamava um módulo inexistente
+  (`services.system_repair`), então "Diagnóstico e reparo do sistema" nunca
+  funcionava; passa a usar
+  `system_repair_service.executar_diagnostico_e_reparo()`.
+- Atalho da Área de Trabalho recriado pelo reparo: em modo de
+  desenvolvimento ele mirava o primeiro `Contracto_v*.exe` em `app/dist`
+  (podia ser o build mais antigo); agora escolhe o de maior versão.
+- Instalador: `packaging/Contracto.iss` corrigido (identificador de versão
+  inexistente, flags inválidas, arquitetura obsoleta) — ver ADR 0008.
+
+### Alterado
+- Contrato UI↔shell isolado em `frontend/js/api.js` (`aoPronto`,
+  `ehShellWebView2`); `app.js` não referencia mais `pywebview`/WebView2 —
+  trocar de shell passa a ser um arquivo só (ADR 0024 §1).
+- `scripts/build_installer.py` reconhece o Inno Setup instalado apenas para
+  o usuário (`%LOCALAPPDATA%`, fora do PATH) e o gate do `build_exe.bat`
+  passou a usá-lo (`--check`).
+
 ## [4.5.24] - 2026-10-17
 
 ### Corrigido

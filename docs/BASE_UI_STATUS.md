@@ -8,12 +8,12 @@
 > conferência (formulários/extras) movida para a Etapa 2 e cores derivadas
 > por tema. Ver ADR 0025. Suíte: 390 testes OK.
 
-> **Atualização (18/10/2026):** o instalador Inno Setup voltou a compilar
-> (`scripts/build_installer.py` reconhece a instalação por usuário e o
-> `packaging/Contracto.iss` foi corrigido — ver ADR 0008);
-> `Contracto_Installer_v4.5.24.exe` publicado no release v4.5.24. Contrato
-> UI↔shell congelado: `pywebview`/WebView2 isolados em `frontend/js/api.js`
-> (ADR 0024 §1, branch `chore/pre-tauri-prep`).
+> **Atualização (18/10/2026):** preparação pré-Tauri na branch
+> `chore/pre-tauri-prep` (ADR 0024 §1: `pywebview`/WebView2 isolados em
+> `frontend/js/api.js`), correção de `POST /api/v1/system/repair` (importava
+> um módulo inexistente) e do alvo do atalho de reparo. O instalador Inno
+> Setup passa a reconhecer a instalação por usuário (`scripts/build_installer.py`,
+> `packaging/Contracto.iss` — ADR 0008). Versão 4.5.25.
 
 ---
 
