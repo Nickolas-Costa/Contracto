@@ -40,4 +40,5 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0023 | Paridade P0 Tk → WebView para release | aceita |
 | 0024 | Rota Tauri v2 pós-WebView | futura |
 | 0025 | Publicação de resultados e Conferência (Etapa 2) | aceita |
+| 0026 | Formato inicial pela Config, topbar fixa e arrasto na Conversão | aceita |
 | — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |

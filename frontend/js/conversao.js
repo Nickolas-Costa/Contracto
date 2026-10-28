@@ -5,7 +5,8 @@
   const api = () => window.ContractoAPI, ui = () => window.ContractoUI;
   const online = () => window.ContractoApp?.pronto() || false;
   let arquivos = [], outputId = null, active = null, timer = null,
-      polling = false, failures = 0, sending = false, bound = false, caps = null;
+      polling = false, failures = 0, sending = false, bound = false, caps = null,
+      formatoPadrao = null, formatoEscolhido = false, sincronizarFormato = null;
 
   function status(state, message, detail) {
     // Sem pill na toolbar (foto 1): andamento em toast/modal + estado local.
@@ -25,6 +26,10 @@
     $("drop-conversao").classList.toggle("ocupado", !!active);
     const optPDFA = $("conversao-formato").querySelector('[value="PDF/A-2b"]');
     if (optPDFA) optPDFA.disabled = !caps?.ghostscript;
+    // Padrão = Configurações; só vale enquanto o usuário não escolheu aqui.
+    if (!formatoEscolhido && formatoPadrao)
+      $("conversao-formato").value = formatoPadrao === "PDF/A-2b" && caps?.ghostscript ? "PDF/A-2b" : "PDF";
+    sincronizarFormato?.();
     $("conversao-formato-nota").textContent = caps?.ghostscript
       ? "PDF/A disponível para arquivamento."
       : "PDF comum disponível. PDF/A requer Ghostscript nesta instalação.";
@@ -60,22 +65,33 @@
     });
   }
 
+  function adicionar(r) {
+    // Resposta do seletor nativo ou do arrasto: só IDs autorizados e nomes.
+    const ids = r.selection_ids || (r.selection_id ? [r.selection_id] : []);
+    const nomes = r.names || (r.name ? [r.name] : []);
+    if (!ids.length) { ui().toast("Não foi possível anexar os arquivos.", "error"); return; }
+    ids.forEach((id, i) => {
+      if (!arquivos.some(a => a.selection_id === id) && arquivos.length < 20)
+        arquivos.push({ selection_id: id, name: nomes[i] || "Documento" });
+    });
+    if (r.rejected) ui().toast(r.rejected + " arquivo(s) ignorado(s): use PDF, RTF, DOC ou DOCX.", "warning");
+    renderLista();
+    atualizar();
+  }
+
   async function anexar() {
     if (active || !online()) return;
     try {
       const r = await api().selectDocuments();
       if (r.cancelled) return;
-      const ids = r.selection_ids || (r.selection_id ? [r.selection_id] : []);
-      const nomes = r.names || (r.name ? [r.name] : []);
-      if (!ids.length) { ui().toast("Não foi possível anexar os arquivos.", "error"); return; }
-      ids.forEach((id, i) => {
-        if (!arquivos.some(a => a.selection_id === id) && arquivos.length < 20)
-          arquivos.push({ selection_id: id, name: nomes[i] || "Documento" });
-      });
-      if (r.rejected) ui().toast(r.rejected + " arquivo(s) ignorado(s): use PDF, RTF, DOC ou DOCX.", "warning");
-      renderLista();
-      atualizar();
+      adicionar(r);
     } catch (_) { ui().toast("Falha ao abrir o seletor.", "error"); }
+  }
+
+  function receberArrasto(r) {
+    // Chamado pelo shell nativo depois do drop na dropzone (o caminho nunca chega ao JS).
+    if (active || !r) return;
+    adicionar(r);
   }
 
   function novoRequestId() {
@@ -236,6 +252,11 @@
 
   async function carregarCapacidades() {
     try {
+      // Formato padrão das Configurações (pode ter mudado desde a última visita).
+      const s = await api().getSettings?.();
+      formatoPadrao = s?.data?.formato_saida || null;
+    } catch (_) { /* sem Config, vale PDF */ }
+    try {
       caps = await api().getCapabilities();
       const partes = ["PDF: disponível",
         "Word (RTF/DOC/DOCX→PDF): " + (caps.word ? "disponível" : "indisponível — instale o Word"),
@@ -266,8 +287,8 @@
     drop.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); anexar(); }
     });
-    // O shell não expõe caminhos de arquivos arrastados (segurança): o gesto
-    // abre o diálogo nativo para concluir a seleção.
+    // O caminho do arquivo arrastado só existe no shell nativo, que o autoriza e
+    // chama receberArrasto(); aqui só o efeito visual e o bloqueio da navegação.
     ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, (e) => {
       e.preventDefault();
       drop.classList.add("arrastando");
@@ -276,7 +297,8 @@
       e.preventDefault();
       drop.classList.remove("arrastando");
     }));
-    drop.addEventListener("drop", () => { anexar(); });
+    // Soltar fora da zona não pode navegar a janela para o arquivo.
+    ["dragover", "drop"].forEach(ev => document.addEventListener(ev, (e) => e.preventDefault()));
     $("btn-converter").addEventListener("click", converter);
     $("btn-conversao-cancelar").addEventListener("click", cancelar);
     $("btn-conversao-limpar").addEventListener("click", () => {
@@ -300,11 +322,12 @@
         } else ui().toast("Não foi possível selecionar a pasta.", "error");
       } catch (_) { ui().toast("Falha ao abrir o seletor.", "error"); }
     });
-    $("conversao-formato").addEventListener("change", atualizar);
+    sincronizarFormato = ui().segmentar?.($("conversao-formato"), "Formato de saída");
+    $("conversao-formato").addEventListener("change", () => { formatoEscolhido = true; atualizar(); });
     $("conversao-nome").addEventListener("input", atualizar);
     document.addEventListener("DOMContentLoaded", carregarCapacidades);
     if (document.readyState !== "loading") carregarCapacidades();
   }
 
-  window.ContractoConversao = { ligar, atualizar: () => { renderLista(); atualizar(); } };
+  window.ContractoConversao = { ligar, receberArrasto, atualizar: () => { renderLista(); atualizar(); } };
 })();

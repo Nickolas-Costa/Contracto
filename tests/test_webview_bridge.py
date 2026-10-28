@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 import tempfile
@@ -76,6 +77,31 @@ class TestWebViewBridge(unittest.TestCase):
             for sid in result["selection_ids"]:
                 self.assertTrue(server.jobs.selections.resolve(sid, "convert").is_file())
             self.assertNotIn(folder, str(result))
+
+    def test_drop_na_conversao_entrega_ao_js_so_ids(self):
+        with tempfile.TemporaryDirectory() as folder, LocalServer(profiles=[]) as server:
+            pdf, txt = Path(folder, "a.pdf"), Path(folder, "c.txt")
+            pdf.write_bytes(b"%PDF-1.4 sintese")
+            txt.write_text("ignorado")
+            window = Mock()
+            window.get_current_url.return_value = None
+            bridge = ShellBridge(server)
+            bridge._attach(window)
+            evento = {"dataTransfer": {"files": [{"name": "a.pdf", "pywebviewFullPath": str(pdf)},
+                                                  {"name": "c.txt", "pywebviewFullPath": str(txt)},
+                                                  {"name": "sem-caminho.pdf"}]}}
+            bridge._on_drop(evento)
+            js = window.evaluate_js.call_args.args[0]
+            self.assertIn("ContractoConversao.receberArrasto", js)
+            self.assertNotIn(folder, js)
+            resposta = json.loads(js[js.index("(", js.index("receberArrasto")) + 1:-1])
+            self.assertEqual(resposta["names"], ["a.pdf"])
+            self.assertEqual(resposta["rejected"], 1)
+            self.assertTrue(server.jobs.selections.resolve(resposta["selection_ids"][0], "convert").is_file())
+            window.evaluate_js.reset_mock()
+            window.get_current_url.return_value = "https://evil.invalid"
+            bridge._on_drop(evento)
+            window.evaluate_js.assert_not_called()
 
     def test_open_file_no_leitor_padrao(self):
         import sys

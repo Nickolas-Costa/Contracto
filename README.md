@@ -5,18 +5,18 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v4.5.25-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v4.5.26-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
-[![Testes](https://img.shields.io/badge/Testes-390%2F390%20ok-success?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
+[![Testes](https://img.shields.io/badge/Testes-unittest%20%2B%20smoke%20WebView2-success?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 
 <br/>
 
 **[📥 Baixar Executável (.zip)](https://github.com/Nickolas-Costa/Contracto/releases)** &nbsp;•&nbsp;
 **[📖 Guia de Uso](#-modos-de-opera%C3%A7%C3%A3o-e-fluxos-de-trabalho)** &nbsp;•&nbsp;
 **[🔒 Segurança & Privacidade](#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)** &nbsp;•&nbsp;
-**[🎨 Design System](DESIGN_SYSTEM.md)** &nbsp;•&nbsp;
+**[🎨 Design System](docs/DESIGN_SYSTEM.md)** &nbsp;•&nbsp;
 **[📝 Alterações](CHANGELOG.md)**
 
 </div>
@@ -51,7 +51,7 @@ Projetado para emissão rápida e direta de formulários individuais com **1 cli
 - Interface simplificada sem necessidade de Etapa 2.
 - Geração instantânea do PDF preenchido e abertura direta da pasta de destino.
 - Possibilidade de preencher mais de um formulário no mesmo fluxo e com divisão dos campos por páginas.
-- **Opção `[x] Preservar dados para Reutilizar`**: Mantém dadis preenchidos na tela para que você possa emitir formulários sequenciais (ex: Contrato e logo após ITBI/Isenção) sem precisar digitar nada novamente.
+- **Opção `[x] Preservar dados para Reutilizar`**: Mantém dados preenchidos na tela para que você possa emitir formulários sequenciais (ex: Contrato e logo após ITBI/Isenção) sem precisar digitar nada novamente.
 
 ---
 
@@ -65,6 +65,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
+
+## Atualizações da Versão 4.5.26
+
+Formato de saída inicial pelas Configurações (botões em vez de lista), visualizador de PDF responsivo, arrastar e soltar na Conversão, perfis separados por modo e barra superior fixa. Detalhes em [CHANGELOG.md](CHANGELOG.md) e ADR 0026.
 
 ## Atualizações da Versão 4.5.25
 
@@ -98,15 +102,22 @@ Para uma visão organizada de onde cada parte do código fica, consulte [docs/MA
 CONTRACTO/
 ├── LICENSE                             # Licença MIT
 ├── README.md                           # Documentação oficial do projeto
-├── CHANGELOG_v4.md                     # Histórico de versões e alterações
-├── DESIGN_SYSTEM.md                    # Especificação do Design System e catálogo visual
+├── CHANGELOG.md                        # Histórico de versões (série 4.x detalhada em docs/releases/)
+├── VERSION                             # Espelho de app/version.py
+├── docs/                               # ADRs, arquitetura, design system, QA e releases
+├── frontend/                           # UI de produção (WebView2): index.html, css/, js/ (api.js = contrato com o shell)
+├── packaging/                          # Contracto.iss (instalador Inno Setup)
 ├── requirements.txt                    # Dependências de execução
 ├── requirements-dev.txt                # Dependências de desenvolvimento e testes
 ├── build_exe.bat                       # Script de compilação automatizada (.exe)
 ├── app/
 │   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.5.25)
-│   ├── ui/                             # Componentes visuais, telas, temas e modais
+│   ├── version.py                      # Versão centralizada do sistema (v4.5.26)
+│   ├── server.py                       # API FastAPI loopback (token efêmero)
+│   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
+│   ├── webview_shell.py                # Shell pywebview/WebView2 e ponte nativa
+│   ├── ports/                          # Diálogos, binários e armazenamento por shell
+│   ├── ui/                             # UI legada (CustomTkinter), mantida para paridade; será aposentada
 │   │   ├── alert_modal.py              # Modal de alertas informativos e de erro
 │   │   ├── animated_loader.py          # Indicador visual leve de carregamento
 │   │   ├── campo_dinamico_widget.py    # Renderizador modular de campos com auto-formatação
@@ -201,13 +212,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 4.5.25, execute:
+Para compilar o executável autônomo da versão 4.5.26, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.25.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.25.exe`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.26.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.26.exe`.
 
 > O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
 

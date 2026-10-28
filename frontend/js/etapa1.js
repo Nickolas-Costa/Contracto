@@ -124,7 +124,8 @@
       if (owner[id] === "") owner[id]=options[options.length-1];
       input.checked = owner[id] === options[0] || owner[id] === true;
     } else {
-      input.type = "text";
+      // <textarea> não expõe `type` gravável (HTMLTextAreaElement.type é somente leitura).
+      if (!isTextarea) input.type = "text";
       if (["CPF","CNPJ","CPF_CNPJ","INTEIRO","ANO","DATA","MOEDA","AREA","PIS_PASEP"].includes(field.tipo)) input.inputMode = "decimal";
       if (field.tipo === "EMAIL") input.inputMode = "email";
       if (field.tipo === "TELEFONE") input.inputMode = "tel";
@@ -1012,16 +1013,39 @@
     const search = $("buscar-perfis");
     const termo = (search?.value || "").trim().toLowerCase();
 
+    // Qualquer modo que não seja simples conta como contrato (mesmo critério do badge e do backend).
+    const modoDe = p => ((p.modo_fluxo || p.mode) === "formulario_simples" ? "formulario_simples" : "contrato");
+    const rotuloModo = { formulario_simples: "Modo Simples", contrato: "Modo Contrato" };
     const filtrados = catalog.filter(p => {
       if (!termo) return true;
       const nome = (p.nome || p.name || "").toLowerCase();
-      const modo = (p.modo_fluxo || p.mode || "").toLowerCase();
+      const modo = ((p.modo_fluxo || p.mode || "") + " " + rotuloModo[modoDe(p)] + " " + (modoDe(p) === "contrato" ? "completo" : "formulário")).toLowerCase();
       const desc = (p.descricao || "").toLowerCase();
       return nome.includes(termo) || modo.includes(termo) || desc.includes(termo);
     });
 
     const vazio = $("perfis-vazio");
     if (vazio) vazio.hidden = filtrados.length > 0;
+
+    const grupos = {};
+    Object.keys(rotuloModo).forEach(chave => {
+      const itens = filtrados.filter(p => modoDe(p) === chave);
+      if (!itens.length) return;
+      const sec = document.createElement("section");
+      sec.className = "perfis-grupo";
+      sec.setAttribute("aria-labelledby", "perfis-grupo-" + chave);
+      const h = document.createElement("h3");
+      h.id = "perfis-grupo-" + chave;
+      h.className = "perfis-grupo-titulo";
+      h.textContent = rotuloModo[chave];
+      const n = document.createElement("span");
+      n.className = "seletor-count";
+      n.textContent = "(" + itens.length + ")";
+      h.append(n);
+      sec.append(h);
+      container.append(sec);
+      grupos[chave] = sec;
+    });
 
     filtrados.forEach(p => {
       const card = document.createElement("div");
@@ -1033,7 +1057,7 @@
       const titleGroup = document.createElement("div");
       titleGroup.className = "profile-item-title";
 
-      const title = document.createElement("h3");
+      const title = document.createElement("h4");
       title.textContent = (typeof nomeExibicao === "function" ? nomeExibicao({ name: p.nome || p.name, nome: p.nome || p.name }) : (p.nome || p.name)) || p.profile_id;
 
       const badge = document.createElement("span");
@@ -1080,7 +1104,7 @@
       details.textContent = `${campos.length} campos configurados • Formato: ${p.formato_saida || "PDF/A-2b"} • Máx. participantes: ${p.max_participantes || 4}`;
 
       card.append(header, details);
-      container.append(card);
+      grupos[modoDe(p)].append(card);
     });
   }
 

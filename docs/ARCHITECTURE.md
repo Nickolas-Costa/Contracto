@@ -1,16 +1,16 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v4.5.24) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v4.5.26) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v4.5.24) — UI WebView2 sobre API local loopback
+## Estado atual (v4.5.26) — UI WebView2 sobre API local loopback
 
 A UI de produção migrou de CustomTkinter para WebView2 (concluída na v4.5.18);
-o esqueleto Tk abaixo permanece como legado de referência/paridade.
+o esqueleto Tk abaixo (`app/ui/`, `app/main.py`) é **legado**, mantido só para referência/paridade, e deve ser aposentado por ADR própria. A produção roda por `app/webview_shell.py` + `frontend/`.
 
 ```
 app/main.py             → entrypoint (CTk, maximizado, instância única via mutex)
-app/version.py          → fonte única (__version__ = "4.5.15", espelho em VERSION)
+app/version.py          → fonte única (__version__, espelho em VERSION)
 app/ui/main_window.py   → orquestra mixins (toolbar/stepper/modos/telas/
                           layout/etapa1/etapa2/fila em mw_*.py)
 app/ui/                 → profiles (orquestra pf_lista/pf_editor) + settings/

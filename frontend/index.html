@@ -154,12 +154,12 @@
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
-          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>FINALIZAR PROCESSO</button>
+          <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar</button>
+          <button class="btn btn-secondary" id="btn-fila" type="button">Fila</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
-          <button class="btn btn-secondary" id="btn-fila" type="button">Fila</button>
-          <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar</button>
+          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
+          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>FINALIZAR PROCESSO</button>
         </div>
       </div>
     </section>
@@ -229,10 +229,10 @@
         <div class="progresso" id="conversao-progresso" role="progressbar" aria-label="Progresso da conversão" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="conversao-barra"></div></div>
         <div id="conversao-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-primary" id="btn-converter" type="button" disabled>Converter</button>
+          <button class="btn btn-secondary" id="btn-conversao-limpar" type="button">Limpar lista</button>
           <button class="btn btn-secondary" id="btn-conversao-cancelar" type="button" hidden>Cancelar</button>
           <button class="btn btn-secondary" id="btn-conversao-abrir" type="button" hidden>Abrir pasta</button>
-          <button class="btn btn-secondary" id="btn-conversao-limpar" type="button">Limpar lista</button>
+          <button class="btn btn-primary" id="btn-converter" type="button" disabled>Converter</button>
         </div>
       </div>
     </section>
@@ -271,8 +271,8 @@
         </div>
 
         <div class="acoes form-actions form-actions-config">
-          <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
           <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
+          <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
         </div>
 
         <div class="field-section alerta-manutencao"><h2>Manutenção e recuperação</h2><p class="hint">Ações de reparo e restauração. Restaurar padrões não apaga perfis nem documentos.</p>

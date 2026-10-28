@@ -165,6 +165,38 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn('id="badge-participantes"', toolbar)
         self.assertNotIn('id="conexao"', toolbar)
 
+    def test_ajustes_v4526_topbar_viewer_formato_e_perfis(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        css = (RAIZ / "css/layout.css").read_text(encoding="utf-8")
+        # Topbar fixa abaixo de calendário/toast/modal/skip-link; estática quando quebra em linhas.
+        toolbar = re.search(r"\n\.toolbar\{([^}]*)\}", css).group(1)
+        self.assertIn("position:sticky", toolbar)
+        z = int(re.search(r"z-index:(\d+)", toolbar).group(1))
+        for seletor in (r"\.calendario-overlay", r"#toasts", r"\.overlay", r"\.skip-link"):
+            self.assertLess(z, int(re.search(seletor + r"\{[^}]*z-index:(\d+)", css).group(1)), seletor)
+        self.assertRegex(css, r"@media\(max-width:1100px\)\{\.toolbar\{[^}]*position:static")
+        # Visualizador: uma única regra de largura, sem valor fixo em px/vw.
+        self.assertEqual(len(re.findall(r"\.pdf-preview\{[^}]*width:", css)), 1)
+        self.assertNotIn("min(900px,80vw)", css)
+        # Formato como botões (o select oculto segue como fonte do valor).
+        etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
+        conversao = (RAIZ / "js/conversao.js").read_text(encoding="utf-8")
+        self.assertIn("segmentar", etapa2)
+        self.assertIn("segmentar", conversao)
+        self.assertIn("formato_saida", etapa2)
+        self.assertIn("formato_saida", conversao)
+        # Ação primária por último nas telas com botões inferiores.
+        for primario, anterior in (("btn-finalizar", "btn-abrir-pasta"), ("btn-converter", "btn-conversao-abrir"),
+                                   ("btn-cfg-salvar", "btn-cfg-descartar")):
+            self.assertLess(html.index(f'id="{anterior}"'), html.index(f'id="{primario}"'), primario)
+        self.assertLess(html.index('id="btn-voltar"'), html.index('id="btn-fila"'))
+        # Perfis separados por modo; arrasto da Conversão não reabre o seletor.
+        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        for exigido in ("Modo Simples", "Modo Contrato", "perfis-grupo"):
+            self.assertIn(exigido, etapa1 + css, exigido)
+        self.assertNotIn('addEventListener("drop", () => { anexar(); })', conversao)
+        self.assertIn("receberArrasto", conversao)
+
     def test_boot_aguarda_ponte(self):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
         api_js = (RAIZ / "js/api.js").read_text(encoding="utf-8")

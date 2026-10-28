@@ -39,7 +39,11 @@ def main():
                   CampoEntrada(id="dobro", rotulo="Total calculado", tipo="MOEDA", calculo="valor + valor"),
                   CampoEntrada(id="endereco", rotulo="Endereço", obrigatorio=True),
                   CampoEntrada(id="regime", rotulo="Regime", tipo="SELECAO", opcoes=["A", "B"], valor_padrao="A", escopo="global"),
-                  CampoEntrada(id="detalhe", rotulo="Detalhe B", obrigatorio=True, visivel_quando=[{"regime":["B"]}])]
+                  CampoEntrada(id="detalhe", rotulo="Detalhe B", obrigatorio=True, visivel_quando=[{"regime":["B"]}]),
+                  # Regressão: textarea (TEXTO_LONGO) em aba própria. O <textarea> não
+                  # expõe `type` gravável; render() tem que sobreviver a ele.
+                  CampoEntrada(id="observacoes", rotulo="Observações", tipo="TEXTO_LONGO",
+                               obrigatorio=False, aba="Observações")]
         profiles = [Perfil(nome="QA "+name, modo_fluxo="formulario_simples", max_participantes=2, formato_saida="PDF",
                            campos_entrada=fields,
                            documentos_extras=[DocumentoExtra("Contrato assinado", "CONTRATO QA")],
@@ -58,6 +62,8 @@ def main():
             def probe():
                 try:
                     assert window.events.loaded.wait(20), "WebView did not load"
+                    bridge._bind_drop()
+                    assert bridge._drop_bound, "drop handler must bind to #drop-conversao in real WebView2"
                     if "--visual-start" in sys.argv:
                         assert "--visible" in sys.argv, "--visual-start requires --visible"
                         print("VISUAL FIXTURE: ready, synthetic profiles; no flow executed", flush=True)

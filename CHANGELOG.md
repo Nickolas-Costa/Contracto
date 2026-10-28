@@ -3,9 +3,40 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [4.5.26] - 2026-10-27
+
+### Corrigido
+- Etapa 2 e Conversão: o formato de saída inicial agora segue o padrão das
+  Configurações (antes era sempre PDF); cai para PDF se não há Ghostscript e
+  não sobrescreve uma escolha manual (ADR 0026).
+- Visualizador de PDF: regras de largura conflitantes cortavam a página no
+  modal; agora o iframe ocupa a largura do quadro (responsivo).
+- Conversão: arrastar arquivos para a área de anexo passa a anexá-los (antes
+  reabria o seletor e descartava o arrastado). O caminho só existe no shell
+  nativo, que o autoriza; a interface recebe apenas IDs. Soltar fora da área
+  não navega mais a janela.
+- Modo Simples com MO 29300 (DAMP): teste de regressão com o perfil real
+  (correção do `TEXTO_LONGO` já registrada na 4.5.25).
+
+### Alterado
+- Formato de saída (Etapa 2 e Conversão) vira par de botões em vez de lista.
+- Botões inferiores: ação primária sempre por último (Etapa 2, Conversão e
+  Configurações); na Etapa 2 a ordem é Voltar, Fila, Abrir pasta, Finalizar.
+- Perfis separados em "Modo Simples" e "Modo Contrato"; a busca aceita
+  "simples", "contrato" e "completo".
+- Barra superior fixa ao rolar (estática abaixo de 1100px, onde quebra em
+  várias linhas).
+
 ## [4.5.25] - 2026-10-18
 
 ### Corrigido
+- Modo Simples: ao selecionar formulários com campo `TEXTO_LONGO` a Etapa 1
+  ficava inteira em branco (sem card do participante, sem campos e sem barra
+  de paginação). `fieldControl` gravava `input.type = "text"` também no
+  `<textarea>`, cuja propriedade é somente leitura no DOM real, e `render()`
+  abortava antes de anexar o card. `composto()` continuava `true`, por isso
+  o fluxo WebView2 antigo não pegava; agora cobre o caso (campo `TEXTO_LONGO`
+  em aba própria).
 - `POST /api/v1/system/repair` chamava um módulo inexistente
   (`services.system_repair`), então "Diagnóstico e reparo do sistema" nunca
   funcionava; passa a usar

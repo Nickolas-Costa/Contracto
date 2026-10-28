@@ -10,6 +10,7 @@ import json
 import re
 import sys
 import time
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -24,6 +25,7 @@ class ShellBridge:
         self._server = server
         self._window = None
         self._dialogs = None
+        self._drop_bound = False
         # Configuração nativa, nunca método exportado ao JavaScript.
         self._allowed_urls = frozenset({frontend_url} if frontend_url else {None, "about:blank"})
 
@@ -101,22 +103,44 @@ class ShellBridge:
                 return {"cancelled": True}
             if not self._authorized():
                 return {"code": "unauthorized_page"}
-            items, rejected = [], 0
-            for path in paths:
-                try:
-                    items.append({"selection_id": self._server.jobs.selections.register(path, "convert"),
-                                  "name": path.name})
-                except Exception:
-                    rejected += 1
-            if not items:
-                return {"code": "selection_failed"}
-            result = {"selection_ids": [i["selection_id"] for i in items],
-                      "names": [i["name"] for i in items]}
-            if rejected:
-                result["rejected"] = rejected
-            return result
+            return self._register_convert(paths)
         except Exception:
             return {"code": "selection_failed"}
+
+    def _register_convert(self, paths):
+        """Autoriza caminhos nativos para conversão; o JS recebe só IDs e nomes."""
+        items, rejected = [], 0
+        for path in paths:
+            try:
+                items.append({"selection_id": self._server.jobs.selections.register(path, "convert"),
+                              "name": path.name})
+            except Exception:
+                rejected += 1
+        if not items:
+            return {"code": "selection_failed"}
+        result = {"selection_ids": [i["selection_id"] for i in items],
+                  "names": [i["name"] for i in items]}
+        if rejected:
+            result["rejected"] = rejected
+        return result
+
+    def _bind_drop(self):
+        """Liga o arrasto na dropzone da Conversão (o WebView2 só expõe o caminho ao Python)."""
+        if self._drop_bound or self._window is None:
+            return
+        from webview.dom import DOMEventHandler
+        zona = self._window.dom.get_element("#drop-conversao")
+        if zona is not None:
+            zona.events.drop += DOMEventHandler(self._on_drop, True, True)
+            self._drop_bound = True
+
+    def _on_drop(self, event):
+        if not self._authorized():
+            return
+        arquivos = ((event.get("dataTransfer") or {}).get("files") or [])[:20]
+        paths = [Path(f["pywebviewFullPath"]) for f in arquivos if f.get("pywebviewFullPath")]
+        result = self._register_convert(paths) if paths else {"code": "selection_failed"}
+        self._window.evaluate_js(f"window.ContractoConversao&&window.ContractoConversao.receberArrasto({json.dumps(result)})")
 
     def import_profile(self):
         """Importa um perfil de um arquivo .json escolhido no diálogo nativo."""
@@ -264,7 +288,6 @@ main{max-width:720px}button{font:inherit;padding:12px}pre{white-space:pre-wrap}<
 
 def main(self_test=False, ui=False):
     import webview
-    from pathlib import Path
     # Diagnóstico também funciona sem modelos: a carga real ocorre no servidor.
     errors = []
     frontend_url = None
@@ -288,6 +311,8 @@ def main(self_test=False, ui=False):
             window = webview.create_window(titulo, html=DIAGNOSTIC_HTML,
                                            js_api=bridge, width=900, height=650, hidden=self_test)
         bridge._attach(window)
+        if frontend_url:
+            window.events.loaded += bridge._bind_drop
         # O finally do context manager revoga credenciais e cancela a fila ao fechar.
         def probe():
             try:

@@ -10,7 +10,7 @@
   let filaConhecida=[];
   let eraEnvio=0;
   const online=()=>window.ContractoApp?.pronto() || false;
-  let capabilities=null;
+  let capabilities=null, formatoPadrao=null, formatoEscolhido=false, sincronizarFormato=null;
   const originLabel={generated:"Gerado pelo Contracto",attachment:"Anexo do trabalho",imported:"PDF importado"};
 
   function status(state,message,detail="") {
@@ -91,6 +91,8 @@
     $("btn-finalizar").disabled=!online()||busy||!base||finalized;
     $("formato-opcoes").hidden=!advanced;
     $("formato-saida").querySelector('[value="PDF/A-2b"]').disabled=!capabilities?.ghostscript;
+    // Padrão = Configurações; só vale enquanto o usuário não escolheu aqui.
+    if(!formatoEscolhido&&formatoPadrao)$("formato-saida").value=formatoPadrao==="PDF/A-2b"&&capabilities?.ghostscript?"PDF/A-2b":"PDF";
     if($("formato-saida").value==="PDF/A-2b"&&!capabilities?.ghostscript)$("btn-finalizar").disabled=true;
     $("capacidade-formato").textContent=capabilities?.ghostscript ? "PDF/A disponível para arquivamento." : "PDF comum disponível. PDF/A requer Ghostscript nesta instalação.";
     const btnAnexo=$("btn-anexo"), selTipo=$("anexo-tipo");
@@ -104,6 +106,7 @@
     } catch(_){}
     renderForms();renderExtras();
     $("formato-saida").disabled=busy;
+    sincronizarFormato?.();
     $("btn-cancelar").hidden=!active;
     $("btn-cancelar").disabled=!online()||!active||active.cancelRequested;
     // "Recuperar andamento" só existe quando há andamento real: envio
@@ -523,7 +526,13 @@
     if(timer){clearTimeout(timer);timer=null;}
     active=null; failures=0; finalized=false;
     attachments=[];extrasMap.clear();
+    formatoEscolhido=false;carregarFormatoPadrao();
     atualizar();
+  }
+
+  function carregarFormatoPadrao() {
+    // Lê o formato padrão das Configurações (pode ter mudado desde a última geração).
+    Promise.resolve(api().getSettings?.()).then(r=>{formatoPadrao=r?.data?.formato_saida||null;atualizar();}).catch(()=>{});
   }
 
   function capacidades(data) {
@@ -541,7 +550,9 @@
     const gp=$("btn-gerenciar-perfis");if(gp)gp.addEventListener("click",()=>{window.ContractoUI.mostrarTela("perfis");});
     const btnFila=$("btn-fila");
     if(btnFila)btnFila.addEventListener("click",()=>painelFila());
-    $("formato-saida").addEventListener("change",()=>{alterarProcesso();atualizar();});
+    sincronizarFormato=window.ContractoUI.segmentar?.($("formato-saida"),"Formato de saída");
+    $("formato-saida").addEventListener("change",()=>{formatoEscolhido=true;alterarProcesso();atualizar();});
+    carregarFormatoPadrao();
     document.addEventListener("visibilitychange",()=>{if(!document.hidden&&active&&failures>=1)poll();});
     carregarContexto().finally(atualizar);
     api().getCapabilities().then(c=>capabilities=c).catch(()=>capabilities={pdf:true,rtf_word:false,ghostscript:false}).finally(atualizar);
@@ -588,6 +599,7 @@
     // Preserva os extras escolhidos na Conferência (Etapa 2): limpar aqui os
     // descartava antes do FINALIZAR. Rescisão acontece em invalidar/recomecar.
     finalized=false;
+    carregarFormatoPadrao();
     carregarContexto().then(()=>{manifesto();atualizar();});
     status("completed","PDFs gerados com sucesso.","Revise os documentos extras ou escolha o formato antes de concluir.");
     // Gerados também aparecem como linhas com "Visualizar" (paridade com o fluxo anterior).

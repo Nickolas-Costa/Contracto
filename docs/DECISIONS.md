@@ -4,9 +4,9 @@
 > arquitetura e limites. Consultar antes de nova feature, dependência ou
 > mudança visual/arquitetural.
 
-**Status:** Em definição
-**Versão:** 1.1 (Contracto v4.5.10)
-**Última atualização:** 2026-09-09
+**Status:** Em vigor
+**Versão:** 1.2 (Contracto v4.5.26)
+**Última atualização:** 2026-10-27
 
 ## 1. Propósito
 
@@ -24,7 +24,7 @@ Não é: editor jurídico, CRM/ERP, substituto bancário/governamental, SaaS.
 
 ## 3. Modos e multi-seleção (v4.5.9+)
 
-Modo Avançado = contrato completo 2 etapas. Modo Simples = emissão rápida
+Modo Contrato = contrato completo (Etapa 1 gerar, Etapa 2 conferir/organizar). Modo Conversão = arquivos avulsos para PDF/PDF-A, sem perfis. Modo Simples = emissão rápida
 com **multi-seleção por checkboxes** (`combinar_perfis`); incompatibilidade
 de `id/tipo/escopo` bloqueia com `AlertModal` explicativo, sem merge
 silencioso. `formularios_basicos_selecionados` persiste em config.
@@ -86,6 +86,6 @@ Sem atualizador automático até a migração de shell (decisão consciente).
 
 ## 10. Próximas decisões e evolução comercial
 
-A próxima implementação é o protocolo pywebview↔Python: FastAPI em loopback estrito, token efêmero, contratos Pydantic e trabalhos canceláveis. Os requisitos estão em `SPEC_PRE_WEBVIEW.md` e a decisão futura em ADR 0005.
+O protocolo pywebview↔Python (FastAPI em loopback, token efêmero, contratos Pydantic, trabalhos canceláveis) está implementado e a UI de produção é WebView2 (ADRs 0005, 0011, 0023). O contrato UI↔shell está isolado em `frontend/js/api.js`; a rota Tauri v2 segue como ADR 0024 (futura).
 
 Uma integração empresarial pode evoluir para agente local Windows conectado a um CRM/ERP. API hospedada e processamento remoto ficam deliberadamente fora da Fase A: dependem de requisitos comerciais, LGPD, operação e licenciamento do Word; ver ADR 0006. Backup de dossiês permanece decisão aberta.

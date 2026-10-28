@@ -1,7 +1,9 @@
 ﻿# Base de Migração de UI — WebView2 Concluída
 
-> **Estado em 17/09/2026:** A migração do aplicativo **Contracto** de CustomTkinter para a nova interface **WebView2** foi integralmente concluída e homologada (v4.5.18).
-> A suíte completa de 355 testes unitários e os testes de fluxo de ponta a ponta DOM em WebView real (`tests/smoke_webview_ui.py`) passam com 100% de sucesso.
+> **Estado:** a migração do **Contracto** de CustomTkinter para **WebView2** foi concluída e homologada na v4.5.18; os ajustes posteriores estão nas atualizações abaixo e no `CHANGELOG.md`.
+> A suíte unitária e o fluxo de ponta a ponta em WebView real (`tests/smoke_webview_ui.py`) são o critério; contagens de testes mudam a cada versão e não são fixadas aqui.
+
+> **Atualização v4.5.26 (27/10/2026):** formato de saída inicial pela Config (botões), visualizador responsivo, arrasto real na Conversão, perfis por modo, topbar fixa. Ver ADR 0026.
 
 > **Atualização v4.5.24 (17/10/2026):** publicação com nome legível
 > (`Contrato <Nomes>` / `(gerados)`), publicação inline em Simples/Conversão,
@@ -14,6 +16,13 @@
 > um módulo inexistente) e do alvo do atalho de reparo. O instalador Inno
 > Setup passa a reconhecer a instalação por usuário (`scripts/build_installer.py`,
 > `packaging/Contracto.iss` — ADR 0008). Versão 4.5.25.
+>
+> **Correção (18/10/2026):** o modo Simples deixava a Etapa 1 em branco ao
+> selecionar formulários com campo `TEXTO_LONGO` (`fieldControl` gravava
+> `input.type` num `<textarea>` — propriedade somente leitura — e `render()`
+> abortava antes de anexar o card). Reproduzido no WebView2 real com os
+> perfis do usuário via probe; correção em `frontend/js/etapa1.js` e
+> cobertura de regressão no fluxo do `tests/smoke_webview_ui.py`.
 
 ---
 
@@ -63,7 +72,7 @@
 
 | Verificação | Resultado | Evidência |
 | --- | --- | --- |
-| Suíte unitária completa | **PASS** | 362 testes em ~36s, 0 falhas, 0 erros |
+| Suíte unitária completa | **PASS** (v4.5.18) | ver execução atual; sem contagem fixa |
 | Testes base frontend | **PASS** | 15/15 testes (`tests/test_frontend_base.py`) |
 | Testes comportamento JS | **PASS** | `tests/test_frontend_behavior.py` |
 | Testes paridade Tk→WebView | **PASS** | 4/4 testes (`tests/test_frontend_parity.py`) |

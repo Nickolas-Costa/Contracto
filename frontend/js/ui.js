@@ -656,5 +656,40 @@
     window.addEventListener("resize", desenharFundoSenoidal);
   });
 
-  window.ContractoUI = { toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
+  // Troca o <select> por botões de alternância; o select (oculto) segue como fonte do valor.
+  // Devolve sincronizar(): reflete valor, disabled do select e das opções nos botões.
+  function segmentar(select, rotulo) {
+    const grupo = document.createElement("div");
+    grupo.className = "modos-seletor formato-seletor";
+    grupo.setAttribute("role", "group");
+    grupo.setAttribute("aria-label", rotulo);
+    const botoes = [...select.options].map(op => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "seletor-item";
+      b.dataset.valor = op.value;
+      b.textContent = op.textContent;
+      b.addEventListener("click", () => {
+        if (b.disabled || select.value === op.value) return;
+        select.value = op.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      return b;
+    });
+    grupo.append(...botoes);
+    select.hidden = true;
+    select.after(grupo);
+    function sincronizar() {
+      botoes.forEach(b => {
+        const op = [...select.options].find(o => o.value === b.dataset.valor);
+        b.setAttribute("aria-pressed", String(select.value === b.dataset.valor));
+        b.disabled = select.disabled || !!op?.disabled;
+      });
+    }
+    select.addEventListener("change", sincronizar);
+    sincronizar();
+    return sincronizar;
+  }
+
+  window.ContractoUI = { segmentar, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
 })();

@@ -158,6 +158,21 @@ class TestConferenciaMapeamento(unittest.TestCase):
             self.assertGreater(imagem.width, 0)
             self.assertEqual(caminho.stat().st_size, tamanho_original)
 
+    def test_damp_real_compoe_sozinho_e_com_os_demais_simples(self):
+        # Regressão: o MO 29300 (único com TEXTO_LONGO) deixava a Etapa 1 sem campos.
+        import json
+        from dataclasses import asdict
+        from utils import profile_manager
+        damp = profile_manager.obter_perfil("MO 29300 (DAMP)")
+        outros = [p for p in profile_manager.carregar_perfis()
+                  if p.modo_fluxo == "formulario_simples" and p.nome != damp.nome]
+        for grupo in ([damp], [damp, *outros]):
+            resultado = combinar_perfis(grupo)
+            self.assertEqual(resultado.erros, [])
+            ids_longos = {c.id for c in resultado.perfil.obter_campos_participante() if c.tipo == "TEXTO_LONGO"}
+            self.assertTrue({"profissaoMaiorRendimento", "enderecoImovelFinanciado"} <= ids_longos)
+            json.dumps(asdict(resultado.perfil), allow_nan=False)
+
 
 if __name__ == "__main__":
     unittest.main()

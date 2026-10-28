@@ -21,8 +21,10 @@
     [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Fechar').click();
     await wait(()=>document.getElementById('overlay').hidden,'pending modal closes');
     window.ContractoUI.mostrarTela('perfis');assert($('stepper').hidden,'profiles hide workflow steps');
-    await wait(()=>$('lista-perfis').children.length===2,'profile catalog shows detailed cards');
-    input('buscar-perfis','QA A');await wait(()=>$('lista-perfis').children.length===1,'profile catalog filters by name');
+    const cardsPerfis=()=>document.querySelectorAll('#lista-perfis .profile-item-card').length;
+    await wait(()=>cardsPerfis()===2,'profile catalog shows detailed cards');
+    assert(document.querySelectorAll('#lista-perfis .perfis-grupo').length===1 && $('perfis-grupo-formulario_simples').textContent.startsWith('Modo Simples'),'profiles grouped by mode (only non-empty groups)');
+    input('buscar-perfis','QA A');await wait(()=>cardsPerfis()===1,'profile catalog filters by name');
     input('buscar-perfis','inexistente');await wait(()=>!$('perfis-vazio').hidden,'profile catalog reports an empty search');
     input('buscar-perfis','');
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
@@ -42,6 +44,9 @@
     await wait(()=>$('campo-0-endereco'),'single profile fields rendered');
     input('campo-0-endereco','RUA QA');
     checkboxes()[0].click();await wait(()=>window.ContractoEtapa1.composto()&&checkboxes().filter(c=>c.checked).length===2,'compose two profiles');
+    // Regressão: render() precisa anexar o card mesmo com TEXTO_LONGO (textarea não
+    // aceita .type) e com abas múltiplas; composto() fica true mesmo se render falhar.
+    await wait(()=>$('campo-0-observacoes'),'long text field rendered after multi-profile compose');
     checkboxes()[0].click();await wait(()=>window.ContractoEtapa1.composto()&&checkboxes().filter(c=>c.checked).length===1,'back to single profile');
     input('campo-global-regime','B');
     assert(!$('campo-0-detalhe').parentElement.hidden,'conditional field visible');
@@ -81,11 +86,19 @@
     if(confirmaFinal)confirmaFinal.click();
     await wait(()=>$('lista-resultados').children.length===3 && !window.ContractoEtapa2.ocupado(),'processing terminal');
     assert(!$('btn-abrir-pasta').hidden,'final folder available');
+    const botoesEtapa2=[...document.querySelectorAll('#tela-etapa2 .acoes > button:not([hidden])')];
+    assert(botoesEtapa2.at(-1).classList.contains('btn-primary') && botoesEtapa2[0].id==='btn-voltar','stage 2 actions end with the primary button, Voltar first');
+    const caps=await window.ContractoAPI.getCapabilities(), cfg=(await window.ContractoAPI.getSettings()).data.formato_saida;
+    assert($('formato-saida').value===(cfg==='PDF/A-2b'&&caps.ghostscript?'PDF/A-2b':'PDF'),'initial format follows the user setting');
+    assert([...document.querySelectorAll('#formato-opcoes .formato-seletor [aria-pressed="true"]')].length===1,'format shown as toggle buttons with one pressed');
     assert($('btn-finalizar').disabled,'unchanged completed process cannot duplicate');
     $('lista-resultados').querySelector('button').click();
     await wait(()=>document.querySelector('.pdf-preview'),'viewer created');
     assert($('app').inert,'modal background inert');
     assert(document.querySelector('.pdf-preview').src.startsWith('blob:'),'viewer uses local blob');
+    {const m=document.querySelector('.modal').getBoundingClientRect(),f=document.querySelector('.pdf-preview').getBoundingClientRect();
+     assert(f.left>=m.left-1&&f.right<=m.right+1&&f.width>m.width*0.8,'viewer fits inside the modal width');}
+    assert(getComputedStyle(document.querySelector('.toolbar')).position===(innerWidth>1100?'sticky':'static'),'toolbar sticky above the collapse breakpoint');
     assert([...document.querySelectorAll('.modal .acoes button')].some(b=>b.textContent==='Abrir no leitor padrão'),'viewer offers external reader');
     [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Expandir').click();
     assert(document.querySelector('.modal').classList.contains('modal-viewer-expandido'),'viewer expands');

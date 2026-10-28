@@ -30,8 +30,8 @@ class TestVisualAssets(unittest.TestCase):
         theme._ICONS_CACHE.clear()
 
     def test_version_is_current(self):
-        """Verifica se a versão centralizada está definida como 4.5.25."""
-        self.assertEqual(version.__version__, "4.5.25")
+        """Verifica se a versão centralizada está definida como 4.5.26."""
+        self.assertEqual(version.__version__, "4.5.26")
 
     def test_simple_loader_instantiation(self):
         """Verifica se o componente SimpleLoader pode ser instanciado sem erros."""
