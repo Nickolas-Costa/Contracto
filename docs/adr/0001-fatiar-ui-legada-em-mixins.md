@@ -1,6 +1,6 @@
 # ADR 0001 — Fatiar a UI legada em mixins
 
-- **Estado:** aceita
+- **Estado:** substituída pela ADR 0028 (a UI Tk foi removida na v5.0.0)
 - **Data:** 2026-09-12
 - **Contexto:** `MainWindow` e `ProfilesFrame` concentravam, respectivamente, a navegação, a geração, a fila e a edição de perfis em arquivos extensos. Isso dificultava revisar mudanças antes da transição para a WebView e aumentava o risco de alterar um fluxo não relacionado.
 - **Decisão:** manter as classes e suas interfaces atuais, distribuindo seus métodos em mixins por responsabilidade. `MainWindow` orquestra toolbar, stepper, modos, telas, layout, etapas e fila; `ProfilesFrame` orquestra lista e editor. A extração preserva os corpos dos métodos e a UI Tk continua sendo a implementação vigente. Os mixins são uma organização transitória do shell legado; o backend web reutilizará `services/` e `ports/`, não esses widgets.

@@ -1,6 +1,6 @@
 # ADR 0024 — Rota Tauri V2 pós-WebView (planejada, sem código)
 
-- **Estado:** futura — passo 1 (congelar contrato) implementado; passos 2–5 pendentes
+- **Estado:** futura — preparação concluída na ADR 0029 (contrato nativo, sidecar); passos 2–5 dependem do aceite registrado lá
 - **Data:** 2026-09-26
 - **Contexto:** `DECISIONS.md §7` e `ARCHITECTURE.md Fase B` mantêm Tauri V2 como futuro opcional. O P0 WebView (ADR 0023) congela o contrato UI↔backend para reuso.
 - **Decisão:** quando o release WebView estiver homologado:

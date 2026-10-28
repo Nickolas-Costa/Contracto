@@ -3,6 +3,43 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.0.0] - 2026-10-28
+
+Versão maior: a interface Tk deixa de existir e dependências saem do pacote
+(ADR 0028); o backend e o contrato nativo ficam prontos para o shell Tauri
+(ADR 0029). O fluxo do usuário final não muda.
+
+### Corrigido
+- **CNPJ (crítico):** a validação do front usava os pesos do módulo 11 na ordem
+  invertida e recusava todo CNPJ válido (ex.: `00.000.000/0001-91`) em campos
+  `CNPJ` e `CPF_CNPJ`. Agora usa os pesos oficiais, incluindo o CNPJ
+  alfanumérico, e é conferida contra o validador Python em teste.
+- Cache de perfis: o clone campo a campo perdia atributos (ex.: `apresentacao`);
+  agora é cópia profunda. O perfil composto informa o formato do perfil quando
+  há um só.
+- Campos de moeda mantêm o cursor ao editar no meio do valor.
+- Reparo do sistema: o atalho nunca era recriado a partir da API (COM sem
+  `CoInitialize` na thread do servidor). O teste de reparo deixou de encerrar
+  Word/Ghostscript e de tocar na Área de Trabalho real.
+
+### Removido
+- Interface Tk/CustomTkinter (`app/ui/`), `--tk`, `file_picker`, `ports/dialog`,
+  ícones do tema Tk e `scripts/process_assets.py`; dependências `customtkinter`
+  e `darkdetect`; `tkinter` fora do bundle.
+
+### Adicionado
+- `app/sidecar.py`: backend headless para o Tauri (aperto de mão + canal de
+  controle por stdin) e `docs/TAURI_CONTRATO.md` com os comandos nativos.
+- `api.js` com contrato nativo único (`nativo(nome, args)`), válido para
+  pywebview e Tauri.
+- ADRs 0027 (extração de dados de PDF, plano detalhado), 0028 (aposentadoria
+  do Tk), 0029 (Tauri Ready) e 0030 (conferência editável, próxima rodada).
+
+### Alterado
+- Etapa 1 fatiada: `perfis.js`, `conferencia.js` e `calendario.js` saem do
+  `etapa1.js` (1.470 → ~850 linhas).
+- Testes em Node para `form-state.js` e para o adaptador nativo.
+
 ## [4.5.26] - 2026-10-27
 
 ### Corrigido

@@ -6,6 +6,13 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent / "frontend"
+# A Etapa 1 foi fatiada em módulos (perfis, conferência, calendário); os textos
+# esperados valem para o conjunto.
+MODULOS_ETAPA1 = ["etapa1", "perfis", "conferencia", "calendario"]
+
+
+def _etapa1() -> str:
+    return "".join((RAIZ / f"js/{n}.js").read_text(encoding="utf-8") for n in MODULOS_ETAPA1)
 
 TOKENS_OBRIGATORIOS = [
     "--c-primary", "--c-bg", "--c-surface", "--c-text", "--c-success",
@@ -44,7 +51,7 @@ class TestFrontendBase(unittest.TestCase):
     def test_arquivos_presentes(self):
         for rel in ["index.html", "lab.html", "css/tokens.css", "css/layout.css",
                     "assets/logo.png",
-                    "js/api.js", "js/ui.js", "js/etapa1.js", "js/etapa2.js",
+                    "js/api.js", "js/ui.js", "js/etapa1.js", "js/perfis.js", "js/conferencia.js", "js/calendario.js", "js/etapa2.js",
                     "js/app.js"]:
             self.assertTrue((RAIZ / rel).is_file(), rel)
 
@@ -63,7 +70,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn('[data-theme="dark"]', css)
 
     def test_sem_rede_externa_e_sem_inline(self):
-        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "etapa1", "etapa2", "conversao", "app"]]:
+        for nome in ["index.html"] + [f"js/{n}.js" for n in ["api", "ui", "form-state", *MODULOS_ETAPA1, "etapa2", "conversao", "app"]]:
             texto = (RAIZ / nome).read_text(encoding="utf-8")
             self.assertNotIn("http://", texto, nome)
             self.assertNotIn("https://", texto, nome)
@@ -73,7 +80,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertIn("Content-Security-Policy", html)
 
     def test_js_balanceado(self):
-        for nome in ["api.js", "ui.js", "etapa1.js", "etapa2.js", "conversao.js", "app.js"]:
+        for nome in ["api.js", "ui.js", "etapa1.js", "perfis.js", "conferencia.js", "calendario.js", "etapa2.js", "conversao.js", "app.js"]:
             texto = (RAIZ / "js" / nome).read_text(encoding="utf-8")
             for abre, fecha in [("{", "}"), ("(", ")"), ("[", "]")]:
                 self.assertEqual(
@@ -128,7 +135,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertNotIn('indicador-fila-global', html)
         self.assertIn('id="btn-fila"', html)
         # Loading de modelos com skeleton + retry; Revisar com destaque.
-        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        etapa1 = _etapa1()
         for exigido in ["mostrarCarregamentoModelos", "mostrarErroModelos", "btn-recarregar-modelos"]:
             self.assertIn(exigido, etapa1, exigido)
         for exigido in ["skeleton", "spinner", "btn-revisar", "btn-sm", "action-row"]:
@@ -192,11 +199,23 @@ class TestFrontendBase(unittest.TestCase):
             self.assertLess(html.index(f'id="{anterior}"'), html.index(f'id="{primario}"'), primario)
         self.assertLess(html.index('id="btn-voltar"'), html.index('id="btn-fila"'))
         # Perfis separados por modo; arrasto da Conversão não reabre o seletor.
-        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        etapa1 = _etapa1()
         for exigido in ("Modo Simples", "Modo Contrato", "perfis-grupo"):
             self.assertIn(exigido, etapa1 + css, exigido)
         self.assertNotIn('addEventListener("drop", () => { anexar(); })', conversao)
         self.assertIn("receberArrasto", conversao)
+
+    def test_etapa1_fatiada_em_modulos_carregados_antes_dela(self):
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        ordem = [html.index(f'js/{n}.js') for n in ("calendario", "conferencia", "perfis", "etapa1", "etapa2")]
+        self.assertEqual(ordem, sorted(ordem))
+        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        for modulo in ("ContractoPerfis", "ContractoConferencia", "ContractoCalendario"):
+            self.assertIn(modulo, etapa1)
+        # Cada módulo cuida do que é seu; nada de volta para o miolo da Etapa 1.
+        for nome in ("renderProfilesManagement", "duplicarPerfilModal", "abrirCalendario", "HUMAN_CONF"):
+            self.assertNotIn("function " + nome, etapa1)
+        self.assertLess(len(etapa1.splitlines()), 900)
 
     def test_boot_aguarda_ponte(self):
         app_js = (RAIZ / "js/app.js").read_text(encoding="utf-8")
@@ -289,7 +308,7 @@ class TestFrontendBase(unittest.TestCase):
 
     def test_fila_painel_e_paginacao(self):
         etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
-        etapa1 = (RAIZ / "js/etapa1.js").read_text(encoding="utf-8")
+        etapa1 = _etapa1()
         form = (RAIZ / "js/form-state.js").read_text(encoding="utf-8")
         for exigido in ["painelFila", "filaConhecida", "2000", "gerar(snapshot)", "recomecar", "eraEnvio", "capacidades(data)", "pacoteProcesso", "document_type", "novoRequestId"]:
             self.assertIn(exigido, etapa2 + etapa1, exigido)

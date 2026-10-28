@@ -106,25 +106,5 @@ class TestTravamentoComAviso(unittest.TestCase):
                     )
 
 
-class TestModalWordTravado(unittest.TestCase):
-    def test_contagem_e_fechar_agora(self):
-        import customtkinter as ctk
-        from ui.word_travado_modal import WordTravadoModal
-
-        root = ctk.CTk()
-        root.withdraw()
-        try:
-            chamadas = []
-            modal = WordTravadoModal(
-                root, "doc.rtf", 60, on_fechar_agora=lambda: chamadas.append(True)
-            )
-            self.assertIn("60", modal.lbl_contagem.cget("text"))
-            modal._do_fechar_agora()
-            self.assertEqual(chamadas, [True])
-            self.assertIsNone(WordTravadoModal._instancia_ativa)
-        finally:
-            root.destroy()
-
-
 if __name__ == "__main__":
     unittest.main()

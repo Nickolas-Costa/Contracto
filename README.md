@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v4.5.26-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.0.0-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -66,6 +66,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
+## Atualizações da Versão 5.0.0
+
+Interface Tk aposentada (a WebView é a única UI), backend `sidecar` e contrato nativo prontos para o Tauri, validação de CNPJ corrigida, máscara de moeda, conferência reformulada e Etapa 1 fatiada em módulos. Detalhes em [CHANGELOG.md](CHANGELOG.md) e ADRs 0027–0030.
+
 ## Atualizações da Versão 4.5.26
 
 Formato de saída inicial pelas Configurações (botões em vez de lista), visualizador de PDF responsivo, arrastar e soltar na Conversão, perfis separados por modo e barra superior fixa. Detalhes em [CHANGELOG.md](CHANGELOG.md) e ADR 0026.
@@ -104,79 +108,31 @@ CONTRACTO/
 ├── README.md                           # Documentação oficial do projeto
 ├── CHANGELOG.md                        # Histórico de versões (série 4.x detalhada em docs/releases/)
 ├── VERSION                             # Espelho de app/version.py
-├── docs/                               # ADRs, arquitetura, design system, QA e releases
-├── frontend/                           # UI de produção (WebView2): index.html, css/, js/ (api.js = contrato com o shell)
-├── packaging/                          # Contracto.iss (instalador Inno Setup)
-├── requirements.txt                    # Dependências de execução
-├── requirements-dev.txt                # Dependências de desenvolvimento e testes
-├── build_exe.bat                       # Script de compilação automatizada (.exe)
+├── AGENTS.md                           # Regras de trabalho para agentes e contribuidores
+├── docs/                               # ADRs, arquitetura, contrato Tauri, design system, QA e releases
+├── frontend/                           # UI de produção (WebView2), JS puro sem bundler
+│   ├── index.html, lab.html            # Telas e laboratório visual
+│   ├── css/                            # tokens.css (design tokens) e layout.css
+│   └── js/                             # api.js (único ponto que conhece o shell), app.js, ui.js,
+│                                       # form-state.js (validadores/máscaras), etapa1.js, etapa2.js,
+│                                       # perfis.js, conferencia.js, calendario.js, conversao.js
+├── packaging/Contracto.iss             # Instalador Inno Setup
+├── requirements.txt / -dev / -lock     # Dependências de execução, desenvolvimento e travadas
+├── build_exe.bat                       # Build automatizado (.exe, .zip, instalador)
 ├── app/
-│   ├── main.py                         # Ponto de entrada da aplicação
-│   ├── version.py                      # Versão centralizada do sistema (v4.5.26)
-│   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
+│   ├── main.py                         # Ponto de entrada (instância única + shell WebView)
 │   ├── webview_shell.py                # Shell pywebview/WebView2 e ponte nativa
-│   ├── ports/                          # Diálogos, binários e armazenamento por shell
-│   ├── ui/                             # UI legada (CustomTkinter), mantida para paridade; será aposentada
-│   │   ├── alert_modal.py              # Modal de alertas informativos e de erro
-│   │   ├── animated_loader.py          # Indicador visual leve de carregamento
-│   │   ├── campo_dinamico_widget.py    # Renderizador modular de campos com auto-formatação
-│   │   ├── confirm_modal.py            # Modal de confirmações binárias
-│   │   ├── date_picker.py              # Calendário pop-up para seleção de datas
-│   │   ├── document_frame.py           # Gestão de documentos extras na Etapa 2
-│   │   ├── feedback_toast.py           # Notificações toast temporárias
-│   │   ├── loading_modal.py            # Modal de carregamento por etapas com cancelamento
-│   │   ├── main_window.py              # Janela principal e fluxo das etapas
-│   │   ├── participant_frame.py        # Quadro de participantes com validação em tempo real
-│   │   ├── profiles_frame.py           # Gerenciador, criação e duplicação de perfis
-│   │   ├── settings_frame.py           # Configurações de tema e diagnóstico do sistema
-│   │   ├── theme.py                    # Sistema de cores, fontes e ícones adaptativos
-│   │   └── welcome_modal.py            # Guia interativo de instruções
-│   ├── models/                         # Modelos de dados e dataclasses
-│   │   └── participant.py              # Entidade do participante e campos customizados
-│   ├── services/                       # Serviços de negócio e processamento
-│   │   ├── generator_service.py        # Preenchimento e validação de formulários PDF
-│   │   ├── pdf_service.py              # Manipulação direta de formulários AcroForm
-│   │   ├── pdfa_converter.py           # Conversão segura para PDF/A-2b via Ghostscript (-dSAFER)
-│   │   ├── process_folder_service.py   # Criação da estrutura de pastas padronizada
-│   │   ├── rtf_converter.py            # Conversão de RTF para PDF via Microsoft Word COM
-│   │   ├── stage2_service.py           # Orquestrador da esteira da Etapa 2
-│   │   └── system_repair_service.py    # Diagnóstico e manutenção preventiva do sistema
-│   ├── utils/                          # Utilitários, validações e persistência
-│   │   ├── cnpj_validator.py           # Validador de CNPJ (tradicional e novo alfanumérico)
-│   │   ├── config_manager.py           # Persistência de preferências do usuário
-│   │   ├── cpf_validator.py            # Validação e formatação de CPF
-│   │   ├── date_formatter.py           # Conversão e formatação de datas
-│   │   ├── file_picker.py              # Diálogos nativos de seleção de arquivos
-│   │   ├── filename_utils.py           # Sanitização e padronização de nomes de arquivos
-│   │   ├── ghostscript_setup.py        # Verificação e inicialização do Ghostscript
-│   │   ├── logger.py                   # Registro de logs operacionais
-│   │   ├── profile_manager.py          # Gestão e persistência de perfis
-│   │   └── resource_path.py            # Resolução de caminhos estáticos no executável
-│   └── assets/                         # Recursos visuais e modelos
-│       ├── icons/                      # Catálogo de ícones vetoriais (Light/Dark)
-│       ├── loaders/                    # Animações visuais leves
-│       ├── templates/                  # PDFs modelos oficiais (PPE e 1º Imóvel)
-│       └── gs/                         # Binários do Ghostscript para empacotamento
-├── scripts/                            # Scripts auxiliares de build e distribuição
-│   ├── create_dist_package.py          # Geração do pacote zip de distribuição
-│   ├── create_shortcut.py              # Criação do atalho na Área de Trabalho
-│   ├── process_assets.py               # Rasterizador de ícones vetoriais
-│   └── setup_gs.py                     # Preparação do Ghostscript para build
-└── tests/                              # Suíte de testes automatizados (unittest)
-    ├── smoke_test_gui.py
-    ├── test_cancellation.py
-    ├── test_cnpj_validator.py
-    ├── test_cpf_validator.py
-    ├── test_date_formatter.py
-    ├── test_filename_utils.py
-    ├── test_generator_service.py
-    ├── test_modelos_oficiais.py
-    ├── test_process_folder.py
-    ├── test_profile_manager.py
-    ├── test_security_hardening.py
-    ├── test_system_repair.py
-    └── test_visual_assets.py
+│   ├── sidecar.py                      # Backend headless para o shell Tauri (ADR 0029)
+│   ├── server.py                       # API FastAPI loopback (token efêmero)
+│   ├── version.py                      # Versão centralizada do sistema (v5.0.0)
+│   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
+│   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis
+│   ├── models/                         # Entidades (participante)
+│   ├── ports/                          # Diálogos WebView, binários (Word/GS) e armazenamento
+│   ├── utils/                          # Validadores, perfis, config, logger, arquivos, instância única
+│   └── assets/                         # config/perfis_iniciais.json, templates/, icons/, gs/ (Ghostscript)
+├── scripts/                            # Build, spec do PyInstaller, pacote de distribuição, atalho
+└── tests/                              # Suíte unittest, smokes (WebView2, motores) e checagens em Node
 ```
 
 ---
@@ -212,13 +168,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 4.5.26, execute:
+Para compilar o executável autônomo da versão 5.0.0, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v4.5.26.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v4.5.26.exe`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v5.0.0.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v5.0.0.exe`.
 
 > O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
 

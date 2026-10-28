@@ -108,20 +108,5 @@ class TestPerfisCorrompidos(unittest.TestCase):
             self.assertEqual(len(copias), 1)
 
 
-class TestAbrirPasta(unittest.TestCase):
-    def test_inexistente_nao_levanta(self):
-        from ui.main_window import MainWindow
-
-        self.assertFalse(MainWindow._abrir_pasta(Path("pasta_que_nao_existe")))
-
-    def test_valida_abre_uma_vez(self):
-        from ui.main_window import MainWindow
-
-        with tempfile.TemporaryDirectory() as d:
-            with patch("os.startfile", create=True) as abrir:
-                self.assertTrue(MainWindow._abrir_pasta(Path(d)))
-                abrir.assert_called_once()
-
-
 if __name__ == "__main__":
     unittest.main()

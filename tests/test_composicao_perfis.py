@@ -173,6 +173,27 @@ class TestConferenciaMapeamento(unittest.TestCase):
             self.assertTrue({"profissaoMaiorRendimento", "enderecoImovelFinanciado"} <= ids_longos)
             json.dumps(asdict(resultado.perfil), allow_nan=False)
 
+    def test_cache_de_perfis_preserva_todos_os_atributos(self):
+        # Regressão: o clone campo a campo do cache perdia `apresentacao`.
+        from utils import profile_manager
+        perfis = profile_manager.carregar_perfis(forcar_disco=True)
+        campo = next(c for p in perfis for c in p.campos_entrada)
+        campo.apresentacao = "checkbox"
+        perfis[0].apresentacao = "checkbox"
+        profile_manager._perfis_cache = perfis
+        try:
+            copia = profile_manager.carregar_perfis()
+            self.assertEqual(copia, perfis)
+            self.assertIsNot(copia[0], perfis[0])
+        finally:
+            profile_manager.invalidar_cache()
+
+    def test_perfil_composto_informa_o_formato_do_perfil_unico(self):
+        pdf = Perfil(nome="A", formato_saida="PDF", campos_entrada=[CampoEntrada(id="x", rotulo="X")])
+        pdfa = Perfil(nome="B", formato_saida="PDF/A-2b", campos_entrada=[CampoEntrada(id="y", rotulo="Y")])
+        self.assertEqual(combinar_perfis([pdfa]).perfil.formato_saida, "PDF/A-2b")
+        self.assertEqual(combinar_perfis([pdf, pdfa]).perfil.formato_saida, "PDF")
+
 
 if __name__ == "__main__":
     unittest.main()

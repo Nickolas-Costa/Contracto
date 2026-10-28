@@ -1,12 +1,9 @@
 """Entry-point da aplicação Contracto.
 
-A versão padrão utiliza a interface WebView sobre a API local em loopback.
-A interface legada em Tkinter continua disponível como fallback operacional e
-para manutenção de compatibilidade, sendo aberta com `python main.py --tk`.
-
-A lógica principal aqui é manter a inicialização mínima e previsível: validação
-existência de uma instância única, escolha da interface e registro de falhas
-não capturadas para diagnóstico.
+A interface é a WebView sobre a API local em loopback (a antiga interface
+Tkinter foi aposentada na v5.0.0, ADR 0028). Aqui fica só a inicialização
+mínima e previsível: instância única, shell WebView e registro de falhas não
+capturadas para diagnóstico.
 """
 
 import sys
@@ -21,17 +18,6 @@ if sys.platform == "win32":
 
 from utils.instancia_unica import InstanciaJaEmExecucao, InstanciaUnica
 from utils.logger import configurar_logger
-
-
-def escolher_interface(argumentos: list[str] | None = None) -> str:
-    """Define a interface ativa do processo.
-
-    Qualquer argumento diferente de `--tk` mantém a interface moderna WebView.
-    A escolha centraliza a decisão em um único ponto para facilitar manutenção e
-    testes de boot da aplicação.
-    """
-    args = sys.argv[1:] if argumentos is None else argumentos
-    return "tk" if "--tk" in args else "web"
 
 
 def _tratar_excecao_global(tipo, valor, tb):
@@ -49,22 +35,15 @@ def _tratar_excecao_global(tipo, valor, tb):
     )
 
     try:
-        import customtkinter as ctk
-        from ui.alert_modal import AlertModal
-        if ctk.CTk._top_level_list:
-            top = ctk.CTk._top_level_list[0]
-            AlertModal(
-                top,
-                "Erro Inesperado",
-                f"{tipo.__name__}: {valor}",
-                ["O erro foi registrado no arquivo de log do sistema."],
-            )
-        else:
-            from tkinter import messagebox
-            messagebox.showerror(
-                "Erro Inesperado",
-                f"Ocorreu um erro inesperado:\n\n{tipo.__name__}: {valor}"
-            )
+        # Aviso nativo do Windows: a janela WebView pode nem existir neste ponto.
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(
+            None,
+            "Ocorreu um erro inesperado:" + chr(10)*2 + f"{tipo.__name__}: {valor}" + chr(10)*2
+            + "O erro foi registrado no log do sistema.",
+            "Contracto — erro inesperado",
+            0x10,
+        )
     except Exception:
         pass
 
@@ -74,24 +53,6 @@ def iniciar_web() -> None:
     from webview_shell import main as iniciar_shell
 
     iniciar_shell(ui=True)
-
-
-def iniciar_tk() -> None:
-    """Inicializa o cliente legada em Tkinter para compatibilidade e manutenção.
-
-    A abertura por esse caminho é intencionalmente explícita e não deve ser usada
-    como padrão de uso em desenvolvimento normal.
-    """
-    import customtkinter as ctk
-
-    ctk.set_appearance_mode("system")
-    ctk.set_default_color_theme("blue")
-
-    from ui.main_window import MainWindow
-
-    app = MainWindow()
-    configurar_logger().info("Janela principal criada")
-    app.mainloop()
 
 
 def main() -> None:
@@ -121,13 +82,8 @@ def main() -> None:
     # Instalar tratamento global de exceções
     sys.excepthook = _tratar_excecao_global
 
-    modo = escolher_interface()
-    logger.info(f"Interface selecionada: {modo}")
     try:
-        if modo == "tk":
-            iniciar_tk()
-        else:
-            iniciar_web()
+        iniciar_web()
     finally:
         if guarda_instancia is not None:
             guarda_instancia.liberar()

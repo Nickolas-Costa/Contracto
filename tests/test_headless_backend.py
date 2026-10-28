@@ -86,10 +86,11 @@ class TestHeadlessBackend(unittest.TestCase):
         word = binaries.word_status()
         self.assertEqual(gs.nome, "ghostscript")
         self.assertEqual(word.nome, "word")
-        # dialog expõe interface sem importar tkinter no import do módulo
-        import ports.dialog as dialog
+        # o port de diálogos da WebView também não importa Tk
+        import ports.webview_dialog as dialog
 
-        self.assertTrue(callable(dialog.selecionar_pasta))
+        self.assertTrue(callable(dialog.WebViewDialogs.selecionar_pasta))
+        self.assertNotIn("tkinter", sys.modules)
 
     def test_rtfs_de_trabalhos_distintos_usam_pastas_temporarias_distintas(self):
         with tempfile.TemporaryDirectory() as d:

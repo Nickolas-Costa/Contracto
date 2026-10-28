@@ -118,7 +118,8 @@ def combinar_perfis(perfis: list[Perfil]) -> ResultadoComposicao:
         # vários perfis simples não tem etapa de organização.
         documentos_extras=copy.deepcopy(perfis[0].documentos_extras) if len(perfis) == 1 else [],
         campos_entrada=campos,
-        formato_saida="PDF",
+        # Informativo: a geração usa o formato pedido na Etapa 2, não o do perfil.
+        formato_saida=perfis[0].formato_saida if len(perfis) == 1 else "PDF",
         modo_fluxo="formulario_simples",
         max_participantes=max(perfil.max_participantes for perfil in perfis),
         usar_paginacao=any(perfil.usar_paginacao for perfil in perfis) or len(perfis) > 1,

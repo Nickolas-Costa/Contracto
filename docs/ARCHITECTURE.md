@@ -5,18 +5,18 @@
 
 ## Estado atual (v4.5.26) — UI WebView2 sobre API local loopback
 
-A UI de produção migrou de CustomTkinter para WebView2 (concluída na v4.5.18);
-o esqueleto Tk abaixo (`app/ui/`, `app/main.py`) é **legado**, mantido só para referência/paridade, e deve ser aposentado por ADR própria. A produção roda por `app/webview_shell.py` + `frontend/`.
+A UI é WebView2 desde a v4.5.18 e a interface Tk foi **removida na v5.0.0** (ADR 0028).
+A produção roda por `app/main.py` → `app/webview_shell.py` + `frontend/`; para o Tauri há
+o backend headless `app/sidecar.py` e o contrato em `docs/TAURI_CONTRATO.md` (ADR 0029).
 
 ```
-app/main.py             → entrypoint (CTk, maximizado, instância única via mutex)
+app/main.py             → entrypoint (shell WebView, instância única via mutex)
+app/sidecar.py          → backend headless para o Tauri (handshake + canal de controle)
 app/version.py          → fonte única (__version__, espelho em VERSION)
-app/ui/main_window.py   → orquestra mixins (toolbar/stepper/modos/telas/
-                          layout/etapa1/etapa2/fila em mw_*.py)
-app/ui/                 → profiles (orquestra pf_lista/pf_editor) + settings/
-                          participant/document/campo_dinamico/
-                          date_picker/base_modal+6 modais/toast/animated_loader/theme
-app/services/           → puros, sem tkinter: generator, pdf_service (AcroForm),
+frontend/                → UI de produção (HTML/CSS/JS sem bundler): index.html, css/,
+                          js/ (api.js = único ponto que conhece o shell; etapa1/perfis/
+                          conferencia/calendario/etapa2/conversao/ui/app/form-state)
+app/services/           → puros, sem UI: generator, pdf_service (AcroForm),
                           pdfa_converter (Ghostscript -dSAFER), rtf_converter
                           (Word COM + aviso com prazo), stage2_service, queue_manager,
                           profile_composer, mapping_engine/audit, field_calculator,
@@ -24,8 +24,7 @@ app/services/           → puros, sem tkinter: generator, pdf_service (AcroForm
 app/utils/              → cpf/cnpj/pis/document/date/filename/profile/config/
                           resource_path/caminhos/json_storage/logger (PII mascarado,
                           rotação)/backup/files(+files_fs puro)/instancia_unica
-                          file_picker (implementação Tk do port de diálogos)
-app/ports/              → dialog/storage/binaries (importáveis como app.* ou curto)
+app/ports/              → webview_dialog/storage/binaries (importáveis como app.* ou curto)
 app/models/participant  → dataclass puro, JSON-serializável
 app/assets/             → config/perfis_iniciais.json + geometria_modelos.json,
                           templates/*.pdf, icons/, gs/bin (embutido)
@@ -89,7 +88,7 @@ Valem para qualquer implementação do shell, antes da primeira tela:
 - `ui/` desenha e coleta: monta widgets, lê valores, exibe resultados.
   Não decide regra de negócio nem faz I/O de documentos.
 - `services/` decide por dados: recebe `Path`, `Perfil`, `Participant`
-  e devolve resultados. Nunca importa `tkinter`/`customtkinter`.
+  e devolve resultados. Nunca importa UI.
 - `utils/` sustenta os dois: caminhos, validadores, arquivos, backup.
   Exceção documentada: `utils/files.py` conhece widgets só para
   `atualizar_entry` (ponte fina da interface, sem regra).
@@ -102,8 +101,8 @@ mantêm delegadores finos de compatibilidade.
 ## Regras
 
 - Loopback estrito futuro (`127.0.0.1`), zero telemetria, sem CDN/fontes externas.
-- `services/` nunca importa `tkinter/customtkinter`; `file_picker` morre no web
-  (trocado por `plugin-dialog` / `pywebview.open_file_dialog`).
+- `services/` nunca importa UI; os diálogos nativos são do shell (`pywebview` hoje,
+  `plugin-dialog` no Tauri).
 - `rtf_converter` segue **Windows-only com Word** (decisão registrada);
   fallback LibreOffice documentado como evolução, não implementado.
 - Versionamento: `app/version.py` + espelho `VERSION` + tags `vX.Y.Z`.

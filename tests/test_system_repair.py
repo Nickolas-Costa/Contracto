@@ -1,4 +1,6 @@
+import os
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -9,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 from services.system_repair_service import (
     _encerrar_processos_orfaos,
     _limpar_arquivos_temporarios,
+    _atualizar_atalho_desktop,
     _melhor_exe_dist,
     _verificar_modelos_padrao,
     executar_diagnostico_e_reparo,
@@ -40,11 +43,32 @@ class TestSystemRepairService(unittest.TestCase):
         self.assertIsInstance(removidos, int)
 
     def test_executar_diagnostico_e_reparo(self):
-        """Executa a rotina completa e valida o objeto de resultado retornado."""
-        resultado = executar_diagnostico_e_reparo()
+        """Executa a rotina completa e valida o objeto de resultado retornado.
+
+        Sem efeitos no usuário: não encerra Word/Ghostscript, não limpa o %TEMP%
+        e o atalho vai para uma Área de Trabalho temporária.
+        """
+        with tempfile.TemporaryDirectory() as perfil,                 patch.dict(os.environ, {"USERPROFILE": perfil}),                 patch("services.system_repair_service._encerrar_processos_orfaos", return_value=0),                 patch("services.system_repair_service._limpar_arquivos_temporarios", return_value=0):
+            (Path(perfil) / "Desktop").mkdir()
+            resultado = executar_diagnostico_e_reparo()
         self.assertIsNotNone(resultado.titulo)
         self.assertIsInstance(resultado.detalhes, list)
         self.assertGreater(len(resultado.detalhes), 0)
+
+    @unittest.skipUnless(sys.platform == "win32", "atalho .lnk é Windows")
+    def test_atalho_e_criado_em_thread_sem_com_inicializado(self):
+        """Regressão: a rota de reparo roda em thread de servidor e falhava com 'CoInitialize não foi chamado'."""
+        with tempfile.TemporaryDirectory() as perfil, tempfile.TemporaryDirectory() as dist:
+            exe = Path(dist) / "Contracto_v9.9.9.exe"
+            exe.write_bytes(b"x")
+            (Path(perfil) / "Desktop").mkdir()
+            resultado = []
+            with patch.dict(os.environ, {"USERPROFILE": perfil}),                     patch("services.system_repair_service._melhor_exe_dist", return_value=exe):
+                trabalho = threading.Thread(target=lambda: resultado.append(_atualizar_atalho_desktop()))
+                trabalho.start()
+                trabalho.join(30)
+            self.assertEqual(resultado, [True])
+            self.assertTrue((Path(perfil) / "Desktop" / "Contracto.lnk").is_file())
 
     def test_melhor_exe_dist_escolhe_a_maior_versao(self):
         """Regression: o atalho do reparo deve mirar o build mais novo, não o 1º da pasta."""

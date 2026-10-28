@@ -11,7 +11,7 @@ O projeto combina:
 - uma API local em loopback para comunicação interna;
 - serviços puros de geração, conversão e organização de arquivos;
 - utilitários de persistência, validação, arquivos e diagnósticos;
-- uma camada legada em Tkinter mantida como referência e fallback.
+- um backend headless (`app/sidecar.py`) pronto para o shell Tauri (ADR 0029).
 
 Em termos práticos, o fluxo geral é:
 
@@ -32,7 +32,6 @@ Contracto/
 │   ├── models/                 # entidades e estruturas de dados
 │   ├── ports/                  # abstrações de sistemas externos (diálogos, arquivos, bins)
 │   ├── services/               # regras de negócio e processamento de documentos
-│   ├── ui/                     # interface legada Tk / telas antigas (fallback)
 │   ├── utils/                  # utilitários, arquivos, validações e persistência
 │   ├── __init__.py             # pacote app
 │   ├── main.py                 # entrypoint principal da aplicação
@@ -71,7 +70,7 @@ Pasta principal da aplicação. Aqui vive o runtime do software e a lógica do n
 
 - `main.py`
   - ponto de entrada do processo;
-  - decide se abre a interface WebView ou a legada Tk;
+  - abre o shell WebView (a interface Tk foi removida na v5.0.0, ADR 0028);
   - bloqueia segunda instância e registra erros globais.
 
 - `server.py`
@@ -95,9 +94,8 @@ Pasta principal da aplicação. Aqui vive o runtime do software e a lógica do n
 - `ports/`
   - abstrai detalhes do ambiente: diálogos nativos, escolhas de arquivo, binários e integrações de plataforma.
 
-- `ui/`
-  - interface antiga do projeto (CustomTkinter);
-  - ainda útil como referência, manutenção de compatibilidade e fallback técnico.
+- `sidecar.py`
+  - mesmo backend local sem janela, para o Tauri: aperto de mão `ready` e canal de controle por stdin.
 
 - `utils/`
   - funções de apoio: validação, caminhos, logging, configuração, backup e operações de arquivo.
@@ -161,7 +159,7 @@ O caminho mais comum no runtime é:
 app/main.py
   -> escolher_interface()
   -> iniciar_web() ou iniciar_tk()
-  -> webview_shell.py ou ui/main_window.py
+  -> webview_shell.py
   -> LocalServer / API local
   -> services/
   -> geração/validação/conversão de PDFs e organização de arquivos

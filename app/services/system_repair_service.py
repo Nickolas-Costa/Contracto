@@ -185,16 +185,24 @@ def _atualizar_atalho_desktop() -> bool:
 
         icon_path = caminho_recurso("assets", "icons", "app_icon.ico")
 
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(path_lnk)
-        shortcut.Targetpath = str(exe_path)
-        shortcut.WorkingDirectory = str(exe_path.parent)
-        if icon_path.exists():
-            shortcut.IconLocation = f"{icon_path},0"
-        else:
-            shortcut.IconLocation = f"{exe_path},0"
-        shortcut.save()
+        import pythoncom
+        # A rota do reparo roda em thread de servidor (sem COM inicializado).
+        pythoncom.CoInitialize()
+        shell = shortcut = None
+        try:
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortCut(path_lnk)
+            shortcut.Targetpath = str(exe_path)
+            shortcut.WorkingDirectory = str(exe_path.parent)
+            if icon_path.exists():
+                shortcut.IconLocation = f"{icon_path},0"
+            else:
+                shortcut.IconLocation = f"{exe_path},0"
+            shortcut.save()
+        finally:
+            shell = shortcut = None  # libera os objetos COM antes de encerrar o COM da thread
+            pythoncom.CoUninitialize()
         return True
-    except (OSError, AttributeError):
+    except (OSError, AttributeError, ImportError):
         _logger.warning("Não foi possível atualizar o atalho do aplicativo.", exc_info=True)
         return False

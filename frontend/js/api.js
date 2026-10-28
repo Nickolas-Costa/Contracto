@@ -1,9 +1,26 @@
-/* Ponte com o processo nativo (pywebview) ou aviso em navegador comum. */
+/* Único ponto que conhece o shell nativo (pywebview hoje, Tauri v2 depois).
+ *
+ * Contrato nativo (docs/TAURI_CONTRATO.md): comandos com nome fixo e argumentos
+ * nomeados — request, select_file, select_output, select_backup,
+ * select_documents, import_profile, export_profile, open_result, open_file,
+ * get_file. Sob pywebview viram métodos de `pywebview.api` (argumentos
+ * posicionais, na ordem declarada); sob Tauri, `invoke(nome, argumentos)`.
+ */
 (function () {
   "use strict";
 
+  const tauri = () => window.__TAURI__?.core?.invoke;
+
   function disponivel() {
-    return !!(window.pywebview && window.pywebview.api);
+    return !!(tauri() || (window.pywebview && window.pywebview.api));
+  }
+
+  async function nativo(nome, args = {}) {
+    if (tauri()) return tauri()(nome, args);
+    const api = window.pywebview?.api;
+    if (!api) return { ok: false, code: "sem_ponte" };
+    if (typeof api[nome] !== "function") return { ok: false, code: "unsupported" };
+    return api[nome](...Object.values(args));
   }
 
   // Ponte pronta no shell nativo. pywebview dispara "pywebviewready"; um shell
@@ -25,36 +42,19 @@
       return { status: 503, data: { code: "sem_ponte", message: "Abra pelo aplicativo." } };
     }
     try {
-      return await window.pywebview.api.request(method, path, payload);
+      return await nativo("request", { method, path, payload });
     } catch (erro) {
       return { status: 503, data: { code: "ponte_falhou" } };
     }
   }
 
-  async function selectOutput() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    return window.pywebview.api.select_output();
-  }
-
-  async function selectFile() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    return window.pywebview.api.select_file();
-  }
-
-  async function openResult(jobId) {
-    if (!disponivel()) return { ok: false, code: "sem_ponte" };
-    return window.pywebview.api.open_result(jobId);
-  }
-
-  async function openFile(fileId) {
-    if (!disponivel()) return { ok: false, code: "sem_ponte" };
-    if (window.pywebview.api.open_file) return window.pywebview.api.open_file(fileId);
-    return { ok: false, code: "unsupported" };
-  }
+  const selectOutput = () => nativo("select_output");
+  const selectFile = () => nativo("select_file");
+  const openResult = (jobId) => nativo("open_result", { job_id: jobId });
+  const openFile = (fileId) => nativo("open_file", { file_id: fileId });
 
   async function getFile(fileId) {
-    if (!disponivel()) return { ok: false, code: "sem_ponte" };
-    const r = await window.pywebview.api.get_file(fileId);
+    const r = await nativo("get_file", { file_id: fileId });
     if (!r || !r.ok || !r.base64) return { ok: false, code: (r && r.code) || "file_unavailable" };
     try {
       const bin = atob(r.base64);
@@ -80,34 +80,11 @@
     return { pdf: true, word: false, ghostscript: false };
   }
 
-  async function selectAttachment() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    return window.pywebview.api.select_file();
-  }
-
-  async function selectBackup() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    if (window.pywebview.api.select_backup) return window.pywebview.api.select_backup();
-    return window.pywebview.api.select_file();
-  }
-
-  async function importProfile() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    if (window.pywebview.api.import_profile) return window.pywebview.api.import_profile();
-    return { ok: false, code: "unsupported" };
-  }
-
-  async function exportProfile(nome) {
-    if (!disponivel()) return { ok: false, code: "sem_ponte" };
-    if (window.pywebview.api.export_profile) return window.pywebview.api.export_profile(nome);
-    return { ok: false, code: "unsupported" };
-  }
-
-  async function selectDocuments() {
-    if (!disponivel()) return { code: "sem_ponte" };
-    if (window.pywebview.api.select_documents) return window.pywebview.api.select_documents();
-    return window.pywebview.api.select_file();
-  }
+  const selectAttachment = () => nativo("select_file");
+  const selectBackup = () => nativo("select_backup");
+  const importProfile = () => nativo("import_profile");
+  const exportProfile = (nome) => nativo("export_profile", { nome });
+  const selectDocuments = () => nativo("select_documents");
 
   async function activateProfile(nome) {
     return request("POST", "/api/v1/profiles/active", { nome });

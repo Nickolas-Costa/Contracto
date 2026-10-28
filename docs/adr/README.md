@@ -15,7 +15,7 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | Nº | Título | Estado |
 |---|---|---|
 | 0000 | Modelo | — |
-| 0001 | Fatiar a UI legada em mixins | aceita |
+| 0001 | Fatiar a UI legada em mixins | substituída (0028) |
 | 0002 | Identidade canônica dos módulos Python | aceita |
 | 0003 | Conversão RTF pelo Microsoft Word | aceita |
 | 0004 | Temporários de RTF isolados por trabalho | aceita |
@@ -41,4 +41,7 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0024 | Rota Tauri v2 pós-WebView | futura |
 | 0025 | Publicação de resultados e Conferência (Etapa 2) | aceita |
 | 0026 | Formato inicial pela Config, topbar fixa e arrasto na Conversão | aceita |
-| — | Extração de dados de PDF geral (anexar PDF com infos do cliente e o sistema busca) | futura (pós nova UI, fora de escopo atual) |
+| 0027 | Extração de dados de PDF para preencher o formulário | aceita como plano (sem implementação) |
+| 0028 | Aposentadoria da interface Tk | aceita |
+| 0029 | Preparação "Tauri Ready" | aceita (troca de shell aguarda aceite) |
+| 0030 | Conferência editável | futura |

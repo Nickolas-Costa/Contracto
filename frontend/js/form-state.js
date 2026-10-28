@@ -54,24 +54,15 @@
     const [d,m,y] = s.split("/").map(Number), date = new Date(y,m-1,d);
     return y >= 1900 && date.getFullYear() === y && date.getMonth() === m-1 && date.getDate() === d;
   }
+  // Pesos oficiais do CNPJ (iguais a utils/cnpj_validator.py); valor do caractere = ASCII - 48.
+  const PESOS_CNPJ = [[5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]];
   function cnpjValid(value) {
     const s = String(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (s.length !== 14) return false;
-    if (/^([0-9A-Z])\1+$/.test(s)) return false;
-    const peso = n => { let p = n % 8 === 0 ? 9 : (n % 8) + 1; const out = []; for (let i = 0; i < n; i++) { out.push(p); p = p === 2 ? 9 : p - 1; } return out.reverse(); };
-    for (const n of [12, 13]) {
-      let soma = 0;
-      const pesos = peso(n);
-      for (let i = 0; i < n; i++) soma += (s.charCodeAt(i) - 48 > 9 ? s.charCodeAt(i) - 48 : Number(s[i])) * pesos[i];
-      const dv = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-      const esperado = s.charCodeAt(n) - 48 > 9 ? s.charCodeAt(n) - 48 : Number(s[n]);
-      if (dv !== esperado && !(s[n] >= "A" && dv === Number(s[n]))) {
-        // Para alfanumérico, compara pelo valor oficial (ASCII-48).
-        const v = s.charCodeAt(n) - 48;
-        if (dv !== v) return false;
-      }
-    }
-    return true;
+    if (!/^[0-9A-Z]{12}\d{2}$/.test(s) || /^(\d)\1{13}$/.test(s)) return false;
+    return PESOS_CNPJ.every((pesos, k) => {
+      const soma = pesos.reduce((acc, peso, i) => acc + (s.charCodeAt(i) - 48) * peso, 0);
+      return (soma % 11 < 2 ? 0 : 11 - (soma % 11)) === Number(s[12 + k]);
+    });
   }
   function docValid(value) {
     const limpo = String(value).replace(/[^A-Za-z0-9]/g, "");

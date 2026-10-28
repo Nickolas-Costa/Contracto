@@ -5,8 +5,6 @@ Uso interno; revisar licenciamento antes de qualquer distribuição comercial.
 
 | Componente | Versão | Licença | Uso |
 |---|---|---|---|
-| CustomTkinter | 6.0.0 | CC0-1.0 | Interface gráfica |
-| darkdetect | 0.8.0 | BSD-3-Clause | Detecção de tema do sistema |
 | lxml | 6.1.1 | BSD-3-Clause | Processamento XML |
 | packaging | 26.2 | Apache-2.0 / BSD-2-Clause | Utilitário de versões |
 | Pillow | 12.3.0 | MIT-CMU | Imagens e ícones |

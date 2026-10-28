@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from services.pdfa_converter import converter_para_pdfa
 from services.system_repair_service import _encerrar_processos_orfaos
-from ui.main_window import MainWindow
+from utils.files_fs import abrir_pasta
 from utils.filename_utils import _sanitizar_nome_arquivo, nome_documento_processo
 from models.participant import Participant
 
@@ -47,17 +47,17 @@ class TestSecurityHardening(unittest.TestCase):
     @patch("utils.files_fs.os.startfile", create=True)
     @patch("utils.files_fs.subprocess.run")
     def test_abrir_pasta_rejects_non_directory_and_executables(self, mock_subp, mock_startfile):
-        """Verifica se _abrir_pasta rejeita arquivos comuns ou executáveis."""
+        """Verifica se abrir_pasta rejeita arquivos comuns ou executáveis."""
         # Testar com arquivo que não é pasta
         arquivo_ficticio = Path(__file__)  # é arquivo .py, não diretório
-        MainWindow._abrir_pasta(arquivo_ficticio)
+        abrir_pasta(arquivo_ficticio)
 
         self.assertFalse(mock_startfile.called, "os.startfile NÃO deve ser executado para arquivos!")
         self.assertFalse(mock_subp.called, "subprocess xdg-open NÃO deve ser executado para arquivos!")
 
         # Testar com diretório existente legítimo
         diretorio_real = Path(__file__).parent
-        MainWindow._abrir_pasta(diretorio_real)
+        abrir_pasta(diretorio_real)
 
         if os.name == "nt":
             self.assertTrue(mock_startfile.called, "os.startfile deve ser chamado para diretório válido no Windows")

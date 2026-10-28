@@ -26,7 +26,8 @@ Não introduzir dependência sem resposta explícita a essas perguntas. Reavalia
 | Word COM + `pywin32` | Converter RTF para PDF com maior fidelidade aos documentos Windows | LibreOffice headless: sem licença Office e multiplataforma, mas exige corpus de comparação; Aspose.Words: adequado a servidor e sem Word, porém comercial; código puro: não compensa para renderização RTF completa | Manter apenas no desktop/agente Windows assistido. Não usar como motor de API hospedada não interativa. |
 | LibreOffice | Não é dependência atual | Pode converter por CLI/headless, inclusive RTF para PDF; aumenta tamanho e ainda requer validação de layout | Avaliar em prova isolada, nunca como fallback silencioso. Só adotar se cumprir fidelidade definida. |
 | Aspose.Words | Não é dependência atual | Pode renderizar RTF/Word para PDF sem Office e atende melhor cenário servidor | Avaliar somente após oportunidade comercial que pague licença e teste de fidelidade. |
-| `customtkinter`, `darkdetect`, `Pillow` | Shell Tk atual, tema e imagens | HTML/CSS/WebView substitui a camada visual; Pillow pode permanecer para recursos de imagem usados pelo núcleo | Manter apenas durante convivência com a UI legada; não levar widgets Tk para a API. |
+| `customtkinter`, `darkdetect` | Removidos na v5.0.0 (ADR 0028): eram só a UI Tk | Nada a substituir: a UI é HTML/CSS/JS | Removidos de `requirements*.txt` e do bundle. |
+| `Pillow` | Renderização da conferência de mapeamento (`mapping_audit.py`) | HTML/CSS/WebView substitui a camada visual; Pillow pode permanecer para recursos de imagem usados pelo núcleo | Manter apenas durante convivência com a UI legada; não levar widgets Tk para a API. |
 | `pypdfium2` | Pré-visualização/renderização de PDF | Ghostscript e renderizadores comerciais são alternativas mais pesadas ou com licença diferente | Manter enquanto houver pré-visualização local; medir tamanho no pacote WebView. |
 | `lxml` | Processamento de XML associado a PDF | Biblioteca padrão não oferece substituição equivalente de forma geral | Manter como dependência transitiva/necessária enquanto pikepdf e fluxos XML a exigirem. |
 | FastAPI + Uvicorn | Contrato loopback entre WebView e núcleo | Chamada direta pywebview aumenta acoplamento; servidor próprio seria código adicional e menos padronizado | Adotar apenas na Fase A, limitado a loopback, token efêmero e testes HTTP. |
@@ -39,3 +40,15 @@ Uma troca de Word exige uma amostra representativa dos RTF reais da operação, 
 Microsoft informa que automação Office não interativa em componentes de servidor não é recomendada nem suportada, por risco de bloqueios e comportamento instável. LibreOffice documenta a conversão headless por `--convert-to`; isso prova capacidade técnica, não equivalência de layout. Aspose documenta conversão de RTF/Word para PDF sem Word instalado, mas exige avaliação comercial.
 
 Referências: [Microsoft Learn — automação Office não atendida](https://learn.microsoft.com/en-us/office/client-developer/integration/considerations-unattended-automation-office-microsoft-365-for-unattended-rpa), [LibreOffice — parâmetros e conversão headless](https://help.libreoffice.org/latest/en-GB/text/shared/guide/start_parameters.html), [LibreOffice — filtros de conversão](https://help.libreoffice.org/latest/ast/text/shared/guide/convertfilters.html), [Aspose.Words — conversão para PDF](https://docs.aspose.com/words/python-net/convert-a-document-to-pdf/), [pypdf — formulários PDF](https://pypdf.readthedocs.io/en/3.17.3/user/forms.html).
+
+## Candidatos do shell Tauri (ADR 0029) — propostos, **não adotados**
+
+| Componente | Capacidade | Alternativa / código próprio | Decisão |
+|---|---|---|---|
+| Rust (rustup, MSVC) + `@tauri-apps/cli` | Compilar o shell `src-tauri/` | Manter pywebview (já entrega janela, ponte e WebView2) | Só com aceite (ADR 0029). Ferramenta de build; não vai ao usuário final. |
+| `tauri` 2.x | Janela, ponte `invoke`, CSP, bundler | pywebview | Idem; versão fixada, lockfile versionado. |
+| `tauri-plugin-dialog` | Diálogos nativos (open/save/pasta) | `ports/webview_dialog.py` | Substitui o port atual; escopo mínimo de `capabilities`. |
+| `tauri-plugin-opener` | Abrir pasta/PDF no SO | `utils/files_fs.py` | Escopo restrito a caminhos devolvidos pelo sidecar. |
+| `tauri-plugin-updater` | Atualização automática | Inno Setup manual (ADR 0008) | **Não adotar** sem decisão sobre servidor de releases e chave de assinatura. |
+| `reqwest` (só loopback) | Encaminhar `request` ao sidecar | `urllib` do `ShellBridge` | Mesma allowlist/limites; sem proxy, sem rede externa. |
+| OCR (ADR 0027, Fase 2) | PDFs digitalizados | `Windows.Media.Ocr` ou Tesseract | Decidir no gate da Fase 2. |

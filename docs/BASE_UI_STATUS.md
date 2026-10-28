@@ -3,6 +3,12 @@
 > **Estado:** a migração do **Contracto** de CustomTkinter para **WebView2** foi concluída e homologada na v4.5.18; os ajustes posteriores estão nas atualizações abaixo e no `CHANGELOG.md`.
 > A suíte unitária e o fluxo de ponta a ponta em WebView real (`tests/smoke_webview_ui.py`) são o critério; contagens de testes mudam a cada versão e não são fixadas aqui.
 
+> **Atualização v5.0.0 (28/10/2026):** Tk aposentado (ADR 0028), `sidecar` e contrato
+> nativo para o Tauri (ADR 0029, `docs/TAURI_CONTRATO.md`), CNPJ corrigido, moeda com
+> máscara, conferência reformulada e Etapa 1 fatiada em módulos. A troca para o shell
+> Tauri aguarda os aceites listados na ADR 0029. Planejado: extração de PDF (0027) e
+> conferência editável (0030).
+
 > **Atualização v4.5.26 (27/10/2026):** formato de saída inicial pela Config (botões), visualizador responsivo, arrasto real na Conversão, perfis por modo, topbar fixa. Ver ADR 0026.
 
 > **Atualização v4.5.24 (17/10/2026):** publicação com nome legível

@@ -27,6 +27,15 @@
     input('buscar-perfis','QA A');await wait(()=>cardsPerfis()===1,'profile catalog filters by name');
     input('buscar-perfis','inexistente');await wait(()=>!$('perfis-vazio').hidden,'profile catalog reports an empty search');
     input('buscar-perfis','');
+    // Módulo perfis.js: o catálogo novo chega ao gerenciador e à Etapa 1 pelo contexto (o CRUD
+    // real é bloqueado quando o servidor recebe perfis fixos, como neste fixture).
+    {const gp=window.ContractoAPI.getProfiles;
+     window.ContractoAPI.getProfiles=async()=>{const r=await gp();return {status:200,data:[...r.data,{...r.data[0],profile_id:'qa-extra',name:'QA Extra',nome:'QA Extra'}]};};
+     window.ContractoPerfis.carregarTela();
+     await wait(()=>cardsPerfis()===3,'new catalog reaches the profile manager');
+     await wait(()=>document.querySelectorAll('#seletor-modelos .seletor-item').length===3,'new catalog reaches the stage 1 selector');
+     window.ContractoAPI.getProfiles=gp;window.ContractoPerfis.carregarTela();
+     await wait(()=>cardsPerfis()===2&&document.querySelectorAll('#seletor-modelos .seletor-item').length===2,'catalog restored in both places');}
     window.ContractoUI.mostrarTela('config');assert($('stepper').hidden,'settings hide workflow steps');
     assert(!$('lista-capacidades'),'resources section removed from settings');
     window.ContractoUI.mostrarTela('inicio');assert(!$('stepper').hidden,'workflow restores steps');

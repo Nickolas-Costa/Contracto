@@ -51,22 +51,22 @@ the user asked for.
 
 ## Repository context
 
-Windows desktop app, Python, CustomTkinter; local API preparation and WebView
-in progress. Before continuing the migration, read `docs/CONTINUIDADE_CODEX_WEB.md`,
+Windows desktop app, Python; WebView2 UI (`frontend/`) over a local loopback API.
+The Tk UI was removed in v5.0.0 (ADR 0028); Tauri readiness is ADR 0029. Before continuing the migration, read `docs/CONTINUIDADE_CODEX_WEB.md`,
 `docs/SPEC_PRE_WEBVIEW.md`, `docs/ARCHITECTURE.md` and `docs/adr/`.
 
 Latest state and pending items: `docs/BASE_UI_STATUS.md`. The local API, queue
-and native bridge already exist; the production UI is still Tk. Do not restart
+and native bridge already exist, and the production UI is the WebView. Do not restart
 the old server-creation plan.
 
 ## Validation
 
 -   Windows: `.venv/Scripts/python.exe -m unittest discover -s tests -v`.
--   Real smoke: `.venv/Scripts/python.exe tests/smoke_test_gui.py`.
 -   Real WebView2: `.venv/Scripts/python.exe tests/smoke_webview.py`.
 -   New UI journey, synthetic mass and checked PDFs: `.venv/Scripts/python.exe tests/smoke_webview_ui.py` (Windows; `--visible` keeps the window for review).
 -   Real engines over HTTP (requires Word/GS): `.venv/Scripts/python.exe tests/smoke_api_engines.py`.
--   Linux with Tk/Xvfb: `xvfb-run -a .venv/bin/python -m unittest discover -s tests -v` and `xvfb-run -a .venv/bin/python tests/smoke_test_gui.py`.
+-   Linux (no Word/WebView2): `.venv/bin/python -m unittest discover -s tests -v`; Windows-only tests skip.
+-   Node checks (`form-state.js`, native adapter) run inside the unit suite when Node is installed.
 -   Isolated backend: `python -m unittest discover -s tests -p test_headless_backend.py -v`.
 -   Environment: `python -m pip check`. Install `requirements-dev.txt`; check the plan before using the Windows lock on Linux.
 
@@ -74,6 +74,6 @@ Use synthetic data and temporary directories; never change personal profiles/con
 
 ## Architectural limits
 
-Keep services free of UI/Tk. The API at this stage is loopback, with an ephemeral token and authorized files, per the spec. Plain PDF is independent of Word/Ghostscript; RTF depends on Word and PDF/A on Ghostscript. No silent fallback. Every dependency change must answer the gate in `docs/DEPENDENCY_REVIEW.md`.
+Keep services free of UI. The API at this stage is loopback, with an ephemeral token and authorized files, per the spec. Plain PDF is independent of Word/Ghostscript; RTF depends on Word and PDF/A on Ghostscript. No silent fallback. Every dependency change must answer the gate in `docs/DEPENDENCY_REVIEW.md`.
 
 The ZIP prototype is ignored and not available in the remote checkout. Consult the versioned design documents and record the absence when doing visual work. Deliver focused changes with tests and explicit limitations.

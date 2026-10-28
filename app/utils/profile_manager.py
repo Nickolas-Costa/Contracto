@@ -214,35 +214,8 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
     global _perfis_cache
 
     if _perfis_cache is not None and not forcar_disco:
-        return [
-            Perfil(
-                nome=p.nome,
-                formularios=[FormularioModelo(f.nome, f.caminho, f.geracao, copy.deepcopy(f.mapeamento), f.identificador, f.recurso) for f in p.formularios],
-                documentos_extras=[DocumentoExtra(d.rotulo, d.nome_padrao) for d in p.documentos_extras],
-                campos_entrada=[
-                    CampoEntrada(
-                        id=c.id, rotulo=c.rotulo, tipo=c.tipo, obrigatorio=c.obrigatorio,
-                        placeholder=c.placeholder, escopo=c.escopo, opcoes=list(c.opcoes),
-                        valor_padrao=c.valor_padrao, icone=c.icone, aba=c.aba,
-                        ajuda=c.ajuda, minimo=c.minimo, maximo=c.maximo,
-                        visivel_quando=[dict(condicao) for condicao in c.visivel_quando],
-                        limpar_quando_oculto=c.limpar_quando_oculto,
-                    calculo=c.calculo,
-                    ate_participante=c.ate_participante,
-                )
-                for c in p.campos_entrada
-                ],
-                formato_saida=p.formato_saida,
-                modo_fluxo=p.modo_fluxo,
-                max_participantes=p.max_participantes,
-                identificador=p.identificador,
-                ordem=p.ordem,
-                usar_paginacao=p.usar_paginacao,
-                correcoes_aplicadas=list(p.correcoes_aplicadas),
-                agrupamento_paginas=dict(p.agrupamento_paginas),
-            )
-            for p in _perfis_cache
-        ]
+        # Cópia profunda: copiar campo a campo perdia atributos novos (ex.: `apresentacao`).
+        return copy.deepcopy(_perfis_cache)
 
     caminho = _caminho_perfis()
     perfis: list[Perfil] = []

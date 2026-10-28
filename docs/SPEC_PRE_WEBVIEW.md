@@ -22,7 +22,7 @@ Toda inclusão, remoção ou mudança de execução dessas dependências deve pa
 | WebView2 | Sim, para o shell Windows | O instalador deve detectar ou orientar a instalação |
 | Ghostscript embutido | Somente ao solicitar PDF/A | A operação retorna capacidade indisponível; gerar PDF simples continua possível |
 | Microsoft Word + pywin32/COM | Somente ao enviar RTF para conversão | RTF falha de forma explícita; PDF e geração de AcroForm continuam disponíveis |
-| CustomTkinter/Tk | Não, após a nova tela substituir a atual | Permanece apenas durante a convivência com a UI legada |
+| CustomTkinter/Tk | Removido na v5.0.0 (ADR 0028) | — |
 | pypdf, pikepdf, lxml, Pillow e pypdfium2 | Sim, no núcleo empacotado | Geração, validação ou pré-visualização deixam de funcionar se forem removidos |
 
 O Word é o principal limite para uma execução hospedada: COM exige Windows, uma instalação licenciada do Word e uma sessão apta a automatizá-lo. Em agente local isso permanece viável. Em servidor, torna-se uma decisão operacional e de licenciamento, não apenas uma dependência Python.
