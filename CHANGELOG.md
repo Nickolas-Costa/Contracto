@@ -17,11 +17,25 @@ Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
   não navega mais a janela.
 - Modo Simples com MO 29300 (DAMP): teste de regressão com o perfil real
   (correção do `TEXTO_LONGO` já registrada na 4.5.25).
+- Etapa 1: títulos de seção sem campo visível (campos de outra página ou
+  condicionais) deixavam "resquícios" vazios; agora a seção inteira some.
+- Campos de moeda (ex.: "Valor da modalidade"): milhar com ponto e vírgula
+  decimal enquanto digita, e centavos completados ao sair do campo
+  (`180000` → `180.000,00`).
+- Visualizador: "Expandir" fechava o diálogo e só valia na reabertura; agora
+  alterna para "Reduzir" sem fechar, e "Abrir no leitor padrão" também mantém
+  o diálogo. Modal expandido fica centralizado.
+- Build: o instalador só saía depois de rodar o build mais de uma vez (o
+  antivírus/OneDrive ainda segurava o `.exe` recém-gerado); `build_installer.py`
+  agora espera o arquivo liberar e repete o ISCC até 4 vezes.
 
 ### Alterado
 - Formato de saída (Etapa 2 e Conversão) vira par de botões em vez de lista.
 - Botões inferiores: ação primária sempre por último (Etapa 2, Conversão e
   Configurações); na Etapa 2 a ordem é Voltar, Fila, Abrir pasta, Finalizar.
+- Conferência (Etapa 2): cabeçalho do participante com contagem de campos,
+  seção "Identificação" (sem repetir o nome no título), grade em colunas
+  adaptáveis e título "Dados do formulário" no lugar de "Geral".
 - Perfis separados em "Modo Simples" e "Modo Contrato"; a busca aceita
   "simples", "contrato" e "completo".
 - Barra superior fixa ao rolar (estática abaixo de 1100px, onde quebra em

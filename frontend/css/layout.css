@@ -84,7 +84,7 @@ html{scroll-padding-top:96px}
 .modos-seletor{align-items:center}
 .modos-seletor .seletor-count{align-self:center;margin-right:4px}
 .conf-card{margin-top:0}
-.conf-resumo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:0 0 14px;align-items:start}
+.conf-resumo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:0 0 14px;align-items:stretch}
 .conf-bloco{border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;background:var(--c-surface-variant)}
 .conf-bloco h3{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-secondary)}
 .conf-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -95,6 +95,9 @@ html{scroll-padding-top:96px}
 .conf-subsecao{border-top:1px solid var(--c-border);padding:14px 0 0;margin:14px 0 0}
 .conf-subsecao h4{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-text-secondary)}
 .conf-participante{margin:14px 0 0;background:var(--c-surface)}
+.conf-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.conf-cab h3{margin:0}
+.conf-participante .conf-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .conf-participante h3{display:flex;align-items:baseline;gap:8px;font-size:15px}
 .conf-participante h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-primary);flex:none;transform:translateY(-1px)}
 @media(max-width:680px){.conf-resumo{grid-template-columns:minmax(0,1fr)}.conf-grid{grid-template-columns:minmax(0,1fr)}}
@@ -105,7 +108,7 @@ html{scroll-padding-top:96px}
 .profile-menu-box{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:flex;flex-direction:column;gap:6px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:8px;min-width:160px;box-shadow:var(--shadow-md)}
 .btn-danger{color:var(--c-error)!important}
 .modal-viewer{width:min(1120px,calc(100vw - 32px))}
-.modal-viewer-expandido{width:min(1500px,calc(100vw - 24px))!important}
+.modal-viewer-expandido{width:min(1500px,calc(100vw - 24px))!important;max-width:none!important}
 .modal-viewer-expandido .pdf-preview{height:min(86dvh,1100px)!important}
 .viewer-panel{display:flex;flex-direction:column;gap:10px}
 .field .checkbox-inline{min-height:42px}

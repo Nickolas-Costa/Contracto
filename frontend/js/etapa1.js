@@ -148,10 +148,21 @@
       } else if (field.tipo === "DATA") {
         val = form().formatDateProgressive(val);
         input.value = val;
+      } else if (field.tipo === "MOEDA" && !field.calculo) {
+        val = form().formatMoedaProgressive(val);
+        input.value = val;
       }
       owner[id] = val.trim();
       changed();
     });
+    if (field.tipo === "MOEDA" && !field.calculo) {
+      // Ao sair do campo completa os centavos: "180000" → "180.000,00".
+      input.addEventListener("blur", () => {
+        const final = form().formatMoedaFinal(input.value);
+        if (final === input.value) return;
+        input.value = final; owner[id] = final; changed();
+      });
+    }
     wrap.append(label,input,error); host.append(wrap);
     if(field.calculo){const note=document.createElement("p");note.className="field-note";note.id=input.id+"-nota";note.textContent="Calculado a partir dos dados informados.";wrap.append(note);input.setAttribute("aria-describedby",error.id+" "+note.id);}
     controls.push({field,index,id,owner,wrap,input,error});
@@ -311,6 +322,10 @@
       if(value && c.field.tipo === "INTEIRO" && !/^\d+$/.test(value.trim()))message="Use um número inteiro.";
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
       if(message)result.push({participant:c.index+1,field:c.id,message});
+    });
+    // Seção sem campo visível (outra página ou condição) some junto com o título.
+    document.querySelectorAll("#participantes .field-section, #campos-globais .field-section").forEach(s=>{
+      s.hidden=![...s.querySelectorAll(".field")].some(f=>!f.hidden);
     });
     if(!form().dateValid(draft.globals.data_assinatura)) result.push({field:"data_assinatura",message:"Informe uma data válida."});
     if(!draft.globals.local_assinatura)result.push({field:"local_assinatura",message:"Informe o local da assinatura."});
@@ -758,7 +773,7 @@
         const gBox = document.createElement("div");
         gBox.className = "conferencia-secao conf-participante";
         const hG = document.createElement("h3"); hG.textContent = "Dados compartilhados";
-        const gridG = document.createElement("div"); gridG.className = "conf-grid";
+        const gridG = document.createElement("dl"); gridG.className = "conf-grid";
         globaisConf.forEach(f=>{
           const id = form().canonical(f.id);
           const val = valorConf(draft.globals, draft.computed && draft.computed[0], id);
@@ -773,11 +788,16 @@
       draft.people.forEach((p, idx) => {
         const pBox = document.createElement("div");
         pBox.className = "conferencia-secao conf-participante";
+        const cab = document.createElement("div");
+        cab.className = "conf-cab";
         const legend = document.createElement("h3");
-        const nomeP = p.nome_completo || ("Participante " + (idx + 1));
-        legend.textContent = (idx ? "Participante " + (idx + 1) : "Participante principal") + " — " + nomeP;
-        pBox.appendChild(legend);
-        const base = document.createElement("div");
+        legend.textContent = idx ? "Participante " + (idx + 1) : "Participante principal";
+        const contagem = document.createElement("span");
+        contagem.className = "section-tag";
+        cab.append(legend, contagem);
+        pBox.appendChild(cab);
+        let preenchidos = 2;
+        const base = document.createElement("dl");
         base.className = "conf-grid";
         [["Nome", p.nome_completo || "—"], ["CPF", p.cpf || "—"]].forEach(([rot, val]) => {
           const wrap = document.createElement("div"); wrap.className = "conf-item";
@@ -785,7 +805,11 @@
           const dd = document.createElement("dd"); dd.textContent = val;
           wrap.append(dt, dd); base.append(wrap);
         });
-        pBox.appendChild(base);
+        const idSecao = document.createElement("div");
+        idSecao.className = "conf-subsecao";
+        const hId = document.createElement("h4"); hId.textContent = "Identificação";
+        idSecao.append(hId, base);
+        pBox.appendChild(idSecao);
         Object.entries(porPagina).forEach(([pagina, listaCampos]) => {
           const visiveis = listaCampos.filter(f => {
             const id = form().canonical(f.id);
@@ -796,8 +820,11 @@
           if (!visiveis.length) return;
           const secao = document.createElement("div");
           secao.className = "conf-subsecao";
-          const h = document.createElement("h4"); h.textContent = pagina;
-          const grid = document.createElement("div"); grid.className = "conf-grid";
+          // "Geral" sozinho não diz nada: mesmo título da Etapa 1.
+          const h = document.createElement("h4");
+          h.textContent = pagina === "Geral" && Object.keys(porPagina).length === 1 ? "Dados do formulário" : pagina;
+          const grid = document.createElement("dl"); grid.className = "conf-grid";
+          preenchidos += visiveis.length;
           visiveis.forEach(f => {
             const id = form().canonical(f.id);
             const wrap = document.createElement("div"); wrap.className = "conf-item";
@@ -808,6 +835,7 @@
           secao.append(h, grid);
           pBox.appendChild(secao);
         });
+        contagem.textContent = preenchidos + " campo(s) preenchido(s)";
         container.appendChild(pBox);
       });
       try { window.ContractoUI.sincronizarStepper?.(); } catch (_) {}

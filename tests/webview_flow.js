@@ -47,6 +47,11 @@
     // Regressão: render() precisa anexar o card mesmo com TEXTO_LONGO (textarea não
     // aceita .type) e com abas múltiplas; composto() fica true mesmo se render falhar.
     await wait(()=>$('campo-0-observacoes'),'long text field rendered after multi-profile compose');
+    assert([...document.querySelectorAll('#participantes .field-section')].every(s=>s.hidden||s.querySelector('.field:not([hidden])')),'sections without visible fields hide their titles');
+    {const F=window.ContractoForm;assert(F.formatMoedaFinal('180000')==='180.000,00'&&F.formatMoedaFinal('1234.5')==='1.234,50'&&F.formatMoedaFinal('0,5')==='0,50'&&F.formatMoedaFinal('')==='','money formatter adds thousands and cents');}
+    input('campo-0-valor','180000');assert($('campo-0-valor').value==='180.000','money input groups thousands while typing');
+    $('campo-0-valor').dispatchEvent(new Event('blur'));assert($('campo-0-valor').value==='180.000,00','money input completes cents on blur');
+    input('campo-0-valor','10,00');$('campo-0-valor').dispatchEvent(new Event('blur'));
     checkboxes()[0].click();await wait(()=>window.ContractoEtapa1.composto()&&checkboxes().filter(c=>c.checked).length===1,'back to single profile');
     input('campo-global-regime','B');
     assert(!$('campo-0-detalhe').parentElement.hidden,'conditional field visible');
@@ -61,6 +66,7 @@
     await wait(()=>!$('tela-conferir').hidden,'conference screen opens');
     assert($('corpo-conferencia').textContent.includes('PESSOA QA'),'conference lists participants');
     assert($('corpo-conferencia').querySelector('h3'),'conference groups fields by section');
+    assert($('corpo-conferencia').querySelector('.conf-cab .section-tag')&&!$('corpo-conferencia').querySelector('.conf-participante h3').textContent.includes('PESSOA'),'conference participant header shows count and does not repeat the name');
     const request=window.ContractoAPI.request;
     let responseLost=false;
     window.ContractoAPI.request=async(method,path,payload)=>{
@@ -101,7 +107,10 @@
     assert(getComputedStyle(document.querySelector('.toolbar')).position===(innerWidth>1100?'sticky':'static'),'toolbar sticky above the collapse breakpoint');
     assert([...document.querySelectorAll('.modal .acoes button')].some(b=>b.textContent==='Abrir no leitor padrão'),'viewer offers external reader');
     [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Expandir').click();
-    assert(document.querySelector('.modal').classList.contains('modal-viewer-expandido'),'viewer expands');
+    assert(document.querySelector('.modal').classList.contains('modal-viewer-expandido')&&!document.getElementById('overlay').hidden,'viewer expands and stays open');
+    {const r=[...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Reduzir');assert(r,'expanded viewer offers Reduzir');r.click();
+     assert(!document.querySelector('.modal').classList.contains('modal-viewer-expandido')&&!document.getElementById('overlay').hidden,'Reduzir restores the viewer without closing');
+     const m=document.querySelector('.modal').getBoundingClientRect();assert(Math.abs((m.left+m.right)/2-document.documentElement.clientWidth/2)<3,'viewer modal stays centered');}
     window.ContractoUI.fecharModal();assert(!$('app').inert&&!document.querySelector('.modal').classList.contains('modal-viewer')&&!document.querySelector('.modal').classList.contains('modal-viewer-expandido'),'modal releases background and viewer layout');
     if(window.__qaKeepResult){window.__qaResult={ok:true,checks};return;}
     window.ContractoUI.mostrarTela('inicio');

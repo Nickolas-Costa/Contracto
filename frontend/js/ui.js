@@ -97,7 +97,8 @@
       btn.type = "button";
       btn.textContent = b.texto;
       btn.className = "btn " + (b.primario ? "btn-primary" : "btn-secondary");
-      btn.addEventListener("click", () => { fecharModal(); if (b.aoClicar) b.aoClicar(); });
+      // `manter`: ação que não encerra o diálogo (ex.: Expandir/Reduzir do visualizador).
+      btn.addEventListener("click", () => { if (!b.manter) fecharModal(); if (b.aoClicar) b.aoClicar(btn); });
       acoes.append(btn);
     });
     overlay.hidden = false;
@@ -108,6 +109,12 @@
     // novo fecha o anterior (linha acima).
     const primeiro = acoes.querySelector("button");
     if (primeiro) primeiro.focus();
+  }
+
+  // Alterna o visualizador entre normal e expandido; o botão passa a oferecer o inverso.
+  function alternarExpansao(btn) {
+    const expandido = document.querySelector(".modal")?.classList.toggle("modal-viewer-expandido");
+    if (btn) btn.textContent = expandido ? "Reduzir" : "Expandir";
   }
 
   function fecharModal() {
@@ -691,5 +698,5 @@
     return sincronizar;
   }
 
-  window.ContractoUI = { segmentar, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
+  window.ContractoUI = { segmentar, alternarExpansao, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
 })();

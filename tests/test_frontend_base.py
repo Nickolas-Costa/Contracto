@@ -144,8 +144,9 @@ class TestFrontendBase(unittest.TestCase):
                         "backdrop-filter"]:
             self.assertIn(exigido, css, exigido)
         etapa2 = (RAIZ / "js/etapa2.js").read_text(encoding="utf-8")
-        for exigido in ["Abrir no leitor padrão", "Expandir", "modal-viewer-expandido"]:
+        for exigido in ["Abrir no leitor padrão", "Expandir", "alternarExpansao"]:
             self.assertIn(exigido, etapa2, exigido)
+        self.assertIn("modal-viewer-expandido", (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
         for exigido in ["nomeExibicao", "Form Seguro", "ROTULOS_OPCOES", "profile-menu-box"]:
             self.assertIn(exigido, etapa1, exigido)
         self.assertNotIn('data-etapa="4"', ui_js)

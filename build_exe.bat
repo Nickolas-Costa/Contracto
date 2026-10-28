@@ -140,7 +140,7 @@ if not exist "app\dist\Contracto_v%APP_VERSION%.exe" (
     echo        Feche o Contracto aberto e o antivirus, e rode de novo.
     exit /b 1
 )
-for %%f in ("app\dist\Contracto_v%APP_VERSION%.exe") do echo [OK] Executavel: %%~nxF (%%~zf bytes, %%~tf)
+for %%f in ("app\dist\Contracto_v%APP_VERSION%.exe") do echo [OK] Executavel: %%~nxf (%%~zf bytes, %%~tf)
 echo.
 
 echo [4/6] Copiando .exe para dist\ e gerando pacote versionado + SHA-256...

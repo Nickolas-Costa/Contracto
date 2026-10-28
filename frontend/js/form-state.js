@@ -99,6 +99,21 @@
     if (!/^\d+(\.\d+)?$/.test(norm)) return false;
     return Number(norm) >= 0;
   }
+  function formatMoedaProgressive(valor) {
+    // Milhar com ponto e decimal com vírgula enquanto digita; "1234.5" vira decimal.
+    let s = String(valor);
+    if (!s.includes(",") && /\.\d{1,2}$/.test(s)) s = s.replace(/\.(\d{1,2})$/, ",$1");
+    s = s.replace(/[^\d,]/g, "");
+    const i = s.indexOf(",");
+    const inteiro = (i < 0 ? s : s.slice(0, i)).replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return i < 0 ? inteiro : inteiro + "," + s.slice(i + 1).replace(/,/g, "").slice(0, 2);
+  }
+  function formatMoedaFinal(valor) {
+    const v = formatMoedaProgressive(valor);
+    if (!v) return "";
+    const [inteiro, decimais = ""] = v.split(",");
+    return (inteiro || "0") + "," + decimais.padEnd(2, "0");
+  }
   function participants(draft, fields) {
     return draft.people.map((person,index) => {
       const values = {...person, ...draft.globals, ...(draft.computed?.[index] || {})};
@@ -118,5 +133,5 @@
         local_assinatura: draft.globals.local_assinatura || "", campos_dinamicos: dynamic};
     });
   }
-  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, valorNumericoValid, dateValid, participants, formatCpfProgressive, formatDateProgressive};
+  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, valorNumericoValid, dateValid, participants, formatCpfProgressive, formatDateProgressive, formatMoedaProgressive, formatMoedaFinal};
 })();

@@ -229,11 +229,11 @@
       frame.src = url;
       panel.append(frame);
       ui().abrirModal("Visualização — " + f.name, panel, [
-        { texto: "Abrir no leitor padrão", aoClicar: async () => {
+        { texto: "Abrir no leitor padrão", manter: true, aoClicar: async () => {
           try { const o = await api().openFile(f.file_id); if (!o.ok) ui().toast("Não foi possível abrir no leitor padrão.", "error"); }
           catch (_) { ui().toast("Falha ao abrir no leitor padrão.", "error"); }
         } },
-        { texto: "Expandir", aoClicar: () => { document.querySelector(".modal")?.classList.toggle("modal-viewer-expandido"); } },
+        { texto: "Expandir", manter: true, aoClicar: ui().alternarExpansao },
         { texto: "Fechar", primario: true }
       ],
         () => URL.revokeObjectURL(url));

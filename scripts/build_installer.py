@@ -13,6 +13,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -20,6 +21,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 APP_VERSION_FILE = REPO_ROOT / "app" / "version.py"
 ISS_FILE = REPO_ROOT / "packaging" / "Contracto.iss"
 DIST_DIR = REPO_ROOT / "dist"
+
+
+TENTATIVAS = 4
+
+
+def _aguardar_liberacao(caminho: Path, limite: float = 60.0) -> None:
+    """Espera o arquivo poder ser aberto para escrita (sem lock de antivírus/sincronização)."""
+    fim = time.monotonic() + limite
+    while time.monotonic() < fim:
+        try:
+            with open(caminho, "ab"):
+                return
+        except OSError:
+            time.sleep(1)
 
 
 def read_version() -> str:
@@ -98,19 +113,23 @@ def main() -> int:
         return 1
 
     cmd = [iscc, f"/DMyAppVersion={version}", str(ISS_FILE)]
-    print(f"[1/2] Compilando instalador Contracto v{version}...")
-    print(f"  comando: {' '.join(cmd)}")
-    try:
-        subprocess.run(cmd, check=True, cwd=str(REPO_ROOT))
-    except subprocess.CalledProcessError as exc:
-        print(f"[ERRO] Falha na compilação do instalador (código {exc.returncode}).")
-        return exc.returncode
-
     installer_name = f"Contracto_Installer_v{version}.exe"
     installer_path = DIST_DIR / installer_name
-    if not installer_path.exists():
-        print(f"[ERRO] Instalador final não encontrado em {installer_path}.")
-        return 1
+    print(f"[1/2] Compilando instalador Contracto v{version}...")
+    print(f"  comando: {' '.join(cmd)}")
+    # Logo após o PyInstaller o antivírus/OneDrive ainda segura o .exe novo e o ISCC
+    # falha na 1ª tentativa; espera o arquivo liberar e tenta de novo.
+    for tentativa in range(1, TENTATIVAS + 1):
+        _aguardar_liberacao(exe_path)
+        codigo = subprocess.run(cmd, cwd=str(REPO_ROOT)).returncode
+        if codigo == 0 and installer_path.exists():
+            break
+        print(f"[AVISO] Tentativa {tentativa}/{TENTATIVAS} sem instalador (código {codigo}).")
+        if tentativa < TENTATIVAS:
+            time.sleep(5 * tentativa)
+    else:
+        print(f"[ERRO] Falha na compilação do instalador após {TENTATIVAS} tentativas.")
+        return codigo or 1
 
     print(f"[2/2] Instalador pronto: {installer_path}")
     return 0
