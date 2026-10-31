@@ -1,15 +1,20 @@
 """Validação declarativa reutilizável sem widgets, para clientes HTTP."""
 import copy
+from datetime import date, datetime
 import re
 from decimal import Decimal, InvalidOperation
 
 from services.field_calculator import calcular
 from utils.cnpj_validator import validar_cnpj
 from utils.cpf_validator import validar_cpf
-from utils.date_formatter import validar_data
+from utils.date_formatter import FORMATO_ENTRADA, validar_data
 from utils.document_validator import validar_cpf_ou_cnpj, validar_email, validar_telefone
 from utils.pis_pasep_validator import validar_pis_pasep
 from utils.profile_manager import ordenar_campos_para_exibicao
+
+
+def _data_futura(value):
+    return datetime.strptime(value.strip(), FORMATO_ENTRADA).date() > date.today()
 
 
 def valor_valido(campo, valor):
@@ -26,7 +31,7 @@ def valor_valido(campo, valor):
     if kind == "PIS_PASEP":
         return validar_pis_pasep(value)
     if kind == "DATA":
-        return validar_data(value)
+        return validar_data(value) and not ("nascimento" in campo.id.lower() and _data_futura(value))
     if kind in {"INTEIRO", "ANO"}:
         return (value.isascii() and value.isdigit() and (kind != "ANO" or len(value) == 4)
                 and (campo.minimo is None or int(value) >= campo.minimo)

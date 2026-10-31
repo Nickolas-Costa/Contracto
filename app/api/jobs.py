@@ -16,6 +16,7 @@ from services.pdfa_converter import ProcessoCanceladoError
 from services.profile_composer import combinar_perfis
 from services.form_validation import preparar_participantes
 from services.queue_manager import QueueManager
+from services.process_folder_service import criar_estrutura_pastas
 from services.stage2_service import executar_etapa2
 from utils.cpf_validator import validar_cpf
 from utils.filename_utils import nome_pasta_processo
@@ -275,8 +276,23 @@ class Jobs:
             metadata.update(zip(outputs, sources))
             return outputs
 
+        with self._lock:
+            geradas = [p for p in (self.selections.resolve(k, "file") for k in request.file_ids
+                                   if self._file_details.get(k, {}).get("origin") == "generated")
+                       if p.parent.name.endswith(" (gerados)")]  # só a pasta intermediária do app
+
+        def descartar_gerados():
+            # Só os PDFs brutos que o app criou; rmdir não apaga pasta com outros arquivos.
+            for arquivo in geradas:
+                arquivo.unlink(missing_ok=True)
+            for pasta in {a.parent for a in geradas}:
+                try:
+                    pasta.rmdir()
+                except OSError:
+                    pass
+
         return self._submit(request.output_id, operation, "process", request, metadata,
-                            folder_name=nome_pasta_processo(participants))
+                            processo=True, apos=descartar_gerados)
 
     def convert(self, request):
         """Conversão direta de arquivos (modo Conversão): sem perfis nem participantes.
@@ -303,12 +319,12 @@ class Jobs:
             raise ApiError("word_unavailable", "Instale o Microsoft Word para converter RTF, DOC e DOCX", 409)
         if request.format == "PDF/A-2b" and not caps["ghostscript"]:
             raise ApiError("ghostscript_unavailable", "Instale o Ghostscript para gerar PDF/A", 409)
-        if request.nome_saida is not None and len(paths) != 1:
-            raise ApiError("invalid_request", "Nome de saída personalizado só com um arquivo", 422)
+        if request.nomes_saida is not None and len(request.nomes_saida) != len(paths):
+            raise ApiError("invalid_request", "Informe um nome de saída para cada arquivo", 422)
 
         metadata = {}
         formato = request.format
-        nome_custom = request.nome_saida
+        nomes = request.nomes_saida or [""] * len(paths)
 
         def operation(folder, job, progress):
             saidas = []
@@ -316,7 +332,7 @@ class Jobs:
             for index, (key, origem) in enumerate(zip(request.file_ids, paths)):
                 progress(index, total, origem.name)
                 ext = origem.suffix.lower()
-                base = (nome_custom.strip() if nome_custom else origem.stem)
+                base = nomes[index].strip() or origem.stem
                 destino = folder / f"{base}.pdf"
                 contador = 1
                 while destino.exists():
@@ -357,7 +373,7 @@ class Jobs:
         return None
 
     def _submit(self, output_id, operation, kind=None, request=None, metadata=None,
-                folder_name=None, inline=False):
+                folder_name=None, inline=False, processo=False, apos=None):
         with self._lock:
             if request is not None:
                 retry = self._request_retry(kind, request)
@@ -398,10 +414,12 @@ class Jobs:
                             self._check_cancel(job)
                             dest_dir = self.selections.resolve(output_id, "directory")
                             publish_dir = dest_dir
-                            if inline:
-                                # Simples/Conversão: arquivos direto na pasta
-                                # escolhida, sem subpasta (paridade com o legado).
-                                finales = _mover_inline(dest_dir, files)
+                            if inline or processo:
+                                # Simples/Conversão: arquivos direto na pasta escolhida.
+                                # Contrato (etapa final): em PDF-A/ dentro dela, sem pasta
+                                # extra com o nome do cliente (a escolhida já é a dele).
+                                publish_dir = criar_estrutura_pastas(dest_dir) if processo else dest_dir
+                                finales = _mover_inline(publish_dir, files)
                                 shutil.rmtree(staging)
                                 published, staging = None, None
                             else:
@@ -427,6 +445,8 @@ class Jobs:
                             state.status = "completed"
                             state.completed = state.total = len(files)
                             published = None  # Saída concluída pertence ao usuário.
+                            if apos:
+                                apos()
                 except ProcessoCanceladoError:
                     terminal = "cancelled"
                 except Exception as exc:

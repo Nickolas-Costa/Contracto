@@ -311,17 +311,21 @@ class TestLocalAPI(unittest.TestCase):
             "file_ids": generated["file_ids"], "format": "PDF"})
         self.assertEqual(pstatus, 202, process)
         self.assertEqual(self.wait_job(process["job_id"])["status"], "completed")
-        final = self.output / "Contrato Pessoa"
-        self.assertTrue(final.is_dir())
-        # O processamento organiza os PDFs em PDF-A/ (com ASSINADOS/REGISTRADOS).
-        self.assertTrue(any(p.is_file() for p in (final / "PDF-A").iterdir()))
-        # Colisão não sobrescreve: uma segunda execução recebe sufixo.
+        # Sem pasta-mãe do cliente: PDF-A/ direto na pasta escolhida, e a de gerados é descartada.
+        final = self.output / "PDF-A"
+        self.assertTrue(any(p.is_file() for p in final.iterdir()))
+        self.assertFalse(gerados.exists())
+        self.assertFalse((self.output / "Contrato Pessoa").exists())
+        self.assertEqual([p.name for p in self.output.iterdir()], ["PDF-A"])
+        # Segunda execução: colisão não sobrescreve (sufixo no arquivo).
+        _, job2 = self.http("/api/v1/jobs/generate", self.payload)
+        generated2 = self.wait_job(job2["job_id"])
         pstatus, again = self.http("/api/v1/jobs/process", {
             "participants": [self.participant], "output_id": self.output_id,
-            "file_ids": generated["file_ids"], "format": "PDF"})
+            "file_ids": generated2["file_ids"], "format": "PDF"})
         self.assertEqual(pstatus, 202, again)
         self.assertEqual(self.wait_job(again["job_id"])["status"], "completed")
-        self.assertTrue((self.output / "Contrato Pessoa (2)").is_dir())
+        self.assertTrue(any("(2)" in p.name for p in final.iterdir()))
 
     def test_undeclared_dynamic_field_rejected(self):
         participant = {**self.participant, "campos_dinamicos": {"undeclared": "value"}}

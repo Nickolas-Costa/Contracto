@@ -145,6 +145,9 @@
       if (field.tipo === "CPF") {
         val = form().formatCpfProgressive(val);
         input.value = val;
+      } else if (field.tipo === "CNPJ" || field.tipo === "CPF_CNPJ") {
+        val = form().formatDocProgressive(val);
+        input.value = val;
       } else if (field.tipo === "DATA") {
         val = form().formatDateProgressive(val);
         input.value = val;
@@ -323,6 +326,7 @@
       if(value && c.field.tipo === "TELEFONE" && form().telefoneValid && !form().telefoneValid(value))message="Telefone inválido: use DDD + número.";
       if(value && c.field.tipo === "ANO" && form().anoValid && !form().anoValid(value))message="Ano inválido.";
       if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
+      else if(value && c.field.tipo === "DATA" && /nascimento/i.test(c.id) && form().dateFuture(value))message="A data de nascimento não pode ser futura.";
       if(value && ["MOEDA","AREA"].includes(c.field.tipo) && !form().valorNumericoValid(value))message="Use um valor numérico válido (ex. 1.234,56).";
       if(value && c.field.tipo === "INTEIRO" && !/^\d+$/.test(value.trim()))message="Use um número inteiro.";
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
@@ -332,6 +336,8 @@
     document.querySelectorAll("#participantes .field-section, #campos-globais .field-section").forEach(s=>{
       s.hidden=![...s.querySelectorAll(".field")].some(f=>!f.hidden);
     });
+    // Cartão sem campo visível (todos em outra página) some junto com o título.
+    document.querySelectorAll("#campos-globais .card").forEach(c=>{c.hidden=![...c.querySelectorAll(".field-section")].some(s=>!s.hidden);});
     if(!form().dateValid(draft.globals.data_assinatura)) result.push({field:"data_assinatura",message:"Informe uma data válida."});
     if(!draft.globals.local_assinatura)result.push({field:"local_assinatura",message:"Informe o local da assinatura."});
     return result;

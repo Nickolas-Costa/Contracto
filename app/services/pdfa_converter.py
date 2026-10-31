@@ -152,6 +152,7 @@ def converter_para_pdfa(
         comando = [
             str(caminho_gs),
             "-dSAFER",
+            *([f"--permit-file-read={_perfil_icc()}"] if _perfil_icc() else []),
             f"-dPDFA={nivel_pdfa}",
             "-dBATCH",
             "-dNOPAUSE",
@@ -336,23 +337,41 @@ def converter_lote(
     return resultado_lote
 
 
+def _perfil_icc() -> Path | None:
+    """sRGB do próprio Ghostscript no disco; None usa o embutido (%rom%)."""
+    gs = localizar_ghostscript()
+    if gs is None:
+        return None
+    for pasta in (gs.parent.parent / "iccprofiles", gs.parent / "iccprofiles"):
+        for nome in ("default_rgb.icc", "srgb.icc"):
+            if (pasta / nome).is_file():
+                return pasta / nome
+    return None
+
+
 def _gerar_pdfa_def(nivel: str) -> str:
-    """Gera o conteúdo do arquivo PostScript auxiliar para definição PDF/A.
+    """PostScript auxiliar do Ghostscript: metadados e OutputIntent sRGB.
 
-    O Ghostscript requer um arquivo .ps com definições de metadados e
-    perfil de cor ICC para gerar documentos compatíveis com PDF/A.
-    Este arquivo é processado antes do PDF de entrada.
+    Sem o OutputIntent o arquivo sai marcado PDF/A, mas reprovado nos
+    validadores ("Page Group entry is missing in a document without OutputIntent").
     """
-    return """%!PS
+    icc = _perfil_icc()
+    caminho = str(icc).replace("\\", "/").replace("(", "\\(").replace(")", "\\)") if icc else "%rom%iccprofiles/default_rgb.icc"
+    return f"""%!PS
 % Definições para conformidade PDF/A (gerado automaticamente)
-
-% Definir metadados mínimos do documento
 [ /Title (Documento)
   /DOCINFO pdfmark
 
-% Definir intent de saída com perfil sRGB embutido pelo Ghostscript.
-% O Ghostscript resolve o perfil ICC automaticamente quando
-% ProcessColorModel=DeviceRGB e ColorConversionStrategy=UseDeviceIndependentColor
-% estão definidos na linha de comando.
+[/_objdef {{icc_PDFA}} /type /stream /OBJ pdfmark
+[{{icc_PDFA}} <</N 3>> /PUT pdfmark
+[{{icc_PDFA}} ({caminho}) (r) file /PUT pdfmark
+[/_objdef {{OutputIntent_PDFA}} /type /dict /OBJ pdfmark
+[{{OutputIntent_PDFA}} <<
+  /Type /OutputIntent
+  /S /GTS_PDFA1
+  /DestOutputProfile {{icc_PDFA}}
+  /OutputConditionIdentifier (sRGB)
+  /Info (sRGB IEC61966-2.1)
+>> /PUT pdfmark
+[{{Catalog}} <</OutputIntents [ {{OutputIntent_PDFA}} ]>> /PUT pdfmark
 """
-

@@ -39,6 +39,18 @@
     if (tam <= 4) return digitos.slice(0, 2) + "/" + digitos.slice(2);
     return digitos.slice(0, 2) + "/" + digitos.slice(2, 4) + "/" + digitos.slice(4);
   }
+  // CPF até 11 dígitos; acima disso CNPJ (alfanumérico) com 00.000.000/0000-00.
+  function formatDocProgressive(valor) {
+    const s = String(valor).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (s.length <= 11 && /^\d*$/.test(s)) return formatCpfProgressive(s);
+    const c = s.slice(0, 14);
+    let out = c.slice(0, 2);
+    if (c.length > 2) out += "." + c.slice(2, 5);
+    if (c.length > 5) out += "." + c.slice(5, 8);
+    if (c.length > 8) out += "/" + c.slice(8, 12);
+    if (c.length > 12) out += "-" + c.slice(12);
+    return out;
+  }
   function cpfValid(value) {
     const s = onlyDigits(value);
     if (s.length !== 11 || /^(\d)\1+$/.test(s)) return false;
@@ -53,6 +65,10 @@
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return false;
     const [d,m,y] = s.split("/").map(Number), date = new Date(y,m-1,d);
     return y >= 1900 && date.getFullYear() === y && date.getMonth() === m-1 && date.getDate() === d;
+  }
+  function dateFuture(s) {
+    const [d, m, y] = s.split("/").map(Number), hoje = new Date();
+    return new Date(y, m - 1, d) > new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   }
   // Pesos oficiais do CNPJ (iguais a utils/cnpj_validator.py); valor do caractere = ASCII - 48.
   const PESOS_CNPJ = [[5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]];
@@ -124,5 +140,5 @@
         local_assinatura: draft.globals.local_assinatura || "", campos_dinamicos: dynamic};
     });
   }
-  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, valorNumericoValid, dateValid, participants, formatCpfProgressive, formatDateProgressive, formatMoedaProgressive, formatMoedaFinal};
+  window.ContractoForm = {canonical, visible, paginaDe, cpfValid, cnpjValid, docValid, pisValid, emailValid, telefoneValid, anoValid, valorNumericoValid, dateValid, dateFuture, participants, formatCpfProgressive, formatDocProgressive, formatDateProgressive, formatMoedaProgressive, formatMoedaFinal};
 })();

@@ -9,6 +9,19 @@ from utils.profile_manager import CampoEntrada, Perfil
 
 
 class TestFormValidation(unittest.TestCase):
+    def test_data_de_nascimento_futura_e_invalida(self):
+        campo = CampoEntrada("dataNascimento", "Data de nascimento", tipo="DATA", obrigatorio=True)
+        self.assertTrue(valor_valido(campo, "01/01/1990"))
+        self.assertFalse(valor_valido(campo, "01/01/2999"))
+        # Outras datas (ex.: assinatura) podem ser futuras.
+        self.assertTrue(valor_valido(CampoEntrada("data_assinatura", "Assinatura", tipo="DATA"), "01/01/2999"))
+
+    def test_pdfa_def_declara_output_intent(self):
+        from services.pdfa_converter import _gerar_pdfa_def
+        ps = _gerar_pdfa_def("2")
+        self.assertIn("/OutputIntent", ps)
+        self.assertIn("/OutputIntents", ps)
+
     def test_required_conditional_and_hidden_value_cleared(self):
         profile = Perfil(campos_entrada=[CampoEntrada("situacao", "Situação", tipo="SELECAO", opcoes=["ATIVO", "INATIVO"]),
                                         CampoEntrada("pis", "PIS", tipo="PIS_PASEP", visivel_quando=[{"situacao": ["ATIVO"]}])])

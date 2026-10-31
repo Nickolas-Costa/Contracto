@@ -60,7 +60,8 @@ class ConvertInput(Model):
     file_ids: list[Id] = Field(min_length=1, max_length=20)
     output_id: Id
     format: Literal["PDF", "PDF/A-2b"] = "PDF"
-    nome_saida: Annotated[str, StringConstraints(pattern=r"^[\w\-. ]{1,100}$")] | None = None
+    # Um nome por arquivo, na ordem de file_ids; vazio mantém o nome original.
+    nomes_saida: list[Annotated[str, StringConstraints(pattern=r"^[\w\-. ]{0,100}$")]] | None = Field(default=None, max_length=20)
 
 
 class Error(Model):

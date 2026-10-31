@@ -8,6 +8,9 @@
       polling = false, failures = 0, sending = false, bound = false, caps = null,
       formatoPadrao = null, formatoEscolhido = false, sincronizarFormato = null;
 
+  // Mesma regra do backend (nomes_saida); vazio mantém o nome original.
+  const NOME_VALIDO = /^[\w\-. ]{1,100}$/;
+
   function status(state, message, detail) {
     // Sem pill na toolbar (foto 1): andamento em toast/modal + estado local.
     $("conversao-estado").dataset.state = state;
@@ -17,12 +20,11 @@
 
   function atualizar() {
     const formato = $("conversao-formato").value;
-    const nomeOk = arquivos.length !== 1 || $("conversao-nome").value.trim().length <= 100;
+    const nomeOk = arquivos.every(a => !a.nome || NOME_VALIDO.test(a.nome));
     $("btn-converter").disabled = !online() || sending || !!active || !arquivos.length || !outputId || !nomeOk;
     $("btn-conversao-pasta").disabled = !online() || !!active;
     $("btn-conversao-cancelar").hidden = !active;
     $("conversao-formato").disabled = !!active;
-    $("conversao-nome").disabled = !!active || arquivos.length !== 1;
     $("drop-conversao").classList.toggle("ocupado", !!active);
     const optPDFA = $("conversao-formato").querySelector('[value="PDF/A-2b"]');
     if (optPDFA) optPDFA.disabled = !caps?.ghostscript;
@@ -47,7 +49,20 @@
       const detail = document.createElement("p");
       detail.className = "hint";
       detail.textContent = "Original preservado";
-      info.append(name, detail);
+      const novo = document.createElement("input");
+      novo.className = "documento-nome";
+      novo.autocomplete = "off";
+      novo.value = a.nome || "";
+      novo.placeholder = "Novo nome (opcional)";
+      novo.disabled = !!active;
+      novo.setAttribute("aria-label", "Novo nome para " + a.name);
+      novo.addEventListener("input", () => {
+        a.nome = novo.value.trim();
+        if (a.nome && !NOME_VALIDO.test(a.nome)) novo.setAttribute("aria-invalid", "true");
+        else novo.removeAttribute("aria-invalid");
+        atualizar();
+      });
+      info.append(name, detail, novo);
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "btn btn-secondary btn-sm";
@@ -105,14 +120,13 @@
     if (sending || active || !online() || !arquivos.length || !outputId) return;
     const formato = $("conversao-formato").value;
     if (formato === "PDF/A-2b" && !caps?.ghostscript) { ui().toast("PDF/A requer Ghostscript.", "error"); return; }
-    const nome = $("conversao-nome").value.trim();
-    if (arquivos.length === 1 && nome && !/^[\w\-. ]{1,100}$/.test(nome)) {
+    if (!arquivos.every(a => !a.nome || NOME_VALIDO.test(a.nome))) {
       ui().toast("Nome inválido: use letras, números, espaços, ponto ou hífen (máx. 100).", "warning");
       return;
     }
     const payload = { file_ids: arquivos.map(a => a.selection_id), output_id: outputId,
                       format: formato, request_id: novoRequestId() };
-    if (arquivos.length === 1 && nome) payload.nome_saida = nome;
+    if (arquivos.some(a => a.nome)) payload.nomes_saida = arquivos.map(a => a.nome || "");
     sending = true;
     atualizar();
     try {
@@ -198,7 +212,20 @@
       const detail = document.createElement("p");
       detail.className = "hint";
       detail.textContent = Math.max(1, Math.ceil((f.size_bytes || 0) / 1024)) + " KB";
-      info.append(name, detail);
+      const novo = document.createElement("input");
+      novo.className = "documento-nome";
+      novo.autocomplete = "off";
+      novo.value = a.nome || "";
+      novo.placeholder = "Novo nome (opcional)";
+      novo.disabled = !!active;
+      novo.setAttribute("aria-label", "Novo nome para " + a.name);
+      novo.addEventListener("input", () => {
+        a.nome = novo.value.trim();
+        if (a.nome && !NOME_VALIDO.test(a.nome)) novo.setAttribute("aria-invalid", "true");
+        else novo.removeAttribute("aria-invalid");
+        atualizar();
+      });
+      info.append(name, detail, novo);
       const btn = document.createElement("button");
       btn.className = "btn btn-secondary";
       btn.type = "button";
@@ -324,7 +351,6 @@
     });
     sincronizarFormato = ui().segmentar?.($("conversao-formato"), "Formato de saída");
     $("conversao-formato").addEventListener("change", () => { formatoEscolhido = true; atualizar(); });
-    $("conversao-nome").addEventListener("input", atualizar);
     document.addEventListener("DOMContentLoaded", carregarCapacidades);
     if (document.readyState !== "loading") carregarCapacidades();
   }

@@ -73,7 +73,7 @@ class TestConvertAPI(unittest.TestCase):
 
     def test_convert_pdf_para_pdf_com_nome_personalizado(self):
         payload = {"file_ids": [self.file_id], "output_id": self.output_id,
-                   "format": "PDF", "nome_saida": "guia quitado",
+                   "format": "PDF", "nomes_saida": ["guia quitado"],
                    "request_id": "d" * 32}
         status, job = self.http("/api/v1/jobs/convert", payload)
         self.assertEqual(status, 202, job)
@@ -93,15 +93,21 @@ class TestConvertAPI(unittest.TestCase):
                                  {**base, "file_ids": [self.file_id, self.file_id]})
         self.assertEqual(status, 422)
         self.assertEqual(data["code"], "duplicate_files")
-        status, data = self.http("/api/v1/jobs/convert", {**base, "nome_saida": "x"})
+        status, data = self.http("/api/v1/jobs/convert", {**base, "nomes_saida": ["x"]})
         # Um arquivo com nome personalizado é válido; o erro só vale p/ múltiplos.
         self.assertEqual(status, 202)
         outro = self.root / "outro.pdf"
         outro.write_bytes(self.pdf.read_bytes())
         outro_id = self.server.jobs.selections.register(outro, "convert")
         status, data = self.http("/api/v1/jobs/convert",
-                                 {**base, "file_ids": [self.file_id, outro_id], "nome_saida": "x"})
+                                 {**base, "file_ids": [self.file_id, outro_id], "nomes_saida": ["x"]})
         self.assertEqual(status, 422)
+        # Um nome por arquivo: ambos são renomeados; vazio mantém o original.
+        status, job = self.http("/api/v1/jobs/convert",
+                                {**base, "file_ids": [self.file_id, outro_id], "nomes_saida": ["um", ""]})
+        self.assertEqual(status, 202, job)
+        done = self.wait_job(job["job_id"])
+        self.assertEqual(sorted(f["name"] for f in done["files"]), sorted(["um.pdf", "outro.pdf"]))
 
     def test_convert_exige_capacidade_antes_do_job(self):
         rtf = self.root / "doc.rtf"
