@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v5.0.0-005CA9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.1.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -66,6 +66,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 
 ---
 
+## Atualizações da Versão 5.1.0
+
+Polimento visual e correções de fluxo: ícones, toast legível, barra fixa sem emenda, máscara de CNPJ, renomeio por arquivo na Conversão, pastas do Contrato simplificadas e PDF/A com OutputIntent. Detalhes no `CHANGELOG.md`.
+
 ## Atualizações da Versão 5.0.0
 
 Interface Tk aposentada (a WebView é a única UI), backend `sidecar` e contrato nativo prontos para o Tauri, validação de CNPJ corrigida, máscara de moeda, conferência reformulada e Etapa 1 fatiada em módulos. Detalhes em [CHANGELOG.md](CHANGELOG.md) e ADRs 0027–0030.
@@ -124,7 +128,7 @@ CONTRACTO/
 │   ├── webview_shell.py                # Shell pywebview/WebView2 e ponte nativa
 │   ├── sidecar.py                      # Backend headless para o shell Tauri (ADR 0029)
 │   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── version.py                      # Versão centralizada do sistema (v5.0.0)
+│   ├── version.py                      # Versão centralizada do sistema (v5.1.0)
 │   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
 │   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis
 │   ├── models/                         # Entidades (participante)
@@ -168,13 +172,13 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação do Executável (.exe)
 
-Para compilar o executável autônomo da versão 5.0.0, execute:
+Para compilar o executável autônomo da versão 5.1.0, execute:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v5.0.0.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v5.0.0.exe`.
+O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v5.1.0.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v5.1.0.exe`.
 
 > O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
 

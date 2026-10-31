@@ -3,6 +3,37 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.1.0] - 2026-10-31
+
+Polimento visual e correções de fluxo. Sem mudança no motor de geração.
+
+### Interface
+- Ícones em SVG na barra superior, botões de ação e botões criados pelo JavaScript; galeria no laboratório visual.
+- Azul padrão `#1E6FB3` (vale para instalações novas; quem já tem cor salva mantém a sua).
+- Animações de entrada de telas, janelas, avisos e cartões; tooltips; stepper com etapas concluídas e trilho preenchido.
+- Guia de ajuda em abas (F1) e tour guiado de seis passos.
+- Barra superior fixa agora é uma faixa de borda a borda, sem a "quebra" nas laterais.
+- Avisos (toast) maiores, com fundo sólido, borda e selo na cor do tipo; legíveis no modo escuro.
+- Menus suspensos com seta própria, foco em azul e opções mais espaçosas.
+- Removido o desfoque dos cartões, que deixava áreas sem repintar no WebView2.
+- Estado vazio na lista da Conversão.
+
+### Formulário
+- O cartão "Dados compartilhados" só aparece quando tem campo visível na página.
+- Agência e Conta CAIXA passam a ser obrigatórias (perfis novos).
+- Data de nascimento no futuro é recusada, na tela e no backend.
+- CNPJ e CPF/CNPJ recebem a máscara `00.000.000/0000-00` enquanto se digita.
+
+### Conversão
+- Cada arquivo da lista tem seu próprio campo de novo nome. A API passa a usar `nomes_saida` (um nome por arquivo) no lugar de `nome_saida`.
+
+### Pastas do modo Contrato
+- Os arquivos finais vão para `PDF-A/` direto na pasta escolhida, sem pasta extra com o nome do cliente.
+- A pasta intermediária "(gerados)" é apagada depois da conversão (somente os PDFs criados pelo app e só se a pasta ficar vazia).
+
+### PDF/A
+- Os arquivos agora declaram OutputIntent sRGB com perfil embutido, corrigindo o erro "Page Group entry is missing in a document without OutputIntent" dos validadores. Teste real com Ghostscript incluído.
+
 ## [5.0.0] - 2026-10-28
 
 Versão maior: a interface Tk deixa de existir e dependências saem do pacote
