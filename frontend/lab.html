@@ -108,8 +108,38 @@
     flex-wrap: wrap;
   }
 </style>
+<style>
+  .lab-icones{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin:12px 0}
+  .lab-icone{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--c-border);border-radius:var(--r-input);background:var(--c-surface)}
+  .lab-icone code{font-size:12px;color:var(--c-text-secondary)}
+  .lab-tour{position:static;animation:none}
+  .lab-section h3{margin:20px 0 8px;font-size:14px}
+</style>
 </head>
 <body class="lab-body">
+<svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+<symbol id="i-profiles" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-advance" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-convert" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+<symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+</defs></svg>
+
 
 <!-- Fundo Decorativo de Ondas Senoidais & Orbes Ambientes -->
 <div class="bg-waves-container" aria-hidden="true">
@@ -293,6 +323,58 @@
   </section>
 
   <!-- Seção 6: Cartões e Glassmorphism -->
+  <section class="lab-section">
+    <div class="lab-section-title"><h2>Ícones, tooltips, stepper e guia (v5.1)</h2></div>
+    <p class="hint">Sprite SVG inline: herda currentColor e funciona nos dois temas.</p>
+    <div class="lab-icones">
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-doc"/></svg><code>doc</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-profiles"/></svg><code>profiles</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-help"/></svg><code>help</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-settings"/></svg><code>settings</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg><code>plus</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-folder"/></svg><code>folder</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg><code>back</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-advance"/></svg><code>advance</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><code>check</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-warning"/></svg><code>warning</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-save"/></svg><code>save</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-upload"/></svg><code>upload</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-convert"/></svg><code>convert</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-queue"/></svg><code>queue</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-trash"/></svg><code>trash</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-eye"/></svg><code>eye</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-edit"/></svg><code>edit</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-copy"/></svg><code>copy</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg><code>x</code></div>
+<div class="lab-icone"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-search"/></svg><code>search</code></div>
+    </div>
+    <h3>Botões com ícone</h3>
+    <div class="page-actions">
+      <button class="btn btn-primary" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Finalizar processo</button>
+      <button class="btn btn-secondary" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-folder"/></svg>Escolher pasta</button>
+      <button class="btn btn-secondary" type="button" data-tooltip="Tooltip em CSS puro, com atraso de 350 ms."><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-help"/></svg>Passe o mouse</button>
+      <button class="btn btn-secondary btn-sm" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-trash"/></svg>Remover</button>
+    </div>
+    <h3>Stepper com progresso</h3>
+    <ol class="stepper" aria-label="Etapas (exemplo)">
+      <li><button type="button" class="feito"><span class="step-number">1</span>Preencher dados</button></li>
+      <li class="step-divider feito" aria-hidden="true"></li>
+      <li><button type="button" aria-current="step"><span class="step-number">2</span>Conferir</button></li>
+      <li class="step-divider" aria-hidden="true"></li>
+      <li><button type="button"><span class="step-number">3</span>Concluir</button></li>
+    </ol>
+    <h3>Guia de ajuda (abas e passos)</h3>
+    <div class="guia">
+      <div class="guia-abas" role="tablist"><button type="button" role="tab" aria-selected="true">Passo a passo</button><button type="button" role="tab" aria-selected="false">Dicas e atalhos</button></div>
+      <div class="guia-painel"><div>
+        <div class="guia-passo"><span class="guia-num">1</span><div><strong>Escolha o modo</strong><p>Simples, Contrato ou Conversão.</p></div></div>
+        <div class="guia-passo"><span class="guia-num">2</span><div><strong>Preencha os dados</strong><p>Campos com * são obrigatórios.</p></div></div>
+      </div></div>
+    </div>
+    <h3>Tour guiado (balão)</h3>
+    <div class="tour lab-tour"><strong>Gerar</strong><p>Libera quando não há campos pendentes.</p><div class="tour-rodape"><span class="hint">5 de 6</span><button class="btn btn-subtle" type="button">Pular</button><button class="btn btn-primary btn-sm" type="button">Próximo</button></div></div>
+  </section>
+
   <section class="lab-section">
     <div class="lab-section-title">
       <span>6. Cartões Glassmorphic e Elevação</span>

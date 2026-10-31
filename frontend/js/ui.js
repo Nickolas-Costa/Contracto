@@ -76,7 +76,7 @@
       const fechar = document.createElement("button");
       fechar.type = "button";
       fechar.className = "modal-fechar";
-      fechar.textContent = "✕";
+      fechar.innerHTML = '<svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg>';
       fechar.setAttribute("aria-label", "Fechar diálogo");
       fechar.addEventListener("click", fecharModal);
       faixa.append(fechar);
@@ -158,6 +158,14 @@
       b.disabled = locked;
       b.title = locked ? "Conclua a etapa anterior para avançar" : "";
     });
+    marcarProgresso(etapaAtual);
+  }
+  // Etapas anteriores à atual ganham check e o trilho entre elas se preenche.
+  let etapaAtual = 1;
+  function marcarProgresso(etapa) {
+    etapaAtual = etapa || etapaAtual;
+    document.querySelectorAll("#stepper [data-etapa]").forEach(b => b.classList.toggle("feito", Number(b.dataset.etapa) < etapaAtual));
+    document.querySelectorAll("#stepper .step-divider").forEach((d, i) => d.classList.toggle("feito", i + 1 < etapaAtual));
   }
   function mostrarTela(nome) {
     if (!["inicio", "conferir", "etapa2", "perfis", "config", "conversao"].includes(nome)) return;
@@ -171,6 +179,7 @@
       else b.removeAttribute("aria-current");
     });
     const etapa = etapaAtiva(nome);
+    if (etapa) marcarProgresso(etapa);
     document.querySelectorAll("#stepper [data-etapa]").forEach(b => {
       if (etapa && Number(b.dataset.etapa) === etapa) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
@@ -231,21 +240,74 @@
 
   document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
-  const TEXTO_AJUDA = [
-    "1. Escolha o modo (Simples para vários formulários, Contrato para processo completo) e o modelo.",
-    "2. Preencha os dados de cada participante e confira o resumo antes de gerar.",
-    "3. Em Concluir, revise os PDFs, anexe comprovantes se preciso, escolha PDF ou PDF/A-2b e finalize."
-  ];
+  // Guia em abas: passo a passo por modo, dicas/atalhos e problemas comuns.
+  const GUIA = {
+    "Passo a passo": [
+      ["Escolha o modo", "Simples gera vários formulários de uma vez; Contrato monta o processo completo (1 contrato + formulários); Conversão transforma arquivos avulsos em PDF."],
+      ["Selecione o modelo e preencha", "Informe os dados de cada participante. Campos com * são obrigatórios; o botão Gerar libera quando nada estiver pendente."],
+      ["Defina assinatura e pasta", "Data, local e a pasta onde os documentos serão salvos. Cada trabalho cria a sua própria subpasta."],
+      ["Confira o resumo (Etapa 2)", "Revise participantes, campos e modelos. Anexe documentos extras (PDF ou RTF) se o processo pedir."],
+      ["Conclua (Etapa 3)", "Veja os PDFs gerados, escolha PDF ou PDF/A-2b e use Finalizar processo. Os originais nunca são alterados."]
+    ],
+    "Dicas e atalhos": [
+      ["F1", "Abre este guia em qualquer tela."],
+      ["Esc", "Fecha diálogos e avisos."],
+      ["Tab / Shift+Tab", "Percorre campos e botões; Enter ou Espaço aciona."],
+      ["Perfis", "Guarde modelos prontos (campos e formatos) e reutilize em novos trabalhos; faça backup em Configurações."],
+      ["Configurações", "Tema claro/escuro, cor de destaque, largura dos quadros e formato de saída padrão."]
+    ],
+    "Problemas comuns": [
+      ["Botão Gerar desativado", "Há campos pendentes ou nenhum modelo selecionado. Use Revisar campos pendentes para ir direto a cada um."],
+      ["PDF/A indisponível", "Exige o Ghostscript no computador. Sem ele, use PDF simples."],
+      ["RTF/DOC não converte", "A conversão depende do Microsoft Word instalado."],
+      ["Serviço local indisponível", "Feche e abra o Contracto. Se persistir, rode Diagnóstico e reparo em Configurações."]
+    ]
+  };
   function ajudaModal() {
     const wrap = document.createElement("div");
-    TEXTO_AJUDA.forEach(t => { const p = document.createElement("p"); p.textContent = t; wrap.append(p); });
+    wrap.className = "guia";
+    const abas = document.createElement("div");
+    abas.className = "guia-abas";
+    abas.setAttribute("role", "tablist");
+    const painel = document.createElement("div");
+    painel.className = "guia-painel";
+    painel.setAttribute("role", "tabpanel");
+    const botoes = [];
+    function mostrar(nome) {
+      botoes.forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === nome)));
+      const itens = GUIA[nome];
+      const atalhos = nome === "Dicas e atalhos";
+      const novo = document.createElement(atalhos ? "dl" : "div");
+      if (atalhos) novo.className = "guia-lista";
+      itens.forEach(([t, d], i) => {
+        if (atalhos) {
+          const dt = document.createElement("dt"), dd = document.createElement("dd");
+          const k = document.createElement(i < 3 ? "kbd" : "strong"); k.textContent = t; dt.append(k); dd.textContent = d;
+          novo.append(dt, dd);
+          return;
+        }
+        const passo = document.createElement("div"); passo.className = "guia-passo";
+        const n = document.createElement("span"); n.className = "guia-num"; n.setAttribute("aria-hidden", "true"); n.textContent = nome === "Passo a passo" ? String(i + 1) : "?";
+        const corpo = document.createElement("div"), st = document.createElement("strong"), p = document.createElement("p");
+        st.textContent = t; p.textContent = d; corpo.append(st, p); passo.append(n, corpo); novo.append(passo);
+      });
+      painel.replaceChildren(novo);
+    }
+    Object.keys(GUIA).forEach(nome => {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.aba = nome; b.textContent = nome; b.setAttribute("role", "tab");
+      b.addEventListener("click", () => mostrar(nome));
+      botoes.push(b); abas.append(b);
+    });
+    wrap.append(abas, painel);
+    mostrar("Passo a passo");
     // Foto 6: a seção Sobre saiu da Config; a versão vive aqui.
     const versao = document.createElement("p");
     versao.className = "hint";
     versao.id = "versao-app";
     versao.textContent = "Consultando versão…";
     wrap.append(versao);
-    abrirModal("Ajuda — Contracto em 3 passos", wrap, [{ texto: "Entendi, começar!", primario: true }]);
+    abrirModal("Ajuda — Guia do Contracto", wrap, [{ texto: "Fazer tour guiado", aoClicar: () => window.ContractoTour?.iniciar() }, { texto: "Entendi, começar!", primario: true }]);
     if (window.ContractoAPI) {
       window.ContractoAPI.request("GET", "/api/v1/health").then(r => {
         const el = document.getElementById("versao-app");
@@ -258,6 +320,9 @@
       }).catch(() => {});
     }
   }
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "F1" && document.getElementById("overlay").hidden) { ev.preventDefault(); ajudaModal(); }
+  });
   async function boasVindasSePreciso() {
     try {
       const r = await window.ContractoAPI.getSettings();
@@ -274,7 +339,7 @@
   }
   document.addEventListener("DOMContentLoaded", () => { setTimeout(boasVindasSePreciso, 800); });
 
-  let corAtual = "#005CA9";
+  let corAtual = "#1E6FB3";
 
   function aplicarTema(nome) {
     document.documentElement.dataset.theme = nome === "dark" ? "dark" : "light";
@@ -335,7 +400,7 @@
       if (cor && /^#[0-9A-Fa-f]{6}$/.test(cor)) corSalva = cor;
     } catch (e) { /* sem armazenamento: segue o claro */ }
     aplicarTema(resolverTema(pref));
-    aplicarCor(corSalva || "#005CA9");
+    aplicarCor(corSalva || "#1E6FB3");
     if (window.matchMedia) {
       try {
         const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -357,7 +422,7 @@
   }
 
   function cfgLerSalvos() {
-    let tema = "sistema", cor = "#005CA9";
+    let tema = "sistema", cor = "#1E6FB3";
     try {
       const t = localStorage.getItem("contracto-tema");
       if (t === "light" || t === "dark") tema = t;
@@ -425,7 +490,7 @@
       if (r.status !== 200 || !r.data) return;
       const backend = r.data;
       const pref = backend.aparencia === "dark" || backend.aparencia === "light" ? backend.aparencia : "sistema";
-      const cor = /^#[0-9A-Fa-f]{6}$/.test(backend.cor_destaque || "") ? backend.cor_destaque : "#005CA9";
+      const cor = /^#[0-9A-Fa-f]{6}$/.test(backend.cor_destaque || "") ? backend.cor_destaque : "#1E6FB3";
       try {
         localStorage.setItem("contracto-tema", pref);
         localStorage.setItem("contracto-cor", cor);
@@ -485,7 +550,7 @@
     const local = document.getElementById("cfg-local-padrao");
     const tam = document.getElementById("cfg-tamanho");
     const fmt = document.getElementById("cfg-formato");
-    const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#005CA9";
+    const corFinal = (/^#[0-9A-Fa-f]{6}$/.test((texto && texto.value) || "") ? texto.value : (cor && cor.value)) || "#1E6FB3";
     const prefFinal = (sel && (sel.value === "dark" || sel.value === "light")) ? sel.value : "sistema";
     try {
       localStorage.setItem("contracto-tema", prefFinal);
@@ -541,9 +606,9 @@
             const r = await window.ContractoAPI.restoreSettings();
             if (r.status !== 200) { toast("Não foi possível restaurar os padrões.", "error"); return; }
             const pref = (r.data.aparencia === "dark" || r.data.aparencia === "light") ? r.data.aparencia : "sistema";
-            try { localStorage.setItem("contracto-tema", pref); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#005CA9"); } catch (_) {}
+            try { localStorage.setItem("contracto-tema", pref); localStorage.setItem("contracto-cor", r.data.cor_destaque || "#1E6FB3"); } catch (_) {}
             aplicarTema(resolverTema(pref));
-            aplicarCor(r.data.cor_destaque || "#005CA9");
+            aplicarCor(r.data.cor_destaque || "#1E6FB3");
             aplicarLargura(r.data.tamanho_quadros);
             await cfgCarregarRascunho();
             toast("Padrões restaurados.", "success");
@@ -698,5 +763,15 @@
     return sincronizar;
   }
 
-  window.ContractoUI = { segmentar, alternarExpansao, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
+  // Ícone do sprite (index.html) como elemento, para botões criados em JS.
+  function icone(nome) {
+    const NS = "http" + "://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg"), uso = document.createElementNS(NS, "use");
+    svg.setAttribute("class", "ico"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18"); svg.setAttribute("aria-hidden", "true");
+    uso.setAttribute("href", "#i-" + nome);
+    svg.append(uso);
+    return svg;
+  }
+
+  window.ContractoUI = { icone, segmentar, alternarExpansao, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
 })();

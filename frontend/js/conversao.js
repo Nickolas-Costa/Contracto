@@ -51,7 +51,7 @@
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "btn btn-secondary btn-sm";
-      remove.textContent = "Remover";
+      remove.textContent = "Remover"; remove.prepend(window.ContractoUI.icone("trash"));
       remove.setAttribute("aria-label", "Remover " + a.name);
       remove.disabled = !!active;
       remove.addEventListener("click", () => {
@@ -202,7 +202,7 @@
       const btn = document.createElement("button");
       btn.className = "btn btn-secondary";
       btn.type = "button";
-      btn.textContent = "Visualizar";
+      btn.textContent = "Visualizar"; btn.prepend(window.ContractoUI.icone("eye"));
       btn.setAttribute("aria-label", "Visualizar " + f.name);
       btn.addEventListener("click", () => window.ContractoEtapa2 && visualizarViaEtapa2(f));
       row.append(info, btn);

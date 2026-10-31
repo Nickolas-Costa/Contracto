@@ -10,21 +10,43 @@
 <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
+<svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+<symbol id="i-profiles" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-advance" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-convert" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+<symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+</defs></svg>
 <div id="app">
   <button class="skip-link" id="pular-conteudo" type="button">Pular para o conteúdo</button>
   <header class="toolbar">
     <span class="marca"><img class="brand-mark" src="assets/logo.png" alt="Logotipo do Contracto" width="34" height="38">Contracto</span>
     <nav aria-label="Telas">
-      <button data-tela="inicio" type="button" aria-current="page">Documentos</button>
-      <button data-tela="perfis" type="button">Perfis</button>
+      <button data-tela="inicio" type="button" aria-current="page"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-doc"/></svg>Documentos</button>
+      <button data-tela="perfis" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-profiles"/></svg>Perfis</button>
     </nav>
     <div class="modos toolbar-mode" role="group" aria-label="Modo de geração">
       <button id="modo-simples" type="button" data-tooltip="Gere vários formulários de uma vez em lote.">Simples</button><button id="modo-contrato" type="button" aria-current="page" data-tooltip="Gere um contrato e organize o processo completo.">Contrato</button><button id="modo-conversao" type="button" data-tooltip="Converta arquivos avulsos para PDF ou PDF/A-2b.">Conversão</button>
     </div>
     <div class="toolbar-actions">
       <span id="badge-participantes" class="participant-badge" role="status">1 participante</span>
-      <button type="button" id="btn-ajuda-topo">Ajuda</button>
-      <button data-tela="config" type="button" id="btn-config-topo">Configurações</button>
+      <button type="button" id="btn-ajuda-topo" aria-keyshortcuts="F1" data-tooltip="Guia passo a passo (F1)"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-help"/></svg>Ajuda</button>
+      <button data-tela="config" type="button" id="btn-config-topo"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-settings"/></svg>Configurações</button>
     </div>
   </header>
 
@@ -50,12 +72,12 @@
           <div class="loading-status" role="status"><span class="spinner" aria-hidden="true"></span><span>Buscando modelos…</span></div>
           <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
         </div>
-        <div id="wrapper-selecionar-todos" style="margin-top:10px;text-align:right" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
+        <div id="wrapper-selecionar-todos" hidden><button class="btn btn-secondary btn-sm" id="btn-selecionar-todos" type="button">Selecionar todos</button></div>
       </div>
       <div id="paginacao-form" class="paginacao-form" hidden></div>
       <div id="participantes"></div>
       <div class="acoes-participantes">
-        <button class="btn btn-secondary" id="btn-adicionar" type="button" disabled>Adicionar participante</button>
+        <button class="btn btn-secondary" id="btn-adicionar" type="button" disabled><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>Adicionar participante</button>
         <span id="limite-participantes"></span>
       </div>
       <div id="campos-globais"></div>
@@ -78,7 +100,7 @@
         <div class="field field-wide">
           <label for="pasta-saida">Salvar documentos em *</label>
           <div class="folder-picker"><input id="pasta-saida" readonly placeholder="Nenhuma pasta selecionada">
-          <button class="btn btn-secondary" id="btn-pasta" type="button">Escolher pasta</button></div>
+          <button class="btn btn-secondary" id="btn-pasta" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-folder"/></svg>Escolher pasta</button></div>
           <p class="field-note">Cada trabalho terá sua própria subpasta.</p>
         </div>
         </div>
@@ -86,12 +108,12 @@
       <div class="acoes form-actions form-actions-etapa1">
         <div class="action-status"><span class="pendencias" id="pendencias" role="status"></span>
         <div class="action-row">
-          <button class="btn btn-secondary btn-revisar" id="btn-ver-pendencias" type="button" hidden>⚠ Revisar campos pendentes</button>
+          <button class="btn btn-secondary btn-revisar" id="btn-ver-pendencias" type="button" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-warning"/></svg>Revisar campos pendentes</button>
           <label class="checkbox-inline"><input type="checkbox" id="chk-preservar-dados"> Preservar dados após gerar</label>
         </div></div>
         <div class="action-botoes">
         <button class="btn btn-secondary" id="btn-limpar-campos" type="button">Limpar campos</button>
-        <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos</button>
+        <button class="btn btn-primary" id="btn-gerar" type="button" disabled>Gerar documentos<svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-advance"/></svg></button>
         </div>
       </div>
       </div>
@@ -115,8 +137,8 @@
         <div id="corpo-conferencia">Carregando dados para conferência…</div>
       </div>
       <div class="acoes form-actions">
-        <button class="btn btn-secondary" id="btn-conferir-voltar" type="button">Voltar ao formulário</button>
-        <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos</button>
+        <button class="btn btn-secondary" id="btn-conferir-voltar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg>Voltar ao formulário</button>
+        <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos<svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-advance"/></svg></button>
       </div>
     </section>
 
@@ -154,12 +176,12 @@
         <div class="progresso" id="progresso-trabalho" role="progressbar" aria-label="Progresso do trabalho" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="fila-barra"></div></div>
         <div id="lista-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-secondary" id="btn-voltar" type="button">Voltar</button>
-          <button class="btn btn-secondary" id="btn-fila" type="button">Fila</button>
+          <button class="btn btn-secondary" id="btn-voltar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg>Voltar</button>
+          <button class="btn btn-secondary" id="btn-fila" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-queue"/></svg>Fila</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>
-          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden>Abrir pasta</button>
-          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled>FINALIZAR PROCESSO</button>
+          <button class="btn btn-secondary" id="btn-abrir-pasta" type="button" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-folder"/></svg>Abrir pasta</button>
+          <button class="btn btn-primary" id="btn-finalizar" type="button" disabled><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Finalizar processo</button>
         </div>
       </div>
     </section>
@@ -172,7 +194,7 @@
           <p class="hint">Gerencie, crie, duplique, edite, importe e exporte perfis de documentos em WebView.</p>
         </div>
         <div class="page-actions">
-          <button class="btn btn-primary" id="btn-novo-perfil" type="button">Novo perfil</button>
+          <button class="btn btn-primary" id="btn-novo-perfil" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>Novo perfil</button>
         </div>
       </div>
       <div class="card profiles-card">
@@ -198,7 +220,7 @@
       <div class="card">
         <div class="card-header"><div><h2>Arquivos para converter</h2><p class="hint" id="conversao-capacidades">Conferindo recursos locais…</p></div></div>
         <div id="drop-conversao" class="dropzone" role="button" tabindex="0" aria-label="Selecionar arquivos para converter">
-          <span class="dropzone-icone" aria-hidden="true">⇪</span>
+          <span class="dropzone-icone" aria-hidden="true"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-upload"/></svg></span>
           <strong>Arraste para cá ou clique para anexar</strong>
           <span class="hint">PDF, RTF, DOC e DOCX. O original nunca é alterado.</span>
         </div>
@@ -229,10 +251,10 @@
         <div class="progresso" id="conversao-progresso" role="progressbar" aria-label="Progresso da conversão" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div id="conversao-barra"></div></div>
         <div id="conversao-resultados"></div>
         <div class="acoes">
-          <button class="btn btn-secondary" id="btn-conversao-limpar" type="button">Limpar lista</button>
+          <button class="btn btn-secondary" id="btn-conversao-limpar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-trash"/></svg>Limpar lista</button>
           <button class="btn btn-secondary" id="btn-conversao-cancelar" type="button" hidden>Cancelar</button>
-          <button class="btn btn-secondary" id="btn-conversao-abrir" type="button" hidden>Abrir pasta</button>
-          <button class="btn btn-primary" id="btn-converter" type="button" disabled>Converter</button>
+          <button class="btn btn-secondary" id="btn-conversao-abrir" type="button" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-folder"/></svg>Abrir pasta</button>
+          <button class="btn btn-primary" id="btn-converter" type="button" disabled><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-convert"/></svg>Converter</button>
         </div>
       </div>
     </section>
@@ -250,8 +272,8 @@
             <label for="cfg-cor">Cor de destaque</label>
             <div id="cfg-cores" class="color-swatches" role="group" aria-label="Cores predefinidas"></div>
             <div class="color-picker-wrapper">
-              <input type="color" id="cfg-cor" value="#005CA9">
-              <input type="text" id="cfg-cor-texto" value="#005CA9" placeholder="#005CA9" pattern="#[0-9A-Fa-f]{6}">
+              <input type="color" id="cfg-cor" value="#1E6FB3">
+              <input type="text" id="cfg-cor-texto" value="#1E6FB3" placeholder="#1E6FB3" pattern="#[0-9A-Fa-f]{6}">
             </div>
             <p class="field-note">Define a cor dos botões primários, seleções e ondas de fundo.</p>
           </div>
@@ -272,13 +294,13 @@
 
         <div class="acoes form-actions form-actions-config">
           <button class="btn btn-secondary" id="btn-cfg-descartar" type="button">Descartar alterações</button>
-          <button class="btn btn-primary" id="btn-cfg-salvar" type="button">Salvar configurações</button>
+          <button class="btn btn-primary" id="btn-cfg-salvar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-save"/></svg>Salvar configurações</button>
         </div>
 
         <div class="field-section alerta-manutencao"><h2>Manutenção e recuperação</h2><p class="hint">Ações de reparo e restauração. Restaurar padrões não apaga perfis nem documentos.</p>
           <div class="page-actions alerta-acoes">
-            <button class="btn btn-secondary btn-alerta" id="btn-cfg-restaurar" type="button">⚠ Restaurar padrões</button>
-            <button class="btn btn-secondary btn-alerta" id="btn-cfg-reparo" type="button">⚠ Diagnóstico e reparo do sistema</button>
+            <button class="btn btn-secondary btn-alerta" id="btn-cfg-restaurar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-warning"/></svg>Restaurar padrões</button>
+            <button class="btn btn-secondary btn-alerta" id="btn-cfg-reparo" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-warning"/></svg>Diagnóstico e reparo do sistema</button>
           </div>
         </div>
 
@@ -314,6 +336,7 @@
 <script src="js/etapa1.js"></script>
 <script src="js/etapa2.js"></script>
 <script src="js/conversao.js"></script>
+<script src="js/tour.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

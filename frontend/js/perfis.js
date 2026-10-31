@@ -95,12 +95,12 @@
       const btnAtivar = document.createElement("button");
       btnAtivar.type = "button";
       btnAtivar.className = "btn btn-primary btn-sm";
-      btnAtivar.textContent = "Ativar";
+      btnAtivar.textContent = "Ativar"; btnAtivar.prepend(window.ContractoUI.icone("check"));
       btnAtivar.addEventListener("click", () => ativarPerfil(p.nome || p.name));
       const btnEdt = document.createElement("button");
       btnEdt.type = "button";
       btnEdt.className = "btn btn-secondary btn-sm";
-      btnEdt.textContent = "Editar";
+      btnEdt.textContent = "Editar"; btnEdt.prepend(window.ContractoUI.icone("edit"));
       btnEdt.addEventListener("click", () => editarPerfilModal(p));
       const menu = document.createElement("details");
       menu.className = "profile-menu";

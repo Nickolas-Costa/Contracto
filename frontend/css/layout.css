@@ -208,3 +208,83 @@ html{scroll-padding-top:96px}
 .pendencia-item:hover{border-color:var(--c-primary)}
 .identity-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 @media (max-width: 680px) { .identity-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Polimento v5.1 (desktop): ícones, movimento, tooltips, stepper de progresso, telas grandes e guia de ajuda. */
+.sprite{position:absolute}
+.ico{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.btn,.toolbar button,#btn-ajuda-topo,#btn-config-topo{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.toolbar nav button .ico,#btn-ajuda-topo .ico,#btn-config-topo .ico{width:17px;height:17px}
+.btn-primary .ico{stroke-width:2.2}
+#wrapper-selecionar-todos{margin-top:10px;text-align:right}
+.dropzone-icone .ico{width:40px;height:40px;stroke-width:1.5}
+.dropzone{transition:border-color var(--motion-fast) ease,background var(--motion-fast) ease,transform var(--motion-fast) ease}
+.dropzone.arrastando{transform:scale(1.01)}
+/* Fundo: ondas em parallax suave e profundidade no cabeçalho. */
+.bg-waves-svg{animation:deriva 40s ease-in-out infinite alternate}
+@keyframes deriva{from{transform:translate3d(0,0,0)}to{transform:translate3d(-1.5%,1.5%,0)}}
+.toolbar{box-shadow:0 1px 0 var(--c-border),0 6px 18px -14px rgba(20,34,54,.35)}
+/* Movimento: entrada de telas, modal, toast, cartões e botões. */
+@keyframes entrar{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes aparecer{from{opacity:0}to{opacity:1}}
+@keyframes modal-entra{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes toast-entra{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes brilho{to{background-position:-200% 0}}
+#telas>section:not([hidden]){animation:entrar .28s cubic-bezier(.2,.7,.2,1)}
+.overlay:not([hidden]){animation:aparecer var(--motion-med) ease}
+.overlay:not([hidden]) .modal{animation:modal-entra .26s cubic-bezier(.2,.7,.2,1)}
+.toast{animation:toast-entra .26s cubic-bezier(.2,.7,.2,1);border-left:4px solid var(--c-info)}
+.toast.success{border-left-color:var(--c-success)}.toast.error{border-left-color:var(--c-error)}.toast.warning{border-left-color:var(--c-warning-badge)}
+.toast .insignia{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;flex:none;font-size:12px;background:color-mix(in srgb,currentColor 16%,transparent)}
+.card{transition:box-shadow var(--motion-med) ease,border-color var(--motion-med) ease}
+.card:hover{box-shadow:var(--shadow-md)}
+.btn:active:not(:disabled),.toolbar button:active,.seletor-item:active:not(:disabled){transform:translateY(1px) scale(.985)}
+.btn-primary:hover:not(:disabled){box-shadow:var(--shadow-md),0 0 0 3px color-mix(in srgb,var(--c-primary) 22%,transparent)}
+#btn-gerar:not(:disabled),#btn-converter:not(:disabled){box-shadow:var(--shadow-glow)}
+.form-card,.profile-item-card,.pendencia-item{transition:border-color var(--motion-fast) ease,background var(--motion-fast) ease,box-shadow var(--motion-fast) ease}
+.form-card:hover,.perfis-lista .profile-item-card:hover{border-color:var(--c-primary);box-shadow:var(--shadow-sm)}
+.progresso>div,.fila-item .fila-barra>div{transition:width .4s ease}
+.progresso>div{background:linear-gradient(90deg,var(--c-primary),color-mix(in srgb,var(--c-primary) 60%,white));background-size:200% 100%}
+.job-state[data-state="running"] ~ .progresso>div,.job-state[data-state="sending"] ~ .progresso>div{animation:brilho 1.6s linear infinite}
+.job-state[data-state="running"] .job-state-mark,.job-state[data-state="queued"] .job-state-mark{animation:pulsa 1.4s ease-in-out infinite}
+@keyframes pulsa{50%{box-shadow:0 0 0 7px transparent}}
+/* Tooltips (data-tooltip): CSS puro, abaixo do elemento, só com hover/foco. */
+[data-tooltip]{position:relative}
+[data-tooltip]::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 8px);left:50%;transform:translate(-50%,-4px);z-index:30;width:max-content;max-width:260px;padding:6px 10px;border-radius:8px;background:var(--c-text);color:var(--c-bg);font-size:12px;font-weight:500;line-height:1.4;text-align:center;white-space:normal;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity var(--motion-fast) ease .35s,transform var(--motion-fast) ease .35s}
+[data-tooltip]:hover::after,[data-tooltip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+.toolbar-actions [data-tooltip]::after{left:auto;right:0;transform:translate(0,-4px)}.toolbar-actions [data-tooltip]:hover::after,.toolbar-actions [data-tooltip]:focus-visible::after{transform:none}
+/* Stepper: etapas concluídas com check e trilho preenchido. */
+.stepper .step-divider{position:relative;height:2px;border-radius:1px;overflow:hidden}
+.stepper .step-divider::after{content:"";position:absolute;inset:0;background:var(--c-primary);transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
+.stepper .step-divider.feito::after{transform:none}
+.stepper button:disabled{opacity:.6}
+.stepper button:not(:disabled):hover{color:var(--c-primary)}
+.step-number{transition:background var(--motion-med) ease,color var(--motion-med) ease,border-color var(--motion-med) ease}
+.stepper button.feito .step-number{background:var(--c-primary-light);color:var(--c-primary);border-color:var(--c-primary)}
+.stepper button.feito .step-number::before{content:"✓";font-weight:700}
+.stepper button.feito .step-number{font-size:0}.stepper button.feito .step-number::before{font-size:13px}
+/* Cabeçalho de tela: filete de destaque e leitura mais confortável. */
+.page-heading h1{position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px}.eyebrow::before{content:"";width:18px;height:2px;border-radius:1px;background:var(--c-primary)}
+.page-heading .hint{max-width:68ch}
+/* Telas grandes (apenas desktop): a interface cresce junto com a janela. */
+@media(min-width:1500px){#app{max-width:1360px}.field-grid{column-gap:24px}}
+@media(min-width:1900px){body{font-size:15px}#app{max-width:1560px}h1{font-size:31px}.card{padding:28px}.toolbar{min-height:88px}}
+@media(min-width:2500px){body{font-size:17px}#app{max-width:1920px}h1{font-size:36px}.ico{width:20px;height:20px}}
+@media(max-height:760px){.toolbar{min-height:64px;padding:10px 0}.page-heading{margin:18px 0 14px}.stepper{margin-top:14px}}
+/* Guia de ajuda: abas, passos numerados, atalhos e solução de problemas. */
+.guia{display:grid;gap:16px;min-width:0}.modal:has(.guia){width:min(680px,calc(100vw - 48px))}.guia-painel>div{display:grid;gap:16px}
+.guia-abas{display:flex;gap:4px;padding:4px;border:1px solid var(--c-border);border-radius:10px;background:var(--c-surface-variant);width:fit-content}
+.guia-abas button{border:0;border-radius:8px;padding:7px 14px;background:transparent;color:var(--c-text-secondary);font-weight:600}
+.guia-abas button[aria-selected="true"]{background:var(--c-primary);color:var(--c-on-primary);box-shadow:var(--shadow-sm)}
+.guia-painel{display:grid;gap:12px;animation:entrar .22s ease}
+.guia-passo{display:flex;gap:14px;align-items:flex-start}
+.guia-num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--c-on-primary);background:var(--c-primary)}
+.guia-passo strong{display:block}.guia-passo p{margin:2px 0 0;color:var(--c-text-secondary);font-size:13px}
+.guia-passo+.guia-passo{position:relative}
+.guia-lista{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0;align-items:center}
+.guia-lista dt{margin:0}.guia-lista dd{margin:0;color:var(--c-text-secondary);font-size:13px}
+kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-border);border-bottom-width:2px;border-radius:6px;background:var(--c-surface-variant);color:var(--c-text)}
+/* Tour guiado. */
+.tour{position:fixed;z-index:75;width:min(320px,calc(100vw - 16px));padding:14px 16px;border:1px solid var(--c-primary);border-radius:var(--r-card);background:var(--c-surface);color:var(--c-text);box-shadow:var(--shadow-lg);animation:entrar .22s ease}
+.tour p{margin:4px 0 12px;font-size:13px;color:var(--c-text-secondary)}
+.tour-rodape{display:flex;align-items:center;gap:8px}.tour-rodape .hint{margin-right:auto;font-size:12px}
+.tour-alvo{position:relative;z-index:74;outline:3px solid var(--c-primary);outline-offset:4px;border-radius:var(--r-button);box-shadow:0 0 0 9999px rgba(10,20,35,.45)}

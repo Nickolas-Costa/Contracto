@@ -129,7 +129,7 @@ function modal() {
   assert.ok(faixa.classList.contains("modal-titulo-faixa"), "faixa com classe");
   const botoes = acoes.querySelectorAll("button");
   assert.equal(botoes.length, 1);
-  const x = faixa.children.find((c) => c.tag === "button" && c.textContent === "✕");
+  const x = faixa.children.find((c) => c.tag === "button" && c.attrs["aria-label"] === "Fechar diálogo");
   assert.ok(x, "botão X presente");
   assert.equal(x.attrs["aria-label"], "Fechar diálogo");
   // Escape fecha e Escape com overlay oculto não quebra.
@@ -148,7 +148,7 @@ async function extrasLifecycle(){
       get classList(){return{add:c=>e._classes.add(c),remove:c=>e._classes.delete(c),contains:c=>e._classes.has(c),toggle:(c,on)=>{on?e._classes.add(c):e._classes.delete(c);}};},
       setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];},
       addEventListener(k,fn){this.handlers[k]=fn;},
-      append(...ns){for(const n of ns){n.parentElement=this;this.children.push(n);}},
+      prepend(){},append(...ns){for(const n of ns){n.parentElement=this;this.children.push(n);}},
       replaceChildren(){this.children=[];},
       querySelector(){return el("input");},
       querySelectorAll(){const out=[];const walk=n=>{for(const c of n.children||[]){if(["button","input","select","iframe"].includes(c.tag))out.push(c);walk(c);}};walk(this);return out;},
@@ -162,7 +162,7 @@ async function extrasLifecycle(){
   const document={readyState:"complete",hidden:false,getElementById:id=>registry.get(id)||null,createElement:t=>el(t),addEventListener(){},querySelectorAll:()=>[],querySelector:()=>el("div")};
   const window={
     ContractoAPI:{selectAttachment:async()=>({selection_id:"s1",name:"extra-qa.pdf"}),request:async()=>({status:200,data:{}}),openResult:async()=>({ok:true})},
-    ContractoUI:{toast(){},mostrarTela(){},sincronizarStepper(){}},
+    ContractoUI:{icone(){return {}},toast(){},mostrarTela(){},sincronizarStepper(){}},
     ContractoEtapa1:{modo:()=>"contrato",atualizar(){},composicao:()=>({formularios:[{nome:"DOC A",geracao:"por_participante"}],documentos_extras:[{rotulo:"Contrato",nome_padrao:"CONTRATO"}]})},
     ContractoApp:{pronto:()=>true}};
   vm.runInNewContext(source("etapa2.js"),{window,document,setTimeout,clearTimeout,console});

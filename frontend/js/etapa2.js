@@ -178,10 +178,10 @@
       const radio=document.createElement("span");radio.className="doc-extra-marcador";radio.textContent=atual?"●":"○";radio.setAttribute("aria-hidden","true");
       const rot=document.createElement("span");rot.className="doc-extra-rotulo";rot.textContent=doc.rotulo+":";
       const campo=document.createElement("input");campo.readOnly=true;campo.placeholder="Nenhum arquivo selecionado";campo.value=atual?atual.name:"";campo.setAttribute("aria-label",doc.rotulo);
-      const btn=document.createElement("button");btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent=atual?"Trocar":"Selecionar";btn.disabled=busy||!online();
+      const btn=document.createElement("button");btn.type="button";btn.className="btn btn-secondary btn-sm";btn.textContent=atual?"Trocar":"Selecionar";btn.prepend(window.ContractoUI.icone("upload"));btn.disabled=busy||!online();
       btn.addEventListener("click",()=>selecionarExtra(doc));
       if(atual){
-        const rm=document.createElement("button");rm.type="button";rm.className="btn btn-secondary btn-sm";rm.textContent="Remover";rm.disabled=busy;
+        const rm=document.createElement("button");rm.type="button";rm.className="btn btn-secondary btn-sm";rm.textContent="Remover";rm.prepend(window.ContractoUI.icone("trash"));rm.disabled=busy;
         rm.addEventListener("click",()=>{if(busy)return;extrasMap.delete(doc.nome_padrao);sincronizarAttachments();alterarProcesso();manifesto();atualizar();});
         row.append(radio,rot,campo,btn,rm);
       } else row.append(radio,rot,campo,btn);
@@ -234,7 +234,7 @@
     ids.forEach((id,i)=>{
       const file=files.find(f=>f.file_id===id) || {},row=document.createElement("div"),info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("p");
       row.className="result-row";name.textContent=fileLabel(file,i);detail.className="hint";detail.textContent=fileDescription(file);info.append(name,detail);
-      const btn=document.createElement("button");btn.className="btn btn-secondary";btn.type="button";btn.textContent="Visualizar";btn.setAttribute("aria-label","Visualizar "+fileLabel(file,i));
+      const btn=document.createElement("button");btn.className="btn btn-secondary";btn.type="button";btn.textContent="Visualizar";btn.prepend(window.ContractoUI.icone("eye"));btn.setAttribute("aria-label","Visualizar "+fileLabel(file,i));
       btn.addEventListener("click",()=>visualizar(id,fileLabel(file,i)));row.append(info,btn);$("lista-resultados").append(row);
     });
     $("btn-abrir-pasta").hidden=false;

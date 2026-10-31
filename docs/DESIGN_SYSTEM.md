@@ -126,3 +126,18 @@ As telas de carregamento utilizam um player animado nativo de alto desempenho ([
 
 ### 6.1. Ciclo de Rotação Circular
 A cada nova ação de carregamento (geração de documentos, conversão de PDF/A, reparo de backend, etc.), o sistema seleciona o próximo loader da fila e recomeça a lista circularmente.
+
+
+---
+
+## 7. Atualização v5.1 — estado real do frontend WebView (desktop)
+
+As seções 5 e 6 descrevem o legado Tk (PNG/GIF) e estão superadas. Fonte de verdade: `frontend/css/tokens.css` e `frontend/css/layout.css`.
+
+- **Cor de destaque padrão**: o código usa `#005CA9` como fallback inicial (swatch "Azul Institucional" = `#1E6FB3`); tokens base do tema (`--c-primary`) são `#1455A0` (claro) e `#9AC4FF` (escuro), com contraste ≥ 4.5:1 validado em `tests/test_frontend_contrast.py`.
+- **Ícones**: sprite SVG inline (`<symbol id="i-*">` em `index.html`, usado por `<svg class="ico"><use href="#i-*"/></svg>`), traço 1.9px, herdam `currentColor`. Sem emoji/glifos em botões.
+- **Movimento**: entrada de tela (280 ms), modal (260 ms), toast (260 ms), pulso no estado "em andamento", barra de progresso animada; tudo desligado por `prefers-reduced-motion`.
+- **Tooltips**: atributo `data-tooltip` (CSS puro, atraso 350 ms).
+- **Stepper**: etapas anteriores recebem check e o trilho se preenche.
+- **Telas grandes (somente desktop)**: `#app` cresce em 1500 / 1900 / 2500 px; abaixo de 760 px de altura a topbar compacta.
+- **Ajuda**: modal em abas (Passo a passo, Dicas e atalhos, Problemas comuns); `F1` abre em qualquer tela.

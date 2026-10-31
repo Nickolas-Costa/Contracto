@@ -201,7 +201,7 @@
     if (!composed || !usarPaginacao || paginas.length < 2) { host.hidden = true; return; }
     host.hidden = false;
     const prev = document.createElement("button");
-    prev.type = "button"; prev.className = "btn btn-secondary btn-sm"; prev.textContent = "← Anterior";
+    prev.type = "button"; prev.className = "btn btn-secondary btn-sm"; prev.textContent = "Anterior"; prev.prepend(window.ContractoUI.icone("back"));
     prev.disabled = paginaAtual === 0;
     prev.addEventListener("click", () => mudarPagina(-1));
     const info = document.createElement("span");
@@ -211,7 +211,7 @@
     nome.className = "paginacao-nome";
     nome.textContent = paginas[paginaAtual] || "";
     const next = document.createElement("button");
-    next.type = "button"; next.className = "btn btn-secondary btn-sm"; next.textContent = "Próxima →";
+    next.type = "button"; next.className = "btn btn-secondary btn-sm"; next.textContent = "Próxima"; next.append(window.ContractoUI.icone("advance"));
     next.disabled = paginaAtual >= paginas.length - 1;
     next.addEventListener("click", () => mudarPagina(1));
     host.append(prev, info, nome, next);
@@ -270,7 +270,7 @@
         // Fase 2 — paridade com o legado ("Copiar dados de [Participante X]"):
         // reaproveita os campos idênticos do participante principal, mantendo
         // nome e CPF próprios.
-        const copiar = document.createElement("button"); copiar.type = "button"; copiar.className = "btn btn-subtle"; copiar.textContent = "Copiar dados do participante 1"; copiar.setAttribute("aria-label", "Copiar dados do participante 1 para o participante " + (index + 1)); copiar.dataset.editable = "true";
+        const copiar = document.createElement("button"); copiar.type = "button"; copiar.className = "btn btn-subtle"; copiar.textContent = "Copiar dados do participante 1"; copiar.prepend(window.ContractoUI.icone("copy")); copiar.setAttribute("aria-label", "Copiar dados do participante 1 para o participante " + (index + 1)); copiar.dataset.editable = "true";
         copiar.addEventListener("click", () => {
           if (busy()) return;
           const origem = draft.people[0] || {}, destino = draft.people[index];
@@ -279,7 +279,7 @@
           changed(); render();
         });
         header.append(copiar);
-        const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.setAttribute("aria-label","Remover participante "+(index+1)); remove.dataset.editable="true";
+        const remove=document.createElement("button"); remove.type="button"; remove.className="btn btn-subtle"; remove.textContent="Remover";remove.prepend(window.ContractoUI.icone("trash"));remove.setAttribute("aria-label","Remover participante "+(index+1)); remove.dataset.editable="true";
         remove.addEventListener("click",()=>{if(busy())return; window.ContractoUI.toast("Participante removido.","warning");draft.people.splice(index,1);changed();render();$("btn-adicionar").focus();}); header.append(remove);
       }
       $("participantes").append(card);

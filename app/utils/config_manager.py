@@ -18,7 +18,7 @@ _CONFIG_FILE_NAME = "contracto_config.json"
 
 _DEFAULTS = {
     "aparencia": "light",           # "system", "light", "dark"
-    "cor_destaque": "#005CA9",      # Azul Institucional
+    "cor_destaque": "#1E6FB3",      # Azul Institucional
     "formato_saida": "PDF/A-2b",    # "PDF/A-2b" ou "PDF"
     "perfil_ativo": "MCMV",
     "formularios_basicos_selecionados": [],
