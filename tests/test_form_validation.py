@@ -16,6 +16,21 @@ class TestFormValidation(unittest.TestCase):
         # Outras datas (ex.: assinatura) podem ser futuras.
         self.assertTrue(valor_valido(CampoEntrada("data_assinatura", "Assinatura", tipo="DATA"), "01/01/2999"))
 
+    def test_pdfa_real_tem_output_intent_com_perfil_embutido(self):
+        import tempfile
+        from pypdf import PdfReader, PdfWriter
+        from services.pdfa_converter import converter_para_pdfa
+        from utils.ghostscript_setup import esta_disponivel
+        if not esta_disponivel():
+            self.skipTest("Ghostscript indisponível")
+        with tempfile.TemporaryDirectory() as tmp:
+            origem, destino = Path(tmp) / "a.pdf", Path(tmp) / "b.pdf"
+            escritor = PdfWriter(); escritor.add_blank_page(200, 200); escritor.write(origem)
+            converter_para_pdfa(origem, destino)
+            intent = PdfReader(destino).trailer["/Root"]["/OutputIntents"][0].get_object()
+            self.assertEqual(intent["/S"], "/GTS_PDFA1")
+            self.assertGreater(len(intent["/DestOutputProfile"].get_object().get_data()), 0)
+
     def test_pdfa_def_declara_output_intent(self):
         from services.pdfa_converter import _gerar_pdfa_def
         ps = _gerar_pdfa_def("2")

@@ -40,6 +40,12 @@
   function renderLista() {
     const box = $("lista-conversao");
     box.replaceChildren();
+    if (!arquivos.length) {
+      const vazio = document.createElement("p");
+      vazio.className = "hint";
+      vazio.textContent = "Nenhum arquivo ainda. Arraste PDF, RTF, DOC ou DOCX para cá, ou use o botão acima.";
+      box.append(vazio);
+    }
     arquivos.forEach((a, i) => {
       const row = document.createElement("div");
       row.className = "documento-linha";

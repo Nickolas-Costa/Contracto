@@ -291,11 +291,11 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 /* Correções v5.2: barra fixa sem emenda, toast legível, menus suspensos. */
 .toolbar{background:none;border-bottom:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 /* Faixa de borda a borda: o fundo não termina no limite do #app (era a "quebra"). */
-.toolbar::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);background:var(--c-bg);border-bottom:1px solid var(--c-border);box-shadow:0 10px 24px -18px rgba(0,0,0,.55)}
+.toolbar::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);background:var(--c-bg);border-bottom:1px solid var(--c-border);box-shadow:var(--shadow-md)}
 /* Blur em vários cartões deixava áreas sem repintar ao rolar (WebView2). */
 .card{backdrop-filter:none;-webkit-backdrop-filter:none}
 #toasts{top:92px;right:20px;gap:10px}
-.toast{--t:var(--c-info);align-items:center;gap:14px;padding:16px 20px;max-width:min(440px,calc(100vw - 40px));background:var(--c-surface-variant);color:var(--c-text);border:1px solid var(--t);border-left-width:6px;border-left-color:var(--t);font-size:15px;font-weight:600;line-height:1.4;box-shadow:0 14px 36px rgba(0,0,0,.45);backdrop-filter:none;-webkit-backdrop-filter:none}
+.toast{--t:var(--c-info);align-items:center;gap:14px;padding:16px 20px;max-width:min(440px,calc(100vw - 40px));background:var(--c-surface-variant);color:var(--c-text);border:1px solid var(--t);border-left-width:6px;border-left-color:var(--t);font-size:15px;font-weight:600;line-height:1.4;box-shadow:var(--shadow-lg);backdrop-filter:none;-webkit-backdrop-filter:none}
 .toast.success{--t:var(--c-success)}.toast.error{--t:var(--c-error)}.toast.warning{--t:var(--c-warning-badge)}
 .toast .insignia,.toast.success .insignia,.toast.info .insignia,.toast.error .insignia,.toast.warning .insignia{width:28px;height:28px;font-size:16px;background:var(--t);color:var(--c-bg)}
 .field select{appearance:none;-webkit-appearance:none;padding-right:40px;cursor:pointer;font-weight:500;background-color:var(--c-surface);background-image:linear-gradient(45deg,transparent 50%,var(--c-text-secondary) 50%),linear-gradient(135deg,var(--c-text-secondary) 50%,transparent 50%);background-position:calc(100% - 21px) 50%,calc(100% - 15px) 50%;background-size:6px 6px;background-repeat:no-repeat;transition:border-color .15s,box-shadow .15s}
