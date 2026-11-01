@@ -10,11 +10,11 @@ REM
 REM Uso:
 REM   build_exe.bat
 REM
-REM Saidas (sempre versionadas):
-REM   app\dist\Contracto_v<VERSAO>.exe      (executavel principal)
-REM   dist\Contracto_v<VERSAO>.exe          (copia para teste rapido)
-REM   dist\Contracto_v<VERSAO>.zip (+ .sha256.txt)
-REM   dist\Contracto_Installer_v<VERSAO>.exe (somente com Inno Setup)
+REM Shell Tauri (ADR 0029) + sidecar Python. Requer Rust (MSVC), VS Build Tools e Node.
+REM Saidas (sempre versionadas, em dist\):
+REM   Contracto_Setup_v<VERSAO>.exe          (instalador NSIS do Tauri)
+REM   Contracto_v<VERSAO>.zip                (portatil: Contracto.exe + Contracto_sidecar.exe)
+REM   *.sha256.txt                           (verificacao dos dois)
 REM
 REM Feche o Contracto antes de rodar: a instancia unica impede gravar o .exe
 REM com outro nome em execucao e o antivirus pode bloquear a gravacao.
@@ -96,123 +96,52 @@ if not defined VIRTUAL_ENV (
     echo.
 )
 
-echo [1/6] Encerrando instancias abertas e limpando builds intermediarios...
-taskkill /F /IM Contracto_v%APP_VERSION%.exe /FI "USERNAME eq %USERNAME%" 2>nul
+echo [1/3] Encerrando instancias abertas e limpando builds intermediarios...
 taskkill /F /IM Contracto.exe /FI "USERNAME eq %USERNAME%" 2>nul
-if exist app\build rmdir /s /q app\build
-if exist app\dist rmdir /s /q app\dist
-echo         (a pasta dist\ de entrega so e limpa DEPOIS do novo .exe pronto)
+taskkill /F /IM Contracto_sidecar.exe /FI "USERNAME eq %USERNAME%" 2>nul
+if exist build\sidecar rmdir /s /q build\sidecar
+if exist src-tauri	argeteleaseundle rmdir /s /q src-tauri	argeteleaseundle
 echo.
 
-echo [2/6] Preparando dependencias (Ghostscript local)...
+echo [2/3] Preparando dependencias (Ghostscript local)...
 .\.venv\Scripts\python.exe scripts\setup_gs.py
 if errorlevel 1 (
-    echo [ERRO] Build interrompido no passo 2/6: preparo do Ghostscript.
-    echo        A causa esta nas mensagens acima desta linha.
+    echo [ERRO] Build interrompido no passo 2/3: preparo do Ghostscript.
     echo.
     pause
     exit /b 1
 )
 echo.
 
-echo [3/6] Gerando spec + executavel com PyInstaller (via Contracto_v%APP_VERSION%.spec)...
-
-.\.venv\Scripts\python.exe scripts\generate_spec.py
+echo [3/3] Sidecar (PyInstaller) + shell Tauri + instalador NSIS...
+where cargo >nul 2>nul
+if errorlevel 1 if not exist "%USERPROFILE%\.cargoin\cargo.exe" (
+    echo [ERRO] Rust nao encontrado. Instale com rustup ^(stable-x86_64-pc-windows-msvc^) e o VS Build Tools ^(C++^).
+    pause
+    exit /b 1
+)
+.\.venv\Scripts\python.exe scriptsuild_tauri.py
 if errorlevel 1 (
-    echo [ERRO] Falha ao gerar o arquivo de especificacao .spec do PyInstaller!
+    echo [ERRO] Falha no build do Tauri. A causa esta nas mensagens acima.
     echo.
     pause
     exit /b 1
 )
 
-cd app
-..\.venv\Scripts\python.exe -m PyInstaller Contracto_v%APP_VERSION%.spec
-if errorlevel 1 (
-    echo [ERRO] Falha ao gerar o executavel!
-    cd ..
-    echo.
-    pause
-    exit /b 1
-)
-cd ..
-if not exist "app\dist\Contracto_v%APP_VERSION%.exe" (
-    echo [ERRO] PyInstaller terminou sem gerar app\dist\Contracto_v%APP_VERSION%.exe.
-    echo        Feche o Contracto aberto e o antivirus, e rode de novo.
-    exit /b 1
-)
-for %%f in ("app\dist\Contracto_v%APP_VERSION%.exe") do echo [OK] Executavel: %%~nxf (%%~zf bytes, %%~tf)
-echo.
-
-echo [4/6] Copiando .exe para dist\ e gerando pacote versionado + SHA-256...
-if not exist dist mkdir dist
-.\.venv\Scripts\python.exe scripts\archive_dist.py %APP_VERSION%
-if errorlevel 1 (
-    echo [ERRO] Falha ao arquivar versoes antigas de dist\.
-    exit /b 1
-)
-copy /y "app\dist\Contracto_v%APP_VERSION%.exe" "dist\Contracto_v%APP_VERSION%.exe" >nul
-if errorlevel 1 (
-    echo [ERRO] Falha ao copiar o executavel para dist\.
-    exit /b 1
-)
-.\.venv\Scripts\python.exe scripts\create_dist_package.py
-if errorlevel 1 (
-    echo [ERRO] Falha ao gerar o pacote de distribuicao.
-    echo.
-    pause
-    exit /b 1
-)
-.\.venv\Scripts\python.exe -c "import hashlib,pathlib; p=pathlib.Path(r'dist\Contracto_v%APP_VERSION%.zip'); f=p.open('rb'); h=hashlib.file_digest(f,'sha256').hexdigest().upper(); f.close(); pathlib.Path(str(p)+'.sha256.txt').write_text('SHA256  '+h+'  '+p.name+'\n', encoding='utf-8')"
-if errorlevel 1 (
-    echo [ERRO] Falha ao gerar a verificacao SHA-256 do pacote.
-    echo.
-    pause
-    exit /b 1
-)
-echo.
-
-echo [5/6] Criando atalho na Area de Trabalho...
-.\.venv\Scripts\python.exe scripts\create_shortcut.py
-echo.
-
-echo [6/6] Compilando instalador Windows com Inno Setup (gate de release)...
-REM O Inno Setup pode estar instalado so para o usuario (%LOCALAPPDATA%\Programs),
-REM fora do PATH; a deteccao fica em build_installer.py --check.
-.\.venv\Scripts\python.exe scripts\build_installer.py --check >nul 2>nul
-if errorlevel 1 (
-    echo [AVISO] Inno Setup ^(ISCC.exe^) nao encontrado: instalador pulado.
-    echo         O .exe e o ZIP ja estao prontos em dist\. Para a release final,
-    echo         instale o Inno Setup 6 e rode: .\.venv\Scripts\python.exe scripts\build_installer.py
-    goto fim_ok
-)
-.\.venv\Scripts\python.exe scripts\build_installer.py
-if errorlevel 1 (
-    echo [ERRO] Falha ao compilar o instalador Windows.
-    exit /b 1
-)
-
-:fim_ok
 echo.
 echo ==========================================
 echo  Build concluido com sucesso!
 echo ==========================================
 echo.
-echo Executavel principal:
-echo   app\dist\Contracto_v%APP_VERSION%.exe
-echo.
-echo Copia para teste rapido:
-echo   dist\Contracto_v%APP_VERSION%.exe
-echo.
-echo Pacote de distribuicao verificavel:
+echo Instalador:
+echo   dist\Contracto_Setup_v%APP_VERSION%.exe
+echo Portatil:
 echo   dist\Contracto_v%APP_VERSION%.zip
 echo   dist\Contracto_v%APP_VERSION%.zip.sha256.txt
 echo.
-echo Instalador (somente com Inno Setup):
-echo   dist\Contracto_Installer_v%APP_VERSION%.exe
-echo.
 echo IMPORTANTE:
-echo   - O Usuario final Nao necessita ter o Python instalado na maquina.
-echo   - Ghostscript e todas as dependencias estao embutidas no arquivo .exe.
+echo   - O usuario final nao precisa de Python; o Ghostscript vai embutido no sidecar.
+echo   - O instalador remove a instalacao antiga do Inno Setup; os dados em %%APPDATA%%\Contracto ficam.
 echo   - Para distribuir, envie o instalador ou o ZIP junto do arquivo SHA-256 correspondente.
 echo.
 pause

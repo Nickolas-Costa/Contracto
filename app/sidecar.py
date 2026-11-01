@@ -12,7 +12,10 @@ processo pai (Tauri/Rust), que é o único a falar com ele:
                 usuário escolheu num diálogo; a página só recebe o ID)
     result_dir  {"id", "cmd": "result_dir", "job_id"}   -> {"path"}  (shell abre a pasta)
     file_path   {"id", "cmd": "file_path", "file_id"}   -> {"path"}  (leitor padrão)
+    import_profile {"id", "cmd": "import_profile", "path"}        -> {"result": {ok, nome|code}}
+    export_profile {"id", "cmd": "export_profile", "nome", "path"} -> {"result": {ok, nome|code}}
     shutdown    {"cmd": "shutdown"}
+- Segunda instância: responde `{"event": "already_running"}` e sai (mutex de `utils.instancia_unica`).
 - EOF em stdin (pai encerrou) fecha o servidor e sai.
 
 O token trafega só por este pipe: nunca é gravado em log nem exposto à página.
@@ -21,6 +24,7 @@ import json
 import sys
 from pathlib import Path
 
+from api.profile_files import exportar_arquivo, importar_arquivo
 from version import __version__
 
 
@@ -42,6 +46,10 @@ def _executar(server, comando):
         return {"path": str(server.jobs.result_directory(_texto(comando, "job_id")))}
     if nome == "file_path":
         return {"path": str(server.jobs.selections.resolve(_texto(comando, "file_id"), "file"))}
+    if nome == "import_profile":
+        return {"result": importar_arquivo(server, Path(_texto(comando, "path")))}
+    if nome == "export_profile":
+        return {"result": exportar_arquivo(_texto(comando, "nome"), Path(_texto(comando, "path")))}
     raise ValueError("unknown_command")
 
 
@@ -76,9 +84,24 @@ def servir(server, entrada, saida):
 
 def main(entrada=None, saida=None):
     from server import LocalServer
+    from utils.instancia_unica import InstanciaJaEmExecucao, InstanciaUnica, focar_janela_existente
 
-    with LocalServer() as server:
-        servir(server, entrada or sys.stdin, saida or sys.stdout)
+    saida = saida or sys.stdout
+    guarda = InstanciaUnica()
+    try:
+        guarda.adquirir()
+    except InstanciaJaEmExecucao:
+        # Segunda execução: o shell sai em silêncio; aqui só se traz a janela existente para a frente.
+        focar_janela_existente()
+        _responder(saida, event="already_running")
+        return
+    except OSError:
+        pass  # sem mutex, segue sem a trava (mesmo comportamento de main.py)
+    try:
+        with LocalServer() as server:
+            servir(server, entrada or sys.stdin, saida)
+    finally:
+        guarda.liberar()
 
 
 if __name__ == "__main__":

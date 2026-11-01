@@ -36,6 +36,14 @@
 | 4 | Repetir o aceite de `DESIGN.md §10` e `smoke_webview_ui.py` no shell Tauri | — |
 | 5 | Decidir bundler/updater Tauri **ou** manter o Inno Setup (ADR 0008); migrar `%APPDATA%/Contracto` para `appDataDir` com fallback | aceite do §Distribuição |
 
+## Andamento (01/11/2026)
+
+Passos 2 e 3 feitos: revisão em `DEPENDENCY_REVIEW.md` e `src-tauri/` funcional (janela, `request`, diálogos,
+sidecar, arrasto). Verificado no executável de release: `invoke` presente, UI renderizada, allowlist/limite do
+`request`, perfis via sidecar e sem processo órfão. Aceites de toolchain, crates e "sem auto-update" dados pelo
+usuário. Release 5.2.0: o `build_exe.bat` entrega o Tauri (NSIS substitui o Inno, com hook que remove a instalação antiga; instância única no sidecar). Pendentes: passo 4 completo (`smoke_webview_ui.py` no shell Tauri), instalar/desinstalar o NSIS, decidir
+substituir o Inno e migrar `%APPDATA%`.
+
 ## Precisa do seu aceite
 
 1. **Toolchain na máquina de build**: Rust (rustup, `stable-x86_64-pc-windows-msvc`),

@@ -24,7 +24,7 @@ class TestReleaseGate(unittest.TestCase):
         required = [
             RAIZ / "app" / "version.py",
             RAIZ / "VERSION",
-            RAIZ / "packaging" / "Contracto.iss",
+            RAIZ / "src-tauri" / "tauri.conf.json",
             RAIZ / "tests" / "smoke_webview.py",
             RAIZ / "tests" / "smoke_api_engines.py",
             RAIZ / "app" / "api" / "http.py",

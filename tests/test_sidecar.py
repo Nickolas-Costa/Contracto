@@ -54,6 +54,45 @@ class TestSidecar(unittest.TestCase):
             msgs = _executar(server, {"id": 1, "cmd": "file_path", "file_id": fid})
             self.assertEqual(Path(msgs[1]["path"]), pdf.resolve())
 
+    def test_import_export_profile_pelo_canal_de_controle(self):
+        import os
+        with tempfile.TemporaryDirectory() as appdata, tempfile.TemporaryDirectory() as pasta:
+            anterior = {k: os.environ.get(k) for k in ("APPDATA", "LOCALAPPDATA")}
+            os.environ["APPDATA"] = os.environ["LOCALAPPDATA"] = appdata
+            try:
+                from utils import profile_manager
+                profile_manager.invalidar_cache()
+                origem, destino = Path(pasta, "qa.json"), Path(pasta, "saida.json")
+                origem.write_text(json.dumps({"nome": "QA Sidecar", "modo_fluxo": "formulario_simples",
+                                              "formato_saida": "PDF", "max_participantes": 1,
+                                              "campos_entrada": [], "formularios": []}), encoding="utf-8")
+                with LocalServer(profiles=[]) as server:
+                    _, imp, exp, ausente = _executar(
+                        server,
+                        {"id": 1, "cmd": "import_profile", "path": str(origem)},
+                        {"id": 2, "cmd": "export_profile", "nome": "QA Sidecar", "path": str(destino)},
+                        {"id": 3, "cmd": "export_profile", "nome": "Inexistente", "path": str(destino)},
+                    )
+                self.assertEqual(imp["result"], {"ok": True, "nome": "QA Sidecar"})
+                self.assertEqual(exp["result"], {"ok": True, "nome": "QA Sidecar"})
+                self.assertEqual(json.loads(destino.read_text(encoding="utf-8"))["nome"], "QA Sidecar")
+                self.assertEqual(ausente["result"]["code"], "profile_not_found")
+                profile_manager.invalidar_cache()
+            finally:
+                for k, v in anterior.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+
+    @unittest.skipUnless(sys.platform == "win32", "mutex nomeado do Windows")
+    def test_segunda_instancia_avisa_e_sai_sem_subir_servidor(self):
+        from utils.instancia_unica import InstanciaUnica
+        saida = io.StringIO()
+        with InstanciaUnica():
+            sidecar.main(io.StringIO(""), saida)
+        self.assertEqual([json.loads(l) for l in saida.getvalue().splitlines()], [{"event": "already_running"}])
+
     def test_linha_invalida_nao_derruba_e_shutdown_encerra(self):
         with LocalServer(profiles=[]) as server:
             entrada = io.StringIO('nao-json\n[1]\n{"cmd":"shutdown"}\n{"id":9,"cmd":"register"}\n')

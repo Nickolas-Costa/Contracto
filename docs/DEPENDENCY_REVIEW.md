@@ -41,14 +41,19 @@ Microsoft informa que automação Office não interativa em componentes de servi
 
 Referências: [Microsoft Learn — automação Office não atendida](https://learn.microsoft.com/en-us/office/client-developer/integration/considerations-unattended-automation-office-microsoft-365-for-unattended-rpa), [LibreOffice — parâmetros e conversão headless](https://help.libreoffice.org/latest/en-GB/text/shared/guide/start_parameters.html), [LibreOffice — filtros de conversão](https://help.libreoffice.org/latest/ast/text/shared/guide/convertfilters.html), [Aspose.Words — conversão para PDF](https://docs.aspose.com/words/python-net/convert-a-document-to-pdf/), [pypdf — formulários PDF](https://pypdf.readthedocs.io/en/3.17.3/user/forms.html).
 
-## Candidatos do shell Tauri (ADR 0029) — propostos, **não adotados**
+## Shell Tauri (ADR 0029) — revisão do passo 2, adotado no `src-tauri/`
+
+Versões fixadas em `src-tauri/Cargo.toml`/`Cargo.lock` e `package-lock.json`, todas com ≥ 2 semanas de publicação em 01/11/2026 (por isso `tauri` 2.12.4 e `tauri-plugin-dialog` 2.8.3, não as 2.12.5/2.8.4 mais novas). Tauri 3 segue em alfa: fora de escopo.
 
 | Componente | Capacidade | Alternativa / código próprio | Decisão |
 |---|---|---|---|
-| Rust (rustup, MSVC) + `@tauri-apps/cli` | Compilar o shell `src-tauri/` | Manter pywebview (já entrega janela, ponte e WebView2) | Só com aceite (ADR 0029). Ferramenta de build; não vai ao usuário final. |
-| `tauri` 2.x | Janela, ponte `invoke`, CSP, bundler | pywebview | Idem; versão fixada, lockfile versionado. |
-| `tauri-plugin-dialog` | Diálogos nativos (open/save/pasta) | `ports/webview_dialog.py` | Substitui o port atual; escopo mínimo de `capabilities`. |
-| `tauri-plugin-opener` | Abrir pasta/PDF no SO | `utils/files_fs.py` | Escopo restrito a caminhos devolvidos pelo sidecar. |
-| `tauri-plugin-updater` | Atualização automática | Inno Setup manual (ADR 0008) | **Não adotar** sem decisão sobre servidor de releases e chave de assinatura. |
-| `reqwest` (só loopback) | Encaminhar `request` ao sidecar | `urllib` do `ShellBridge` | Mesma allowlist/limites; sem proxy, sem rede externa. |
+| Rust (rustup, MSVC) + VS Build Tools (C++) | Compilar `src-tauri/` | Manter pywebview | **Adotado** só na máquina de build; não vai ao usuário final. |
+| `@tauri-apps/cli` 2.12.3 (npm, dev) | `tauri build` e bundler NSIS | Cargo + script próprio de empacotamento | **Adotado** (devDependency). O bundler baixa NSIS 3.13 e `nsis_tauri_utils` (hash validado) na 1ª execução. |
+| `tauri` =2.12.4 / `tauri-build` =2.7.3 | Janela, `invoke`, CSP, bundler | pywebview | **Adotado.** |
+| `tauri-plugin-dialog` =2.8.3 | Diálogos nativos (usado só pelo Rust; sem permissão exposta à página) | Código próprio sobre `rfd` | **Adotado.** Traz `tauri-plugin-fs` como transitivo, sem capability concedida. |
+| `reqwest` 0.12 (sem TLS, sem proxy) | Encaminhar `request`/`get_file` ao sidecar em loopback | `std::net` + HTTP manual (mais código e risco) | **Adotado**, `default-features = false` e `no_proxy()`. |
+| `base64` 0.22, `serde_json` 1 | `get_file` e DTOs | — | **Adotados** (já transitivos do Tauri). |
+| `tauri-plugin-opener` | Abrir pasta/PDF | `explorer.exe <caminho absoluto>` devolvido pelo sidecar | **Não adotado**: poucas linhas, uma dependência a menos. |
+| `tauri-plugin-shell` | Sidecar | `std::process::Command` sobre `Contracto_sidecar.exe` ao lado do executável | **Não adotado**: allowlist de um só executável, sem plugin. |
+| `tauri-plugin-updater` | Atualização automática | Reinstalar manualmente | **Não adotar** (decisão do usuário: sem auto-update). |
 | OCR (ADR 0027, Fase 2) | PDFs digitalizados | `Windows.Media.Ocr` ou Tesseract | Decidir no gate da Fase 2. |

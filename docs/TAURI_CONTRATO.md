@@ -51,6 +51,8 @@ python app/sidecar.py        # em produção: Contracto_sidecar.exe (externalBin
 | `{"id","cmd":"register","kind":"file|directory|convert|backup","path"}` | autoriza o caminho escolhido no diálogo nativo | `{"id","ok":true,"selection_id","name"}` |
 | `{"id","cmd":"result_dir","job_id"}` | caminho da pasta de um job concluído (para abrir) | `{"id","ok":true,"path"}` |
 | `{"id","cmd":"file_path","file_id"}` | caminho de um PDF autorizado (leitor padrão) | `{"id","ok":true,"path"}` |
+| `{"id","cmd":"import_profile","path"}` | importa o `.json` escolhido no diálogo | `{"id","ok":true,"result":{"ok","nome"\|"code"}}` |
+| `{"id","cmd":"export_profile","nome","path"}` | grava o perfil no destino escolhido | idem |
 | `{"cmd":"shutdown"}` ou EOF | encerra servidor e jobs | — |
 
 Erros: `{"id","ok":false,"code":"invalid_request|unknown_command|failed"}` (sem caminho
@@ -70,6 +72,17 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
 `capabilities` mínimas: `dialog:allow-open`, `dialog:allow-save`, `opener:allow-open-path`
 (escopo só pelos caminhos devolvidos pelo sidecar), sidecar `externalBin` com **allowlist
 de um** executável. CSP idêntica à do `index.html` atual.
+
+## Implementação (`src-tauri/`)
+
+- `src-tauri/src/main.rs` implementa todos os comandos acima; a página roda em `http://tauri.localhost`
+  (`frontendDist = ../frontend`), sem capabilities (a página só alcança os comandos do app).
+- Os comandos com argumento composto usam `rename_all = "snake_case"` (`job_id`, `file_id`): o padrão do Tauri
+  esperaria camelCase e quebraria o contrato.
+- `externalBin` coloca `Contracto_sidecar.exe` ao lado do executável; o Rust o inicia com `CREATE_NO_WINDOW`.
+  Se o pai morrer, o EOF do stdin encerra o sidecar.
+- Build: `.venv/Scripts/python.exe scripts/build_sidecar.py` e depois `npm install` + `npx tauri build`
+  (instalador NSIS em `src-tauri/target/release/bundle/nsis/`).
 
 ## Testes que travam o contrato
 

@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 ARQUIVO_NOME = "_versoes_anteriores"
-PADROES = ("Contracto_v*.exe", "Contracto_v*.zip", "*.sha256.txt", "Contracto_Installer_v*.exe")
+PADROES = ("Contracto_Setup_v*.exe", "Contracto_v*.exe", "Contracto_v*.zip", "*.sha256.txt", "Contracto_Installer_v*.exe")
 VERSAO_RE = re.compile(r"v(\d+\.\d+\.\d+)")
 
 

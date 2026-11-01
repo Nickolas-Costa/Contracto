@@ -223,3 +223,8 @@ output/
 
 # Protótipo da webview (referência local, fora do versionamento)
 Protótipo-webview-do-sistema.zip
+
+# Tauri (ADR 0029)
+node_modules/
+src-tauri/binaries/
+src-tauri/gen/

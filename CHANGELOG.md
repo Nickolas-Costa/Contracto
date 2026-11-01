@@ -3,6 +3,21 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.2.0] - 2026-11-01
+
+O aplicativo passa a rodar no shell **Tauri** (ADR 0029). Sem mudança no motor de geração nem nos dados.
+
+### Distribuição
+- `build_exe.bat` agora gera o shell Tauri + sidecar Python: `dist/Contracto_Setup_v<versão>.exe` (instalador NSIS do Tauri) e `dist/Contracto_v<versão>.zip` (portátil), cada um com `.sha256.txt`. O Inno Setup saiu do build.
+- O instalador remove a instalação antiga do Inno Setup antes de instalar; `%APPDATA%\Contracto` (perfis, configurações, backups) não é tocado.
+- Sem auto-update: continua a reinstalação manual.
+- Requisitos de build: Rust (`stable-x86_64-pc-windows-msvc`), VS Build Tools (C++) e Node, além do Python atual.
+
+### Shell
+- `src-tauri/`: janela, diálogos nativos, arrasto de arquivos na Conversão e ponte `request` com a mesma lista de caminhos permitidos e limite de 1 MiB da ponte anterior.
+- Instância única (mutex do sidecar): abrir de novo traz a janela existente para a frente.
+- O sidecar ganhou `import_profile`/`export_profile`; `ShellBridge` e sidecar usam o mesmo código (`app/api/profile_files.py`).
+
 ## [5.1.0] - 2026-10-31
 
 Polimento visual e correções de fluxo. Sem mudança no motor de geração.

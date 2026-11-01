@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Contracto",
+  "version": "5.2.0",
+  "identifier": "br.com.contracto.app",
+  "build": { "frontendDist": "../frontend" },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self'; frame-src blob:; base-uri 'none'; form-action 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../app/assets/icons/app_icon.ico"],
+    "externalBin": ["binaries/Contracto_sidecar"],
+    "windows": {
+      "nsis": { "installMode": "currentUser", "languages": ["PortugueseBR"], "installerHooks": "windows/hooks.nsh" }
+    }
+  }
+}

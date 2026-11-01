@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
+from api.profile_files import exportar_arquivo, importar_arquivo
 from server import LocalServer
 from ports.webview_dialog import WebViewDialogs
 from version import __version__
@@ -152,23 +153,7 @@ class ShellBridge:
                 return {"cancelled": True}
             if not self._authorized():
                 return {"code": "unauthorized_page"}
-            if path.suffix.lower() != ".json" or path.stat().st_size > 1024 * 1024:
-                return {"ok": False, "code": "invalid_file"}
-            import json
-            try:
-                dados = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                return {"ok": False, "code": "invalid_json"}
-            if not isinstance(dados, dict):
-                return {"ok": False, "code": "invalid_profile"}
-            from utils import profile_manager
-            try:
-                perfil = profile_manager._perfil_de_dict(dados)
-                profile_manager.adicionar_perfil(perfil)
-            except (ValueError, TypeError, KeyError) as exc:
-                return {"ok": False, "code": "invalid_profile", "message": str(exc)}
-            self._server.jobs.refresh_profiles()
-            return {"ok": True, "nome": perfil.nome}
+            return importar_arquivo(self._server, path)
         except Exception:
             return {"ok": False, "code": "import_failed"}
 
@@ -188,10 +173,7 @@ class ShellBridge:
                 return {"cancelled": True}
             if not self._authorized():
                 return {"code": "unauthorized_page"}
-            import json
-            from dataclasses import asdict
-            path.write_text(json.dumps(asdict(perfil), ensure_ascii=False, indent=2), encoding="utf-8")
-            return {"ok": True, "nome": perfil.nome}
+            return exportar_arquivo(perfil.nome, path)
         except Exception:
             return {"ok": False, "code": "export_failed"}
 
