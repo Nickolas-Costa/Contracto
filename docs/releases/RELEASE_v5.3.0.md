@@ -13,7 +13,7 @@ O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python
 ### Desempenho
 - A janela abre em cerca de 0,8 s (antes: vários segundos extraindo o servidor a cada abertura); app utilizável em ~2,4 s.
 - Chamadas à API ~5 ms (eram ~16 ms).
-- Contrapartida: ~136 MB em disco (eram ~70 MB), porque o servidor agora é uma pasta instalada uma vez. O instalador tem 50.6 MiB.
+- Contrapartida: ~136 MB em disco (eram ~70 MB), porque o servidor agora é uma pasta instalada uma vez. O instalador tem 50.7 MiB.
 
 ### Corrigido
 - **Conversão presa em "Convertendo…"** mesmo com o arquivo entregue (erro ao desenhar a lista de resultados, engolido pelo acompanhamento).
@@ -35,5 +35,5 @@ O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python
 - PDF/A: os modelos convertidos pelo app saem sem formulário, com fontes embutidas e sem Filter no Metadata. Se o validador online apontar NeedAppearances/fonte/Filter, confira se o arquivo é o da pasta PDF-A e não o formulário preenchido.
 
 ### Artefatos
-- `Contracto_Setup_v5.3.0.exe` (50.6 MiB), instalador. SHA-256: `D1C155EB5AC85C55F65F29FA9C64C69DDF5D8447DE15B3E5A18334776E8D972B`
-- `Contracto_v5.3.0.zip` (65.6 MiB), portátil (`Contracto.exe` + pasta `sidecar/`). SHA-256: `54A9EC313E82BE764D9C7A01488F1CE142EB90B60A4BEAF558B3EE2F4359F528`
+- `Contracto_Setup_v5.3.0.exe` (50.7 MiB), instalador. SHA-256: `F72C5D0F893F5BFD80274E8E493BCE56FA307E6E7915BA32FC62967CEDD54474`
+- `Contracto_v5.3.0.zip` (65.6 MiB), portátil (`Contracto.exe` + pasta `sidecar/`). SHA-256: `F03F1F102296F1CD105B82D667C2F22A372A967E1B4000B986855F3B6E41F532`
