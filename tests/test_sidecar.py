@@ -106,13 +106,22 @@ class TestSidecar(unittest.TestCase):
 
     def test_processo_real_aperta_a_mao_serve_http_e_sai_com_eof(self):
         proc = subprocess.Popen([sys.executable, str(RAIZ / "app" / "sidecar.py")], cwd=RAIZ / "app",
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 env={**os.environ, "CONTRACTO_MUTEX": "Local\ContractoTeste" + str(os.getpid())})
+        linha = lambda: json.loads(proc.stdout.readline().decode("utf-8"))  # noqa: E731
         try:
-            env_sidecar = json.loads(proc.stdout.readline())
-            self.assertEqual(env_sidecar["event"], "starting")
-            pronto = json.loads(proc.stdout.readline())
+            self.assertEqual(linha()["event"], "starting")
+            pronto = linha()
             self.assertEqual(pronto["event"], "ready")
+            # O pipe do Rust é UTF-8: caminho com acento tem de chegar inteiro.
+            with tempfile.TemporaryDirectory() as pasta:
+                pdf = Path(pasta, "Contratação João.pdf")
+                pdf.write_bytes(b"%PDF-1.4")
+                comando = {"id": 1, "cmd": "register", "kind": "convert", "path": str(pdf)}
+                proc.stdin.write((json.dumps(comando, ensure_ascii=False) + chr(10)).encode("utf-8"))
+                proc.stdin.flush()
+                registro = linha()
+                self.assertEqual((registro["ok"], registro["name"]), (True, pdf.name))
             import urllib.request
             req = urllib.request.Request(pronto["origin"] + "/api/v1/health", headers={
                 "Authorization": "Bearer " + pronto["token"], "Origin": pronto["origin"]})
@@ -121,7 +130,3 @@ class TestSidecar(unittest.TestCase):
             proc.stdin.close()
             self.assertEqual(proc.wait(60), 0)
             proc.stdout.close()
-
-
-if __name__ == "__main__":
-    unittest.main()

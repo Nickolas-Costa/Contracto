@@ -182,7 +182,7 @@ class TestFrontendBase(unittest.TestCase):
         z = int(re.search(r"z-index:(\d+)", toolbar).group(1))
         for seletor in (r"\.calendario-overlay", r"#toasts", r"\.overlay", r"\.skip-link"):
             self.assertLess(z, int(re.search(seletor + r"\{[^}]*z-index:(\d+)", css).group(1)), seletor)
-        self.assertRegex(css, r"@media\(max-width:1100px\)\{\.toolbar\{[^}]*position:static")
+        self.assertRegex(css, r"@media\(max-width:1100px\)\{\.toolbar\{[^}]*position:relative")
         # Visualizador: uma única regra de largura, sem valor fixo em px/vw.
         self.assertEqual(len(re.findall(r"\.pdf-preview\{[^}]*width:", css)), 1)
         self.assertNotIn("min(900px,80vw)", css)

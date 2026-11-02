@@ -13,27 +13,47 @@ código presuma variável de ambiente ou pasta existente:
 
 import os
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
 
 def _gravavel(diretorio: Path) -> Path | None:
-    """Devolve o diretório se for possível criar e escrever nele."""
-    try:
-        diretorio.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        return None
-    try:
-        teste = diretorio / ".escrita_teste"
-        teste.touch()
-        teste.unlink()
-    except OSError:
-        return None
-    return diretorio
+    """Devolve o diretório se for possível criar e escrever nele.
+
+    O antivírus/OneDrive segura o arquivo de teste por instantes: sem repetir, uma falha passageira jogava
+    configurações e perfis para outra pasta (tema voltava ao padrão sem ninguém mexer).
+    """
+    for tentativa in range(3):
+        try:
+            diretorio.mkdir(parents=True, exist_ok=True)
+            teste = diretorio / ".escrita_teste"
+            teste.touch()
+        except OSError:
+            time.sleep(0.15)
+            continue
+        try:
+            teste.unlink()
+        except OSError:
+            pass  # o arquivo existe e foi criado: a escrita funciona
+        return diretorio
+    return None
+
+
+_dados_resolvidos: dict[tuple, Path] = {}
 
 
 def diretorio_dados_local(nome: str = "Contracto") -> Path:
-    """Primeiro diretório gravável da cascata de locais de dados."""
+    """Primeiro diretório gravável da cascata de locais de dados.
+
+    O local do usuário (primeiro candidato) é resolvido uma vez por processo e reaproveitado: ele não troca de
+    pasta no meio da sessão por causa de uma falha passageira.
+    """
+    chave = (nome, os.environ.get("APPDATA"), os.environ.get("LOCALAPPDATA"))
+    fixo = _dados_resolvidos.get(chave)
+    if fixo is not None:
+        fixo.mkdir(parents=True, exist_ok=True)
+        return fixo
     candidatos: list[Path] = []
     for variavel in ("APPDATA", "LOCALAPPDATA"):
         base = os.environ.get(variavel)
@@ -44,9 +64,11 @@ def diretorio_dados_local(nome: str = "Contracto") -> Path:
     except (RuntimeError, OSError):
         pass
     candidatos.append(Path(tempfile.gettempdir()) / nome)
-    for candidato in candidatos:
+    for indice, candidato in enumerate(candidatos):
         resolvido = _gravavel(candidato)
         if resolvido is not None:
+            if indice == 0:
+                _dados_resolvidos[chave] = resolvido
             return resolvido
     ultimo = candidatos[-1]
     ultimo.mkdir(parents=True, exist_ok=True)

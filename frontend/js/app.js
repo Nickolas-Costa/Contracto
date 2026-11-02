@@ -5,6 +5,7 @@
   let tentativas = 0, erroDeConexaoExibido = false;
   function conexao(ok, mensagem) {
     pronto = ok;
+    if (ok) document.getElementById("splash")?.setAttribute("hidden", "");
     const el = document.getElementById("conexao");
     if (el) {
       el.textContent = mensagem;
@@ -29,6 +30,8 @@
     conexao(false, "Indisponível");
     // O boot normal não é erro para o usuário. Só informe se a API continuar
     // indisponível após as tentativas iniciais, e uma única vez.
+    const splash = document.getElementById("splash-texto");
+    if (splash && tentativas >= 1) splash.textContent = "Ainda iniciando o serviço local…";
     if (tentativas >= 3 && !erroDeConexaoExibido) {
       erroDeConexaoExibido = true;
       window.ContractoUI?.toast("Não foi possível conectar ao serviço local. Feche e abra o Contracto novamente.", "error", 0);

@@ -113,7 +113,7 @@ html{scroll-padding-top:96px}
 .viewer-panel{display:flex;flex-direction:column;gap:10px}
 .field .checkbox-inline{min-height:42px}
 .compact-page .field-grid{column-gap:24px;row-gap:18px}
-@media(max-width:1100px){.toolbar{flex-wrap:wrap;position:static}html{scroll-padding-top:0}.toolbar-actions{margin-left:0;width:100%;justify-content:flex-start;flex-wrap:wrap}}
+@media(max-width:1100px){.toolbar{flex-wrap:wrap;position:relative}html{scroll-padding-top:0}.toolbar-actions{margin-left:0;width:100%;justify-content:flex-start;flex-wrap:wrap}}
 .mode-panel{flex:none}.mode-panel>.hint{margin-bottom:6px;font-size:12px}.modos{background:var(--c-surface-variant);padding:4px;border:1px solid var(--c-border);border-radius:10px}
 .stepper{display:flex;align-items:center;justify-content:center;gap:16px;list-style:none;margin:24px auto 0;padding:0;max-width:640px}.stepper button{display:flex;align-items:center;gap:8px;color:var(--c-text-secondary);background:transparent;border:none;padding:6px 0}.stepper button[aria-current="step"]{color:var(--c-primary);font-weight:650}
 .step-number{border:1px solid var(--c-control-border);border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-size:12px}[aria-current="step"] .step-number{color:var(--c-on-primary);background:var(--c-primary);border-color:var(--c-primary)}.stepper .step-divider{width:36px;height:1px;background:var(--c-control-border)}
@@ -305,3 +305,13 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 .field select option:checked{background:var(--c-primary);color:var(--c-on-primary)}
 .documento-nome{width:100%;max-width:360px;margin-top:8px;min-height:36px;border:1px solid var(--c-control-border);border-radius:var(--r-input);padding:6px 10px;color:var(--c-text);background:var(--c-surface)}
 .documento-nome[aria-invalid="true"]{border-color:var(--c-error)}
+
+/* Tela de espera do arranque: o servidor local carrega em segundo plano (app.js esconde ao conectar). */
+.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--c-bg);color:var(--c-text-secondary)}
+.splash[hidden]{display:none}
+.splash-roda{width:36px;height:36px;border-radius:50%;border:3px solid var(--c-border);border-top-color:var(--c-primary);animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+/* Conversão sem progresso medido ainda: faixa deslizante em vez de barra parada em 0%. */
+.progresso.indeterminado{overflow:hidden}
+.progresso.indeterminado>div{width:35%!important;animation:indeterminado 1.4s ease-in-out infinite}
+@keyframes indeterminado{from{margin-left:-35%}to{margin-left:100%}}

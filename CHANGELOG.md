@@ -19,6 +19,12 @@ O aplicativo passa a rodar no shell **Tauri** (ADR 0029). Sem mudança no motor 
 - Segunda instância é detectada antes de carregar o servidor e sai em ~0,3 s, sem janela.
 - Conversão: a zona de soltar volta a ter o destaque ao arrastar e só aceita arquivos soltos nela.
 
+### Correções
+- Anexar arquivo na Conversão falhava com caminhos acentuados (o sidecar lia o pipe na página de código do Windows): agora UTF-8.
+- Tema e configurações podiam voltar ao padrão sem ninguém mexer: uma falha passageira do antivírus ao testar a pasta de dados jogava a leitura para outra pasta. A pasta é testada com repetição e fixada por sessão.
+- Janela reduzida (≤ 1100 px): a faixa da barra superior cobria o fundo e se cortava ao meio.
+- Tela de espera ao abrir o app e, na Conversão, barra deslizante com tempo decorrido em vez de barra parada em 0%.
+
 ### Shell
 - `src-tauri/`: janela, diálogos nativos, arrasto de arquivos na Conversão e ponte `request` com a mesma lista de caminhos permitidos e limite de 1 MiB da ponte anterior.
 - Instância única (mutex do sidecar): abrir de novo traz a janela existente para a frente.

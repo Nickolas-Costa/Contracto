@@ -54,6 +54,24 @@ class TestDiretorioDadosLocal(unittest.TestCase):
         self.assertTrue(os.access(resultado, os.W_OK))
 
 
+    def test_falha_passageira_nao_troca_de_pasta_nem_perde_o_local_do_usuario(self):
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {"APPDATA": d, "LOCALAPPDATA": d + "-outra"}):
+            original = Path.touch
+            falhas = []
+
+            def touch_instavel(self, *a, **k):
+                if not falhas:
+                    falhas.append(1)
+                    raise PermissionError("antivirus")
+                return original(self, *a, **k)
+
+            with patch.object(Path, "touch", touch_instavel), patch("utils.caminhos.time.sleep"):
+                self.assertEqual(diretorio_dados_local("ContractoRetry"), Path(d) / "ContractoRetry")
+            # Erro ao apagar o arquivo de teste não torna a pasta inválida.
+            with patch.object(Path, "unlink", side_effect=PermissionError("antivirus")):
+                self.assertEqual(diretorio_dados_local("ContractoUnlink"), Path(d) / "ContractoUnlink")
+
+
 class TestCopiaCorrompida(unittest.TestCase):
     def test_renomeia_com_marca_de_data(self):
         with tempfile.TemporaryDirectory() as d:

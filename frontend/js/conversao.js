@@ -147,16 +147,17 @@
                       format: formato, request_id: novoRequestId() };
     if (arquivos.some(a => a.nome)) payload.nomes_saida = arquivos.map(a => a.nome || "");
     sending = true;
+    status("sending", "Enviando…", "Preparando a conversão.");
     atualizar();
     try {
       const r = await api().request("POST", "/api/v1/jobs/convert", payload);
       if (r.status === 202) {
-        active = { job_id: r.data.job_id };
+        active = { job_id: r.data.job_id, inicio: Date.now() };
         failures = 0;
         status("queued", "Conversão agendada…", "Aguardando confirmação do servidor.");
         ui().toast("Conversão iniciada. Acompanhe o andamento nesta tela.", "info");
         $("conversao-progresso").hidden = false;
-        $("conversao-barra").style.width = "5%";
+        $("conversao-progresso").classList.add("indeterminado");
         poll();
       } else {
         ui().toast(r.data?.message || "Não foi possível iniciar a conversão.", "error");
@@ -176,11 +177,15 @@
       if (r.status === 200) {
         const job = r.data;
         if (["queued", "running", "sending"].includes(job.status)) {
+          const seg = Math.round((Date.now() - active.inicio) / 1000);
+          const feitos = job.completed || 0;
           status(job.status, job.message || "Convertendo…",
-                 job.total ? "Arquivo " + Math.min(job.completed + 1, job.total) + " de " + job.total : "");
+                 (job.total ? "Arquivo " + Math.min(feitos + 1, job.total) + " de " + job.total : "") +
+                 (seg >= 3 ? " · " + seg + " s" : "") +
+                 (seg >= 20 ? ". Ainda trabalhando: PDF/A e arquivos grandes podem demorar um pouco." : ""));
           $("conversao-progresso").hidden = false;
-          $("conversao-barra").style.width = (job.progress || job.total
-            ? Math.round(100 * (job.completed || 0) / Math.max(1, job.total || 100)) : 5) + "%";
+          $("conversao-progresso").classList.toggle("indeterminado", !feitos);
+          $("conversao-barra").style.width = feitos ? Math.round(100 * feitos / Math.max(1, job.total || 100)) + "%" : "";
         } else if (job.status === "completed") {
           $("conversao-progresso").hidden = true;
           mostrarResultados(job);

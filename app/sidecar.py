@@ -109,4 +109,7 @@ def main(entrada=None, saida=None):
 
 
 if __name__ == "__main__":
+    # O pipe do Rust é UTF-8; sem isso o Windows usa a página de código local e caminhos com acento quebram.
+    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")
     main()
