@@ -4,7 +4,7 @@ O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python
 
 ### Novo
 - **Carregamentos em modal** (giratório + barra, tempo decorrido, Cancelar): gerar, organizar e converter. Saem o toast de "iniciado" e o status dentro do quadro; a conclusão segue em modal.
-- **Novo ícone do app**: bloco "C" azul sóbrio (face plana + lateral mais escura, no estilo do ícone anterior) sobre tile azul-marinho, no executável, instalador, cabeçalho e README. O servidor local também aparece como "Contracto" com o mesmo ícone no Gerenciador de Tarefas.
+- **Novo ícone do app**: "C" redondo azul e plano, com lateral mais escura deslocada (no estilo do ícone anterior), sobre tile azul-marinho, no executável, instalador, cabeçalho e README. O servidor local também aparece como "Contracto" com o mesmo ícone no Gerenciador de Tarefas.
 - **Carregamento sempre animado**: o giratório e a barra funcionam mesmo com as animações do Windows desligadas.
 - **Shell Tauri**: janela nativa, diálogos do Windows, arrasto de arquivos na Conversão (com destaque da zona), instância única (abrir de novo traz a janela existente).
 - Tela de espera "Iniciando o Contracto…" até o servidor local ficar pronto.

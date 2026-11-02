@@ -1,6 +1,6 @@
 """Gera os PNG/ICO do app a partir de uma proposta em docs/icone/propostas/ (Edge headless renderiza o SVG; Pillow monta o .ico).
 
-Uso: python scripts/gerar_icone.py [S1]   (nome da proposta; padrão S1; requer Microsoft Edge e Pillow)
+Uso: python scripts/gerar_icone.py [S3]   (nome da proposta; padrão S3; requer Microsoft Edge e Pillow)
 Também renderiza todas as propostas em PNG (propostas/*.png) para comparação.
 """
 import re
@@ -33,7 +33,7 @@ def renderizar(svg: Path, destino: Path, lado: int) -> Image.Image:
 def main() -> None:
     if not EDGE.exists():
         raise SystemExit("[ERRO] Microsoft Edge não encontrado.")
-    nome = sys.argv[1] if len(sys.argv) > 1 else "S1"
+    nome = sys.argv[1] if len(sys.argv) > 1 else "S3"
     escolhida = PROPOSTAS / f"proposta_{nome}.svg"
     if not escolhida.exists():
         raise SystemExit(f"[ERRO] Proposta inexistente: {escolhida.name}")
