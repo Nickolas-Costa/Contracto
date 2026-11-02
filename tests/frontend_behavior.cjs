@@ -180,4 +180,29 @@ async function extrasLifecycle(){
   assert.deepEqual(sel(),[],"novo trabalho limpa extras");
   console.log("PASS extras da Conferência sobrevivem à geração");
 }
-(async()=>{fields();await bootstrap();modal();await extrasLifecycle();})().catch(error=>{console.error(error);process.exitCode=1});
+// Regressão: a tela de Conversão ficava em "Convertendo…" para sempre quando o trabalho concluía
+// (o render do resultado lançava ReferenceError e o poll engolia o erro).
+async function conversaoConclui(){
+ const make=()=>{const e={dataset:{},children:[],style:{},value:'',hidden:false,classList:{toggle(){},add(){},remove(){}},
+  addEventListener(k,fn){e[k]=fn},append(...n){e.children.push(...n)},prepend(){},replaceChildren(){e.children=[]},
+  setAttribute(){},removeAttribute(){},querySelector:()=>make(),getBoundingClientRect:()=>({left:0,right:0,top:0,bottom:0})};return e};
+ const ids=new Map(),$=id=>{if(!ids.has(id))ids.set(id,make());return ids.get(id)};
+ const modais=[];
+ const job={job_id:'j1',status:'completed',completed:1,total:1,file_ids:['f1'],files:[{name:'a.pdf',size_bytes:2048,file_id:'f1'}]};
+ const api={selectDocuments:async()=>({}),selectOutput:async()=>({selection_id:'o1',name:'Docs'}),
+  getCapabilities:async()=>({ghostscript:true}),getJob:async()=>({status:200,data:job}),
+  request:async(m,p)=>p==='/api/v1/jobs/convert'?{status:202,data:{job_id:'j1'}}:{status:404,data:{}}};
+ const window={ContractoAPI:api,ContractoApp:{pronto:()=>true},
+  ContractoUI:{toast(){},abrirModal:(...a)=>modais.push(a),icone:make,mostrarTela(){}}};
+ const document={readyState:'complete',getElementById:$,createElement:make,querySelector:()=>make(),addEventListener(){}};
+ vm.runInNewContext(source('conversao.js'),{window,document,setTimeout:fn=>0,clearTimeout(){},crypto:{getRandomValues:a=>a},Uint8Array,Date,Math});
+ window.ContractoConversao.ligar();await flush();
+ window.ContractoConversao.receberArrasto({selection_ids:['a1'],names:['x.pdf']});
+ await $('btn-conversao-pasta').click();await flush();
+ $('conversao-formato').value='PDF/A-2b';
+ await $('btn-converter').click();await flush();await flush();
+ assert.equal(modais.length,1,'conclusão deve abrir o aviso de conversão concluída');
+ assert.equal($('conversao-progresso').hidden,true,'barra de progresso escondida ao concluir');
+ console.log('PASS conversão conclui e libera a tela');
+}
+(async()=>{fields();await bootstrap();modal();await extrasLifecycle();await conversaoConclui();})().catch(error=>{console.error(error);process.exitCode=1});

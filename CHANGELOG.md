@@ -20,6 +20,8 @@ O aplicativo passa a rodar no shell **Tauri** (ADR 0029). Sem mudança no motor 
 - Conversão: a zona de soltar volta a ter o destaque ao arrastar e só aceita arquivos soltos nela.
 
 ### Correções
+- Conversão ficava em "Convertendo…" para sempre mesmo com o arquivo já entregue: a lista de resultados lançava erro (campo de renomear colado por engano) e o acompanhamento engolia o erro. Removido, e a tela é liberada antes de desenhar o resultado.
+- O instalador remove o `Contracto_sidecar.exe` (62 MB) deixado por builds 5.2 anteriores.
 - Anexar arquivo na Conversão falhava com caminhos acentuados (o sidecar lia o pipe na página de código do Windows): agora UTF-8.
 - Tema e configurações podiam voltar ao padrão sem ninguém mexer: uma falha passageira do antivírus ao testar a pasta de dados jogava a leitura para outra pasta. A pasta é testada com repetição e fixada por sessão.
 - Janela reduzida (≤ 1100 px): a faixa da barra superior cobria o fundo e se cortava ao meio.

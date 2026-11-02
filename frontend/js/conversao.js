@@ -188,9 +188,9 @@
           $("conversao-barra").style.width = feitos ? Math.round(100 * feitos / Math.max(1, job.total || 100)) + "%" : "";
         } else if (job.status === "completed") {
           $("conversao-progresso").hidden = true;
-          mostrarResultados(job);
           const id = active.job_id;
-          active = null;
+          active = null; // antes de desenhar: falha ao desenhar a lista não pode prender a tela em "Convertendo…"
+          try { mostrarResultados(job); } catch (_) { ui().toast("Conversão concluída, mas a lista de arquivos não pôde ser exibida.", "warning"); }
           status("completed", "Conversão concluída.", "Arquivos salvos na pasta de destino.");
           ui().abrirModal("Conversão concluída", (job.file_ids || []).length + " arquivo(s) convertido(s) para " + $("conversao-formato").value + ".", [
             { texto: "Abrir pasta", primario: true, aoClicar: async () => {
@@ -236,20 +236,7 @@
       const detail = document.createElement("p");
       detail.className = "hint";
       detail.textContent = Math.max(1, Math.ceil((f.size_bytes || 0) / 1024)) + " KB";
-      const novo = document.createElement("input");
-      novo.className = "documento-nome";
-      novo.autocomplete = "off";
-      novo.value = a.nome || "";
-      novo.placeholder = "Novo nome (opcional)";
-      novo.disabled = !!active;
-      novo.setAttribute("aria-label", "Novo nome para " + a.name);
-      novo.addEventListener("input", () => {
-        a.nome = novo.value.trim();
-        if (a.nome && !NOME_VALIDO.test(a.nome)) novo.setAttribute("aria-invalid", "true");
-        else novo.removeAttribute("aria-invalid");
-        atualizar();
-      });
-      info.append(name, detail, novo);
+      info.append(name, detail);
       const btn = document.createElement("button");
       btn.className = "btn btn-secondary";
       btn.type = "button";

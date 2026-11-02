@@ -1,6 +1,8 @@
 ; Migração do Inno Setup (AppId=Contracto): remove a instalação antiga antes de instalar.
 ; Os dados em %APPDATA%\Contracto não pertencem ao desinstalador e ficam intactos.
 !macro NSIS_HOOK_PREINSTALL
+  ; Sobra das builds 5.2 em arquivo único (o sidecar agora é a pasta sidecar\): 62 MB órfãos.
+  Delete "$INSTDIR\Contracto_sidecar.exe"
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Contracto_is1" "UninstallString"
   ${If} $0 != ""
     ExecWait '$0 /VERYSILENT /NORESTART'
