@@ -9,7 +9,9 @@ O aplicativo passa a rodar no shell **Tauri** (ADR 0029 e 0031), com instalador 
 
 ### Interface
 - **Carregamentos em modal**: geração, organização e conversão abrem um modal com giratório e barra (medida quando há progresso, deslizante quando não), tempo decorrido e Cancelar. Saem o toast de "iniciado" e o cartão de status dentro do quadro; a conclusão continua em modal.
-- **Novo ícone** (C 3D azul com peça laranja sobre tile azul-marinho), no app, no `.ico`, no cabeçalho e no README. Fontes em `app/assets/icons/svg/`, geradas por `scripts/gerar_icone.py`.
+- **Novo ícone**: bloco "C" azul sóbrio (face plana e lateral em azul mais escuro, no estilo do ícone anterior) sobre tile azul-marinho, no app, no `.ico`, no cabeçalho e no README. Propostas alternativas e comparativo em `docs/icone/propostas/`; `python scripts/gerar_icone.py <S1|S2|S3|...>` troca o ícone.
+- Carregamento segue animado mesmo com as animações do Windows desligadas (antes o giratório ficava parado, parecendo travado).
+- O servidor local (`Contracto_sidecar.exe`) agora tem o ícone e o nome "Contracto" no Gerenciador de Tarefas.
 - Tela de espera "Iniciando o Contracto…" até o servidor local ficar pronto.
 - Conversão: a zona de soltar volta a ter o destaque ao arrastar e só aceita arquivos soltos nela.
 

@@ -319,3 +319,6 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 .modal-progresso .modal-fechar{display:none}
 .progresso-modal{display:grid;justify-items:center;gap:12px;padding:12px 8px 4px;text-align:center}
 .progresso-modal .progresso{width:100%}
+/* Carregamento é feedback essencial: segue animado mesmo com "reduzir movimento" (com as animações do Windows
+   desligadas o WebView2 reporta reduce e o giratório/barra ficavam parados, parecendo travados). */
+@media(prefers-reduced-motion:reduce){.splash-roda{animation:gira 1.4s linear infinite!important}.progresso.indeterminado>div{animation:indeterminado 1.8s ease-in-out infinite!important}}
