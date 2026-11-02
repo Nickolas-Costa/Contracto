@@ -322,3 +322,8 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 /* Carregamento é feedback essencial: segue animado mesmo com "reduzir movimento" (com as animações do Windows
    desligadas o WebView2 reporta reduce e o giratório/barra ficavam parados, parecendo travados). */
 @media(prefers-reduced-motion:reduce){.splash-roda{animation:gira 1.4s linear infinite!important}.progresso.indeterminado>div{animation:indeterminado 1.8s ease-in-out infinite!important}}
+/* Modo escuro: os indicadores de carregamento usam o azul claro do tema (--c-info) e não a cor de destaque,
+   que pode ser escura (ex.: Azul Royal) e some sobre o fundo; a trilha também fica mais visível. */
+[data-theme="dark"] .splash-roda{border-color:color-mix(in srgb,var(--c-text) 24%,transparent);border-top-color:var(--c-info)}
+[data-theme="dark"] .progresso{background:color-mix(in srgb,var(--c-text) 16%,transparent)}
+[data-theme="dark"] .progresso>div{background:linear-gradient(90deg,var(--c-info),color-mix(in srgb,var(--c-info) 60%,white))}
