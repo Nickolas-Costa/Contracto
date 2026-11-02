@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v5.1.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.3.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -13,7 +13,7 @@
 
 <br/>
 
-**[📥 Baixar Executável (.zip)](https://github.com/Nickolas-Costa/Contracto/releases)** &nbsp;•&nbsp;
+**[📥 Baixar Instalador (.exe) ou ZIP](https://github.com/Nickolas-Costa/Contracto/releases)** &nbsp;•&nbsp;
 **[📖 Guia de Uso](#-modos-de-opera%C3%A7%C3%A3o-e-fluxos-de-trabalho)** &nbsp;•&nbsp;
 **[🔒 Segurança & Privacidade](#-seguran%C3%A7a-privacidade-e-execu%C3%A7%C3%A3o-100-local)** &nbsp;•&nbsp;
 **[🎨 Design System](docs/DESIGN_SYSTEM.md)** &nbsp;•&nbsp;
@@ -65,6 +65,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
+
+## Atualizações da Versão 5.3.0
+
+O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python), com instalador NSIS no lugar do Inno Setup. Abertura bem mais rápida (a janela aparece em menos de 1 s), instância única, carregamentos em **modal com giratório/barra** em vez de avisos no canto, novo ícone e várias correções: anexar arquivos com acento, tema que voltava ao padrão, Conversão presa em "Convertendo…" após concluir e barra superior quebrada em janela reduzida. Detalhes no [CHANGELOG.md](CHANGELOG.md) e na ADR 0031.
 
 ## Atualizações da Versão 5.1.0
 
@@ -120,22 +124,23 @@ CONTRACTO/
 │   └── js/                             # api.js (único ponto que conhece o shell), app.js, ui.js,
 │                                       # form-state.js (validadores/máscaras), etapa1.js, etapa2.js,
 │                                       # perfis.js, conferencia.js, calendario.js, conversao.js
-├── packaging/Contracto.iss             # Instalador Inno Setup
+├── src-tauri/                          # Shell Tauri (Rust): janela, ponte nativa, diálogos, instalador NSIS (ADR 0029/0031)
+├── package.json                        # Só o CLI do Tauri (@tauri-apps/cli)
 ├── requirements.txt / -dev / -lock     # Dependências de execução, desenvolvimento e travadas
-├── build_exe.bat                       # Build automatizado (.exe, .zip, instalador)
+├── build_exe.bat                       # Build automatizado (sidecar + Tauri: instalador NSIS e ZIP portátil)
 ├── app/
-│   ├── main.py                         # Ponto de entrada (instância única + shell WebView)
-│   ├── webview_shell.py                # Shell pywebview/WebView2 e ponte nativa
-│   ├── sidecar.py                      # Backend headless para o shell Tauri (ADR 0029)
+│   ├── main.py                         # Shell pywebview legado (desenvolvimento e smokes)
+│   ├── webview_shell.py                # Shell pywebview/WebView2 legado e referência da ponte
+│   ├── sidecar.py                      # Backend headless do shell Tauri (UTF-8, instância única, ADR 0029)
 │   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── version.py                      # Versão centralizada do sistema (v5.1.0)
+│   ├── version.py                      # Versão centralizada do sistema (v5.3.0)
 │   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
 │   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis
 │   ├── models/                         # Entidades (participante)
 │   ├── ports/                          # Diálogos WebView, binários (Word/GS) e armazenamento
 │   ├── utils/                          # Validadores, perfis, config, logger, arquivos, instância única
 │   └── assets/                         # config/perfis_iniciais.json, templates/, icons/, gs/ (Ghostscript)
-├── scripts/                            # Build, spec do PyInstaller, pacote de distribuição, atalho
+├── scripts/                            # build_tauri.py, build_sidecar.py, gerar_icone.py, setup_gs.py, arquivamento do dist
 └── tests/                              # Suíte unittest, smokes (WebView2, motores) e checagens em Node
 ```
 
@@ -161,8 +166,10 @@ pip install -r requirements-dev.txt
 
 ```bash
 cd app
-python main.py
+python main.py            # shell pywebview legado (mais rápido para iterar na interface)
 ```
+
+Para rodar o shell Tauri real é preciso o build do sidecar (`.venv\Scripts\python.exe scripts\build_sidecar.py`) e do Tauri (`npx tauri build`). Requisitos: Rust (`stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools (C++) e Node.
 
 ## 🧪 Executando os Testes Automatizados
 
@@ -170,17 +177,21 @@ python main.py
 python -m unittest discover -s tests -v
 ```
 
-## 📦 Compilação do Executável (.exe)
+## 📦 Compilação (Tauri + sidecar)
 
-Para compilar o executável autônomo da versão 5.1.0, execute:
+Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.3.0:
 
 ```cmd
 build_exe.bat
 ```
 
-O executável e o arquivo comprimido para distribuição serão gerados em `dist/Contracto_v5.1.0.zip` (+ `.sha256.txt`). O instalador Windows é gerado na etapa final do build pelo Inno Setup, em `dist/Contracto_Installer_v5.1.0.exe`.
+O build baixa o NSIS (uma vez, com hash verificado), gera o sidecar Python com o Ghostscript embutido, compila o shell Tauri e entrega em `dist/`:
 
-> O Inno Setup pode estar instalado só para o usuário (`%LOCALAPPDATA%\Programs\Inno Setup 6`), fora do PATH; `scripts/build_installer.py` (e o passo 6 de `build_exe.bat`) já localiza essa instalação. Sem Inno Setup, o `.exe` e o `.zip` ainda são gerados e o instalador é apenas pulado.
+- `Contracto_Setup_v5.3.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
+- `Contracto_v5.3.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
+- `*.sha256.txt` de cada um e `RELEASE_NOTES_5.3.0.md`.
+
+> Sem auto-update: atualizar é rodar o instalador novo. O instalador não tem assinatura de código, então o SmartScreen pode alertar. Se o antivírus bloquear o build, exclua a pasta do projeto da verificação em tempo real.
 
 ---
 

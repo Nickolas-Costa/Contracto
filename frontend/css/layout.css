@@ -315,3 +315,7 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 .progresso.indeterminado{overflow:hidden}
 .progresso.indeterminado>div{width:35%!important;animation:indeterminado 1.4s ease-in-out infinite}
 @keyframes indeterminado{from{margin-left:-35%}to{margin-left:100%}}
+
+.modal-progresso .modal-fechar{display:none}
+.progresso-modal{display:grid;justify-items:center;gap:12px;padding:12px 8px 4px;text-align:center}
+.progresso-modal .progresso{width:100%}

@@ -60,6 +60,8 @@
 
   let ultimoFoco = null;
   let aoFechar = null;
+  let bloqueado = false; // modal de progresso: sem X, Esc nem clique fora
+  let progressoAtual = null;
 
   function abrirModal(titulo, corpoHTML, botoes, cleanup) {
     if (!document.getElementById("overlay").hidden) fecharModal();
@@ -127,13 +129,49 @@
     ultimoFoco = null;
   }
 
+  // Modal de carregamento (giratório + barra): só some por `fechar()` de quem o abriu. `aoCancelar` opcional
+  // mostra o botão Cancelar. `atualizar(mensagem, detalhe, pct)`: pct numérico = barra medida; omitido = faixa deslizante.
+  function abrirProgresso(titulo, opcoes) {
+    const corpo = document.createElement("div");
+    corpo.className = "progresso-modal";
+    const roda = document.createElement("div");
+    roda.className = "splash-roda";
+    roda.setAttribute("aria-hidden", "true");
+    const msg = document.createElement("strong");
+    msg.setAttribute("role", "status");
+    const det = document.createElement("p");
+    det.className = "hint";
+    const barra = document.createElement("div");
+    barra.className = "progresso indeterminado";
+    const preenchimento = document.createElement("div");
+    barra.append(preenchimento);
+    corpo.append(roda, msg, det, barra);
+    const aoCancelar = opcoes && opcoes.aoCancelar;
+    abrirModal(titulo, corpo, aoCancelar ? [{ texto: "Cancelar", manter: true, aoClicar: (b) => { b.disabled = true; aoCancelar(); } }] : [],
+      () => { bloqueado = false; progressoAtual = null; });
+    bloqueado = true;
+    document.querySelector(".modal")?.classList.add("modal-progresso");
+    const dono = {};
+    progressoAtual = dono;
+    return {
+      atualizar(mensagem, detalhe, pct) {
+        msg.textContent = mensagem || "";
+        det.textContent = detalhe || "";
+        const medido = typeof pct === "number";
+        barra.classList.toggle("indeterminado", !medido);
+        preenchimento.style.width = medido ? Math.max(0, Math.min(100, pct)) + "%" : "";
+      },
+      fechar() { if (progressoAtual === dono) fecharModal(); }
+    };
+  }
+
   document.getElementById("overlay").addEventListener("click", (ev) => {
-    if (ev.target.id === "overlay") fecharModal();
+    if (ev.target.id === "overlay" && !bloqueado) fecharModal();
   });
   document.addEventListener("keydown", (ev) => {
     const overlay = document.getElementById("overlay");
     if (overlay.hidden) return;
-    if (ev.key === "Escape") { ev.preventDefault(); fecharModal(); }
+    if (ev.key === "Escape") { ev.preventDefault(); if (!bloqueado) fecharModal(); }
     if (ev.key === "Tab") {
       const focusable = [...overlay.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), iframe, [tabindex="0"]')].filter(el => !el.hidden);
       const first = focusable[0], last = focusable[focusable.length - 1];
@@ -773,5 +811,5 @@
     return svg;
   }
 
-  window.ContractoUI = { icone, segmentar, alternarExpansao, toast, abrirModal, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
+  window.ContractoUI = { icone, segmentar, alternarExpansao, toast, abrirModal, abrirProgresso, fecharModal, mostrarTela, irEtapa, sincronizarStepper, aplicarTema, aplicarTemaInicial, sincronizarTemaBackend, desenharFundoSenoidal };
 })();

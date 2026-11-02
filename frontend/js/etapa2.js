@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const $=id=>document.getElementById(id), api=()=>window.ContractoAPI, ui=()=>window.ContractoUI;
-  let bound=false, busy=false, base=null, attachments=[], active=null, timer=null, polling=false, failures=0, previewRevision=0, pending=null, sending=false, finalized=false;
+  let bound=false, busy=false, base=null, attachments=[], active=null, prog=null, timer=null, polling=false, failures=0, previewRevision=0, pending=null, sending=false, finalized=false;
   // Modelo antigo (paridade Tk v4.5.15): formulários com checkbox + documentos
   // extras nomeados (nome_padrao). "attachments" genérico é mantido como
   // derivação para o payload (document_type) e compatibilidade de testes.
@@ -65,6 +65,8 @@
       () => clearInterval(relogio)
     );
   }
+
+  function fecharProgresso() {prog?.fechar();prog=null;}
 
   function fileLabel(file,index) {return file?.name || "Documento "+(index+1);}
   function destacarAbrirPasta(ativo) {
@@ -277,11 +279,10 @@
         const reg=filaConhecida.find(f=>f.job_id===active.job_id);
         if(reg){reg.status=job.status;reg.progress=job.progress||0;reg.message=job.message||reg.message;}
         if(["queued","running","sending"].includes(job.status)){
-          status(job.status,job.message || "Processando…",job.step ? "Etapa "+job.step.current+" de "+job.step.total : "");
-          $("progresso-trabalho").hidden=false;$("fila-barra").style.width=(job.progress || 0)+"%";
+          prog?.atualizar(job.message || "Processando…",job.step ? "Etapa "+job.step.current+" de "+job.step.total : "",job.progress>0 ? job.progress : null);
         } else if(job.status==="completed"){
           const tipo = active.tipo;
-          $("progresso-trabalho").hidden=true;active=null;busy=false;
+          fecharProgresso();active=null;busy=false;
           if(tipo==="generate"){
             receberBase(job);
             ui().toast("PDFs gerados com sucesso. Revise os anexos ou conclua.", "success");
@@ -294,20 +295,22 @@
         } else if(job.status==="failed"){
           status("failed","Trabalho não concluído.",job.error || "Ocorreu um erro no processamento.");
           ui().toast(job.error || "Ocorreu um erro no processamento.", "error", 8000);
+          fecharProgresso();active=null;busy=false;
           if (job.error?.includes("Word")) alertaWordTravado();
-          $("progresso-trabalho").hidden=true;active=null;busy=false;
         } else if(job.status==="cancelled"){
           status("cancelled","Trabalho cancelado.","Nenhum documento foi alterado.");
           ui().toast("Trabalho cancelado. Nenhum documento foi alterado.", "warning");
-          $("progresso-trabalho").hidden=true;active=null;busy=false;
+          fecharProgresso();active=null;busy=false;
         }
       } else if(r.status===404){
+        fecharProgresso();
         status("uncertain","Estado do trabalho incerto.","O servidor não encontrou a operação. Tente novamente.");
         failures++;
       } else failures++;
     } catch(_){failures++;}
     finally {
       polling=false;atualizar();
+      if(active&&failures>=5&&prog){fecharProgresso();ui().toast("Conexão com o serviço local interrompida. Use 'Recuperar andamento' para tentar novamente.","error",0);}
       try { window.ContractoUI?.sincronizarStepper?.(); } catch (_) {}
       // Polling a cada 2s enquanto há trabalhos ativos; para quando a fila esvazia.
       if(active)timer=setTimeout(poll,failures>2?3000:2000);
@@ -319,9 +322,8 @@
     active={job_id:jobId,tipo,cancelRequested:false};busy=true;failures=0;pending=null;
     filaConhecida.unshift({job_id:jobId,tipo,status:"queued",progress:5,message:"Operação agendada…"});
     if(filaConhecida.length>8)filaConhecida.length=8;
-    status("queued","Operação agendada…","Aguardando confirmação do servidor.");
-    ui().toast(tipo === "process" ? "Organização iniciada. Acompanhe em Concluir." : "Geração iniciada. Acompanhe o andamento.", "info");
-    $("progresso-trabalho").hidden=false;$("fila-barra").style.width="5%";
+    prog=ui().abrirProgresso(tipo === "process" ? "Organizando documentos" : "Gerando documentos",{aoCancelar:cancelar});
+    prog.atualizar("Operação agendada…","Aguardando o servidor local.");
     atualizar();poll();
   }
 

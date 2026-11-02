@@ -1,6 +1,7 @@
 # ADR 0029 — Preparação "Tauri Ready"
 
-- **Estado:** aceita (preparação concluída); **a troca de shell depende de aceite**
+- **Estado:** aceita e concluída pela ADR 0031 (v5.3.0). Histórico abaixo.
+- **Estado original:** aceita (preparação concluída); **a troca de shell dependia de aceite**
   (ver *Precisa do seu aceite*). Detalha e atualiza a ADR 0024.
 - **Data:** 2026-10-28
 - **Contexto:** a ADR 0024 manteve o Tauri v2 como rota futura, com cinco passos. O

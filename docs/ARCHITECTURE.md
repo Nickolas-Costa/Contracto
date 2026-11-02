@@ -1,13 +1,15 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v4.5.26) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v5.3.0) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v4.5.26) — UI WebView2 sobre API local loopback
+## Estado atual (v5.3.0) — shell Tauri + sidecar Python sobre API local loopback
 
 A UI é WebView2 desde a v4.5.18 e a interface Tk foi **removida na v5.0.0** (ADR 0028).
-A produção roda por `app/main.py` → `app/webview_shell.py` + `frontend/`; para o Tauri há
-o backend headless `app/sidecar.py` e o contrato em `docs/TAURI_CONTRATO.md` (ADR 0029).
+A produção roda no **shell Tauri** (`src-tauri/`, ADR 0031): o Rust abre a janela com `frontend/`,
+fala com o backend headless `app/sidecar.py` (pasta PyInstaller `sidecar/`) e expõe a ponte nativa
+de `docs/TAURI_CONTRATO.md`. `app/main.py` + `app/webview_shell.py` ficam como shell pywebview legado
+(desenvolvimento e smokes).
 
 ```
 app/main.py             → entrypoint (shell WebView, instância única via mutex)

@@ -3,34 +3,38 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
-## [5.2.0] - 2026-11-01
+## [5.3.0] - 2026-11-02
 
-O aplicativo passa a rodar no shell **Tauri** (ADR 0029). Sem mudança no motor de geração nem nos dados.
+O aplicativo passa a rodar no shell **Tauri** (ADR 0029 e 0031), com instalador NSIS no lugar do Inno Setup. Acumula tudo desde a 5.1.0 (a 5.2.0 só circulou como teste). Sem mudança no motor de geração nem nos dados.
 
-### Distribuição
-- `build_exe.bat` agora gera o shell Tauri + sidecar Python: `dist/Contracto_Setup_v<versão>.exe` (instalador NSIS do Tauri) e `dist/Contracto_v<versão>.zip` (portátil), cada um com `.sha256.txt`. O Inno Setup saiu do build.
-- O instalador remove a instalação antiga do Inno Setup antes de instalar; `%APPDATA%\Contracto` (perfis, configurações, backups) não é tocado.
-- Sem auto-update: continua a reinstalação manual.
-- Requisitos de build: Rust (`stable-x86_64-pc-windows-msvc`), VS Build Tools (C++) e Node, além do Python atual.
-
-### Desempenho e arrasto
-- Sidecar em pasta (PyInstaller onedir) em vez de arquivo único: não extrai 60 MB para o `%TEMP%` (e passa pelo antivírus) a cada abertura.
-- A janela abre em cerca de 0,8 s; o servidor local carrega em segundo plano e a primeira chamada espera por ele.
-- Segunda instância é detectada antes de carregar o servidor e sai em ~0,3 s, sem janela.
+### Interface
+- **Carregamentos em modal**: geração, organização e conversão abrem um modal com giratório e barra (medida quando há progresso, deslizante quando não), tempo decorrido e Cancelar. Saem o toast de "iniciado" e o cartão de status dentro do quadro; a conclusão continua em modal.
+- **Novo ícone** (C 3D azul com peça laranja sobre tile azul-marinho), no app, no `.ico`, no cabeçalho e no README. Fontes em `app/assets/icons/svg/`, geradas por `scripts/gerar_icone.py`.
+- Tela de espera "Iniciando o Contracto…" até o servidor local ficar pronto.
 - Conversão: a zona de soltar volta a ter o destaque ao arrastar e só aceita arquivos soltos nela.
 
+### Desempenho
+- Sidecar em pasta (PyInstaller onedir) em vez de arquivo único: não extrai 60 MB para o `%TEMP%` (e passa pelo antivírus) a cada abertura. Custo: ~136 MB em disco no lugar de ~70 MB; o instalador tem ~50 MB.
+- A janela abre em cerca de 0,8 s; o servidor local carrega em segundo plano e a primeira chamada espera por ele. Latência de chamada à API: ~5 ms (era ~16 ms no shell anterior).
+- Segunda instância é detectada antes de carregar o servidor e sai em ~0,3 s, sem janela.
+
+### Distribuição
+- `build_exe.bat` gera o shell Tauri + sidecar Python: `dist/Contracto_Setup_v<versão>.exe` (instalador NSIS) e `dist/Contracto_v<versão>.zip` (portátil), cada um com `.sha256.txt`. O Inno Setup saiu do build.
+- O instalador remove a instalação antiga do Inno Setup e o `Contracto_sidecar.exe` órfão das builds 5.2; `%APPDATA%\Contracto` (perfis, configurações, backups) não é tocado.
+- Sem auto-update: atualizar é rodar o instalador novo.
+- Requisitos de build: Rust (`stable-x86_64-pc-windows-msvc`), VS Build Tools (C++) e Node, além do Python atual.
+
 ### Correções
-- Conversão ficava em "Convertendo…" para sempre mesmo com o arquivo já entregue: a lista de resultados lançava erro (campo de renomear colado por engano) e o acompanhamento engolia o erro. Removido, e a tela é liberada antes de desenhar o resultado.
-- O instalador remove o `Contracto_sidecar.exe` (62 MB) deixado por builds 5.2 anteriores.
+- Conversão ficava em "Convertendo…" para sempre mesmo com o arquivo já entregue: a lista de resultados lançava erro (campo de renomear colado por engano) e o acompanhamento engolia o erro.
 - Anexar arquivo na Conversão falhava com caminhos acentuados (o sidecar lia o pipe na página de código do Windows): agora UTF-8.
 - Tema e configurações podiam voltar ao padrão sem ninguém mexer: uma falha passageira do antivírus ao testar a pasta de dados jogava a leitura para outra pasta. A pasta é testada com repetição e fixada por sessão.
 - Janela reduzida (≤ 1100 px): a faixa da barra superior cobria o fundo e se cortava ao meio.
-- Tela de espera ao abrir o app e, na Conversão, barra deslizante com tempo decorrido em vez de barra parada em 0%.
+- `build_exe.bat` com caminhos corrompidos (``/`	`) e sem CRLF.
 
 ### Shell
-- `src-tauri/`: janela, diálogos nativos, arrasto de arquivos na Conversão e ponte `request` com a mesma lista de caminhos permitidos e limite de 1 MiB da ponte anterior.
+- `src-tauri/`: janela, diálogos nativos, arrasto de arquivos e ponte `request` com a mesma lista de caminhos permitidos e limite de 1 MiB da ponte anterior.
 - Instância única (mutex do sidecar): abrir de novo traz a janela existente para a frente.
-- O sidecar ganhou `import_profile`/`export_profile`; `ShellBridge` e sidecar usam o mesmo código (`app/api/profile_files.py`).
+- O sidecar ganhou `import_profile`/`export_profile`; `ShellBridge` e sidecar usam o mesmo código (`app/api/profile_files.py`). Variável `CONTRACTO_MUTEX` permite testes ao lado do app aberto.
 
 ## [5.1.0] - 2026-10-31
 

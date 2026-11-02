@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const api = () => window.ContractoAPI, ui = () => window.ContractoUI;
   const online = () => window.ContractoApp?.pronto() || false;
-  let arquivos = [], outputId = null, active = null, timer = null,
+  let arquivos = [], outputId = null, active = null, prog = null, timer = null,
       polling = false, failures = 0, sending = false, bound = false, caps = null,
       formatoPadrao = null, formatoEscolhido = false, sincronizarFormato = null;
 
@@ -147,25 +147,27 @@
                       format: formato, request_id: novoRequestId() };
     if (arquivos.some(a => a.nome)) payload.nomes_saida = arquivos.map(a => a.nome || "");
     sending = true;
-    status("sending", "Enviando…", "Preparando a conversão.");
+    prog = ui().abrirProgresso("Convertendo arquivos", { aoCancelar: cancelar });
+    prog.atualizar("Enviando…", "Preparando a conversão.");
     atualizar();
     try {
       const r = await api().request("POST", "/api/v1/jobs/convert", payload);
       if (r.status === 202) {
         active = { job_id: r.data.job_id, inicio: Date.now() };
         failures = 0;
-        status("queued", "Conversão agendada…", "Aguardando confirmação do servidor.");
-        ui().toast("Conversão iniciada. Acompanhe o andamento nesta tela.", "info");
-        $("conversao-progresso").hidden = false;
-        $("conversao-progresso").classList.add("indeterminado");
+        prog.atualizar("Conversão agendada…", "Aguardando o servidor local.");
         poll();
       } else {
+        fecharProgresso();
         ui().toast(r.data?.message || "Não foi possível iniciar a conversão.", "error");
       }
     } catch (_) {
+      fecharProgresso();
       ui().toast("Conexão interrompida. Tente novamente.", "error");
     } finally { sending = false; atualizar(); }
   }
+
+  function fecharProgresso() { prog?.fechar(); prog = null; }
 
   async function poll() {
     if (!active || polling) return;
@@ -179,15 +181,13 @@
         if (["queued", "running", "sending"].includes(job.status)) {
           const seg = Math.round((Date.now() - active.inicio) / 1000);
           const feitos = job.completed || 0;
-          status(job.status, job.message || "Convertendo…",
+          prog?.atualizar(job.message || "Convertendo…",
                  (job.total ? "Arquivo " + Math.min(feitos + 1, job.total) + " de " + job.total : "") +
                  (seg >= 3 ? " · " + seg + " s" : "") +
-                 (seg >= 20 ? ". Ainda trabalhando: PDF/A e arquivos grandes podem demorar um pouco." : ""));
-          $("conversao-progresso").hidden = false;
-          $("conversao-progresso").classList.toggle("indeterminado", !feitos);
-          $("conversao-barra").style.width = feitos ? Math.round(100 * feitos / Math.max(1, job.total || 100)) + "%" : "";
+                 (seg >= 20 ? ". Ainda trabalhando: PDF/A e arquivos grandes podem demorar um pouco." : ""),
+                 feitos ? Math.round(100 * feitos / Math.max(1, job.total || 100)) : null);
         } else if (job.status === "completed") {
-          $("conversao-progresso").hidden = true;
+          fecharProgresso();
           const id = active.job_id;
           active = null; // antes de desenhar: falha ao desenhar a lista não pode prender a tela em "Convertendo…"
           try { mostrarResultados(job); } catch (_) { ui().toast("Conversão concluída, mas a lista de arquivos não pôde ser exibida.", "warning"); }
@@ -200,26 +200,31 @@
             { texto: "Concluir" }
           ]);
         } else if (job.status === "failed") {
-          $("conversao-progresso").hidden = true;
+          fecharProgresso();
           active = null;
           const msg = job.error?.message || "Ocorreu um erro na conversão.";
           status("failed", "Não foi possível concluir.", msg);
           ui().toast(msg, "error", 8000);
           if (/Word/i.test(msg)) ui().toast("A conversão precisa do Microsoft Word instalado.", "error", 0);
         } else if (job.status === "cancelled") {
-          $("conversao-progresso").hidden = true;
+          fecharProgresso();
           active = null;
           status("cancelled", "Conversão cancelada.", "Nenhum arquivo foi alterado.");
           ui().toast("Conversão cancelada.", "warning");
         }
       } else if (r.status === 404) {
         failures++;
+        fecharProgresso();
         status("uncertain", "Estado incerto.", "O servidor não encontrou a operação.");
       } else { failures++; }
     } catch (_) { failures++; }
     finally {
       polling = false;
       atualizar();
+      if (active && failures >= 5 && prog) {
+        fecharProgresso(); // sem resposta do servidor local: não deixa a tela bloqueada
+        ui().toast("Conexão com o serviço local interrompida. A conversão pode ter terminado: confira a pasta de destino.", "error", 0);
+      }
       if (active) timer = setTimeout(poll, failures > 2 ? 3000 : 2000);
     }
   }

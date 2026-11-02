@@ -70,7 +70,7 @@ Pasta principal da aplicação. Aqui vive o runtime do software e a lógica do n
 
 - `main.py`
   - ponto de entrada do processo;
-  - abre o shell WebView (a interface Tk foi removida na v5.0.0, ADR 0028);
+  - abre o shell pywebview legado (produção: shell Tauri em `src-tauri/`, ADR 0031; a interface Tk foi removida na v5.0.0, ADR 0028);
   - bloqueia segunda instância e registra erros globais.
 
 - `server.py`

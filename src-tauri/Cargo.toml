@@ -1,6 +1,6 @@
 [package]
 name = "contracto"
-version = "5.2.0"
+version = "5.3.0"
 description = "Contracto — shell Tauri sobre o sidecar Python (ADR 0029)"
 edition = "2021"
 

@@ -13,6 +13,8 @@ Uso interno; revisar licenciamento antes de qualquer distribuição comercial.
 | pypdf | 6.16.1 | BSD-3-Clause | Preenchimento AcroForm |
 | pikepdf | 10.11.0 | MPL-2.0 | Validação de metadados PDF/A |
 | pywin32 | 312 | PSF | Automação Word / atalhos (Windows) |
+| Tauri 2 (`tauri`, `tauri-plugin-dialog`), `reqwest`, `tokio`, `serde_json`, `base64` (Rust) | ver `src-tauri/Cargo.lock` | MIT / Apache-2.0 | Shell nativo (janela, diálogos, ponte) |
+| @tauri-apps/cli, NSIS 3.13 (ferramentas de build) | 2.12.3 / 3.13 | MIT / zlib | Gera o instalador (não vai ao usuário final) |
 | Ghostscript (binário embutido) | 10.07.1 | AGPL | Conversão para PDF/A-2b |
 | reportlab (dev/testes) | 5.0.0 | BSD | PDFs sintéticos dos testes |
 | PyInstaller (build) | 6.21.0 | GPL-2.0+ com exceção p/ bundles | Geração do executável |

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>
+<radialGradient id="fundo" cx="50%" cy="8%" r="95%"><stop offset="0" stop-color="#0d2247"/><stop offset=".55" stop-color="#07152b"/><stop offset="1" stop-color="#040b16"/></radialGradient>
+<linearGradient id="corpo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#37a8ff"/><stop offset=".55" stop-color="#1678f0"/><stop offset="1" stop-color="#0a4fc4"/></linearGradient>
+<linearGradient id="borda" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f66d8"/><stop offset="1" stop-color="#06358a"/></linearGradient>
+<linearGradient id="laranja" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb04a"/><stop offset="1" stop-color="#ff6f00"/></linearGradient>
+<filter id="sombra" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#000" flood-opacity=".55"/></filter>
+<filter id="suave"><feGaussianBlur stdDeviation="7"/></filter>
+<clipPath id="tile"><rect x="6" y="6" width="1012" height="1012" rx="232"/></clipPath>
+</defs>
+<rect x="6" y="6" width="1012" height="1012" rx="232" fill="url(#fundo)" stroke="#1d44a0" stroke-width="10"/>
+<g filter="url(#sombra)"><path d="M672 330 A250 250 0 1 0 672 694" fill="none" stroke="url(#borda)" stroke-width="154" stroke-linecap="round"/>
+<path d="M672 330 A250 250 0 1 0 672 694" fill="none" stroke="url(#corpo)" stroke-width="140" stroke-linecap="round"/>
+<path d="M672 330 A250 250 0 1 0 672 694" transform="translate(-16,-20)" fill="none" stroke="#9ad4ff" stroke-opacity=".45" stroke-width="39" stroke-linecap="round" filter="url(#suave)"/></g>
+<g filter="url(#sombra)"><path d="M436 372 h176 l88 88 v206 a28 28 0 0 1 -28 28 h-236 a28 28 0 0 1 -28 -28 v-266 a28 28 0 0 1 28 -28z" fill="#f4f8ff"/><path d="M612 372 v68 a20 20 0 0 0 20 20 h68z" fill="#bcd3f5"/></g>
+<g stroke="#2a6fd6" stroke-width="22" stroke-linecap="round"><path d="M452 540 h150"/><path d="M452 596 h110"/></g>
+<g filter="url(#sombra)"><circle cx="668" cy="648" r="52" fill="url(#laranja)"/><path d="M644 648 l17 18 l31 -36" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></g></svg>

@@ -1,6 +1,6 @@
 # ADR 0008 — Instalador Inno Setup antes da troca de UI
 
-- **Estado:** aceita
+- **Estado:** substituída pela ADR 0031 (v5.3.0: instalador NSIS do Tauri)
 - **Data:** 2026-09-12
 - **Atualização:** 2026-09-21
 - **Contexto:** hoje a distribuição é um ZIP extraído à mão, sem entrada no Painel de Controle, sem desinstalador e sem checagem de pré-requisitos. Antes da troca de UI (que trará WebView2 como requisito), a instalação precisa ser padrão Windows.

@@ -22,7 +22,7 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0005 | API local loopback para o shell WebView | aceita (base na ADR 0011) |
 | 0006 | API hospedada com agente local para integração empresarial | aceita (guardrail futuro) |
 | 0007 | Gate de revisão contínua de dependências | aceita |
-| 0008 | Instalador Inno Setup antes da troca de UI | aceita |
+| 0008 | Instalador Inno Setup antes da troca de UI | substituída pela 0031 |
 | 0009 | Motion em tiers com reduced-motion | aceita |
 | 0010 | Pendências visuais do shell antes da WebView | aceita |
 | 0011 | Base HTTP local e ponte nativa da WebView | aceita |
@@ -45,3 +45,4 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0028 | Aposentadoria da interface Tk | aceita |
 | 0029 | Preparação "Tauri Ready" | aceita (troca de shell aguarda aceite) |
 | 0030 | Conferência editável | futura |
+| 0031 | Shell Tauri e instalador NSIS | aceita |

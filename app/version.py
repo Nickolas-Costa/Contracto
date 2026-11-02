@@ -1,4 +1,4 @@
 """
 Define a versão do sistema para uso no build e na interface.
 """
-__version__ = "5.2.0"
+__version__ = "5.3.0"

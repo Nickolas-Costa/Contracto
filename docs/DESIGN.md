@@ -298,6 +298,7 @@ Abrir a lista não muda a página. Ao escolher uma pendência, navegar até a p�
 - Confirmação destrutiva: nomear o alvo e a consequência; foco inicial na opção segura. Não confirmar operações triviais como mudar página.
 - `Esc` fecha o elemento transitório mais interno. Se há modal, não deve também dispensar um toast atrás dele. Diálogo nativo de arquivos mantém prioridade enquanto aberto.
 - Processo em andamento: fechar/minimizar o painel de progresso não cancela o trabalho. **Parar processo** é explícito; `Esc` não dispara cancelamento irreversível.
+- **Carregamento** (geração, organização, conversão) abre um modal de progresso (`ContractoUI.abrirProgresso`): giratório e barra, sem X/Esc, com Cancelar quando existe; nunca um toast de "iniciado" nem texto de andamento dentro do quadro. A conclusão é outro modal.
 - Toast temporário sem ação necessária pode desaparecer após 6 segundos, pausando sob hover/foco. Erro que precisa de correção permanece no contexto da tarefa; não desaparece como único registro.
 - Boas-vindas: somente na primeira execução, três passos, fechamento explícito e reabertura em Ajuda. Nunca desaparece por temporizador.
 - Resposta de foco/clique imediata; hover 120 ms, abertura até 180 ms e mudança de etapa até 200 ms. Respeitar movimento reduzido. Não bloquear interação aguardando animação.
