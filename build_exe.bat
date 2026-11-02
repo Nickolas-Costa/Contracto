@@ -100,7 +100,7 @@ echo [1/3] Encerrando instancias abertas e limpando builds intermediarios...
 taskkill /F /IM Contracto.exe /FI "USERNAME eq %USERNAME%" 2>nul
 taskkill /F /IM Contracto_sidecar.exe /FI "USERNAME eq %USERNAME%" 2>nul
 if exist build\sidecar rmdir /s /q build\sidecar
-if exist src-tauri	argeteleaseundle rmdir /s /q src-tauri	argeteleaseundle
+if exist src-tauri\target\release\bundle rmdir /s /q src-tauri\target\release\bundle
 echo.
 
 echo [2/3] Preparando dependencias (Ghostscript local)...
@@ -115,12 +115,12 @@ echo.
 
 echo [3/3] Sidecar (PyInstaller) + shell Tauri + instalador NSIS...
 where cargo >nul 2>nul
-if errorlevel 1 if not exist "%USERPROFILE%\.cargoin\cargo.exe" (
+if errorlevel 1 if not exist "%USERPROFILE%\.cargo\bin\cargo.exe" (
     echo [ERRO] Rust nao encontrado. Instale com rustup ^(stable-x86_64-pc-windows-msvc^) e o VS Build Tools ^(C++^).
     pause
     exit /b 1
 )
-.\.venv\Scripts\python.exe scriptsuild_tauri.py
+.\.venv\Scripts\python.exe scripts\build_tauri.py
 if errorlevel 1 (
     echo [ERRO] Falha no build do Tauri. A causa esta nas mensagens acima.
     echo.
