@@ -52,6 +52,7 @@ Versões fixadas em `src-tauri/Cargo.toml`/`Cargo.lock` e `package-lock.json`, t
 | `tauri` =2.12.4 / `tauri-build` =2.7.3 | Janela, `invoke`, CSP, bundler | pywebview | **Adotado.** |
 | `tauri-plugin-dialog` =2.8.3 | Diálogos nativos (usado só pelo Rust; sem permissão exposta à página) | Código próprio sobre `rfd` | **Adotado.** Traz `tauri-plugin-fs` como transitivo, sem capability concedida. |
 | `reqwest` 0.12 (sem TLS, sem proxy) | Encaminhar `request`/`get_file` ao sidecar em loopback | `std::net` + HTTP manual (mais código e risco) | **Adotado**, `default-features = false` e `no_proxy()`. |
+| `tokio` 1 (só feature `time`) | Espera assíncrona do backend nos comandos | `std::thread::sleep` (bloquearia threads do runtime) | **Adotado** (já transitivo do Tauri; versão do `Cargo.lock`). |
 | `base64` 0.22, `serde_json` 1 | `get_file` e DTOs | — | **Adotados** (já transitivos do Tauri). |
 | `tauri-plugin-opener` | Abrir pasta/PDF | `explorer.exe <caminho absoluto>` devolvido pelo sidecar | **Não adotado**: poucas linhas, uma dependência a menos. |
 | `tauri-plugin-shell` | Sidecar | `std::process::Command` sobre `Contracto_sidecar.exe` ao lado do executável | **Não adotado**: allowlist de um só executável, sem plugin. |

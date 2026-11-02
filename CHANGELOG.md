@@ -13,6 +13,12 @@ O aplicativo passa a rodar no shell **Tauri** (ADR 0029). Sem mudança no motor 
 - Sem auto-update: continua a reinstalação manual.
 - Requisitos de build: Rust (`stable-x86_64-pc-windows-msvc`), VS Build Tools (C++) e Node, além do Python atual.
 
+### Desempenho e arrasto
+- Sidecar em pasta (PyInstaller onedir) em vez de arquivo único: não extrai 60 MB para o `%TEMP%` (e passa pelo antivírus) a cada abertura.
+- A janela abre em cerca de 0,8 s; o servidor local carrega em segundo plano e a primeira chamada espera por ele.
+- Segunda instância é detectada antes de carregar o servidor e sai em ~0,3 s, sem janela.
+- Conversão: a zona de soltar volta a ter o destaque ao arrastar e só aceita arquivos soltos nela.
+
 ### Shell
 - `src-tauri/`: janela, diálogos nativos, arrasto de arquivos na Conversão e ponte `request` com a mesma lista de caminhos permitidos e limite de 1 MiB da ponte anterior.
 - Instância única (mutex do sidecar): abrir de novo traz a janela existente para a frente.

@@ -109,8 +109,21 @@
     } catch (_) { ui().toast("Falha ao abrir o seletor.", "error"); }
   }
 
-  function receberArrasto(r) {
-    // Chamado pelo shell nativo depois do drop na dropzone (o caminho nunca chega ao JS).
+  // Shell Tauri: o arrasto nativo não gera eventos HTML5, então ele informa a posição (x, y em px do
+  // documento) para o destaque da zona; sem x (shell que já filtra pela zona) vale sempre.
+  function dentro(x, y) {
+    const r = $("drop-conversao").getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  function arrastar(x, y) {
+    $("drop-conversao").classList.toggle("arrastando", x !== undefined && dentro(x, y));
+  }
+
+  function receberArrasto(r, x, y) {
+    // Chamado pelo shell nativo depois do drop (o caminho nunca chega ao JS).
+    arrastar();
+    if (x !== undefined && !dentro(x, y)) return;
     if (active || !r) return;
     adicionar(r);
   }
@@ -361,5 +374,5 @@
     if (document.readyState !== "loading") carregarCapacidades();
   }
 
-  window.ContractoConversao = { ligar, receberArrasto, atualizar: () => { renderLista(); atualizar(); } };
+  window.ContractoConversao = { ligar, receberArrasto, arrastar, atualizar: () => { renderLista(); atualizar(); } };
 })();

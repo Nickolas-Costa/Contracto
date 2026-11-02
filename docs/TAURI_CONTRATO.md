@@ -39,10 +39,10 @@ O shell registra cada caminho solto como seleção `convert` (mesma validação 
 Para o Tauri, o backend roda sem janela:
 
 ```
-python app/sidecar.py        # em produção: Contracto_sidecar.exe (externalBin)
+python app/sidecar.py        # em produção: sidecar/Contracto_sidecar.exe (PyInstaller onedir, em `resources`)
 ```
 
-- **stdout**, 1ª linha: `{"event":"ready","origin":"http://127.0.0.1:<porta>","token":"…","version":"…"}`.
+- **stdout**, 1ª linha `{"event":"starting"}` (mutex adquirido, servidor carregando) ou `{"event":"already_running"}`; a seguinte: `{"event":"ready","origin":"http://127.0.0.1:<porta>","token":"…","version":"…"}`.
   O token só trafega por este pipe e fica na memória do processo Rust.
 - **stdin** (canal de controle, só o processo pai): um JSON por linha.
 
@@ -70,8 +70,7 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
 | arrasto | `onDragDropEvent` → `register(convert)` → `eval` de `receberArrasto` |
 
 `capabilities` mínimas: `dialog:allow-open`, `dialog:allow-save`, `opener:allow-open-path`
-(escopo só pelos caminhos devolvidos pelo sidecar), sidecar `externalBin` com **allowlist
-de um** executável. CSP idêntica à do `index.html` atual.
+(escopo só pelos caminhos devolvidos pelo sidecar), sidecar iniciado só pelo caminho fixo `sidecar/Contracto_sidecar.exe` (**um** executável). CSP idêntica à do `index.html` atual.
 
 ## Implementação (`src-tauri/`)
 
@@ -79,7 +78,12 @@ de um** executável. CSP idêntica à do `index.html` atual.
   (`frontendDist = ../frontend`), sem capabilities (a página só alcança os comandos do app).
 - Os comandos com argumento composto usam `rename_all = "snake_case"` (`job_id`, `file_id`): o padrão do Tauri
   esperaria camelCase e quebraria o contrato.
-- `externalBin` coloca `Contracto_sidecar.exe` ao lado do executável; o Rust o inicia com `CREATE_NO_WINDOW`.
+- O sidecar é uma pasta (`resources` → `sidecar/` ao lado do executável, PyInstaller onedir: não extrai 60 MB a
+  cada abertura); o Rust o inicia numa thread com `CREATE_NO_WINDOW`. A janela nasce oculta e aparece quando o
+  sidecar responde `starting`; os comandos esperam o `ready` (até 60 s). Segunda instância: `already_running`,
+  a janela nunca aparece.
+- Arrasto: o Rust chama `ContractoConversao.arrastar(x, y)` (destaque da zona) e `receberArrasto(r, x, y)`; a
+  página só aceita o que cair na zona.
   Se o pai morrer, o EOF do stdin encerra o sidecar.
 - Build: `.venv/Scripts/python.exe scripts/build_sidecar.py` e depois `npm install` + `npx tauri build`
   (instalador NSIS em `src-tauri/target/release/bundle/nsis/`).

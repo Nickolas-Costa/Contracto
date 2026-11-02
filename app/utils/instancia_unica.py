@@ -6,6 +6,7 @@ sem nenhum modal — em vez de abrir outra janela concorrendo pelos mesmos
 arquivos em `%APPDATA%\\Contracto`.
 """
 
+import os
 import sys
 
 _NOME_MUTEX = r"Local\ContractoDesktopApp"
@@ -63,8 +64,9 @@ def focar_janela_existente(prefixo: str = "Contracto") -> bool:
 class InstanciaUnica:
     """Guarda o mutex durante a vida do processo (usar como context manager)."""
 
-    def __init__(self, nome: str = _NOME_MUTEX) -> None:
-        self._nome = nome
+    def __init__(self, nome: str | None = None) -> None:
+        # CONTRACTO_MUTEX: testes e medições rodam ao lado do app aberto sem colidir com ele.
+        self._nome = nome or os.environ.get("CONTRACTO_MUTEX") or _NOME_MUTEX
         self._handle = None
 
     def adquirir(self) -> "InstanciaUnica":

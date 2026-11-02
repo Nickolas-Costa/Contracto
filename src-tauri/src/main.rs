@@ -7,12 +7,12 @@
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use base64::Engine;
 use serde_json::{json, Value};
-use tauri::{DragDropEvent, Manager, RunEvent, Webview, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, DragDropEvent, Manager, RunEvent, Webview, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogKind};
 
 const CORPO_MAX: usize = 1024 * 1024;
@@ -40,36 +40,6 @@ fn sem_janela(cmd: &mut Command) -> &mut Command {
 }
 
 impl Backend {
-    /// `Ok(None)`: já existe outra instância (o sidecar trouxe a janela dela para a frente).
-    fn iniciar() -> Result<Option<Self>, String> {
-        // `externalBin` instala o sidecar ao lado do executável, sem o sufixo do alvo.
-        let exe = std::env::current_exe().map_err(|e| e.to_string())?.with_file_name("Contracto_sidecar.exe");
-        let mut filho = sem_janela(&mut Command::new(exe))
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Não foi possível iniciar o servidor local: {e}"))?;
-        let entrada = filho.stdin.take().ok_or("sidecar sem stdin")?;
-        let mut saida = BufReader::new(filho.stdout.take().ok_or("sidecar sem stdout")?);
-        let mut linha = String::new();
-        saida.read_line(&mut linha).map_err(|e| e.to_string())?;
-        let pronto: Value = serde_json::from_str(&linha).map_err(|_| "O servidor local não respondeu.".to_string())?;
-        if pronto["event"] == "already_running" {
-            return Ok(None);
-        }
-        let texto = |k: &str| pronto[k].as_str().map(str::to_owned);
-        let (Some(origem), Some(token)) = (texto("origin"), texto("token")) else {
-            return Err("O servidor local não respondeu.".into());
-        };
-        let http = reqwest::Client::builder()
-            .no_proxy()
-            .timeout(Duration::from_secs(10))
-            .build()
-            .map_err(|e| e.to_string())?;
-        Ok(Some(Self { origem, token, http, controle: Mutex::new(Controle { filho, entrada, saida, proximo: 0 }) }))
-    }
-
     /// Envia um comando ao sidecar e espera a resposta de mesmo `id`.
     /// shortcut: leitura bloqueante sem timeout, trocar por thread/canal se o sidecar travar.
     fn controlar(&self, mut comando: Value) -> Option<Value> {
@@ -139,6 +109,63 @@ impl Backend {
     }
 }
 
+fn ler_evento(saida: &mut BufReader<ChildStdout>) -> Result<Value, String> {
+    let mut linha = String::new();
+    saida.read_line(&mut linha).map_err(|e| e.to_string())?;
+    serde_json::from_str(&linha).map_err(|_| "O servidor local não respondeu.".to_string())
+}
+
+/// Roda fora da thread da janela: a janela abre antes do sidecar ficar pronto e os comandos
+/// esperam o backend (`backend()`). O sidecar avisa `already_running` antes de carregar o
+/// servidor, então uma segunda instância sai sem nunca mostrar a janela.
+fn iniciar(app: &AppHandle) -> Result<(), String> {
+    // O sidecar é uma pasta (PyInstaller onedir) em `resources`: sem extrair 60 MB a cada abertura.
+    let exe = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .with_file_name("sidecar")
+        .join("Contracto_sidecar.exe");
+    let mut filho = sem_janela(&mut Command::new(exe))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Não foi possível iniciar o servidor local: {e}"))?;
+    let entrada = filho.stdin.take().ok_or("sidecar sem stdin")?;
+    let mut saida = BufReader::new(filho.stdout.take().ok_or("sidecar sem stdout")?);
+    let mut evento = ler_evento(&mut saida)?;
+    if evento["event"] == "already_running" {
+        std::process::exit(0);
+    }
+    if evento["event"] == "starting" {
+        if let Some(janela) = app.get_webview_window("main") {
+            let _ = janela.show();
+        }
+        evento = ler_evento(&mut saida)?;
+    }
+    let texto = |k: &str| evento[k].as_str().map(str::to_owned);
+    let (Some(origem), Some(token)) = (texto("origin"), texto("token")) else {
+        return Err("O servidor local não respondeu.".into());
+    };
+    let http = reqwest::Client::builder().no_proxy().timeout(Duration::from_secs(10)).build().map_err(|e| e.to_string())?;
+    app.manage(Arc::new(Backend { origem, token, http, controle: Mutex::new(Controle { filho, entrada, saida, proximo: 0 }) }));
+    Ok(())
+}
+
+/// Espera o backend ficar pronto (até 60 s).
+async fn backend<M: Manager<tauri::Wry>>(m: &M) -> Option<Arc<Backend>> {
+    for _ in 0..1200 {
+        if let Some(b) = m.try_state::<Arc<Backend>>() {
+            return Some(b.inner().clone());
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    None
+}
+
+fn sem_servidor() -> Value {
+    json!({"ok": false, "code": "local_server_unavailable"})
+}
+
 /// A página só chega aqui pelo protocolo do app (`tauri.localhost`) e sem capabilities
 /// remotas; mesmo assim confere a origem, como o `ShellBridge._authorized`.
 fn autorizada(webview: &Webview) -> bool {
@@ -189,7 +216,9 @@ async fn request(webview: Webview, method: String, path: String, payload: Option
     } else {
         None
     };
-    let b = webview.state::<Backend>();
+    let Some(b) = backend(&webview).await else {
+        return json!({"status": 503, "data": {"code": "local_server_unavailable"}});
+    };
     let resposta = match b.chamar(&method, &path, corpo).await {
         Some(r) => r,
         None => return json!({"status": 503, "data": {"code": "local_server_unavailable"}}),
@@ -201,15 +230,16 @@ async fn request(webview: Webview, method: String, path: String, payload: Option
     }
 }
 
-fn selecionar(webview: &Webview, tipo: &str, caminho: Option<tauri_plugin_dialog::FilePath>) -> Value {
+async fn selecionar(webview: &Webview, tipo: &str, caminho: Option<tauri_plugin_dialog::FilePath>) -> Value {
     let Some(caminho) = caminho else { return json!({"cancelled": true}) };
     if !autorizada(webview) {
         return nao_autorizada();
     }
+    let Some(b) = backend(webview).await else { return sem_servidor() };
     caminho
         .into_path()
         .ok()
-        .and_then(|p| webview.state::<Backend>().registrar(tipo, &p))
+        .and_then(|p| b.registrar(tipo, &p))
         .unwrap_or_else(|| json!({"code": "selection_failed"}))
 }
 
@@ -219,7 +249,7 @@ async fn select_file(webview: Webview) -> Value {
         return nao_autorizada();
     }
     let p = dialogo(&webview).add_filter("Documentos (*.pdf;*.rtf)", &["pdf", "rtf"]).blocking_pick_file();
-    selecionar(&webview, "file", p)
+    selecionar(&webview, "file", p).await
 }
 
 #[tauri::command]
@@ -231,7 +261,7 @@ async fn select_output(webview: Webview) -> Value {
     if let Some(dir) = downloads(&webview) {
         d = d.set_directory(dir);
     }
-    selecionar(&webview, "directory", d.blocking_pick_folder())
+    selecionar(&webview, "directory", d.blocking_pick_folder()).await
 }
 
 #[tauri::command]
@@ -240,7 +270,7 @@ async fn select_backup(webview: Webview) -> Value {
         return nao_autorizada();
     }
     let p = dialogo(&webview).add_filter("Backup Contracto (*.zip)", &["zip"]).blocking_pick_file();
-    selecionar(&webview, "backup", p)
+    selecionar(&webview, "backup", p).await
 }
 
 #[tauri::command]
@@ -258,7 +288,8 @@ async fn select_documents(webview: Webview) -> Value {
         return nao_autorizada();
     }
     let caminhos: Vec<PathBuf> = escolhidos.into_iter().filter_map(|p| p.into_path().ok()).collect();
-    webview.state::<Backend>().registrar_conversao(&caminhos)
+    let Some(b) = backend(&webview).await else { return sem_servidor() };
+    b.registrar_conversao(&caminhos)
 }
 
 #[tauri::command]
@@ -270,8 +301,8 @@ async fn import_profile(webview: Webview) -> Value {
         return json!({"cancelled": true});
     };
     let Ok(caminho) = p.into_path() else { return json!({"ok": false, "code": "import_failed"}) };
-    webview
-        .state::<Backend>()
+    let Some(b) = backend(&webview).await else { return sem_servidor() };
+    b
         .controlar(json!({"cmd": "import_profile", "path": caminho.to_string_lossy()}))
         .filter(|r| r["ok"] == true)
         .map(|r| r["result"].clone())
@@ -298,8 +329,8 @@ async fn export_profile(webview: Webview, nome: String) -> Value {
     if caminho.extension().map_or(true, |e| !e.eq_ignore_ascii_case("json")) {
         caminho.set_extension("json");
     }
-    webview
-        .state::<Backend>()
+    let Some(b) = backend(&webview).await else { return sem_servidor() };
+    b
         .controlar(json!({"cmd": "export_profile", "nome": nome, "path": caminho.to_string_lossy()}))
         .filter(|r| r["ok"] == true)
         .map(|r| r["result"].clone())
@@ -311,8 +342,8 @@ async fn open_result(webview: Webview, job_id: String) -> Value {
     if !autorizada(&webview) {
         return nao_autorizada();
     }
-    let caminho = webview
-        .state::<Backend>()
+    let Some(b) = backend(&webview).await else { return sem_servidor() };
+    let caminho = b
         .controlar(json!({"cmd": "result_dir", "job_id": job_id}))
         .filter(|r| r["ok"] == true)
         .and_then(|r| r["path"].as_str().map(str::to_owned));
@@ -331,8 +362,8 @@ async fn open_file(webview: Webview, file_id: String) -> Value {
     if !id_valido(&file_id) {
         return json!({"ok": false, "code": "invalid_request"});
     }
-    let caminho = webview
-        .state::<Backend>()
+    let Some(b) = backend(&webview).await else { return sem_servidor() };
+    let caminho = b
         .controlar(json!({"cmd": "file_path", "file_id": file_id}))
         .filter(|r| r["ok"] == true)
         .and_then(|r| r["path"].as_str().map(str::to_owned));
@@ -353,7 +384,7 @@ async fn get_file(webview: Webview, file_id: String) -> Value {
         return json!({"ok": false, "code": "invalid_request"});
     }
     let indisponivel = || json!({"ok": false, "code": "file_unavailable"});
-    let b = webview.state::<Backend>();
+    let Some(b) = backend(&webview).await else { return indisponivel() };
     let Some(mut r) = b.chamar("GET", &format!("/api/v1/files/{file_id}"), None).await else { return indisponivel() };
     match r.status().as_u16() {
         200 => {}
@@ -370,12 +401,25 @@ async fn get_file(webview: Webview, file_id: String) -> Value {
     json!({"ok": true, "base64": base64::engine::general_purpose::STANDARD.encode(bruto)})
 }
 
-/// Arquivos soltos: registra como seleção `convert` e entrega só IDs à página.
-fn ao_soltar(window: &tauri::Window, caminhos: &[PathBuf]) {
+/// Arrasto nativo: o WebView2 não dispara eventos HTML5 de arrasto com o handler nativo ligado, então
+/// o shell repassa a posição (destaque da zona) e, ao soltar, registra os caminhos como seleção
+/// `convert` e entrega só IDs à página, que confere se foi solto na zona.
+fn ao_arrastar(window: &tauri::Window, evento: &DragDropEvent) {
     let app = window.app_handle();
-    let (Some(b), Some(web)) = (app.try_state::<Backend>(), app.get_webview_window("main")) else { return };
-    let r = b.registrar_conversao(&caminhos[..caminhos.len().min(20)]);
-    let _ = web.eval(format!("window.ContractoConversao&&window.ContractoConversao.receberArrasto({r})"));
+    let Some(web) = app.get_webview_window("main") else { return };
+    let escala = window.scale_factor().unwrap_or(1.0);
+    let ponto = |p: &tauri::PhysicalPosition<f64>| format!("{},{}", p.x / escala, p.y / escala);
+    let chamada = match evento {
+        DragDropEvent::Enter { position, .. } | DragDropEvent::Over { position } => format!("arrastar({})", ponto(position)),
+        DragDropEvent::Leave => "arrastar()".to_string(),
+        DragDropEvent::Drop { paths, position } => {
+            let Some(b) = app.try_state::<Arc<Backend>>() else { return };
+            let r = b.registrar_conversao(&paths[..paths.len().min(20)]);
+            format!("receberArrasto({r},{})", ponto(position))
+        }
+        _ => return,
+    };
+    let _ = web.eval(format!("window.ContractoConversao&&window.ContractoConversao.{chamada}"));
 }
 
 fn main() {
@@ -386,32 +430,33 @@ fn main() {
             import_profile, export_profile, open_result, open_file, get_file
         ])
         .on_window_event(|window, evento| {
-            if let WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) = evento {
-                ao_soltar(window, paths);
+            if let WindowEvent::DragDrop(arrasto) = evento {
+                ao_arrastar(window, arrasto);
             }
         })
         .setup(|app| {
-            match Backend::iniciar() {
-                Ok(Some(b)) => app.manage(b),
-                Ok(None) => std::process::exit(0),
-                Err(erro) => {
-                    app.dialog().message(&erro).kind(MessageDialogKind::Error).title("Contracto").blocking_show();
-                    return Err(erro.into());
-                }
-            };
             let titulo = format!("Contracto {}", app.package_info().version);
+            // Oculta até o sidecar confirmar que não é segunda instância (ver `iniciar`).
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title(titulo)
                 .inner_size(1200.0, 850.0)
                 .maximized(true)
+                .visible(false)
                 .build()?;
+            let app = app.handle().clone();
+            std::thread::spawn(move || {
+                if let Err(erro) = iniciar(&app) {
+                    app.dialog().message(&erro).kind(MessageDialogKind::Error).title("Contracto").blocking_show();
+                    std::process::exit(1);
+                }
+            });
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("falha ao iniciar o Tauri");
     app.run(|app, evento| {
         if let RunEvent::Exit = evento {
-            if let Some(b) = app.try_state::<Backend>() {
+            if let Some(b) = app.try_state::<Arc<Backend>>() {
                 b.encerrar();
             }
         }

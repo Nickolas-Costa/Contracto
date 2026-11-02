@@ -13,7 +13,7 @@ REM
 REM Shell Tauri (ADR 0029) + sidecar Python. Requer Rust (MSVC), VS Build Tools e Node.
 REM Saidas (sempre versionadas, em dist\):
 REM   Contracto_Setup_v<VERSAO>.exe          (instalador NSIS do Tauri)
-REM   Contracto_v<VERSAO>.zip                (portatil: Contracto.exe + Contracto_sidecar.exe)
+REM   Contracto_v<VERSAO>.zip                (portatil: Contracto.exe + pasta sidecar)
 REM   *.sha256.txt                           (verificacao dos dois)
 REM
 REM Feche o Contracto antes de rodar: a instancia unica impede gravar o .exe

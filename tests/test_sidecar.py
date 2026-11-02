@@ -1,5 +1,6 @@
 """Sidecar headless (ADR 0029): aperto de mão, comandos de controle e encerramento."""
 import io
+import os
 import json
 import subprocess
 import sys
@@ -87,11 +88,12 @@ class TestSidecar(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "mutex nomeado do Windows")
     def test_segunda_instancia_avisa_e_sai_sem_subir_servidor(self):
+        from unittest.mock import patch
         from utils.instancia_unica import InstanciaUnica
         saida = io.StringIO()
-        with InstanciaUnica():
+        with patch.dict(os.environ, {"CONTRACTO_MUTEX": "Local\ContractoTeste2"}), InstanciaUnica():
             sidecar.main(io.StringIO(""), saida)
-        self.assertEqual([json.loads(l) for l in saida.getvalue().splitlines()], [{"event": "already_running"}])
+        self.assertEqual([json.loads(l) for l in saida.getvalue().splitlines()], [{"event": "already_running"}])  # sem "starting"
 
     def test_linha_invalida_nao_derruba_e_shutdown_encerra(self):
         with LocalServer(profiles=[]) as server:
@@ -104,8 +106,11 @@ class TestSidecar(unittest.TestCase):
 
     def test_processo_real_aperta_a_mao_serve_http_e_sai_com_eof(self):
         proc = subprocess.Popen([sys.executable, str(RAIZ / "app" / "sidecar.py")], cwd=RAIZ / "app",
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                env={**os.environ, "CONTRACTO_MUTEX": "Local\ContractoTeste" + str(os.getpid())})
         try:
+            env_sidecar = json.loads(proc.stdout.readline())
+            self.assertEqual(env_sidecar["event"], "starting")
             pronto = json.loads(proc.stdout.readline())
             self.assertEqual(pronto["event"], "ready")
             import urllib.request

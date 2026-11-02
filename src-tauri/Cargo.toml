@@ -11,6 +11,7 @@ tauri-build = { version = "=2.7.3", features = [] }
 tauri = { version = "=2.12.4", features = [] }
 tauri-plugin-dialog = "=2.8.3"
 serde_json = "1"
+tokio = { version = "1", default-features = false, features = ["time"] }
 base64 = "0.22"
 # Versões fixadas com >= 2 semanas de publicação (DEPENDENCY_REVIEW.md). Só loopback: sem TLS, sem proxy do sistema (ver `no_proxy` em main.rs).
 reqwest = { version = "0.12", default-features = false }

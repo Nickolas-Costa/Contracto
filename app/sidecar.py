@@ -4,6 +4,7 @@ Sobe a mesma API loopback (`server.LocalServer`) sem janela. Quem o inicia é o
 processo pai (Tauri/Rust), que é o único a falar com ele:
 
 - stdout: uma linha JSON por mensagem. A primeira é o aperto de mão
+  `{"event": "starting"}` (mutex adquirido, servidor ainda carregando) e depois
   `{"event": "ready", "origin": ..., "token": ..., "version": ...}`; depois, as
   respostas aos comandos `{"id": ..., "ok": ..., ...}`.
 - stdin (canal de controle, inacessível à página): comandos em JSON, um por linha.
@@ -83,7 +84,6 @@ def servir(server, entrada, saida):
 
 
 def main(entrada=None, saida=None):
-    from server import LocalServer
     from utils.instancia_unica import InstanciaJaEmExecucao, InstanciaUnica, focar_janela_existente
 
     saida = saida or sys.stdout
@@ -97,6 +97,10 @@ def main(entrada=None, saida=None):
         return
     except OSError:
         pass  # sem mutex, segue sem a trava (mesmo comportamento de main.py)
+    # Só depois do mutex: o servidor carrega fastapi/pypdf (~2 s) e o shell já pode abrir a janela.
+    _responder(saida, event="starting")
+    from server import LocalServer
+
     try:
         with LocalServer() as server:
             servir(server, entrada or sys.stdin, saida)

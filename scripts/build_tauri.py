@@ -66,7 +66,9 @@ def main() -> None:
     pacote = DIST / f"Contracto_v{versao}.zip"
     with zipfile.ZipFile(pacote, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(liberacao / "contracto.exe", f"Contracto_v{versao}/Contracto.exe")
-        z.write(liberacao / "Contracto_sidecar.exe", f"Contracto_v{versao}/Contracto_sidecar.exe")
+        for arquivo in (TAURI / "binaries" / "sidecar").rglob("*"):
+            if arquivo.is_file():
+                z.write(arquivo, f"Contracto_v{versao}/sidecar/{arquivo.relative_to(TAURI / 'binaries' / 'sidecar').as_posix()}")
     sha256(destino)
     sha256(pacote)
     print(f"\n[OK] {destino.name} ({destino.stat().st_size / 2**20:.1f} MiB)\n[OK] {pacote.name} ({pacote.stat().st_size / 2**20:.1f} MiB)")
