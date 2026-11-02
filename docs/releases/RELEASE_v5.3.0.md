@@ -5,7 +5,7 @@ O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python
 ### Novo
 - **Carregamentos em modal** (giratório + barra, tempo decorrido, Cancelar): gerar, organizar e converter. Saem o toast de "iniciado" e o status dentro do quadro; a conclusão segue em modal.
 - **Novo ícone do app**: "C" redondo azul e plano, com lateral mais escura deslocada (no estilo do ícone anterior), sobre tile azul-marinho, no executável, instalador, cabeçalho e README. O servidor local também aparece como "Contracto" com o mesmo ícone no Gerenciador de Tarefas.
-- **Carregamento sempre animado**: o giratório e a barra funcionam mesmo com as animações do Windows desligadas.
+- **Carregamento sempre animado e legível**: o giratório e a barra funcionam mesmo com as animações do Windows desligadas e ficam visíveis no modo escuro com qualquer cor de destaque.
 - **Shell Tauri**: janela nativa, diálogos do Windows, arrasto de arquivos na Conversão (com destaque da zona), instância única (abrir de novo traz a janela existente).
 - Tela de espera "Iniciando o Contracto…" até o servidor local ficar pronto.
 - Instalador NSIS por usuário: remove a instalação antiga do Inno Setup e o `Contracto_sidecar.exe` órfão da 5.2, preservando `%APPDATA%\Contracto`.
@@ -35,5 +35,5 @@ O app passa a rodar no **shell Tauri** (janela nativa + servidor local em Python
 - PDF/A: os modelos convertidos pelo app saem sem formulário, com fontes embutidas e sem Filter no Metadata. Se o validador online apontar NeedAppearances/fonte/Filter, confira se o arquivo é o da pasta PDF-A e não o formulário preenchido.
 
 ### Artefatos
-- `Contracto_Setup_v5.3.0.exe` (50.7 MiB), instalador. SHA-256: `F72C5D0F893F5BFD80274E8E493BCE56FA307E6E7915BA32FC62967CEDD54474`
-- `Contracto_v5.3.0.zip` (65.6 MiB), portátil (`Contracto.exe` + pasta `sidecar/`). SHA-256: `F03F1F102296F1CD105B82D667C2F22A372A967E1B4000B986855F3B6E41F532`
+- `Contracto_Setup_v5.3.0.exe` (50.7 MiB), instalador. SHA-256: `05FAEAEF72EBB7250290060C2DBCBC06D0A0A1A91713B43A59199B3ACC6174DD`
+- `Contracto_v5.3.0.zip` (65.6 MiB), portátil (`Contracto.exe` + pasta `sidecar/`). SHA-256: `ABDEA367D17C2A2F66E8BC26C928CBDE0EC0FFA4DA64B710E6E22FD70B8A1810`
