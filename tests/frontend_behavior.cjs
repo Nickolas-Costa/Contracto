@@ -8,10 +8,10 @@ async function bootstrap(){
  let calls=0,one=0,two=0,prontoCb=null;
   const events={};
   const document={readyState:'complete',getElementById:id=>elements.get(id),createElement:make};
-  const window={ContractoAPI:{disponivel:()=>true,aoPronto:fn=>{prontoCb=fn},ehShellWebView2:()=>false,request:async()=>({status:++calls===1?503:200})},
+  const window={ContractoAPI:{disponivel:()=>true,aoPronto:fn=>{prontoCb=fn},request:async()=>({status:++calls===1?503:200})},
    ContractoUI:{aplicarTemaInicial(){},toast(){}},ContractoEtapa1:{ligar(){one++},atualizar(){},reconectar(){}},
    ContractoEtapa2:{ligar(){two++},atualizar(){},reconectar(){}},addEventListener(k,fn){events[k]=fn}};
-  // 3 chamadas: health (503), health (200), capabilities (diagnostico WebView2 pulado)
+  // 3 chamadas: health (503), health (200), capabilities
   vm.runInNewContext(source('app.js'),{window,document,setTimeout,clearTimeout});
 await flush();assert.equal(window.ContractoApp.pronto(),false);
   await window.ContractoApp.iniciar();await flush();
@@ -179,6 +179,30 @@ async function extrasLifecycle(){
   etapa2.recomecar();
   assert.deepEqual(sel(),[],"novo trabalho limpa extras");
   console.log("PASS extras da Conferência sobrevivem à geração");
+  // Regressão: job.error é {code,message}; usado como texto, o poll lançava e a tela ficava ocupada para sempre.
+  const enviados=[];let cancelarProgresso=null;
+  let estado={job_id:"j2",status:"running",completed:0,total:2};
+  Object.assign(window.ContractoAPI,{getCapabilities:async()=>({}),getJob:async()=>({status:200,data:estado}),
+    request:async(m,p,corpo)=>{enviados.push([p,corpo]);return {status:p.endsWith("/generate")?202:200,data:{job_id:"j2"}};}});
+  window.ContractoUI.abrirProgresso=(t,o)=>{cancelarProgresso=o.aoCancelar;return {atualizar(){},fechar(){}};};
+  try {
+    await etapa2.gerar({profile_ids:["p"],participants:[],output_id:"o"});await flush();
+    assert.equal(etapa2.ocupado(),true,"trabalho em andamento");
+    await cancelarProgresso();
+    assert.equal(JSON.stringify(enviados.at(-1)),'["/api/v1/jobs/j2/cancel",{}]',"cancelar envia corpo {} (null é recusado pela API)");
+    estado={job_id:"j2",status:"failed",error:{code:"generation_failed",message:"Não foi possível gerar todos os formulários"}};
+    etapa2.reconectar();await flush();await flush();
+    assert.equal(etapa2.ocupado(),false,"falha libera a tela");
+    assert.equal(registry.get("fila-detalhe").textContent,"Não foi possível gerar todos os formulários");
+    // Contrato em uma etapa só: concluída a geração, a organização é enviada sem outro clique.
+    window.ContractoEtapa1.pacoteProcesso=()=>({participants:[],output_id:"o"});
+    estado={job_id:"j2",status:"completed",file_ids:["f1"],files:[{file_id:"f1",name:"DOC A - X.pdf"}]};
+    await etapa2.gerar({profile_ids:["p"],participants:[],output_id:"o"});await flush();await flush();await flush();
+    const processo=enviados.find(([p])=>p==="/api/v1/jobs/process");
+    assert.ok(processo,"geração concluída dispara a organização");
+    assert.equal(JSON.stringify(processo[1].file_ids),'["f1"]');
+  } finally { etapa2.recomecar(); } // para o polling: sem isto uma falha aqui deixava o Node preso
+  console.log("PASS falha do trabalho mostra o motivo e libera a tela; cancelar com corpo");
 }
 // Regressão: a tela de Conversão ficava em "Convertendo…" para sempre quando o trabalho concluía
 // (o render do resultado lançava ReferenceError e o poll engolia o erro).

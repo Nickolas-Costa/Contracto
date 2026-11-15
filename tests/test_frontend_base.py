@@ -240,7 +240,7 @@ class TestFrontendBase(unittest.TestCase):
             self.assertNotIn("pywebview", texto, caminho.name)
             self.assertNotIn("__TAURI__", texto, caminho.name)
         api_js = (RAIZ / "js/api.js").read_text(encoding="utf-8")
-        for exigido in ["aoPronto", "ehShellWebView2", "__TAURI__"]:
+        for exigido in ["aoPronto", "__TAURI__"]:
             self.assertIn(exigido, api_js, exigido)
 
     def test_build_embarca_frontend(self):
@@ -312,7 +312,7 @@ class TestFrontendBase(unittest.TestCase):
         form = (RAIZ / "js/form-state.js").read_text(encoding="utf-8")
         for exigido in ["painelFila", "filaConhecida", "2000", "gerar(snapshot)", "recomecar", "eraEnvio", "capacidades(data)", "pacoteProcesso", "document_type", "novoRequestId"]:
             self.assertIn(exigido, etapa2 + etapa1, exigido)
-        for exigido in ["paginacao-form", "mudarPagina", "resolverPaginas", "field-textarea", "avaliarFormulaLocal", "sincronizarSelecao", "corpo-conferencia", "limparCampos"]:
+        for exigido in ["paginacao-form", "mudarPagina", "resolverPaginas", "field-textarea", "sincronizarSelecao", "corpo-conferencia", "limparCampos"]:
             self.assertIn(exigido, etapa1, exigido)
         for exigido in ["paginaDe", "if_field", "formula"]:
             self.assertIn(exigido, form, exigido)

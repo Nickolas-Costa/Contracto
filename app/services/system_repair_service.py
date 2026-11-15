@@ -86,7 +86,10 @@ def _encerrar_processos_orfaos() -> int:
         return 0
 
     encerrados = 0
-    processos_alvo = ["gswin64c.exe", "gswin32c.exe", "gs.exe", "WINWORD.EXE"]
+    # WINWORD.EXE fica de fora: taskkill /IM fecharia também o Word aberto pelo usuário, com trabalho não salvo.
+    # shortcut: Word oculto órfão (app fechado no meio de uma conversão) não é limpo aqui; filtrar pela
+    # linha de comando "/Automation" se isso virar queixa.
+    processos_alvo = ["gswin64c.exe", "gswin32c.exe", "gs.exe"]
     usuario_atual = os.environ.get("USERNAME", "")
     filtro_usuario = ["/FI", f"USERNAME eq {usuario_atual}"] if usuario_atual else []
 
@@ -174,6 +177,11 @@ def _atualizar_atalho_desktop() -> bool:
 
         # Localizar executável da aplicação
         exe_path = Path(sys.executable)
+        if exe_path.name.lower() == "contracto_sidecar.exe":
+            # Shell Tauri: este processo é o sidecar sem janela; o atalho abre o app ao lado da pasta sidecar/.
+            exe_path = exe_path.parent.parent / "Contracto.exe"
+            if not exe_path.exists():
+                return False
         # Se estiver rodando via Python script, não sobrescreve com python.exe a menos que seja Contracto.exe
         if "python" in exe_path.name.lower() and getattr(sys, "frozen", False) is False:
             # Em modo dev, buscar na pasta dist se existir

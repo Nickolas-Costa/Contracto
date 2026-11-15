@@ -64,7 +64,7 @@
       h.textContent = rotuloModo[chave];
       const n = document.createElement("span");
       n.className = "seletor-count";
-      n.textContent = "(" + itens.length + ")";
+      n.textContent = " (" + itens.length + ")";
       h.append(n);
       sec.append(h);
       container.append(sec);

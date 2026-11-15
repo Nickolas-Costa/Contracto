@@ -109,6 +109,37 @@ class TestConvertAPI(unittest.TestCase):
         done = self.wait_job(job["job_id"])
         self.assertEqual(sorted(f["name"] for f in done["files"]), sorted(["um.pdf", "outro.pdf"]))
 
+    def test_pdfa_em_pasta_com_porcentagem(self):
+        """Regressão: o Ghostscript lia o "%" do caminho de saída como formato e a conversão falhava."""
+        from utils.ghostscript_setup import esta_disponivel
+        if not esta_disponivel():
+            self.skipTest("Ghostscript indisponível")
+        pasta = self.root / "entrada 50% paga"
+        pasta.mkdir()
+        payload = {"file_ids": [self.file_id], "format": "PDF/A-2b",
+                   "output_id": self.server.jobs.selections.register(pasta, "directory")}
+        status, job = self.http("/api/v1/jobs/convert", payload)
+        self.assertEqual(status, 202, job)
+        done = self.wait_job(job["job_id"])
+        self.assertEqual(done["status"], "completed", done)
+        self.assertEqual([p.name for p in pasta.iterdir()], ["entrada.pdf"])
+
+    def test_pdfa_nao_confirmado_falha_em_vez_de_entregar_pdf_comum(self):
+        from services.pdfa_converter import ResultadoConversao
+
+        def sem_marca(origem, destino, perfil, ps_path=None):
+            destino.write_bytes(origem.read_bytes())  # o Ghostscript "converteu", mas saiu PDF comum
+            return ResultadoConversao(caminho_saida=destino, perfil=perfil, validado=False)
+
+        payload = {"file_ids": [self.file_id], "output_id": self.output_id, "format": "PDF/A-2b"}
+        with patch("api.jobs.capabilities", return_value={"word": False, "ghostscript": True}), \
+                patch("services.pdfa_converter.converter_e_validar", sem_marca):
+            status, job = self.http("/api/v1/jobs/convert", payload)
+            self.assertEqual(status, 202, job)
+            done = self.wait_job(job["job_id"])
+        self.assertEqual((done["status"], done["error"]["code"]), ("failed", "pdfa_not_validated"), done)
+        self.assertEqual(list(self.output.iterdir()), [])
+
     def test_convert_exige_capacidade_antes_do_job(self):
         rtf = self.root / "doc.rtf"
         rtf.write_text(r"{\rtf1 teste}")

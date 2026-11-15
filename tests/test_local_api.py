@@ -314,6 +314,9 @@ class TestLocalAPI(unittest.TestCase):
         # Sem pasta-mãe do cliente: PDF-A/ direto na pasta escolhida, e a de gerados é descartada.
         final = self.output / "PDF-A"
         self.assertTrue(any(p.is_file() for p in final.iterdir()))
+        # O nome final é o do documento, sem o prefixo "1-" da cópia de trabalho.
+        self.assertEqual([p.name for p in final.iterdir() if p.is_file()],
+                         [p["name"] for p in generated["files"]])
         self.assertFalse(gerados.exists())
         self.assertFalse((self.output / "Contrato Pessoa").exists())
         self.assertEqual([p.name for p in self.output.iterdir()], ["PDF-A"])
@@ -326,6 +329,27 @@ class TestLocalAPI(unittest.TestCase):
         self.assertEqual(pstatus, 202, again)
         self.assertEqual(self.wait_job(again["job_id"])["status"], "completed")
         self.assertTrue(any("(2)" in p.name for p in final.iterdir()))
+
+    def test_gerado_preso_em_leitor_nao_derruba_processo_publicado(self):
+        """Regressão: PDF gerado aberto num leitor (PermissionError ao apagar) marcava como falho um trabalho já publicado."""
+        self.server.jobs.profiles[self.profile_id].modo_fluxo = "contrato"
+        self.participant["endereco"] = "Rua QA, 1"
+        _, job = self.http("/api/v1/jobs/generate", self.payload)
+        generated = self.wait_job(job["job_id"])
+        original = Path.unlink
+
+        def preso(caminho, *args, **kwargs):
+            if caminho.parent.name.endswith(" (gerados)"):
+                raise PermissionError("em uso por outro processo")
+            return original(caminho, *args, **kwargs)
+
+        with patch.object(Path, "unlink", preso):
+            _, process = self.http("/api/v1/jobs/process", {
+                "participants": [self.participant], "output_id": self.output_id,
+                "file_ids": generated["file_ids"], "format": "PDF"})
+            done = self.wait_job(process["job_id"])
+        self.assertEqual(done["status"], "completed", done)
+        self.assertTrue(any(p.is_file() for p in (self.output / "PDF-A").iterdir()))
 
     def test_undeclared_dynamic_field_rejected(self):
         participant = {**self.participant, "campos_dinamicos": {"undeclared": "value"}}

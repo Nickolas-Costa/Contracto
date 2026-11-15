@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use serde_json::{json, Value};
 use tauri::{AppHandle, DragDropEvent, Manager, RunEvent, Webview, WebviewUrl, WebviewWindowBuilder, WindowEvent};
-use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogKind};
+use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogButtons, MessageDialogKind};
 
 const CORPO_MAX: usize = 1024 * 1024;
 const ARQUIVO_MAX: usize = 20 * 1024 * 1024;
@@ -422,6 +422,35 @@ fn ao_arrastar(window: &tauri::Window, evento: &DragDropEvent) {
     let _ = web.eval(format!("window.ContractoConversao&&window.ContractoConversao.{chamada}"));
 }
 
+/// Há trabalho na fila ou em execução? Sem backend pronto ou sem resposta, não há o que perder.
+async fn trabalho_ativo(app: &AppHandle) -> bool {
+    let Some(b) = app.try_state::<Arc<Backend>>().map(|b| b.inner().clone()) else { return false };
+    let Some(r) = b.chamar("GET", "/api/v1/jobs", None).await else { return false };
+    let lista = r.bytes().await.ok().and_then(|c| serde_json::from_slice::<Value>(&c).ok());
+    lista.as_ref().and_then(Value::as_array).is_some_and(|jobs| {
+        jobs.iter().any(|j| matches!(j["status"].as_str(), Some("queued" | "running" | "cancelling")))
+    })
+}
+
+/// Fechar com trabalho ativo encerra o sidecar no meio: sobram a pasta temporária do trabalho e,
+/// numa conversão, um Word oculto segurando o arquivo. Por isso a janela pergunta antes.
+fn ao_pedir_fechamento(window: &tauri::Window) {
+    let janela = window.clone();
+    std::thread::spawn(move || {
+        let fechar = !tauri::async_runtime::block_on(trabalho_ativo(janela.app_handle()))
+            || janela
+                .dialog()
+                .message("Há um trabalho em andamento. Se fechar agora, ele será interrompido e pode deixar arquivos temporários na pasta de destino.")
+                .title("Contracto")
+                .kind(MessageDialogKind::Warning)
+                .buttons(MessageDialogButtons::OkCancelCustom("Fechar mesmo assim".into(), "Continuar trabalhando".into()))
+                .blocking_show();
+        if fechar {
+            let _ = janela.destroy();
+        }
+    });
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -429,10 +458,13 @@ fn main() {
             request, select_file, select_output, select_backup, select_documents,
             import_profile, export_profile, open_result, open_file, get_file
         ])
-        .on_window_event(|window, evento| {
-            if let WindowEvent::DragDrop(arrasto) = evento {
-                ao_arrastar(window, arrasto);
+        .on_window_event(|window, evento| match evento {
+            WindowEvent::DragDrop(arrasto) => ao_arrastar(window, arrasto),
+            WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                ao_pedir_fechamento(window);
             }
+            _ => {}
         })
         .setup(|app| {
             let titulo = format!("Contracto {}", app.package_info().version);

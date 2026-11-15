@@ -16,7 +16,6 @@
   const online = () => window.ContractoApp?.pronto() || false;
   function changed() {
     issues = []; revision++;
-    recalcularLocal();
     window.ContractoEtapa2?.invalidar();
     schedulePreview();
     atualizar();
@@ -38,21 +37,6 @@
       } else issues=r.data?.issues?.length ? r.data.issues : [{field:"Validação",message:"Não foi possível validar. Tente conectar novamente."}];
       atualizar();
     },350);
-  }
-  function avaliarFormulaLocal(expressao, valores) {
-    // Avaliador restrito: apenas identificadores de campos + operadores aritméticos.
-    if (!expressao || /[^A-Za-z0-9_+\-*/().\s,]/.test(expressao)) return null;
-    const ids = Object.keys(valores);
-    try {
-      const fn = Function(...ids, '"use strict";return(' + expressao + ')');
-      const args = ids.map(k => {
-        const raw = String(valores[k] ?? "").replace(/\./g, "").replace(",", ".");
-        const num = Number(raw);
-        return Number.isFinite(num) ? num : 0;
-      });
-      const out = fn(...args);
-      return (typeof out === "number" && Number.isFinite(out)) ? out : null;
-    } catch (_) { return null; }
   }
   function sincronizarSelecao() {
     // A lista é montada antes da composição inicial; sem este sync o perfil
@@ -175,19 +159,6 @@
     if(field.calculo){const note=document.createElement("p");note.className="field-note";note.id=input.id+"-nota";note.textContent="Calculado a partir dos dados informados.";wrap.append(note);input.setAttribute("aria-describedby",error.id+" "+note.id);}
     controls.push({field,index,id,owner,wrap,input,error});
   }
-  function recalcularLocal() {
-    controls.forEach(c => {
-      const expr = c.field.calculo || c.field.formula;
-      if (!expr) return;
-      const vals = values(c.index);
-      const out = avaliarFormulaLocal(expr, vals);
-      if (out !== null) {
-        const texto = String(Math.round(out * 100) / 100).replace(".", ",");
-        c.input.value = texto;
-        c.owner[c.id] = texto;
-      }
-    });
-  }
   function resolverPaginas(lista, grupo) {
     const ordem = [];
     lista.forEach(f => {
@@ -300,7 +271,7 @@
       });
       $("campos-globais").append(card);
     }
-    recalcularLocal(); renderPaginacao(); sincronizarSelecao(); schedulePreview();atualizar();
+    renderPaginacao(); sincronizarSelecao(); schedulePreview();atualizar();
   }
   function emPaginaAtual(c) {
     if (!usarPaginacao || paginas.length < 2) return true;
@@ -675,7 +646,9 @@
     if (btnConfirmar && !btnConfirmar.dataset.ligado) {
       btnConfirmar.dataset.ligado = "1";
       btnConfirmar.addEventListener("click", () => {
-        gerar();
+        // Contrato: a pergunta sobre extras vem antes, pois gerar e organizar são uma etapa só.
+        if (mode === "simples") gerar();
+        else window.ContractoEtapa2.confirmarExtras(gerar);
       });
     }
 
@@ -697,7 +670,7 @@
       "<p>Deseja reiniciar a preparação de documentos?</p>",
       [
         {
-          texto: "Preservar destino e data",
+          texto: "Reiniciar",
           aoClicar: () => {
             window.ContractoEtapa2?.recomecar?.();
             if (preservarAtivo()) {
@@ -735,6 +708,7 @@
     draft.globals.local_assinatura = "";
     const pasta = $("pasta-saida");
     if (pasta) pasta.value = "";
+    draft.output_id = null; // o campo fica vazio: a pasta antiga não pode seguir valendo escondida
     fields = []; composed = false; maximum = 1; selected = [];
     renderProfilesList();
     if (mode === "contrato") {

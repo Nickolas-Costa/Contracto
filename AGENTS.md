@@ -52,7 +52,7 @@ the user asked for.
 ## Repository context
 
 Windows desktop app, Python; WebView2 UI (`frontend/`) over a local loopback API.
-The Tk UI was removed in v5.0.0 (ADR 0028); Tauri readiness is ADR 0029. Before continuing the migration, read `docs/CONTINUIDADE_CODEX_WEB.md`,
+The Tk UI was removed in v5.0.0 (ADR 0028); Tauri readiness is ADR 0029. Before continuing the migration, read
 `docs/SPEC_PRE_WEBVIEW.md`, `docs/ARCHITECTURE.md` and `docs/adr/`.
 
 Latest state and pending items: `docs/BASE_UI_STATUS.md`. The local API, queue

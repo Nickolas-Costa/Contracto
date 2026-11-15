@@ -564,10 +564,11 @@ def atualizar_perfil(nome_antigo: str, perfil_novo: Perfil) -> None:
 
 
 def excluir_perfil(nome: str) -> None:
-    """Exclui um perfil. O perfil Padrão não pode ser excluído."""
-    if nome == PERFIL_PADRAO_NOME:
-        raise ValueError("O perfil Padrão não pode ser excluído.")
+    """Exclui um perfil criado pelo usuário. Os que acompanham o aplicativo voltariam na próxima abertura."""
     perfis = carregar_perfis()
+    de_fabrica = {entrada["perfil"].identificador for entrada in _carregar_perfis_iniciais()}
+    if nome == PERFIL_PADRAO_NOME or any(p.nome == nome and p.identificador in de_fabrica for p in perfis):
+        raise ValueError(f"O perfil '{nome}' acompanha o aplicativo e não pode ser excluído.")
     perfis = [p for p in perfis if p.nome != nome]
     salvar_perfis(perfis)
 
@@ -660,62 +661,3 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
     perfis.append(novo_perfil)
     salvar_perfis(perfis)
     return novo_perfil
-
-
-FORMATO_EXPORTACAO_PERFIL = "contracto-perfil"
-VERSAO_EXPORTACAO_PERFIL = 1
-
-
-def exportar_perfil(nome: str, destino: Path | str) -> Path:
-    """Grava um perfil em `.json` com envelope de formato e versão."""
-    perfil = obter_perfil(nome)
-    if perfil is None:
-        raise ValueError(f"Perfil '{nome}' não encontrado.")
-    destino = Path(destino)
-    salvar_json(destino, {
-        "formato": FORMATO_EXPORTACAO_PERFIL,
-        "versao": VERSAO_EXPORTACAO_PERFIL,
-        "perfil": asdict(perfil),
-    })
-    return destino
-
-
-def importar_perfil(origem: Path | str) -> Perfil:
-    """Lê um `.json` de perfil, valida a estrutura e incorpora com nome único.
-
-    Nome em colisão ganha sufixo " (Cópia N)"; identificador em colisão
-    ou ausente é substituído por um novo.
-    """
-    origem = Path(origem)
-    try:
-        with open(origem, "r", encoding="utf-8") as f:
-            dados = json.load(f)
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"Arquivo de perfil ilegível: '{origem.name}'.") from exc
-    if not isinstance(dados, dict) or dados.get("formato") != FORMATO_EXPORTACAO_PERFIL:
-        raise ValueError(f"'{origem.name}' não é um perfil do Contracto.")
-    item = dados.get("perfil")
-    if not isinstance(item, dict) or not str(item.get("nome", "")).strip():
-        raise ValueError(f"'{origem.name}' não traz um perfil válido.")
-    try:
-        perfil = _perfil_de_dict(item)
-        validar_perfis([perfil])
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"'{origem.name}' traz um perfil inválido: {exc}") from exc
-
-    perfis = carregar_perfis()
-    nomes = {p.nome for p in perfis}
-    if perfil.nome in nomes:
-        base, contador = perfil.nome, 2
-        candidato = f"{base} (Cópia)"
-        while candidato in nomes:
-            candidato = f"{base} (Cópia {contador})"
-            contador += 1
-        perfil.nome = candidato
-    identificadores = {p.identificador for p in perfis if p.identificador}
-    if not perfil.identificador or perfil.identificador in identificadores:
-        perfil.identificador = uuid.uuid4().hex
-    perfis.append(perfil)
-    salvar_perfis(perfis)
-    return perfil
-

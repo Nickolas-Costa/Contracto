@@ -50,6 +50,14 @@ class TestBackup(unittest.TestCase):
         self.assertIn("P1", profile_manager.listar_nomes_perfis())
         self.assertEqual(config_manager.obter("aparencia"), "dark")
 
+    def test_backup_sem_arquivos_salvos_ainda_restaura(self):
+        """Regressão: sem perfil ou config gravados o ZIP saía incompleto e a restauração o recusava."""
+        for caminho in (profile_manager._caminho_perfis(), config_manager._caminho_config()):
+            caminho.unlink()
+        profile_manager.invalidar_cache()
+        config_manager.invalidar_cache()
+        backup.restaurar_backup(backup.criar_backup(Path(self.tmp.name)))
+
     def test_zip_invalido_rejeita(self):
         ruim = Path(self.tmp.name) / "ruim.zip"
         ruim.write_bytes(b"nao-e-zip")

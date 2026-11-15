@@ -64,13 +64,12 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
 |---|---|
 | `request` | `reqwest`/`hyper` para `origin` com `Authorization: Bearer` + `Origin`; mesma allowlist e limite do `ShellBridge.request` |
 | `select_*`, `export_profile` | `tauri-plugin-dialog` → caminho → `register` no sidecar |
-| `import_profile` | diálogo + leitura em Rust (≤ 1 MiB) → `POST /api/v1/profiles` |
-| `open_result`, `open_file` | `result_dir`/`file_path` no sidecar → `tauri-plugin-opener` |
+| `import_profile` | diálogo → caminho → `import_profile` no sidecar (limite de 1 MiB lá) |
+| `open_result`, `open_file` | `result_dir`/`file_path` no sidecar → `explorer.exe` com o caminho devolvido |
 | `get_file` | `GET /api/v1/files/{id}` com limite de 20 MiB → base64 |
 | arrasto | `onDragDropEvent` → `register(convert)` → `eval` de `receberArrasto` |
 
-`capabilities` mínimas: `dialog:allow-open`, `dialog:allow-save`, `opener:allow-open-path`
-(escopo só pelos caminhos devolvidos pelo sidecar), sidecar iniciado só pelo caminho fixo `sidecar/Contracto_sidecar.exe` (**um** executável). CSP idêntica à do `index.html` atual.
+Sem `capabilities` para a página (os diálogos são chamados pelo Rust, não pelo JS), sidecar iniciado só pelo caminho fixo `sidecar/Contracto_sidecar.exe` (**um** executável). CSP idêntica à do `index.html` atual.
 
 ## Implementação (`src-tauri/`)
 
@@ -82,6 +81,7 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
   cada abertura); o Rust o inicia numa thread com `CREATE_NO_WINDOW`. A janela nasce oculta e aparece quando o
   sidecar responde `starting`; os comandos esperam o `ready` (até 60 s). Segunda instância: `already_running`,
   a janela nunca aparece.
+- Fechar a janela com trabalho na fila ou em execução (`GET /api/v1/jobs`) pede confirmação antes de encerrar o sidecar.
 - Arrasto: o Rust chama `ContractoConversao.arrastar(x, y)` (destaque da zona) e `receberArrasto(r, x, y)`; a
   página só aceita o que cair na zona.
   Se o pai morrer, o EOF do stdin encerra o sidecar.

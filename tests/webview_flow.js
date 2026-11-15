@@ -113,7 +113,7 @@
     assert(document.querySelector('.pdf-preview').src.startsWith('blob:'),'viewer uses local blob');
     {const m=document.querySelector('.modal').getBoundingClientRect(),f=document.querySelector('.pdf-preview').getBoundingClientRect();
      assert(f.left>=m.left-1&&f.right<=m.right+1&&f.width>m.width*0.8,'viewer fits inside the modal width');}
-    assert(getComputedStyle(document.querySelector('.toolbar')).position===(innerWidth>1100?'sticky':'static'),'toolbar sticky above the collapse breakpoint');
+    assert(getComputedStyle(document.querySelector('.toolbar')).position===(innerWidth>1100?'sticky':'relative'),'toolbar sticky above the collapse breakpoint');
     assert([...document.querySelectorAll('.modal .acoes button')].some(b=>b.textContent==='Abrir no leitor padrão'),'viewer offers external reader');
     [...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Expandir').click();
     assert(document.querySelector('.modal').classList.contains('modal-viewer-expandido')&&!document.getElementById('overlay').hidden,'viewer expands and stays open');

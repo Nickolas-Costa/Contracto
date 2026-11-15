@@ -2,6 +2,7 @@
 import asyncio
 import secrets
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -13,9 +14,6 @@ from version import __version__
 from .jobs import ApiError, capabilities
 from .models import ComposeInput, ConvertInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
-import sys
-import subprocess
-import platform
 
 
 def error(code, message, status, issues=None):
@@ -23,6 +21,42 @@ def error(code, message, status, issues=None):
     if issues:
         payload["issues"] = issues
     return JSONResponse(payload, status_code=status)
+
+
+def _perfis(operacao):
+    """Erro de perfil vira 422 com o motivo, em vez do 500 genérico que a tela não sabe explicar."""
+    try:
+        return operacao()
+    except ValueError as exc:  # mensagens do profile_manager: nome repetido, tipo de campo, etc.
+        raise ApiError("invalid_profile", str(exc), 422) from None
+    except (TypeError, KeyError, AttributeError):  # JSON com chave ou tipo que o perfil não tem
+        raise ApiError("invalid_profile", "Perfil inválido: confira as chaves e os tipos do JSON", 422) from None
+
+
+_APELIDOS = {"name": "nome", "mode": "modo_fluxo", "max_participants": "max_participantes", "fields": "campos_entrada"}
+
+
+def _mesclar_edicao(atual: dict, dados: dict) -> dict:
+    """Junta o que a tela Perfis enviou (`dados`) ao perfil salvo (`atual`, formato de `asdict(Perfil)`).
+
+    A tela edita a entrada do catálogo, que não tem `mapeamento`, `caminho` nem `identificador`
+    e usa apelidos. O que a tela não conhece fica como está no perfil salvo.
+    """
+    final = dict(atual)
+    for chave, valor in dados.items():
+        chave = _APELIDOS.get(chave, chave)
+        if chave in ("profile_id", "identificador"):
+            continue  # o identificador nunca vem da tela: trocá-lo duplicaria um perfil de fábrica
+        if chave not in atual:
+            raise ValueError(f"Chave desconhecida no perfil: '{chave}'.")
+        if chave == "formularios":
+            # O catálogo só traz nome e geração: caminho e mapeamento vêm do formulário salvo (por nome, depois por posição).
+            salvos = atual["formularios"]
+            por_nome = {f["nome"]: f for f in salvos}
+            valor = [{**(por_nome.get(f.get("nome")) or (salvos[i] if i < len(salvos) else {})), **f}
+                     for i, f in enumerate(valor)]
+        final[chave] = valor
+    return final
 
 
 class LocalOnly:
@@ -132,49 +166,6 @@ def create_app(session):
     def health():
         return {"version": __version__, "status": "ready"}
 
-    @app.get("/api/v1/diagnostics/webview2")
-    def webview2_diagnostic():
-        """Verifica disponibilidade do WebView2 Runtime e sugere instalação se ausente."""
-        info = {"platform": platform.system(), "architecture": platform.machine()}
-        if sys.platform != "win32":
-            return {**info, "available": True, "required": False, "note": "WebView2 só é necessário no Windows."}
-        # Registro do Evergreen Runtime (instalação por usuário) e Fixed Version (instalação por sistema)
-        import winreg
-        runtime_found = False
-        version = None
-        for hive, path in [
-            (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
-            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
-            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"),
-        ]:
-            try:
-                with winreg.OpenKey(hive, path) as key:
-                    version = winreg.QueryValueEx(key, "pv")[0]
-                    runtime_found = True
-                    break
-            except OSError:
-                continue
-        if not runtime_found:
-            # Fallback: tenta via Evergreen bootstrapper local
-            try:
-                out = subprocess.run(["cmd", "/c", "reg", "query", "HKCU\\Software\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}", "/v", "pv"], capture_output=True, text=True, timeout=3)
-                if out.returncode == 0:
-                    import re
-                    m = re.search(r"pv\s+REG_SZ\s+([\d.]+)", out.stdout)
-                    if m:
-                        version = m.group(1)
-                        runtime_found = True
-            except Exception:
-                pass
-        return {
-            **info,
-            "available": runtime_found,
-            "required": True,
-            "version": version,
-            "install_url": "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
-            "message": "WebView2 Runtime encontrado." if runtime_found else "WebView2 Runtime não encontrado. Instale para usar a interface moderna."
-        }
-
     @app.get("/api/v1/capabilities")
     def get_capabilities():
         return capabilities()
@@ -186,23 +177,33 @@ def create_app(session):
     @app.post("/api/v1/profiles")
     def create_profile(dados: dict):
         from utils import profile_manager
-        perfil = profile_manager._perfil_de_dict(dados)
-        profile_manager.adicionar_perfil(perfil)
+        def criar():
+            # Mesmo tratamento da edição: o JSON copiado da tela usa os apelidos do catálogo.
+            perfil = profile_manager._perfil_de_dict(_mesclar_edicao(asdict(profile_manager.Perfil(nome="")), dados))
+            profile_manager.adicionar_perfil(perfil)
+            return perfil
+        perfil = _perfis(criar)
         session.jobs.refresh_profiles()
         return {"status": "created", "nome": perfil.nome}
 
     @app.put("/api/v1/profiles/{nome}")
     def update_profile(nome: str, dados: dict):
         from utils import profile_manager
-        perfil_novo = profile_manager._perfil_de_dict(dados)
-        profile_manager.atualizar_perfil(nome, perfil_novo)
+        def atualizar():
+            atual = profile_manager.obter_perfil(nome)
+            if atual is None:
+                raise ValueError(f"Perfil '{nome}' não encontrado.")
+            perfil = profile_manager._perfil_de_dict(_mesclar_edicao(asdict(atual), dados))
+            profile_manager.atualizar_perfil(nome, perfil)
+            return perfil
+        perfil_novo = _perfis(atualizar)
         session.jobs.refresh_profiles()
         return {"status": "updated", "nome": perfil_novo.nome}
 
     @app.delete("/api/v1/profiles/{nome}")
     def delete_profile(nome: str):
         from utils import profile_manager
-        profile_manager.excluir_perfil(nome)
+        _perfis(lambda: profile_manager.excluir_perfil(nome))
         session.jobs.refresh_profiles()
         return {"status": "deleted", "nome": nome}
 
@@ -210,7 +211,7 @@ def create_app(session):
     def duplicate_profile(nome: str, payload: dict = {}):
         from utils import profile_manager
         novo_nome = payload.get("novo_nome")
-        novo = profile_manager.duplicar_perfil(nome, novo_nome)
+        novo = _perfis(lambda: profile_manager.duplicar_perfil(nome, novo_nome))
         session.jobs.refresh_profiles()
         return {"status": "duplicated", "nome": novo.nome}
 
@@ -317,6 +318,7 @@ def create_app(session):
             backup_util.restaurar_backup(caminho)
         except ValueError as exc:
             return error("invalid_backup", str(exc), 422)
+        session.jobs.refresh_profiles()  # sem isto a tela seguia com os perfis de antes da restauração
         return {"status": "restored"}
 
     return app
