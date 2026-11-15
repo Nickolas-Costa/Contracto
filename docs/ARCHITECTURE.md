@@ -1,9 +1,9 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v5.4.0) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v5.5.0) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v5.4.0) — shell Tauri + sidecar Python sobre API local loopback
+## Estado atual (v5.5.0) — shell Tauri + sidecar Python sobre API local loopback
 
 A UI é WebView2 desde a v4.5.18 e a interface Tk foi **removida na v5.0.0** (ADR 0028).
 A produção roda no **shell Tauri** (`src-tauri/`, ADR 0031): o Rust abre a janela com `frontend/`,
@@ -53,7 +53,8 @@ Fase A (concluída, v4.5.18): WebView2 + Python loopback 127.0.0.1
 
 Fase B (parcial, v5.3.0): shell Tauri v2 + sidecar Python (ADR 0029/0031)
 ├── Feito: janela, ponte nativa e diálogos em Rust; instalador NSIS
-└── Não adotado até aqui: React+TS+Vite, SQLite e auto-update
+├── v5.5.0: atualização pelo app, só a pedido do usuário (ADR 0032)
+└── Não adotado até aqui: React+TS+Vite e SQLite
     (a UI segue JS puro; os dados seguem em %APPDATA%/Contracto/*.json)
 ```
 
@@ -91,7 +92,8 @@ Valem para qualquer implementação do shell, antes da primeira tela:
 
 ## Regras
 
-- Loopback estrito futuro (`127.0.0.1`), zero telemetria, sem CDN/fontes externas.
+- Loopback estrito futuro (`127.0.0.1`), zero telemetria, sem CDN/fontes externas. Única saída para a
+  internet: a consulta de atualização feita pelo Rust quando o usuário pede (a página segue sem rede).
 - `services/` nunca importa UI; os diálogos nativos são do shell (`pywebview` hoje,
   `plugin-dialog` no Tauri).
 - `rtf_converter` segue **Windows-only com Word** (decisão registrada);

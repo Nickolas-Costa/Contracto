@@ -46,4 +46,4 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0029 | Preparação "Tauri Ready" | aceita (troca de shell aguarda aceite) |
 | 0030 | Conferência editável | futura |
 | 0031 | Shell Tauri e instalador NSIS | aceita |
-| 0032 | Contrato em uma etapa e plano de atualização dentro do app | parte 1 aceita; parte 2 proposta |
+| 0032 | Contrato em uma etapa e plano de atualização dentro do app | aceita |

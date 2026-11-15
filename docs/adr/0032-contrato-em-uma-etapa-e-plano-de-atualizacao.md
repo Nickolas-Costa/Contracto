@@ -1,6 +1,6 @@
-# ADR 0032 — Contrato em uma etapa e plano de atualização dentro do app (v5.4.0)
+# ADR 0032 — Contrato em uma etapa (v5.4.0) e atualização dentro do app (v5.5.0)
 
-- **Estado:** parte 1 aceita e implementada; parte 2 é proposta (nenhum código ainda).
+- **Estado:** aceita. Parte 1 implementada na 5.4.0; parte 2 (opção A) implementada na 5.5.0, menos o passo 6 (teste real entre duas versões publicadas).
 - **Data:** 2026-11-11
 
 ## 1. Contrato conclui em uma etapa (implementado)
@@ -21,7 +21,7 @@ Decisões:
 - Os PDFs finais deixam de levar o prefixo `1-`, `2-` (vinha do nome da cópia de trabalho).
 - Simples e Conversão não mudam.
 
-## 2. Atualização dentro do app sem certificado de assinatura (proposta)
+## 2. Atualização dentro do app sem certificado de assinatura (implementado na 5.5.0)
 
 **Problema.** Atualizar hoje é baixar o instalador no navegador. Sem certificado de assinatura de código
 (pago), o SmartScreen alerta a cada versão.
@@ -69,3 +69,11 @@ invada a conta do GitHub entregue um instalador falso; a opção B não tem essa
 6. Teste real: instalar a versão N, publicar N+1 como pré-lançamento e atualizar por dentro do app.
 
 **Fora do escopo:** atualização silenciosa, canal beta e reversão automática.
+
+### Como ficou
+
+- `check_update` e `install_update` em `main.rs`; botão "Verificar atualizações" em Configurações.
+- Chave privada em `%USERPROFILE%\.tauri\contracto-updater.key`, sem senha e fora do repositório; a pública está em `tauri.conf.json`.
+- `scripts/build_tauri.py` grava `dist/latest.json`; ele precisa ser anexado à release junto do instalador.
+- A 5.4.0 e anteriores não têm o atualizador: quem está nelas instala a 5.5.0 à mão uma última vez.
+- Sem barra de progresso medida no download (modal com giratório); medir só se virar queixa.

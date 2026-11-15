@@ -631,6 +631,44 @@
     }
   }
 
+  const ERROS_ATUALIZACAO = {
+    unsupported: "A atualização pelo aplicativo só existe na versão instalada.",
+    job_active: "Há um trabalho em andamento. Conclua ou cancele antes de atualizar.",
+    update_install_failed: "Não foi possível baixar ou validar a atualização. Nada foi alterado.",
+    open_failed: "Não foi possível abrir a página de download."
+  };
+  async function cfgAtualizar() {
+    const consulta = abrirProgresso("Verificando atualizações");
+    consulta.atualizar("Consultando a lista de versões…", "");
+    let r = null;
+    try { r = await window.ContractoAPI.checkUpdate(); } catch (_) { /* tratado abaixo */ }
+    consulta.fechar();
+    if (!r || !r.ok) { toast(ERROS_ATUALIZACAO[r && r.code] || "Não foi possível verificar. Confira a conexão com a internet.", "error"); return; }
+    if (!r.available) { toast("Você já está na versão mais recente.", "success"); return; }
+    const corpo = document.createElement("div");
+    const titulo = document.createElement("p");
+    titulo.textContent = "A versão " + r.version + " está disponível." + (r.portable ? " Esta é a cópia portátil: baixe o novo ZIP na página de versões." : " O aplicativo fecha, instala e abre de novo; perfis e configurações são mantidos.");
+    corpo.append(titulo);
+    if (r.notes) {
+      const notas = document.createElement("p");
+      notas.className = "hint";
+      notas.style.whiteSpace = "pre-wrap";
+      notas.textContent = String(r.notes).slice(0, 1500);
+      corpo.append(notas);
+    }
+    abrirModal("Atualização disponível", corpo, [
+      { texto: "Agora não" },
+      { texto: r.portable ? "Abrir página de download" : "Baixar e instalar", primario: true, aoClicar: async () => {
+        const baixa = r.portable ? null : abrirProgresso("Baixando a atualização");
+        baixa?.atualizar("Baixando e validando o instalador…", "Cerca de 50 MB. O aplicativo fecha sozinho ao terminar.");
+        let i = null;
+        try { i = await window.ContractoAPI.installUpdate(); } catch (_) { /* tratado abaixo */ }
+        baixa?.fechar();
+        if (!i || !i.ok) toast(ERROS_ATUALIZACAO[i && i.code] || "Não foi possível atualizar. Confira a conexão com a internet.", "error", 8000);
+      } }
+    ]);
+  }
+
   async function cfgRestaurar() {
     const wrap = document.createElement("div");
     const p = document.createElement("p");
@@ -693,6 +731,11 @@
     if (restaurar && !restaurar.dataset.ligado) {
       restaurar.dataset.ligado = "1";
       restaurar.addEventListener("click", cfgRestaurar);
+    }
+    const atualizar = document.getElementById("btn-cfg-atualizar");
+    if (atualizar && !atualizar.dataset.ligado) {
+      atualizar.dataset.ligado = "1";
+      atualizar.addEventListener("click", cfgAtualizar);
     }
     const reparo = document.getElementById("btn-cfg-reparo");
     if (reparo && !reparo.dataset.ligado) {

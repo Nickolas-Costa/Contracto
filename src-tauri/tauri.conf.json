@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Contracto",
-  "version": "5.4.0",
+  "version": "5.5.0",
   "identifier": "br.com.contracto.app",
   "build": { "frontendDist": "../frontend" },
   "app": {
@@ -13,11 +13,19 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "icon": ["../app/assets/icons/app_icon.ico"],
     "resources": { "binaries/sidecar/": "sidecar/" },
     "windows": {
       "nsis": { "installMode": "currentUser", "languages": ["PortugueseBR"], "installerHooks": "windows/hooks.nsh" }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBQUNDMUVBMjcxQUFDNEQKUldSTnJCb242c0dzMmt1V2g5M05udHhLSWNSbWZaNmZOamJ4NElTVW1icGtRY0RUU3hBcVp0b1UK",
+      "endpoints": ["https://github.com/Nickolas-Costa/Contracto/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
     }
   }
 }

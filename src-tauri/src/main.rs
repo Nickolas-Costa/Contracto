@@ -14,10 +14,12 @@ use base64::Engine;
 use serde_json::{json, Value};
 use tauri::{AppHandle, DragDropEvent, Manager, RunEvent, Webview, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_updater::UpdaterExt;
 
 const CORPO_MAX: usize = 1024 * 1024;
 const ARQUIVO_MAX: usize = 20 * 1024 * 1024;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+const PAGINA_VERSOES: &str = "https://github.com/Nickolas-Costa/Contracto/releases/latest";
 
 struct Controle {
     filho: Child,
@@ -401,6 +403,67 @@ async fn get_file(webview: Webview, file_id: String) -> Value {
     json!({"ok": true, "base64": base64::engine::general_purpose::STANDARD.encode(bruto)})
 }
 
+/// Atualizador do Tauri (ADR 0032): confere a assinatura minisign do instalador com a chave pública do
+/// `tauri.conf.json`. Antes de rodar o instalador, encerra o sidecar para liberar os arquivos dele.
+fn atualizador(app: &AppHandle, prazo: Option<Duration>) -> Option<tauri_plugin_updater::Updater> {
+    let backend = app.try_state::<Arc<Backend>>().map(|b| b.inner().clone());
+    let mut construtor = app.updater_builder().on_before_exit(move || {
+        if let Some(b) = &backend {
+            b.encerrar();
+        }
+    });
+    if let Some(p) = prazo {
+        construtor = construtor.timeout(p);
+    }
+    construtor.build().ok()
+}
+
+/// A cópia portátil (ZIP) não tem desinstalador: rodar o instalador criaria uma segunda cópia em outro lugar.
+fn portatil() -> bool {
+    std::env::current_exe().map_or(true, |exe| !exe.with_file_name("uninstall.exe").exists())
+}
+
+/// Única chamada de rede do aplicativo, e só quando o usuário pede (PRIVACIDADE.md).
+#[tauri::command]
+async fn check_update(webview: Webview) -> Value {
+    if !autorizada(&webview) {
+        return nao_autorizada();
+    }
+    let Some(u) = atualizador(webview.app_handle(), Some(Duration::from_secs(20))) else {
+        return json!({"ok": false, "code": "update_check_failed"});
+    };
+    match u.check().await {
+        Ok(Some(nova)) => json!({"ok": true, "available": true, "version": nova.version, "notes": nova.body, "portable": portatil()}),
+        Ok(None) => json!({"ok": true, "available": false}),
+        Err(_) => json!({"ok": false, "code": "update_check_failed"}),
+    }
+}
+
+#[tauri::command]
+async fn install_update(webview: Webview) -> Value {
+    if !autorizada(&webview) {
+        return nao_autorizada();
+    }
+    let app = webview.app_handle();
+    if portatil() {
+        let abriu = sem_janela(&mut Command::new("explorer.exe")).arg(PAGINA_VERSOES).spawn().is_ok();
+        return json!({"ok": abriu, "code": if abriu { "opened_page" } else { "open_failed" }});
+    }
+    if trabalho_ativo(app).await {
+        return json!({"ok": false, "code": "job_active"});
+    }
+    let nova = match atualizador(app, None) {
+        Some(u) => u.check().await.ok().flatten(),
+        None => None,
+    };
+    let Some(nova) = nova else { return json!({"ok": false, "code": "update_check_failed"}) };
+    // No Windows, em caso de sucesso o processo termina aqui dentro (o instalador reabre o app).
+    match nova.download_and_install(|_, _| {}, || {}).await {
+        Ok(()) => json!({"ok": true, "code": "installing"}),
+        Err(_) => json!({"ok": false, "code": "update_install_failed"}),
+    }
+}
+
 /// Arrasto nativo: o WebView2 não dispara eventos HTML5 de arrasto com o handler nativo ligado, então
 /// o shell repassa a posição (destaque da zona) e, ao soltar, registra os caminhos como seleção
 /// `convert` e entrega só IDs à página, que confere se foi solto na zona.
@@ -454,9 +517,10 @@ fn ao_pedir_fechamento(window: &tauri::Window) {
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             request, select_file, select_output, select_backup, select_documents,
-            import_profile, export_profile, open_result, open_file, get_file
+            import_profile, export_profile, open_result, open_file, get_file, check_update, install_update
         ])
         .on_window_event(|window, evento| match evento {
             WindowEvent::DragDrop(arrasto) => ao_arrastar(window, arrasto),
