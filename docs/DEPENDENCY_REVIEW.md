@@ -56,5 +56,16 @@ Versões fixadas em `src-tauri/Cargo.toml`/`Cargo.lock` e `package-lock.json`, t
 | `base64` 0.22, `serde_json` 1 | `get_file` e DTOs | — | **Adotados** (já transitivos do Tauri). |
 | `tauri-plugin-opener` | Abrir pasta/PDF | `explorer.exe <caminho absoluto>` devolvido pelo sidecar | **Não adotado**: poucas linhas, uma dependência a menos. |
 | `tauri-plugin-shell` | Sidecar | `std::process::Command` sobre `Contracto_sidecar.exe` ao lado do executável | **Não adotado**: allowlist de um só executável, sem plugin. |
-| `tauri-plugin-updater` | Atualização automática | Reinstalar manualmente | **Não adotar** (decisão do usuário: sem auto-update). |
+| `tauri-plugin-updater` =2.14.1 (sem `zip`; `rustls-tls`, `system-proxy`) | Atualização pelo app, a pedido do usuário (ADR 0032) | Código próprio sobre a API do GitHub + SHA-256: mais código e sem autenticidade (o hash vem do mesmo lugar que o arquivo) | **Adotado em 15/11/2026** (pedido do usuário; publicado em 28/10, ≥ 2 semanas). Respostas do gate abaixo. |
+| `reqwest` 0.13 + `rustls`/`ring` (transitivos do atualizador) | HTTPS para o GitHub | TLS do Windows (`native-tls`): menos código embutido, mas outra pilha a testar | **Adotado** como vem do plugin. O `reqwest` 0.12 do loopback segue sem TLS. |
 | OCR (ADR 0027, Fase 2) | PDFs digitalizados | `Windows.Media.Ocr` ou Tesseract | Decidir no gate da Fase 2. |
+
+### Gate do `tauri-plugin-updater` (15/11/2026)
+
+1. **Capacidade:** verificar, baixar, validar a assinatura e instalar uma versão nova. Sem ele o app funciona igual; só a atualização volta a ser manual.
+2. **Código puro ou recurso nativo?** Daria para baixar e conferir o SHA-256 em Rust, mas isso só prova integridade. A assinatura minisign do plugin prova a origem.
+3. **Alternativas:** verificação própria (descartada acima) ou manter a atualização manual.
+4. **Exige rede** (GitHub, HTTPS), um arquivo temporário para o instalador e nenhum privilégio extra (instalação por usuário). A chave privada fica só na máquina de build.
+5. **Outros ambientes:** só existe no shell Tauri instalado. Na cópia portátil abre a página de versões; no pywebview responde `unsupported`.
+6. **Testes:** `tests/test_atualizacao.py` (manifesto, HTTPS, chave fora do repositório) e `tests/api_adapter.cjs` (comandos). O caminho completo precisa de duas versões publicadas (teste manual).
+7. **Remoção:** tirar o plugin, os dois comandos de `main.rs`, o bloco `plugins.updater`, o botão e `latest.json` do build. Nenhum serviço Python depende dele.

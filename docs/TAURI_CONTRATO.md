@@ -20,6 +20,8 @@ métodos de `pywebview.api` com os mesmos argumentos na ordem abaixo.
 | `open_result` | `job_id` | `{ok, code}` | Só resultado concluído, por ID; abre a pasta |
 | `open_file` | `file_id` | `{ok, code}` | Só PDF de seleção válida; leitor padrão |
 | `get_file` | `file_id` | `{ok, base64}` \| `{ok:false, code}` | ≤ 20 MiB; só seleção `file` |
+| `check_update` | — | `{ok, available, version, notes, portable}` \| `{ok:false, code}` | única chamada de rede; só a pedido do usuário; sob pywebview: `unsupported` |
+| `install_update` | — | `{ok, code}` | recusa com `job_active`; na cópia portátil só abre a página de versões; em caso de sucesso o app fecha |
 
 A página **nunca** recebe caminho, token nem porta. `selection_id`/`file_id` são
 capacidades opacas (`app/api/selections.py`, TTL 1 h).
@@ -67,6 +69,7 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
 | `import_profile` | diálogo → caminho → `import_profile` no sidecar (limite de 1 MiB lá) |
 | `open_result`, `open_file` | `result_dir`/`file_path` no sidecar → `explorer.exe` com o caminho devolvido |
 | `get_file` | `GET /api/v1/files/{id}` com limite de 20 MiB → base64 |
+| `check_update`, `install_update` | `tauri-plugin-updater` chamado pelo Rust (`latest.json` da release, assinatura minisign) |
 | arrasto | `onDragDropEvent` → `register(convert)` → `eval` de `receberArrasto` |
 
 Sem `capabilities` para a página (os diálogos são chamados pelo Rust, não pelo JS), sidecar iniciado só pelo caminho fixo `sidecar/Contracto_sidecar.exe` (**um** executável). CSP idêntica à do `index.html` atual.

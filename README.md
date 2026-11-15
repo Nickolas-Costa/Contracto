@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v5.4.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.5.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -60,12 +60,16 @@ Projetado para emissão rápida e direta de formulários individuais com **1 cli
 
 O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no sigilo profissional**:
 
-- **Zero Nuvem (100% Offline e Local)**: Todo o processamento de dados, preenchimento de formulários e conversão de documentos ocorrem exclusivamente dentro da memória e do disco da sua própria máquina. **Nenhum dado pessoal ou financeiro é enviado para servidores externos, APIs ou serviços em nuvem.**
+- **Zero Nuvem (100% Offline e Local)**: Todo o processamento de dados, preenchimento de formulários e conversão de documentos ocorrem exclusivamente dentro da memória e do disco da sua própria máquina. **Nenhum dado pessoal ou financeiro é enviado para servidores externos, APIs ou serviços em nuvem.** A única conexão é a consulta de atualização, feita só quando você clica em "Verificar atualizações".
 - **Conformidade Natural com a LGPD**: Como nenhuma informação de clientes (Nome, CPF, CNPJ, dados bancários, endereços ou rendas) trafega pela internet, seu escritório mantém total controle e conformidade com a Lei Geral de Proteção de Dados.
 - **Isolamento e Proteção de Processos**: A conversão de PDFs opera com interpretadores isolados em sandbox nativa de segurança (`-dSAFER`), prevenindo qualquer execução indevida de arquivos adulterados.
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
+
+## Atualizações da Versão 5.5.0
+
+**Atualização pelo próprio aplicativo:** em Configurações, "Verificar atualizações" consulta a lista de versões, baixa o instalador, confere a assinatura e instala, sem passar pelo navegador nem pelo alerta do SmartScreen. Só acontece quando você clica; nada é consultado ao abrir. Detalhes na ADR 0032 e em [PRIVACIDADE.md](docs/PRIVACIDADE.md).
 
 ## Atualizações da Versão 5.4.0
 
@@ -138,7 +142,7 @@ CONTRACTO/
 │   ├── webview_shell.py                # Shell pywebview/WebView2 legado e referência da ponte
 │   ├── sidecar.py                      # Backend headless do shell Tauri (UTF-8, instância única, ADR 0029)
 │   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── version.py                      # Versão centralizada do sistema (v5.4.0)
+│   ├── version.py                      # Versão centralizada do sistema (v5.5.0)
 │   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
 │   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis
 │   ├── models/                         # Entidades (participante)
@@ -184,7 +188,7 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação (Tauri + sidecar)
 
-Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.4.0:
+Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.5.0:
 
 ```cmd
 build_exe.bat
@@ -192,11 +196,11 @@ build_exe.bat
 
 O build baixa o NSIS (uma vez, com hash verificado), gera o sidecar Python com o Ghostscript embutido, compila o shell Tauri e entrega em `dist/`:
 
-- `Contracto_Setup_v5.4.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
-- `Contracto_v5.4.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
-- `*.sha256.txt` de cada um e `RELEASE_NOTES_5.4.0.md`.
+- `Contracto_Setup_v5.5.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
+- `Contracto_v5.5.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
+- `*.sha256.txt` de cada um, `latest.json` (lido pelo atualizador do app; precisa ir junto na release) e `RELEASE_NOTES_5.5.0.md`.
 
-> Sem auto-update: atualizar é rodar o instalador novo. O instalador não tem assinatura de código, então o SmartScreen pode alertar. Se o antivírus bloquear o build, exclua a pasta do projeto da verificação em tempo real.
+> O build assina o instalador para o atualizador do app com a chave em `%USERPROFILE%\.tauri\contracto-updater.key` (ou `TAURI_SIGNING_PRIVATE_KEY`). **Guarde uma cópia dessa chave fora do computador:** sem ela, as versões já instaladas não aceitam mais atualizações. O instalador não tem assinatura de código da Microsoft, então o SmartScreen pode alertar em quem baixa pelo navegador. Se o antivírus bloquear o build, exclua a pasta do projeto da verificação em tempo real.
 
 ---
 

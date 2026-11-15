@@ -3,6 +3,18 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.5.0] - 2026-11-15
+
+### Novo
+- **Atualização pelo aplicativo** (ADR 0032): "Verificar atualizações" em Configurações consulta a lista de versões no GitHub, mostra a novidade e, se confirmado, baixa o instalador, confere a assinatura e instala. Só roda quando o usuário clica; nada é consultado ao abrir. Com trabalho em andamento a instalação é recusada. Na cópia portátil o botão abre a página de versões.
+- Quem está na 5.4.0 ou anterior instala esta versão à mão uma última vez; daqui em diante a atualização é pelo app.
+
+### Build
+- `tauri-plugin-updater` 2.14.1 (gate em `DEPENDENCY_REVIEW.md`). O build assina o instalador com a chave em `%USERPROFILE%\.tauri\contracto-updater.key` e grava `dist/latest.json`, que precisa ir junto na release.
+
+### Documentação
+- `PRIVACIDADE.md` e README passam a citar a única conexão externa do aplicativo.
+
 ## [5.4.0] - 2026-11-15
 
 Contrato em uma etapa só e correções da auditoria de 11/11/2026 (ADR 0032). Sem mudança no motor de geração.

@@ -3,7 +3,7 @@
  * Contrato nativo (docs/TAURI_CONTRATO.md): comandos com nome fixo e argumentos
  * nomeados — request, select_file, select_output, select_backup,
  * select_documents, import_profile, export_profile, open_result, open_file,
- * get_file. Sob pywebview viram métodos de `pywebview.api` (argumentos
+ * get_file, check_update, install_update. Sob pywebview viram métodos de `pywebview.api` (argumentos
  * posicionais, na ordem declarada); sob Tauri, `invoke(nome, argumentos)`.
  */
 (function () {
@@ -79,6 +79,8 @@
   const importProfile = () => nativo("import_profile");
   const exportProfile = (nome) => nativo("export_profile", { nome });
   const selectDocuments = () => nativo("select_documents");
+  const checkUpdate = () => nativo("check_update");
+  const installUpdate = () => nativo("install_update");
 
   async function activateProfile(nome) {
     return request("POST", "/api/v1/profiles/active", { nome });
@@ -148,6 +150,8 @@
     importProfile,
     exportProfile,
     selectDocuments,
+    checkUpdate,
+    installUpdate,
     activateProfile,
     backupSystem,
     restoreSystem,

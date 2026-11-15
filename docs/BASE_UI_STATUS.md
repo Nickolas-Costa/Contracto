@@ -3,10 +3,13 @@
 > **Estado:** a migração do **Contracto** de CustomTkinter para **WebView2** foi concluída e homologada na v4.5.18; os ajustes posteriores estão nas atualizações abaixo e no `CHANGELOG.md`.
 > A suíte unitária e o fluxo de ponta a ponta em WebView real (`tests/smoke_webview_ui.py`) são o critério; contagens de testes mudam a cada versão e não são fixadas aqui.
 
+> **Atualização v5.5.0 (15/11/2026):** atualização pelo aplicativo (botão em Configurações, atualizador do Tauri com
+> assinatura minisign, ADR 0032 §2). Pendente: o teste real de atualizar uma instalação 5.5.0 para a versão seguinte.
+
 > **Atualização v5.4.0 (15/11/2026):** Contrato conclui em uma etapa (formato e extras na Conferência; gerar e organizar
 > encadeados, ADR 0032), aviso ao fechar com trabalho ativo e correções da auditoria (ver `CHANGELOG.md`). Removidos:
 > o aviso "Word travado" (`alertaWordTravado`, nunca disparava), o diagnóstico do WebView2 e o caminho antigo da fila.
-> Planejado, sem código: atualização dentro do app (ADR 0032 §2).
+> A atualização dentro do app (ADR 0032 §2) veio na 5.5.0.
 
 > **Atualização v5.3.0 (02/11/2026):** o app roda no shell Tauri com sidecar Python e instalador NSIS (ADR 0031);
 > carregamentos em modal, novo ícone, correções de anexo com acento, tema e Conversão. Pendentes: `smoke_webview_ui.py`

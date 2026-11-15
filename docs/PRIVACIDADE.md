@@ -1,7 +1,8 @@
 # Privacidade — Contracto
 
-> Resumo: o Contracto roda **inteiro na sua máquina**, não envia nada para
-> a internet e não tem telemetria.
+> Resumo: o Contracto roda **inteiro na sua máquina**, não envia nenhum dado seu
+> para a internet e não tem telemetria. A única conexão é a consulta de
+> atualização, e só quando você clica no botão.
 
 ## 1. Arquitetura local
 
@@ -9,7 +10,11 @@
   `-dSAFER`) ocorre em memória/disco local.
 - Preferências em **`%APPDATA%/Contracto/`** (`contracto_config.json`,
   perfis, `logs/app.log`) — sobrevivem a atualizações.
-- Zero telemetria, zero analytics, zero chamadas externas.
+- Zero telemetria e zero analytics.
+- **Única chamada externa:** o botão "Verificar atualizações" (Configurações) lê a lista de
+  versões no GitHub e, se você confirmar, baixa o instalador de lá. Nada é consultado ao abrir
+  o aplicativo. Nenhum dado seu é enviado; o GitHub vê apenas o seu endereço IP, como em
+  qualquer download. O instalador só roda se a assinatura dele conferir com a chave do app.
 
 ## 2. O que fica gravado
 

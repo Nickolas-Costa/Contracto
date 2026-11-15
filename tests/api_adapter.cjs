@@ -6,7 +6,8 @@ const carregar=(extra)=>{const window={addEventListener(){},navigator:{userAgent
   return window.ContractoAPI;};
 const comandos=[['selectOutput',[],'select_output',[]],['selectFile',[],'select_file',[]],['selectAttachment',[],'select_file',[]],
  ['selectBackup',[],'select_backup',[]],['selectDocuments',[],'select_documents',[]],['importProfile',[],'import_profile',[]],
- ['exportProfile',['MCMV'],'export_profile',['MCMV']],['openResult',['job1'],'open_result',['job1']],['openFile',['f1'],'open_file',['f1']]];
+ ['exportProfile',['MCMV'],'export_profile',['MCMV']],['openResult',['job1'],'open_result',['job1']],['openFile',['f1'],'open_file',['f1']],
+ ['checkUpdate',[],'check_update',[]],['installUpdate',[],'install_update',[]]];
 (async()=>{
   // pywebview: métodos de pywebview.api com argumentos posicionais.
   const chamadas=[];
