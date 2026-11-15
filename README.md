@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v5.3.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.4.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -42,9 +42,10 @@ O **Contracto** é uma solução desktop Windows nativa, moderna e de alto desem
 O sistema dispõe de um seletor dinâmico de modo na barra superior (*TopBar*), permitindo alternar instantaneamente entre dois modos especializados:
 
 ### 1. 📂 Modo Contrato (Contratos Habitacionais)
-Projetado para processos contratuais completos com fluxo de 2 etapas:
-- **Etapa 1 (Geração de Documentos)**: Preenchimento de 1 a 4 participantes com validação de CPF/CNPJ em tempo real, data e diretório de destino.
-- **Etapa 2 (Conversão e Organização)**: Inclusão de documentos do processo (Contrato, Cédula de Crédito, Planilha de Evolução, etc.), para conversão em lote **PDF/A-2b** e criação automática da estrutura de pastas padronizada.
+Projetado para processos contratuais completos:
+- **Etapa 1 (Preencher)**: 1 a 4 participantes com validação de CPF/CNPJ em tempo real, data e pasta de destino.
+- **Etapa 2 (Conferir)**: escolha dos formulários, inclusão dos documentos do processo (Contrato, Planilha de Evolução, etc.) e do formato. Ao confirmar, tudo é gerado, convertido para **PDF/A-2b** e organizado na estrutura de pastas padronizada, de uma vez.
+- **Etapa 3 (Concluir)**: resultado final, visualização dos PDFs e atalho para a pasta.
 
 ### 2. 📄 Modo Simples (Formulários Únicos & Declarações Avulsas)
 Projetado para emissão rápida e direta de formulários individuais com **1 clique**:
@@ -65,6 +66,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
+
+## Atualizações da Versão 5.4.0
+
+No modo **Contrato**, gerar e concluir viraram **uma etapa só**: o formato (PDF ou PDF/A-2b) e os documentos extras são escolhidos na conferência e, ao confirmar, os documentos são gerados, convertidos e organizados de uma vez. Correções: falha que prendia a tela em "Processando…", botão Cancelar, PDF/A em pasta com `%` no nome, reparo do sistema que fechava o Word do usuário, edição e exclusão de perfis, backup. O app agora avisa antes de fechar com trabalho em andamento. Detalhes no [CHANGELOG.md](CHANGELOG.md) e na ADR 0032 (que também traz o plano de atualização dentro do app).
 
 ## Atualizações da Versão 5.3.0
 
@@ -133,7 +138,7 @@ CONTRACTO/
 │   ├── webview_shell.py                # Shell pywebview/WebView2 legado e referência da ponte
 │   ├── sidecar.py                      # Backend headless do shell Tauri (UTF-8, instância única, ADR 0029)
 │   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── version.py                      # Versão centralizada do sistema (v5.3.0)
+│   ├── version.py                      # Versão centralizada do sistema (v5.4.0)
 │   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
 │   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis
 │   ├── models/                         # Entidades (participante)
@@ -179,7 +184,7 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação (Tauri + sidecar)
 
-Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.3.0:
+Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.4.0:
 
 ```cmd
 build_exe.bat
@@ -187,9 +192,9 @@ build_exe.bat
 
 O build baixa o NSIS (uma vez, com hash verificado), gera o sidecar Python com o Ghostscript embutido, compila o shell Tauri e entrega em `dist/`:
 
-- `Contracto_Setup_v5.3.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
-- `Contracto_v5.3.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
-- `*.sha256.txt` de cada um e `RELEASE_NOTES_5.3.0.md`.
+- `Contracto_Setup_v5.4.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
+- `Contracto_v5.4.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
+- `*.sha256.txt` de cada um e `RELEASE_NOTES_5.4.0.md`.
 
 > Sem auto-update: atualizar é rodar o instalador novo. O instalador não tem assinatura de código, então o SmartScreen pode alertar. Se o antivírus bloquear o build, exclua a pasta do projeto da verificação em tempo real.
 

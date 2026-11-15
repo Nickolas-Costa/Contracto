@@ -162,7 +162,8 @@ def converter_para_pdfa(
             "-sDEVICE=pdfwrite",
             "-dPDFACompatibilityPolicy=1",
             "-dCompatibilityLevel=1.7" if nivel_pdfa == "2" else "-dCompatibilityLevel=1.4",
-            f"-sOutputFile={caminho_saida}",
+            # O Ghostscript lê "%" no nome de saída como formato (%d = nº da página).
+            "-sOutputFile=" + str(caminho_saida).replace("%", "%%"),
             str(ps_efetivo),
             str(caminho_entrada),
         ]

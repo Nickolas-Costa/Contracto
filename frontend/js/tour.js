@@ -6,7 +6,7 @@
     ["#seletor-modelos", "Modelo", "Escolha o modelo do documento. No modo Contrato é apenas um contrato."],
     ["#btn-adicionar", "Participantes", "Adicione compradores ou signatários; cada um tem o seu cartão de dados."],
     ["#pasta-saida", "Pasta de saída", "Defina onde salvar. Cada trabalho cria a sua própria subpasta."],
-    ["#btn-gerar", "Gerar", "Libera quando não há campos pendentes. Depois você confere (Etapa 2) e conclui (Etapa 3)."],
+    ["#btn-gerar", "Gerar", "Libera quando não há campos pendentes. Depois você confere (Etapa 2) e recebe os documentos prontos (Etapa 3)."],
     ["#btn-ajuda-topo", "Ajuda", "O guia completo está sempre aqui — ou aperte F1."]
   ];
   let balao = null, indice = 0, alvoAtual = null;

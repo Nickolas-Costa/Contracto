@@ -7,6 +7,7 @@ só substitui após validar os dois arquivos.
 
 import json
 import zipfile
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
@@ -29,12 +30,12 @@ def criar_backup(destino_dir: Path | str | None = None) -> Path:
     destino_dir = Path(destino_dir) if destino_dir else pasta_backups()
     destino_dir.mkdir(parents=True, exist_ok=True)
     caminho = destino_dir / f"backup-{datetime.now():%Y%m%d-%H%M%S}.zip"
-    perfis = profile_manager._caminho_perfis()
-    config = config_manager._caminho_config()
+    # Do estado carregado, não dos arquivos: quem nunca salvou perfil ou config ainda não tem o arquivo
+    # e o ZIP sairia incompleto, recusado depois pela própria restauração.
+    perfis = [asdict(p) for p in profile_manager.carregar_perfis()]
     with zipfile.ZipFile(caminho, "w", zipfile.ZIP_DEFLATED) as pacote:
-        for origem, nome in ((perfis, _ARQUIVO_PERFIS), (config, _ARQUIVO_CONFIG)):
-            if origem.exists():
-                pacote.write(origem, nome)
+        pacote.writestr(_ARQUIVO_PERFIS, json.dumps(perfis, ensure_ascii=False, indent=2))
+        pacote.writestr(_ARQUIVO_CONFIG, json.dumps(config_manager.carregar_config(), ensure_ascii=False, indent=2))
     return caminho
 
 

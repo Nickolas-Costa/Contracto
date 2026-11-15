@@ -3,6 +3,40 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.4.0] - 2026-11-15
+
+Contrato em uma etapa só e correções da auditoria de 11/11/2026 (ADR 0032). Sem mudança no motor de geração.
+
+### Fluxo
+- **Contrato conclui em uma etapa.** O formato de saída foi para a Conferência, junto dos formulários e dos documentos extras. "Confirmar e gerar documentos" gera, converte e organiza de uma vez; a Etapa 3 mostra o resultado. "Finalizar processo" virou "Tentar concluir de novo" e só aparece se a organização falhar depois da geração.
+- A pergunta sobre documentos extras que faltam vem antes de gerar, e só quando o perfil tem extras.
+- Os PDFs finais do Contrato não levam mais o prefixo `1-`, `2-` no nome.
+- O app avisa antes de fechar a janela com trabalho em andamento.
+
+### Correções
+- **Editar perfil** nunca salvava (erro 500): a tela envia a entrada do catálogo. O servidor agora junta a edição ao perfil salvo, preservando caminho, mapeamento e identificador; chave desconhecida é recusada com o nome dela. O JSON copiado da tela também passa a ser aceito em "Importar texto colado" (perfis sem formulário).
+- Perfil que acompanha o aplicativo não pode mais ser excluído (ele voltava sozinho na abertura seguinte).
+- **PDF/A sem confirmação falha** em vez de entregar PDF comum em silêncio (Conversão e Contrato).
+- **Falha na geração ou organização prendia a tela** em "Processando…" e mostrava `[object Object]`: o erro do trabalho é um objeto e era tratado como texto. Agora aparece o motivo e a tela é liberada.
+- **Cancelar** (Contrato/Simples) não cancelava no shell Tauri: a chamada ia sem corpo e a API respondia 422.
+- **PDF/A falhava em pasta ou arquivo com `%` no nome** (ex.: "entrada 50% paga"): o Ghostscript lia o `%` como formato.
+- **Reparo do sistema fechava o Word do usuário** (com o que estivesse sem salvar) e, no shell Tauri, apontava o atalho da Área de Trabalho para o servidor sem janela. O Word saiu da lista de processos encerrados e o atalho volta a abrir o `Contracto.exe`.
+- Perfis: perfil excluído continuava na lista até reiniciar; nome repetido ou JSON inválido devolviam "Operação local indisponível" em vez do motivo; restaurar backup não atualizava a lista.
+- Backup criado antes de salvar qualquer perfil ou configuração saía incompleto e não restaurava.
+- Um PDF gerado aberto num leitor fazia o trabalho já publicado aparecer como falho.
+- "Limpar campos" esvaziava o campo da pasta de saída mas seguia usando a pasta antiga.
+
+### Interface
+- A barra de progresso da geração e da organização passa a andar (documento N de M).
+- Textos: "Formulários do contrato", descrição da tela Perfis sem jargão, "Reiniciar" em Novo trabalho (o botão dizia preservar o que apagava).
+
+### Removido
+- Código sem uso: caminho antigo da fila (era do Tk), par duplicado de exportar/importar perfil com outro formato, aviso "Word travado" que nunca disparava, diagnóstico do WebView2 e o cálculo local de campos (bloqueado pela CSP; o valor calculado já vinha do servidor).
+
+### Documentação
+- `ARCHITECTURE.md`, `BASE_UI_STATUS.md`, `MAPA_PROJETO.md`, `TAURI_CONTRATO.md` e `AGENTS.md` deixam de citar arquivos removidos (`utils/files.py`, `ports/dialog.py`, scripts do Inno Setup, `CONTINUIDADE_CODEX_WEB.md`) e de dizer que o Tauri não existe.
+- ADR 0032: Contrato em uma etapa e plano (ainda sem código) de atualização dentro do app sem certificado de assinatura.
+
 ## [5.3.0] - 2026-11-02
 
 O aplicativo passa a rodar no shell **Tauri** (ADR 0029 e 0031), com instalador NSIS no lugar do Inno Setup. Acumula tudo desde a 5.1.0 (a 5.2.0 só circulou como teste). Sem mudança no motor de geração nem nos dados.
@@ -294,7 +328,7 @@ Versão maior: a interface Tk deixa de existir e dependências saem do pacote
   instalador pulado sem Inno Setup; corrigido parêntese não escapado no
   `echo` do passo 6/6 do `build_exe.bat` (quebrava o bloco `if`).
 
-## [Não lançado]
+## Sem versão própria (P0 de 26/09/2026, publicado na série 4.5.x)
 
 ### Adicionado (P0 release 26/09/2026, ADR 0023/0024)
 - API: `LocalOnly` aceita PUT/DELETE; `POST /settings/restore`, `POST /profiles/active`, `POST /system/backup|restore` (backup via `selection_id`, sem vazar caminho); `select_backup()` na ponte.

@@ -3,6 +3,11 @@
 > **Estado:** a migração do **Contracto** de CustomTkinter para **WebView2** foi concluída e homologada na v4.5.18; os ajustes posteriores estão nas atualizações abaixo e no `CHANGELOG.md`.
 > A suíte unitária e o fluxo de ponta a ponta em WebView real (`tests/smoke_webview_ui.py`) são o critério; contagens de testes mudam a cada versão e não são fixadas aqui.
 
+> **Atualização v5.4.0 (15/11/2026):** Contrato conclui em uma etapa (formato e extras na Conferência; gerar e organizar
+> encadeados, ADR 0032), aviso ao fechar com trabalho ativo e correções da auditoria (ver `CHANGELOG.md`). Removidos:
+> o aviso "Word travado" (`alertaWordTravado`, nunca disparava), o diagnóstico do WebView2 e o caminho antigo da fila.
+> Planejado, sem código: atualização dentro do app (ADR 0032 §2).
+
 > **Atualização v5.3.0 (02/11/2026):** o app roda no shell Tauri com sidecar Python e instalador NSIS (ADR 0031);
 > carregamentos em modal, novo ícone, correções de anexo com acento, tema e Conversão. Pendentes: `smoke_webview_ui.py`
 > no shell Tauri e atualização sobre o Inno real.
@@ -91,7 +96,7 @@
 | Smoke motores reais via HTTP | **PASS** | RTF→Word→PDF/A com Ghostscript real, PDF/A validado e RTF preservado (`tests/smoke_api_engines.py`) |
 | `pip check` | **PASS** | Nenhuma dependência quebrada |
 
-Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções. O instalador Inno Setup é gerado por `scripts/build_installer.py` (ADR 0008 — `packaging/Contracto.iss`). Release só após esse gate.
+Gate final restante (manual/não automatizável aqui): DPI 100/125/150/200%, homologação visual de telas/resoluções. Desde a v5.2.0 o instalador é o NSIS gerado por `build_exe.bat` (ADR 0031); o Inno Setup e seus scripts saíram do repositório. Release só após esse gate.
 
 ---
 
@@ -109,7 +114,7 @@ As pendências identificadas após a entrega da v4.5.18 estão formalmente regis
 - **ADR 0022** — [`docs/adr/0022-plano-migracao-residual-tk-webview.md`](adr/0022-plano-migracao-residual-tk-webview.md): mapa completo de todas as lacunas de migração Tk → WebView2 — ✅ blocos 0–6 concluídos.
 - **Plano detalhado** — [`docs/PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`](PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md): blocos de trabalho priorizados com tarefas individuais e versões-alvo — ✅ concluído, ver tabela de rastreamento.
 
-Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento. O instalador Inno Setup é gerado por `scripts/build_installer.py` (ADR 0008 — `packaging/Contracto.iss`). Release só após esse gate.
+Gate final restante (Windows/distribuição): `smoke_webview_ui.py` em WebView2 real, `smoke_api_engines.py` (Word/GS reais), DPI 100/125/150/200%, encerramento/cancelamento. Instalador: NSIS via `build_exe.bat` (ADR 0031). Release só após esse gate.
 
 ---
 

@@ -20,50 +20,6 @@
     $("fila-detalhe").textContent=detail;
     const summary=$("manifesto-status");
     if(summary)summary.textContent=message+(detail ? " — "+detail : "");
-    if(state==="failed" && (message.includes("Word") || detail.includes("Word"))) {
-      alertaWordTravado();
-    }
-  }
-
-  function alertaWordTravado() {
-    // Fase 2 (DESIGN.md §8): contagem real desde o aviso + ação prevista
-    // (reparo limitado ao processo filho); sem oferta de LibreOffice.
-    const corpo = document.createElement("div");
-    const p1 = document.createElement("p");
-    p1.textContent = "O Microsoft Word está demorando para converter os arquivos RTF.";
-    const tempo = document.createElement("p");
-    tempo.className = "hint";
-    tempo.setAttribute("role", "status");
-    const inicio = Date.now();
-    const tick = () => {
-      const s = Math.floor((Date.now() - inicio) / 1000);
-      tempo.textContent = "Aguardando há " + s + "s. O trabalho continua em segundo plano; fechar este aviso não cancela a conversão.";
-    };
-    tick();
-    const relogio = setInterval(() => { if (document.contains(tempo)) tick(); else clearInterval(relogio); }, 1000);
-    const p2 = document.createElement("p");
-    p2.className = "hint";
-    p2.textContent = "Você pode tentar forçar o encerramento do Word (só o processo da conversão) e reprocessar o trabalho.";
-    corpo.append(p1, tempo, p2);
-    ui().abrirModal(
-      "Aviso: Microsoft Word travado",
-      corpo,
-      [
-        {
-          texto: "Forçar encerramento do Word",
-          aoClicar: async () => {
-            try {
-              await api().request("POST", "/api/v1/system/repair");
-              ui().toast("Comando de reparo do Word enviado.", "info");
-            } catch (_) {
-              ui().toast("Falha ao enviar reparo.", "error");
-            }
-          }
-        },
-        { texto: "Aguardar" }
-      ],
-      () => clearInterval(relogio)
-    );
   }
 
   function fecharProgresso() {prog?.fechar();prog=null;}
@@ -210,7 +166,8 @@
 
   function manifesto() {
     const box=$("lista-anexos");box.replaceChildren();
-    (base?.file_ids || []).forEach((id,i)=>{const file=base.files?.find(f=>f.file_id===id) || {},row=document.createElement("div");row.className="documento-linha";const info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("p");name.textContent=fileLabel(file,i);detail.className="hint";detail.textContent=fileDescription(file);info.append(name,detail);row.append(info);box.append(row);});
+    // Concluído o trabalho, os PDFs intermediários já foram descartados: só os finais aparecem (em Resultados).
+    (finalized ? [] : (base?.file_ids || [])).forEach((id,i)=>{const file=base.files?.find(f=>f.file_id===id) || {},row=document.createElement("div");row.className="documento-linha";const info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("p");name.textContent=fileLabel(file,i);detail.className="hint";detail.textContent=fileDescription(file);info.append(name,detail);row.append(info);box.append(row);});
     const nForms=formsSelecionados.size || (base?.file_ids?.length || 0);
     const nExtras=extrasMap.size;
     const totalExtras=extrasDisponiveis.length;
@@ -279,24 +236,29 @@
         const reg=filaConhecida.find(f=>f.job_id===active.job_id);
         if(reg){reg.status=job.status;reg.progress=job.progress||0;reg.message=job.message||reg.message;}
         if(["queued","running","sending"].includes(job.status)){
-          prog?.atualizar(job.message || "Processando…",job.step ? "Etapa "+job.step.current+" de "+job.step.total : "",job.progress>0 ? job.progress : null);
+          // A API informa completed/total (JobState); message/step/progress nunca existiram e a barra não andava.
+          const feitos=job.completed||0;
+          prog?.atualizar("Processando…",job.total ? "Documento "+Math.min(feitos+1,job.total)+" de "+job.total : "",feitos ? Math.round(100*feitos/job.total) : null);
         } else if(job.status==="completed"){
           const tipo = active.tipo;
           fecharProgresso();active=null;busy=false;
           if(tipo==="generate"){
             receberBase(job);
-            ui().toast("PDFs gerados com sucesso. Revise os anexos ou conclua.", "success");
+            // Contrato conclui em uma etapa só: a organização e a conversão começam sozinhas após a geração.
+            if(window.ContractoEtapa1?.modo()!=="simples")_prosseguirFinalizar();
+            else ui().toast("PDFs gerados com sucesso.", "success");
           } else {
             status("completed","Trabalho concluído com sucesso.","Documentos organizados na pasta de destino.");
-            finalized=true;
+            finalized=true;manifesto();
             resultados(job.file_ids || job.result?.output_file_ids || [],job.job_id,job.files || job.result?.files || []);
             modalConclusao(job.job_id);
           }
         } else if(job.status==="failed"){
-          status("failed","Trabalho não concluído.",job.error || "Ocorreu um erro no processamento.");
-          ui().toast(job.error || "Ocorreu um erro no processamento.", "error", 8000);
+          // job.error é {code,message}: usado como texto, derrubava o poll e prendia a tela em "Processando…".
+          const msg=job.error?.message || "Ocorreu um erro no processamento.";
           fecharProgresso();active=null;busy=false;
-          if (job.error?.includes("Word")) alertaWordTravado();
+          status("failed","Trabalho não concluído.",msg);
+          ui().toast(msg, "error", 8000);
         } else if(job.status==="cancelled"){
           status("cancelled","Trabalho cancelado.","Nenhum documento foi alterado.");
           ui().toast("Trabalho cancelado. Nenhum documento foi alterado.", "warning");
@@ -414,41 +376,27 @@
     ]);
   }
 
+  function confirmarExtras(prosseguir) {
+    // Pergunta sobre documentos extras que faltam. No Contrato ela vem antes de gerar,
+    // porque a geração e a organização acontecem em seguida, sem outra parada.
+    const faltam=extrasDisponiveis.filter(d=>!extrasMap.has(d.nome_padrao)).map(d=>d.rotulo);
+    if(!faltam.length){prosseguir();return;}
+    ui().abrirModal(
+      extrasMap.size ? "Documentos incompletos" : "Concluir sem documentos extras?",
+      "Faltam documentos extras ("+faltam.join(", ")+"). Deseja concluir mesmo assim?",
+      [
+        { texto: "Voltar e anexar" },
+        { texto: "Concluir mesmo assim", primario: true, aoClicar: () => prosseguir() }
+      ]
+    );
+  }
+
   async function finalizar() {
-    // Paridade Tk (mw_etapa2.py): vazio bloqueia, parcial pede confirmação.
+    // Só aparece se a organização falhou depois da geração: tenta de novo sem gerar outra vez.
     // Single-flight + idempotência (request_id): o segundo clique não duplica.
     if(busy||sending||!base||!online()||finalized)return;
     await carregarContexto();
-    const totalDocs=(base?.file_ids?.length||0)+extrasDisponiveis.length;
-    const marcados=formsSelecionados.size+extrasMap.size;
-    if(totalDocs>0&&marcados===0){
-      ui().toast("Nenhum documento selecionado. Marque ao menos um formulário ou extra.","error",8000);
-      return;
-    }
-    if(!extrasMap.size){
-      ui().abrirModal(
-        "Concluir sem documentos extras?",
-        "Nenhum documento extra foi adicionado a este trabalho. Deseja concluir somente com os documentos gerados?",
-        [
-          { texto: "Voltar e anexar" },
-          { texto: "Concluir mesmo assim", primario: true, aoClicar: () => _prosseguirFinalizar() }
-        ]
-      );
-      return;
-    }
-    if(extrasDisponiveis.length&&extrasMap.size<extrasDisponiveis.length){
-      const faltam=extrasDisponiveis.filter(d=>!extrasMap.has(d.nome_padrao)).map(d=>d.rotulo).join(", ");
-      ui().abrirModal(
-        "Documentos incompletos",
-        "Faltam documentos extras ("+faltam+"). Deseja finalizar mesmo assim?",
-        [
-          { texto: "Voltar e anexar" },
-          { texto: "Finalizar mesmo assim", primario: true, aoClicar: () => _prosseguirFinalizar() }
-        ]
-      );
-      return;
-    }
-    _prosseguirFinalizar();
+    confirmarExtras(_prosseguirFinalizar);
   }
 
   function fileIdsFiltrados(){
@@ -497,7 +445,7 @@
     if(!active||active.cancelRequested||!online())return;
     active.cancelRequested=true;atualizar();
     try {
-      const r=await api().request("POST","/api/v1/jobs/"+active.job_id+"/cancel");
+      const r=await api().request("POST","/api/v1/jobs/"+active.job_id+"/cancel",{}); // sem corpo o shell envia null e a API recusa (422)
       if(r.status===200)ui().toast("Solicitação de cancelamento enviada.","info");
       else ui().toast("Não foi possível cancelar o trabalho.","error");
     } catch(_){ui().toast("Falha ao enviar cancelamento.","error");}
@@ -603,7 +551,7 @@
     finalized=false;
     carregarFormatoPadrao();
     carregarContexto().then(()=>{manifesto();atualizar();});
-    status("completed","PDFs gerados com sucesso.","Revise os documentos extras ou escolha o formato antes de concluir.");
+    status("completed","PDFs gerados com sucesso.","");
     // Gerados também aparecem como linhas com "Visualizar" (paridade com o fluxo anterior).
     resultados(ids,jobData.job_id,files);
     atualizar();
@@ -627,5 +575,5 @@
 
   async function sincronizarContexto(){await carregarContexto();atualizar();}
 
-  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,sincronizarContexto,ocupado:()=>busy,temBase:()=>!!base,formsSelecionados:formsSelecionadosLista,extrasSelecionados:()=>[...extrasMap.keys()]};
+  window.ContractoEtapa2={ligar,atualizar,invalidar,gerar,confirmarExtras,receberBase,registrarPendente,painelFila,capacidades:capacidades,recomecar,reconectar,sincronizarContexto,ocupado:()=>busy,temBase:()=>!!base,formsSelecionados:formsSelecionadosLista,extrasSelecionados:()=>[...extrasMap.keys()]};
 })();

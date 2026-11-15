@@ -36,6 +36,8 @@ class TestSystemRepairService(unittest.TestCase):
             for call in mock_run.call_args_list:
                 _, kwargs = call
                 self.assertIn("creationflags", kwargs)
+                # O Word do usuário (com trabalho não salvo) nunca entra no taskkill.
+                self.assertNotIn("WINWORD.EXE", call.args[0])
 
     def test_limpar_arquivos_temporarios(self):
         """Testa se a função de limpeza executa sem erros."""
@@ -69,6 +71,28 @@ class TestSystemRepairService(unittest.TestCase):
                 trabalho.join(30)
             self.assertEqual(resultado, [True])
             self.assertTrue((Path(perfil) / "Desktop" / "Contracto.lnk").is_file())
+
+    @unittest.skipUnless(sys.platform == "win32", "atalho .lnk é Windows")
+    def test_atalho_criado_pelo_sidecar_aponta_para_o_app(self):
+        """Regressão: no shell Tauri o reparo apontava o atalho para o sidecar, que não abre janela."""
+        import win32com.client
+        with tempfile.TemporaryDirectory() as perfil, tempfile.TemporaryDirectory() as instalacao:
+            app = Path(instalacao) / "Contracto.exe"
+            sidecar = Path(instalacao) / "sidecar" / "Contracto_sidecar.exe"
+            sidecar.parent.mkdir()
+            for exe in (app, sidecar):
+                exe.write_bytes(b"x")
+            (Path(perfil) / "Desktop").mkdir()
+            with patch.dict(os.environ, {"USERPROFILE": perfil}), patch.object(sys, "executable", str(sidecar)):
+                self.assertTrue(_atualizar_atalho_desktop())
+            import pythoncom
+            pythoncom.CoInitialize()  # a função encerra o COM da thread ao sair
+            try:
+                alvo = win32com.client.Dispatch("WScript.Shell").CreateShortCut(
+                    str(Path(perfil) / "Desktop" / "Contracto.lnk")).Targetpath
+            finally:
+                pythoncom.CoUninitialize()
+            self.assertEqual(Path(alvo).resolve(), app.resolve())
 
     def test_melhor_exe_dist_escolhe_a_maior_versao(self):
         """Regression: o atalho do reparo deve mirar o build mais novo, não o 1º da pasta."""

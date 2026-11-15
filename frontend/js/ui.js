@@ -284,8 +284,8 @@
       ["Escolha o modo", "Simples gera vários formulários de uma vez; Contrato monta o processo completo (1 contrato + formulários); Conversão transforma arquivos avulsos em PDF."],
       ["Selecione o modelo e preencha", "Informe os dados de cada participante. Campos com * são obrigatórios; o botão Gerar libera quando nada estiver pendente."],
       ["Defina assinatura e pasta", "Data, local e a pasta onde os documentos serão salvos. Cada trabalho cria a sua própria subpasta."],
-      ["Confira o resumo (Etapa 2)", "Revise participantes, campos e modelos. Anexe documentos extras (PDF ou RTF) se o processo pedir."],
-      ["Conclua (Etapa 3)", "Veja os PDFs gerados, escolha PDF ou PDF/A-2b e use Finalizar processo. Os originais nunca são alterados."]
+      ["Confira o resumo (Etapa 2)", "Revise participantes, campos e modelos. Anexe documentos extras (PDF ou RTF) e escolha o formato se o processo pedir."],
+      ["Confirme e conclua", "No Contrato, escolha PDF ou PDF/A-2b na conferência: ao confirmar, os documentos são gerados, convertidos e organizados de uma vez. A Etapa 3 mostra o resultado. Os originais nunca são alterados."]
     ],
     "Dicas e atalhos": [
       ["F1", "Abre este guia em qualquer tela."],

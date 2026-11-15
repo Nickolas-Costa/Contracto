@@ -128,7 +128,6 @@ Documentação arquitetural, decisão técnica e histórico de evolução. Aqui 
 
 - `ARCHITECTURE.md`: visão geral da arquitetura.
 - `BASE_UI_STATUS.md`: estado da migração da UI e pendências.
-- `CONTINUIDADE_CODEX_WEB.md`: contexto de continuidade e plano de execução.
 - `PLANO_MIGRACAO_WEBVIEW_RESIDUAL.md`: plano residual da migração WebView.
 - `DESIGN_SYSTEM.md` e `DESIGN.md`: identidade visual e design system.
 - `adr/`: decisões registradas em formato de ADR.

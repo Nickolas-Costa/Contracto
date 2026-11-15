@@ -85,6 +85,7 @@ class Jobs:
         self._outputs = {}
         self._file_details = {}
         self.max_jobs = max_jobs
+        self._injetados = profiles is not None  # perfis sintéticos (testes) não existem no disco
         with contexto_log_api():
             self.profiles = {secrets.token_hex(16): copy.deepcopy(p)
                              for p in (profiles if profiles is not None else carregar_perfis())}
@@ -102,8 +103,8 @@ class Jobs:
     def refresh_profiles(self):
         """Recarrega o catálogo do disco após CRUD, preservando os IDs da
         sessão para não invalidar seleções/composições já feitas na UI.
-        Perfis exclusivos da sessão (ex. sintéticos de teste, sem par no
-        disco) são mantidos."""
+        Perfis injetados no construtor (sintéticos de teste, sem par no
+        disco) são mantidos; fora isso, o que saiu do disco sai do catálogo."""
         with self._lock:
             atuais = {(p.identificador or p.nome): (key, p) for key, p in self.profiles.items()}
             with contexto_log_api():
@@ -115,7 +116,7 @@ class Jobs:
                 antiga = atuais.get(chave)
                 por_chave[antiga[0] if antiga else secrets.token_hex(16)] = copy.deepcopy(perfil)
             for chave, (key, perfil) in atuais.items():
-                if chave not in chaves_disco:
+                if self._injetados and chave not in chaves_disco:
                     por_chave[key] = perfil
             self.profiles = por_chave
 
@@ -249,7 +250,11 @@ class Jobs:
             generated = []
             for index, key in enumerate(request.file_ids):
                 source = self.selections.resolve(key, "file")
-                target = inputs / f"{index + 1}-{source.name}"
+                # Uma subpasta por arquivo: o nome final é o do documento, sem prefixo "1-".
+                # shortcut: dois gerados com o mesmo nome falham como "incomplete_output"; a geração já
+                # entrega nomes únicos, rever se a tela passar a aceitar PDFs gerados de pastas diferentes.
+                target = inputs / str(index + 1) / source.name
+                target.parent.mkdir()
                 shutil.copy2(source, target)
                 generated.append(target)
             attachments = {}
@@ -265,6 +270,8 @@ class Jobs:
                 raise ProcessoCanceladoError()
             if not result["sucesso"] or len(result["resultado_lote"].convertidos) != len(ids):
                 raise ApiError("processing_failed", "Não foi possível concluir o processamento")
+            if not result["resultado_lote"].todos_sucesso:  # sem fallback silencioso para PDF comum
+                raise ApiError("pdfa_not_validated", "O Ghostscript não confirmou o PDF/A de um dos documentos")
             shutil.rmtree(inputs)
             outputs = [r.caminho_saida for r in result["resultado_lote"].convertidos]
             # stage2 preserves order: generated files first, then ordered attachments.
@@ -284,7 +291,10 @@ class Jobs:
         def descartar_gerados():
             # Só os PDFs brutos que o app criou; rmdir não apaga pasta com outros arquivos.
             for arquivo in geradas:
-                arquivo.unlink(missing_ok=True)
+                try:
+                    arquivo.unlink(missing_ok=True)
+                except OSError:
+                    pass  # aberto num leitor de PDF: o trabalho já foi publicado e não pode virar "falhou"
             for pasta in {a.parent for a in geradas}:
                 try:
                     pasta.rmdir()
@@ -302,8 +312,12 @@ class Jobs:
         e/ou Ghostscript). Saídas para DOC/DOCX/RTF não têm motor local e são
         rejeitadas de forma explícita — sem fallback silencioso.
         """
-        from services.pdfa_converter import converter_para_pdfa
+        from services.pdfa_converter import converter_e_validar
         from services.rtf_converter import converter_rtf_para_pdf
+
+        def converter_para_pdfa(origem, destino, perfil):
+            if not converter_e_validar(origem, destino, perfil).validado:  # sem fallback silencioso para PDF comum
+                raise ApiError("pdfa_not_validated", "O Ghostscript não confirmou o PDF/A deste documento")
         retry = self._request_retry("convert", request)
         if retry is not None:
             return retry

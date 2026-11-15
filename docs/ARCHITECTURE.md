@@ -1,9 +1,9 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v5.3.0) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v5.4.0) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v5.3.0) — shell Tauri + sidecar Python sobre API local loopback
+## Estado atual (v5.4.0) — shell Tauri + sidecar Python sobre API local loopback
 
 A UI é WebView2 desde a v4.5.18 e a interface Tk foi **removida na v5.0.0** (ADR 0028).
 A produção roda no **shell Tauri** (`src-tauri/`, ADR 0031): o Rust abre a janela com `frontend/`,
@@ -22,10 +22,10 @@ app/services/           → puros, sem UI: generator, pdf_service (AcroForm),
                           pdfa_converter (Ghostscript -dSAFER), rtf_converter
                           (Word COM + aviso com prazo), stage2_service, queue_manager,
                           profile_composer, mapping_engine/audit, field_calculator,
-                          geometria_formulario, system_repair
+                          geometria_formulario, system_repair (não encerra o Word do usuário)
 app/utils/              → cpf/cnpj/pis/document/date/filename/profile/config/
                           resource_path/caminhos/json_storage/logger (PII mascarado,
-                          rotação)/backup/files(+files_fs puro)/instancia_unica
+                          rotação)/backup/files_fs/instancia_unica
 app/ports/              → webview_dialog/storage/binaries (importáveis como app.* ou curto)
 app/models/participant  → dataclass puro, JSON-serializável
 app/assets/             → config/perfis_iniciais.json + geometria_modelos.json,
@@ -38,29 +38,24 @@ testes                   → suíte unittest + prova headless (Etapa 1+2 sem UI)
 deps web                 → pywebview + fastapi + uvicorn travados (Fase A)
 ```
 
-Fluxo: **Preencher (Etapa 1) → Anexar/Converter PDF/A (Etapa 2) → Pastas padronizadas**.
+Fluxo do Contrato: **Preencher (Etapa 1) → Conferir, anexar e escolher o formato (Etapa 2) → gerar, converter e organizar em um clique → Resultado (Etapa 3)** (ADR 0032).
 
-## Base da Fase A — implementada em 13/09/2026
+## Histórico das fases
 
-`app/server.py` e `app/api/` implementam a API loopback; `app/webview_shell.py`
-é o shell de produção com ponte nativa e diálogos WebView. A fila existente
-foi estendida para operações independentes. Veja `BASE_UI_STATUS.md` e ADR 0011
-para o contrato, testes e pendências. Não há projeto Rust/Tauri implementado.
+`app/server.py` e `app/api/` implementam a API loopback (base de 13/09/2026, ADR 0011);
+a fila existente foi estendida para operações independentes. Veja `BASE_UI_STATUS.md`.
 
 ```
-Fase A (base implementada, telas pendentes): WebView2 + Python loopback 127.0.0.1
+Fase A (concluída, v4.5.18): WebView2 + Python loopback 127.0.0.1
 ├── server.py FastAPI (reuso services/ puros como endpoints)
-├── ui/ HTML/CSS/JS estáticos (tokens de DESIGN_SYSTEM.md → CSS)
-└── build PyInstaller + WebView2
+├── frontend/ HTML/CSS/JS estáticos (tokens de DESIGN_SYSTEM.md → CSS)
+└── shell pywebview (hoje legado: desenvolvimento e smokes)
 
-Fase B (futura): Tauri v2 + React+TS+Vite + Python sidecar + SQLite
-├── Interface: React + TS + Vite (+ Design System)
-├── Núcleo: comandos Tauri ↔ Python sidecar (geração, PDF/A, pastas)
-└── Armazenamento: appDataDir (migração de %APPDATA%/Contracto/*.json)
+Fase B (parcial, v5.3.0): shell Tauri v2 + sidecar Python (ADR 0029/0031)
+├── Feito: janela, ponte nativa e diálogos em Rust; instalador NSIS
+└── Não adotado até aqui: React+TS+Vite, SQLite e auto-update
+    (a UI segue JS puro; os dados seguem em %APPDATA%/Contracto/*.json)
 ```
-
-Migração incremental: ports → headless proof → shell pywebview →
-Design System web → Etapa 1/2 → perfis/settings → updater/bundler.
 
 ## Convenção de publicação de resultados (ADR 0025)
 
@@ -80,25 +75,19 @@ Valem para qualquer implementação do shell, antes da primeira tela:
 - Toolbar com colapso abaixo de 1100px (larguras fixas não passam).
 - DPI por monitor no processo; janelas e modais com limite de viewport
   (nada de tamanho fixo maior que a tela).
-- Diálogos pelo `ports/dialog.py`; abrir-pasta devolve `{ok, erro}`.
+- Diálogos pelo shell (`plugin-dialog` no Tauri, `ports/webview_dialog.py` no pywebview); abrir-pasta devolve `{ok, code}`.
 - Referência visual e de fluxos: protótipo fora do versionamento
   (`Protótipo-webview-do-sistema.zip`: telas, fluxos, PNGs por modelo,
   handoff e manifesto) + `docs/DESIGN.md` como autoridade.
 
 ## Contrato de camadas (vale desde já, não só na migração)
 
-- `ui/` desenha e coleta: monta widgets, lê valores, exibe resultados.
+- `frontend/` desenha e coleta: monta os campos, lê valores, exibe resultados.
   Não decide regra de negócio nem faz I/O de documentos.
 - `services/` decide por dados: recebe `Path`, `Perfil`, `Participant`
   e devolve resultados. Nunca importa UI.
 - `utils/` sustenta os dois: caminhos, validadores, arquivos, backup.
-  Exceção documentada: `utils/files.py` conhece widgets só para
-  `atualizar_entry` (ponte fina da interface, sem regra).
 - `ports/` isola o que muda de shell (diálogos, pastas, binários).
-
-Exemplo aplicado: `abrir_pasta` e `atualizar_entry` saíram duplicados
-de `main_window.py`/`document_frame.py` para `utils/files.py`; as telas
-mantêm delegadores finos de compatibilidade.
 
 ## Regras
 

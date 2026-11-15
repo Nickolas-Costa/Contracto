@@ -31,12 +31,6 @@
     window.addEventListener("pywebviewready", callback);
   }
 
-  // Shell Windows com WebView2 — único ponto que conhece o host para decidir o
-  // diagnóstico do runtime WebView2. Sob Tauri (WebView2 embutido) retorna false.
-  function ehShellWebView2() {
-    return typeof navigator !== "undefined" && !!navigator.userAgent?.includes("Windows") && !!(window.chrome && window.chrome.webview);
-  }
-
   async function request(method, path, payload) {
     if (!disponivel()) {
       return { status: 503, data: { code: "sem_ponte", message: "Abra pelo aplicativo." } };
@@ -133,7 +127,6 @@
   window.ContractoAPI = {
     disponivel,
     aoPronto,
-    ehShellWebView2,
     request,
     selectOutput,
     selectFile,

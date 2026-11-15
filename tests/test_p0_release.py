@@ -61,6 +61,73 @@ class TestP0Release(unittest.TestCase):
         self.assertEqual(status, 200, body)
         self.assertEqual(body.get("status"), "deleted")
 
+    def _catalogo_do_disco(self):
+        """Troca o servidor por um sem perfis injetados: o catálogo é o do disco, como em produção."""
+        self.server.close()
+        self.server = LocalServer().start()
+        return lambda: [p["name"] for p in self.http("/api/v1/profiles")[1]]
+
+    def test_perfil_excluido_some_do_catalogo_e_erro_tem_motivo(self):
+        nomes = self._catalogo_do_disco()
+        dados = {"nome": "P0 Some", "modo_fluxo": "contrato", "campos_entrada": []}
+        self.assertEqual(self.http("/api/v1/profiles", dados)[0], 200)
+        self.assertIn("P0 Some", nomes())
+        # Nome repetido e JSON com chave desconhecida: 422 com motivo, não o 500 genérico.
+        status, body = self.http("/api/v1/profiles", dados)
+        self.assertEqual((status, body["code"]), (422, "invalid_profile"), body)
+        self.assertIn("P0 Some", body["message"])
+        status, body = self.http("/api/v1/profiles", {"nome": "Outro", "chave_que_nao_existe": 1})
+        self.assertEqual((status, body["code"]), (422, "invalid_profile"), body)
+        # Regressão: o perfil excluído seguia na lista até reiniciar o aplicativo.
+        self.assertEqual(self.http("/api/v1/profiles/P0%20Some", method="DELETE")[0], 200)
+        self.assertNotIn("P0 Some", nomes())
+
+    def test_editar_pela_tela_nunca_da_500_nem_perde_mapeamento(self):
+        """A tela Perfis envia a entrada do catálogo (apelidos, sem mapeamento) no PUT."""
+        from utils import profile_manager
+        nomes = self._catalogo_do_disco()
+        self.http("/api/v1/profiles", {"nome": "P0 Edita", "modo_fluxo": "contrato", "formularios": [
+            {"nome": "DOC", "caminho": "modelo.pdf", "mapeamento": {"NOME": "participante.nome"}}]})
+        entrada = next(p for p in self.http("/api/v1/profiles")[1] if p["name"] == "P0 Edita")
+        enviado = dict(entrada, nome="P0 Edita", modo_fluxo="contrato", formato_saida="PDF",
+                       max_participantes=2, max_participants=2)
+        status, body = self.http("/api/v1/profiles/P0%20Edita", enviado, method="PUT")
+        self.assertEqual(status, 200, body)
+        salvo = profile_manager.obter_perfil("P0 Edita")
+        self.assertEqual(salvo.formularios[0].mapeamento, {"NOME": "participante.nome"})
+        self.assertEqual(salvo.formularios[0].caminho, "modelo.pdf")
+        self.assertEqual(salvo.max_participantes, 2)
+        self.assertEqual(nomes().count("P0 Edita"), 1)
+        # Renomear pela tela mantém o identificador (o catálogo nem o mostra) e os formulários.
+        identificador = salvo.identificador
+        status, body = self.http("/api/v1/profiles/P0%20Edita", dict(enviado, nome="P0 Novo", name="P0 Novo"), method="PUT")
+        self.assertEqual(status, 200, body)
+        renomeado = profile_manager.obter_perfil("P0 Novo")
+        self.assertEqual((renomeado.identificador, renomeado.formularios[0].caminho), (identificador, "modelo.pdf"))
+        # Chave que o perfil não tem: recusa com o nome dela, sem gravar.
+        status, body = self.http("/api/v1/profiles/P0%20Novo", dict(enviado, inventada=1), method="PUT")
+        self.assertEqual(status, 422, body)
+        self.assertIn("inventada", body["message"])
+
+    def test_perfil_de_fabrica_nao_e_excluido(self):
+        """Excluído, ele voltava sozinho na abertura seguinte, apesar do aviso de ação definitiva."""
+        nomes = self._catalogo_do_disco()
+        fabrica = next(n for n in nomes() if n != "MCMV")
+        status, body = self.http("/api/v1/profiles/" + fabrica.replace(" ", "%20"), method="DELETE")
+        self.assertEqual((status, body["code"]), (422, "invalid_profile"), body)
+        self.assertIn(fabrica, nomes())
+
+    def test_restaurar_backup_atualiza_o_catalogo(self):
+        nomes = self._catalogo_do_disco()
+        self.assertEqual(self.http("/api/v1/system/backup", {})[0], 200)
+        self.http("/api/v1/profiles", {"nome": "Criado Depois"})
+        self.assertIn("Criado Depois", nomes())
+        pacote = next((Path(self.temp.name) / "Contracto" / "backups").glob("backup-*.zip"))
+        selecao = self.server.jobs.selections.register(pacote, "backup")
+        status, body = self.http("/api/v1/system/restore", {"selection_id": selecao})
+        self.assertEqual(status, 200, body)
+        self.assertNotIn("Criado Depois", nomes())
+
     def test_settings_restore_and_active_and_backup(self):
         status, cfg = self.http("/api/v1/settings")
         self.assertEqual(status, 200)
