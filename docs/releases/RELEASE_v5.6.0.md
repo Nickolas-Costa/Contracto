@@ -18,4 +18,6 @@ Reúne o trabalho que ficou de fora das últimas versões (a linha "5.4.x" de di
 - **Não verificado:** o executável instalado (arrasto de arquivos e conversão de RTF/DOC/DOCX), `smoke_webview_ui.py` no shell Tauri e o caminho de atualização pelo app.
 
 ### Artefatos
-- Preenchidos na publicação.
+- `Contracto_Setup_v5.6.0.exe` (51.4 MiB), instalador. SHA-256: `F7A4A4F95EED152DC5E192FF750489B5F332A207F449C28798765AE789251C4D`
+- `Contracto_v5.6.0.zip` (66.6 MiB), portátil. SHA-256: `7EED7AE7D32B5E28437A285C8BC59D704621511A703EB8999E2E4DEC99E88B02`
+- `latest.json`, lido pelo atualizador do aplicativo.
