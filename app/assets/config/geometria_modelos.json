@@ -8,6 +8,337 @@
       "ccfgts_reforma_ampliacao_valor": 310,
       "ccfgts_conclusao_valor": 252,
       "ccfgts_aquisicao_material_valor": 365
+    },
+    "definir_retangulo": {
+      "PROPONENTE_NOME": {
+        "ret": [
+          75.0,
+          675.0,
+          538.0,
+          689.0
+        ],
+        "fonte": 10.0
+      },
+      "PROPONENTE_DATA_NASCIMENTO": {
+        "ret": [
+          127.0,
+          660.5,
+          178.9,
+          673.5
+        ],
+        "fonte": 9.5
+      },
+      "cpf_0n6f": {
+        "ret": [
+          217.0,
+          661.0,
+          276.1,
+          674.0
+        ],
+        "fonte": 8.0
+      },
+      "PROPONENTE_PIS_PASEP": {
+        "ret": [
+          343.6,
+          660.0,
+          395.3,
+          674.0
+        ],
+        "fonte": 7.5
+      },
+      "PROPONENTE_ESTADO_CIVIL": {
+        "ret": [
+          79.0,
+          607.5,
+          197.0,
+          620.5
+        ],
+        "fonte": 10.0
+      },
+      "regime_de_comunhao": {
+        "ret": [
+          123.3,
+          567.5,
+          362.7,
+          580.5
+        ],
+        "fonte": 10.0
+      },
+      "DATA_CASAMENTO": {
+        "ret": [
+          418.0,
+          567.0,
+          478.0,
+          580.0
+        ],
+        "fonte": 10.0
+      },
+      "uniao_estavel_desde_DATA": {
+        "ret": [
+          238.8,
+          490.5,
+          295.7,
+          503.5
+        ],
+        "fonte": 10.0
+      },
+      "profissao_PROPONENTE": {
+        "ret": [
+          82.0,
+          363.0,
+          267.0,
+          376.0
+        ],
+        "fonte": 10.0
+      },
+      "municipio_da_ocupacao": {
+        "ret": [
+          296.0,
+          349.0,
+          409.0,
+          362.0
+        ],
+        "fonte": 10.0
+      },
+      "resido_em_2p3z": {
+        "ret": [
+          109.4,
+          175.5,
+          211.6,
+          188.5
+        ],
+        "fonte": 10.0
+      },
+      "anos_residencia": {
+        "ret": [
+          225.1,
+          174.0,
+          239.8,
+          189.0
+        ],
+        "fonte": 9.5
+      },
+      "meses_residencia": {
+        "ret": [
+          272.0,
+          175.0,
+          289.3,
+          189.0
+        ],
+        "fonte": 10.0
+      },
+      "possuo_imovel_local": {
+        "ret": [
+          161.0,
+          81.0,
+          220.0,
+          94.0
+        ],
+        "fonte": 10.0
+      },
+      "ir_isento_ano_base": {
+        "ret": [
+          274.3,
+          643.0,
+          293.3,
+          656.0
+        ],
+        "fonte": 7.5
+      },
+      "ir_isento_ano_exerc": {
+        "ret": [
+          342.8,
+          644.0,
+          364.8,
+          657.0
+        ],
+        "fonte": 8.0
+      },
+      "ir_dec_ano_base": {
+        "ret": [
+          172.2,
+          616.0,
+          195.2,
+          629.0
+        ],
+        "fonte": 8.5
+      },
+      "ir_dec_ano_exerc": {
+        "ret": [
+          245.3,
+          616.0,
+          268.3,
+          629.0
+        ],
+        "fonte": 8.5
+      },
+      "local_imovel": {
+        "ret": [
+          57.0,
+          564.0,
+          328.3,
+          578.0
+        ],
+        "fonte": 9.0
+      },
+      "aquisicao_imovel_concluido_valor": {
+        "ret": [
+          300,
+          479.0,
+          393.0,
+          492.0
+        ],
+        "fonte": 10.0
+      },
+      "aquisicao_imovel_construcao_valor": {
+        "ret": [
+          412,
+          463.0,
+          502.0,
+          477.0
+        ],
+        "fonte": 10.0
+      },
+      "aquisicao_terreno_construcao_valor": {
+        "ret": [
+          420,
+          445.0,
+          509.0,
+          458.0
+        ],
+        "fonte": 10.0
+      },
+      "construcao_terreno_proprio_valor": {
+        "ret": [
+          297,
+          429.0,
+          386.0,
+          442.0
+        ],
+        "fonte": 10.0
+      },
+      "ccfgts_reforma_ampliacao_valor": {
+        "ret": [
+          310,
+          413.5,
+          398.0,
+          426.5
+        ],
+        "fonte": 10.0
+      },
+      "ccfgts_conclusao_valor": {
+        "ret": [
+          252,
+          400.5,
+          334.0,
+          413.5
+        ],
+        "fonte": 10.0
+      },
+      "ccfgts_aquisicao_material_valor": {
+        "ret": [
+          365,
+          387.0,
+          454.0,
+          400.0
+        ],
+        "fonte": 10.0
+      },
+      "n_da_operacao_fgts": {
+        "ret": [
+          418.0,
+          109.0,
+          551.0,
+          122.0
+        ],
+        "fonte": 10.0
+      },
+      "local_assinatura": {
+        "ret": [
+          56.0,
+          595.5,
+          269.0,
+          608.5
+        ],
+        "fonte": 10.0
+      },
+      "dia_assinatura": {
+        "ret": [
+          277.4,
+          595.5,
+          321.0,
+          608.5
+        ],
+        "fonte": 10.0
+      },
+      "mes_assinatura": {
+        "ret": [
+          340.0,
+          596.5,
+          468.0,
+          609.5
+        ],
+        "fonte": 10.0
+      },
+      "ano_assinatura": {
+        "ret": [
+          488.0,
+          595.5,
+          543.0,
+          608.5
+        ],
+        "fonte": 10.0
+      }
+    }
+  },
+  "modelo_06": {
+    "definir_retangulo": {
+      "AREA_TERRENO": {
+        "ret": [
+          139,
+          517,
+          202,
+          533
+        ],
+        "fonte": 11.5
+      },
+      "AREA_CONSTRUIDA": {
+        "ret": [
+          317,
+          517,
+          369,
+          533
+        ],
+        "fonte": 11.5
+      },
+      "FRACAO_IDEAL": {
+        "ret": [
+          511,
+          517,
+          539,
+          533
+        ],
+        "fonte": 11.5
+      }
+    },
+    "adicionar_campos": {
+      "PREFEITURA": {
+        "modelo": "CARTORIO_LOCAL",
+        "ret": [
+          337.5,
+          395,
+          415.5,
+          409
+        ],
+        "fonte": 0,
+        "tooltip": "Município da Prefeitura que receberá a declaração",
+        "cobrir": [
+          337,
+          395,
+          415.5,
+          409
+        ]
+      }
     }
   }
 }

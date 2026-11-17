@@ -8,7 +8,7 @@ from services.field_calculator import calcular
 from utils.cnpj_validator import validar_cnpj
 from utils.cpf_validator import validar_cpf
 from utils.date_formatter import FORMATO_ENTRADA, validar_data
-from utils.document_validator import validar_cpf_ou_cnpj, validar_email, validar_telefone
+from utils.document_validator import validar_cpf_ou_cnpj, validar_email
 from utils.pis_pasep_validator import validar_pis_pasep
 from utils.profile_manager import ordenar_campos_para_exibicao
 
@@ -50,8 +50,7 @@ def valor_valido(campo, valor):
             return number.is_finite() and number >= 0
         except InvalidOperation:
             return False
-    if kind == "TELEFONE" or "telefone" in campo.id.lower():
-        return validar_telefone(value)
+    # TELEFONE só ganha máscara no front; números de balcão e ramais variam demais para validar.
     if kind == "EMAIL" or "email" in campo.id.lower():
         return validar_email(value)
     return True

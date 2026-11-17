@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse, Response
 from utils.logger import contexto_log_api
 from version import __version__
 from .jobs import ApiError, capabilities
-from .models import ComposeInput, ConvertInput, EmptyInput, GenerateInput, JobState, ProcessInput, PreviewInput
+from .models import ComposeInput, ConvertInput, EmptyInput, ExtractInput, GenerateInput, IntakeInput, JobState, ProcessInput, PreviewInput
 from .selections import SelectionError
 import sys
 import subprocess
@@ -230,6 +230,14 @@ def create_app(session):
     def process(request: ProcessInput):
         return session.jobs.process(request)
 
+    @app.post("/api/v1/extract")
+    def extract(request: ExtractInput):
+        return session.jobs.extract(request)
+
+    @app.post("/api/v1/jobs/intake", response_model=JobState, status_code=202)
+    def intake(request: IntakeInput):
+        return session.jobs.intake(request)
+
     @app.post("/api/v1/jobs/convert", response_model=JobState, status_code=202)
     def convert(request: ConvertInput):
         return session.jobs.convert(request)
@@ -263,6 +271,10 @@ def create_app(session):
         # ambos resolvem para o tema do SO. Normaliza sem rejeitar.
         if normalizados.get("aparencia") == "sistema":
             normalizados["aparencia"] = "system"
+        if "padroes_leitura" in normalizados:
+            normalizados["padroes_leitura"] = config_manager.normalizar_padroes_leitura(normalizados["padroes_leitura"])
+        if "municipios_itbi" in normalizados:
+            normalizados["municipios_itbi"] = config_manager.normalizar_municipios(normalizados["municipios_itbi"])
         config = config_manager.carregar_config()
         ignoradas = [k for k in normalizados if k not in config_manager._DEFAULTS]
         config.update({k: v for k, v in normalizados.items() if k in config_manager._DEFAULTS})

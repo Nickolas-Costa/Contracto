@@ -63,6 +63,15 @@
       <div class="page-heading">
         <div><p class="eyebrow">Preparação de documentos</p><h1>Um novo documento começa aqui.</h1><p class="hint">Escolha o modelo e preencha os dados. Os campos com * são obrigatórios.</p></div>
       </div>
+      <aside class="leitura-banner" id="leitura-banner" aria-label="Leitura de documentos do cliente">
+        <span class="leitura-banner-icone" aria-hidden="true"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-doc"/></svg></span>
+        <div class="leitura-banner-texto">
+          <strong>Preencha mais rápido com os documentos do cliente</strong>
+          <span>Arraste aqui o RG, a CNH, o cartão CNPJ, comprovantes ou formulários anteriores (PDF, RTF, DOC, DOCX). O Contracto lê os dados, mostra ao lado do documento e só preenche o que você confirmar.</span>
+        </div>
+        <button class="btn btn-primary" id="btn-ler-documentos" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-upload"/></svg>Ler documentos</button>
+        <button class="btn btn-secondary" id="leitura-desfazer" type="button" hidden>Desfazer última leitura</button>
+      </aside>
       <div class="workspace"><div class="workspace-main">
       <div class="card">
         <div class="card-header">
@@ -287,6 +296,18 @@
             <label for="cfg-formato">Formato de saída padrão</label>
             <select id="cfg-formato"><option value="PDF">PDF</option><option value="PDF/A-2b">PDF/A-2b</option></select>
           </div>
+          <div class="field field-wide">
+            <label id="cfg-municipios-rotulo">Municípios do ITBI</label>
+            <p class="field-note">Cada município tem a sua lei de isenção. Escolha a prefeitura no formulário do ITBI e a comarca e o texto da isenção vêm daqui.</p>
+            <div id="cfg-municipios" role="group" aria-labelledby="cfg-municipios-rotulo"></div>
+            <button class="btn btn-secondary" id="btn-cfg-municipio-add" type="button">Adicionar município</button>
+          </div>
+          <div class="field field-wide">
+            <label id="cfg-padroes-rotulo">Padrões de leitura de documentos</label>
+            <p class="field-note">Ensine onde o dado aparece nos seus contratos e textos: por exemplo, o nome do comprador vem depois de "doravante denominado(s) DEVEDOR(ES):" e vai até a vírgula. Os padrões do aplicativo continuam valendo.</p>
+            <div id="cfg-padroes" role="group" aria-labelledby="cfg-padroes-rotulo"></div>
+            <button class="btn btn-secondary" id="btn-cfg-padrao-add" type="button">Adicionar padrão</button>
+          </div>
         </div>
 
         <div class="acoes form-actions form-actions-config">
@@ -329,10 +350,16 @@
 <script src="js/form-state.js"></script>
 <script src="js/calendario.js"></script>
 <script src="js/conferencia.js"></script>
+<script src="js/paginacao.js"></script>
+<script src="js/municipios.js"></script>
+<script src="js/padroes.js"></script>
+<script src="js/endereco.js"></script>
 <script src="js/perfis.js"></script>
 <script src="js/etapa1.js"></script>
 <script src="js/etapa2.js"></script>
 <script src="js/conversao.js"></script>
+<script src="js/leitura.js"></script>
+<script src="js/ajuda.js"></script>
 <script src="js/tour.js"></script>
 <script src="js/app.js"></script>
 </body>

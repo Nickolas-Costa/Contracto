@@ -10,12 +10,15 @@
   const controls = [];
   const touched = new WeakMap(), touchedGlobals = new Set();
   let reviewing = false;
+  // Em perfis simples só identidade, data e local bloqueiam; o resto vira pendência que se pode ignorar.
+  const ESSENCIAIS = ["nome_completo", "cpf", "data_assinatura", "local_assinatura"];
+  let ignorarPendencias = false, opcionais = [];
   function touch(owner, id) { if(!touched.has(owner))touched.set(owner,new Set());touched.get(owner).add(id); }
   let previewTimer=null, previewPending=false;
   const busy = () => window.ContractoEtapa2?.ocupado() || false;
   const online = () => window.ContractoApp?.pronto() || false;
   function changed() {
-    issues = []; revision++;
+    issues = []; revision++; ignorarPendencias = false;
     recalcularLocal();
     window.ContractoEtapa2?.invalidar();
     schedulePreview();
@@ -39,21 +42,6 @@
       atualizar();
     },350);
   }
-  function avaliarFormulaLocal(expressao, valores) {
-    // Avaliador restrito: apenas identificadores de campos + operadores aritméticos.
-    if (!expressao || /[^A-Za-z0-9_+\-*/().\s,]/.test(expressao)) return null;
-    const ids = Object.keys(valores);
-    try {
-      const fn = Function(...ids, '"use strict";return(' + expressao + ')');
-      const args = ids.map(k => {
-        const raw = String(valores[k] ?? "").replace(/\./g, "").replace(",", ".");
-        const num = Number(raw);
-        return Number.isFinite(num) ? num : 0;
-      });
-      const out = fn(...args);
-      return (typeof out === "number" && Number.isFinite(out)) ? out : null;
-    } catch (_) { return null; }
-  }
   function sincronizarSelecao() {
     // A lista é montada antes da composição inicial; sem este sync o perfil
     // composto não aparece marcado (smoke: "one initial profile").
@@ -68,8 +56,16 @@
     const id = form().canonical(field.id), global = field.escopo === "global";
     const owner = global ? draft.globals : draft.people[index];
     if (owner[id] === undefined) owner[id] = field.valor_padrao ?? "";
+    if (field.tipo === "ENDERECO") {
+      if (owner[id] === undefined) owner[id] = field.valor_padrao ?? "";
+      const e = window.ContractoEndereco.criar({field, index, global, owner, id, form: form(), busy, touch: () => touch(owner, id), changed, atualizar});
+      host.append(e.wrap);
+      controls.push({field, index, id, owner, wrap: e.wrap, error: e.error, get input() { return e.ativo(); }});
+      return;
+    }
     const wrap = document.createElement("div"); wrap.className = "field";
-    if(id === "endereco" || field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA") wrap.classList.add("field-wide");
+    if(id === "endereco" || field.largura === "cheia" || field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA") wrap.classList.add("field-wide");
+    else if(field.largura === "terco") wrap.classList.add("field-terco");
     const isTextarea = field.tipo === "TEXTO_LONGO" || field.tipo === "MULTILINHA";
     const label = document.createElement("label");
     const input = document.createElement(field.tipo === "SELECAO" ? "select" : (isTextarea ? "textarea" : "input"));
@@ -85,18 +81,9 @@
     input.autocomplete = "off";
     if (field.tipo === "SELECAO") {
       const opcoes = field.opcoes || [];
-      const ROTULOS_OPCOES = {
-        "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito",
-        "CANCELAR_DEBITO": "Cancelar débito",
-        "DESCONHECO_POSSUIR": "Desconheço possuir",
-        "DECLARO_POSSUIR": "Declaro possuir",
-        "SELECIONE": "Selecione"
-      };
-      const humanizar = (nome) => {
-        if (!nome) return "Selecione";
-        if (ROTULOS_OPCOES[nome]) return ROTULOS_OPCOES[nome];
-        return nome.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()).trim();
-      };
+      const humanizar = nome => form().rotuloOpcao(field, nome);
+      // Valor salvo em outra caixa ("Sim" x "SIM") volta ao canônico da lista.
+      owner[id] = opcoes.find(o => o.toLowerCase() === String(owner[id]).toLowerCase()) ?? owner[id];
       for (const value of ["", ...opcoes]) {
         const option = document.createElement("option"); option.value = value; option.textContent = humanizar(value); input.append(option);
       }
@@ -121,12 +108,15 @@
       }
     } else if (field.tipo === "CHECKBOX") {
       input.type="checkbox"; const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
-      if (owner[id] === "") owner[id]=options[options.length-1];
+      // Padrão do perfil em outra caixa ("Sim" x "SIM") precisa casar com a lista, senão a caixa nasce desmarcada.
+      owner[id]=options.find(o=>o.toLowerCase()===String(owner[id]).toLowerCase()) ?? (owner[id]==="" ? options[options.length-1] : owner[id]);
       input.checked = owner[id] === options[0] || owner[id] === true;
     } else {
       // <textarea> não expõe `type` gravável (HTMLTextAreaElement.type é somente leitura).
       if (!isTextarea) input.type = "text";
       if (["CPF","CNPJ","CPF_CNPJ","INTEIRO","ANO","DATA","MOEDA","AREA","PIS_PASEP"].includes(field.tipo)) input.inputMode = "decimal";
+      if (field.tipo === "TELEFONE") input.placeholder="(00) 00000-0000";
+      if (field.tipo === "AREA") input.placeholder="0,00";
       if (field.tipo === "EMAIL") input.inputMode = "email";
       if (field.tipo === "TELEFONE") input.inputMode = "tel";
       if (field.tipo === "DATA") input.placeholder="DD/MM/AAAA";
@@ -138,32 +128,17 @@
     const error=document.createElement("div"); error.id=input.id+"-erro"; error.className="erro"; error.hidden=true;
     input.setAttribute("aria-describedby",error.id);
     input.addEventListener("blur",()=>{touch(owner,id);atualizar();});
-    input.addEventListener("input",()=>{
+    input.addEventListener("focus",()=>{input.dataset.anterior=input.value;});
+    input.addEventListener("input",e=>{
       if (busy()) return;
       const options=field.opcoes?.length ? field.opcoes : ["SIM","NÃO"];
       let val = field.tipo === "CHECKBOX" ? (input.checked ? options[0] : options[options.length-1]) : input.value;
-      if (field.tipo === "CPF") {
-        val = form().formatCpfProgressive(val);
-        input.value = val;
-      } else if (field.tipo === "CNPJ" || field.tipo === "CPF_CNPJ") {
-        val = form().formatDocProgressive(val);
-        input.value = val;
-      } else if (field.tipo === "DATA") {
-        val = form().formatDateProgressive(val);
-        input.value = val;
-      } else if (field.tipo === "MOEDA" && !field.calculo) {
-        // Mantém o cursor após o mesmo nº de dígitos/vírgula (editar no meio não pula ao fim).
-        const digitosAntes = (val.slice(0, input.selectionStart ?? val.length).match(/[\d,]/g) || []).length;
-        val = form().formatMoedaProgressive(val);
-        input.value = val;
-        let pos = 0;
-        for (let n = 0; pos < val.length && n < digitosAntes; pos++) if (/[\d,]/.test(val[pos])) n++;
-        input.setSelectionRange?.(pos, pos);
-      }
+      const mascara = !field.calculo && form().mascaras[field.tipo];
+      if (mascara) val = form().mascarar(input, e, mascara);
       owner[id] = val.trim();
       changed();
     });
-    if (field.tipo === "MOEDA" && !field.calculo) {
+    if (["MOEDA","AREA"].includes(field.tipo) && !field.calculo) {
       // Ao sair do campo completa os centavos: "180000" → "180.000,00".
       input.addEventListener("blur", () => {
         const final = form().formatMoedaFinal(input.value);
@@ -172,6 +147,22 @@
       });
     }
     wrap.append(label,input,error); host.append(wrap);
+    if (field.fonte_opcoes && field.sugestoes?.length) {
+      // Sugestões das Configurações (ex.: municípios do ITBI): escolher uma preenche os campos ligados a ela.
+      const lista = document.createElement("datalist"); lista.id = input.id + "-lista";
+      field.sugestoes.forEach(sug => { const op = document.createElement("option"); op.value = sug.prefeitura; lista.append(op); });
+      input.setAttribute("list", lista.id); wrap.append(lista);
+      input.addEventListener("change", () => {
+        const item = field.sugestoes.find(sug => sug.prefeitura.toLowerCase() === input.value.trim().toLowerCase());
+        if (!item || busy()) return;
+        Object.entries(field.preenche || {}).forEach(([alvo, chave]) => {
+          const c = controls.find(x => x.id === alvo && x.owner === owner);
+          if (!c) return;
+          c.owner[alvo] = item[chave] || ""; c.input.value = c.owner[alvo]; c.input.dispatchEvent(new Event("input"));
+        });
+        changed();
+      });
+    }
     if(field.calculo){const note=document.createElement("p");note.className="field-note";note.id=input.id+"-nota";note.textContent="Calculado a partir dos dados informados.";wrap.append(note);input.setAttribute("aria-describedby",error.id+" "+note.id);}
     controls.push({field,index,id,owner,wrap,input,error});
   }
@@ -179,10 +170,8 @@
     controls.forEach(c => {
       const expr = c.field.calculo || c.field.formula;
       if (!expr) return;
-      const vals = values(c.index);
-      const out = avaliarFormulaLocal(expr, vals);
-      if (out !== null) {
-        const texto = String(Math.round(out * 100) / 100).replace(".", ",");
+      const texto = form().calcular(expr, values(c.index));
+      if (texto !== null) {
         c.input.value = texto;
         c.owner[c.id] = texto;
       }
@@ -200,42 +189,20 @@
   function renderPaginacao() {
     const host = $("paginacao-form");
     if (!host) return;
-    host.replaceChildren();
-    if (!composed || !usarPaginacao || paginas.length < 2) { host.hidden = true; return; }
-    host.hidden = false;
-    const prev = document.createElement("button");
-    prev.type = "button"; prev.className = "btn btn-secondary btn-sm"; prev.textContent = "Anterior"; prev.prepend(window.ContractoUI.icone("back"));
-    prev.disabled = paginaAtual === 0;
-    prev.addEventListener("click", () => mudarPagina(-1));
-    const info = document.createElement("span");
-    info.className = "paginacao-indicador";
-    info.textContent = "Página " + (paginaAtual + 1) + " de " + paginas.length;
-    const nome = document.createElement("span");
-    nome.className = "paginacao-nome";
-    nome.textContent = paginas[paginaAtual] || "";
-    const next = document.createElement("button");
-    next.type = "button"; next.className = "btn btn-secondary btn-sm"; next.textContent = "Próxima"; next.append(window.ContractoUI.icone("advance"));
-    next.disabled = paginaAtual >= paginas.length - 1;
-    next.addEventListener("click", () => mudarPagina(1));
-    host.append(prev, info, nome, next);
+    host.hidden = !composed || !usarPaginacao || paginas.length < 2;
+    if (!host.hidden) window.ContractoPaginacao.renderizar(host, {paginas, atual: paginaAtual, ir: irParaPagina});
+    else host.replaceChildren();
   }
-  function mudarPagina(delta) {
-    const novo = Math.max(0, Math.min(paginas.length - 1, paginaAtual + delta));
-    if (novo === paginaAtual) return;
-    if (delta > 0) {
-      // Valida a página atual antes de avançar.
-      reviewing = true;
-      const erros = localIssues().filter(e => paginaDoControle(e) === paginas[paginaAtual]);
-      atualizar();
-      if (erros.length) {
-        window.ContractoUI.toast("Revise os campos desta página antes de avançar.", "warning");
-        return;
-      }
-      reviewing = false;
-    }
+  function irParaPagina(i, focar) {
+    const novo = Math.max(0, Math.min(paginas.length - 1, i));
+    if (novo === paginaAtual && !focar) return;
     paginaAtual = novo;
     renderPaginacao();
     atualizar();
+    if (focar) $("pag-aba-" + novo)?.focus();
+  }
+  function atualizarAbas(errors) {
+    window.ContractoPaginacao.selos(paginas.map(nome => errors.filter(e => paginaDoControle(e) === nome).length));
   }
   function paginaDoControle(e) {
     const c = controls.find(x => x.id === form().canonical(e.field) && (!e.participant || e.participant === x.index + 1));
@@ -245,7 +212,7 @@
   function group(card, title) {
     const section=document.createElement("fieldset");section.className="field-section";
     const legend=document.createElement("legend");legend.textContent=title;
-    const grid=document.createElement("div");grid.className="field-grid";
+    const grid=document.createElement("div");grid.className="field-grid field-grid-6";
     section.append(legend,grid);card.append(section);return grid;
   }
   function render() {
@@ -323,12 +290,15 @@
       if(value && c.field.tipo === "CPF_CNPJ" && form().docValid && !form().docValid(value))message="Documento inválido: use CPF ou CNPJ válido.";
       if(value && c.field.tipo === "PIS_PASEP" && form().pisValid && !form().pisValid(value))message="PIS/PASEP inválido.";
       if(value && c.field.tipo === "EMAIL" && form().emailValid && !form().emailValid(value))message="E-mail inválido.";
-      if(value && c.field.tipo === "TELEFONE" && form().telefoneValid && !form().telefoneValid(value))message="Telefone inválido: use DDD + número.";
       if(value && c.field.tipo === "ANO" && form().anoValid && !form().anoValid(value))message="Ano inválido.";
       if(value && c.field.tipo === "DATA" && !form().dateValid(value))message="Use uma data válida em DD/MM/AAAA.";
       else if(value && c.field.tipo === "DATA" && /nascimento/i.test(c.id) && form().dateFuture(value))message="A data de nascimento não pode ser futura.";
       if(value && ["MOEDA","AREA"].includes(c.field.tipo) && !form().valorNumericoValid(value))message="Use um valor numérico válido (ex. 1.234,56).";
       if(value && c.field.tipo === "INTEIRO" && !/^\d+$/.test(value.trim()))message="Use um número inteiro.";
+      if(!message && value && ["INTEIRO","ANO"].includes(c.field.tipo) && /^\d+$/.test(value)){
+        if(c.field.minimo != null && Number(value) < c.field.minimo)message="Use um valor a partir de "+c.field.minimo+".";
+        if(c.field.maximo != null && Number(value) > c.field.maximo)message="Use um valor até "+c.field.maximo+".";
+      }
       if(c.field.tipo === "SELECAO" && value && !c.field.opcoes.includes(value))message="Selecione uma opção válida.";
       if(message)result.push({participant:c.index+1,field:c.id,message});
     });
@@ -355,7 +325,7 @@
       error.hidden=!issue;error.textContent=issue?.message || "";
       if(issue)input.setAttribute("aria-invalid","true");else input.removeAttribute("aria-invalid");
     });
-    const pending=[];
+    const pending=[], relaxavel=mode==="simples";
     if(!online())pending.push("Aguardando conexão.");
     if(composing)pending.push("Carregando campos…");
     else if(!composed)pending.push("Selecione formulários compatíveis.");
@@ -363,9 +333,15 @@
     if(draft.people.length>maximum)pending.push("Remova participantes: limite do perfil é "+maximum+".");
     if(!draft.output_id)pending.push("Selecione a pasta de saída.");
     const targetFor=e=>controls.find(c=>c.id===form().canonical(e.field)&&!c.wrap.hidden&&(!e.participant||e.participant===c.index+1||c.field.escopo==="global"))?.input || $(e.field.replaceAll("_","-"));
-    errors.forEach(e=>{const target=targetFor(e),label=target?.labels?.[0]?.textContent?.replace(" *","") || e.field;pending.push((e.participant ? "Participante "+e.participant+": " : "")+label+" — "+(e.message || "Confira o valor."));});
-    $("pendencias").textContent=busy() ? "Preparando seus documentos…" : composing ? "Carregando os campos…" : previewPending ? "Conferindo os dados…" : pending.length ? "Complete os dados para gerar." : "Tudo pronto para gerar.";
-    $("pendencias").classList.toggle("pronto",!pending.length&&!busy());
+    opcionais=[];
+    errors.forEach(e=>{
+      const target=targetFor(e),label=target?.labels?.[0]?.textContent?.replace(" *","") || e.field;
+      const texto=(e.participant ? "Participante "+e.participant+": " : "")+label+" — "+(e.message || "Confira o valor.");
+      if(relaxavel&&!ESSENCIAIS.includes(form().canonical(e.field)))opcionais.push({texto,erro:e});else pending.push(texto);
+    });
+    atualizarAbas(errors);
+    $("pendencias").textContent=busy() ? "Preparando seus documentos…" : composing ? "Carregando os campos…" : previewPending ? "Conferindo os dados…" : pending.length ? "Complete os dados para gerar." : opcionais.length ? "Dá para gerar; faltam "+opcionais.length+" campo(s) opcional(is)." : "Tudo pronto para gerar.";
+    $("pendencias").classList.toggle("pronto",!pending.length&&!opcionais.length&&!busy());
     $("btn-gerar").disabled=!!pending.length||busy();
     $("btn-pasta").disabled=!online()||busy();
     $("btn-adicionar").disabled=busy()||!composed||draft.people.length>=maximum;
@@ -373,49 +349,45 @@
     const badge=$("badge-participantes");
     if(badge) badge.textContent=draft.people.length+" participante(s)";
     document.querySelectorAll('[data-editable], #lista-formularios input, #data-assinatura, #local-assinatura, #modo-simples, #modo-contrato, #modo-conversao').forEach(el=>el.disabled=busy());
-    const btn=$("btn-ver-pendencias");btn.hidden=!pending.length;
-    const listaPendencias=pending.slice();
-    btn.onclick=()=>{
-      reviewing=true;atualizar();
-      // Foto 9: modal estilo Ajuda com a lista; cada item navega até o campo.
-      const wrap=document.createElement("div");
-      const intro=document.createElement("p");
-      intro.className="hint";
-      intro.textContent="Toque em um item para ir até o campo e corrigir.";
-      const lista=document.createElement("div");
-      lista.className="pendencias-lista";
-      listaPendencias.forEach(texto=>{
-        const item=document.createElement("button");
-        item.type="button";
-        item.className="pendencia-item";
-        item.textContent=texto;
-        item.addEventListener("click",()=>{
-          window.ContractoUI.fecharModal();
-          const erro=errors.find(e=>texto.includes(e.field) || (e.message && texto.includes(e.message)));
-          irParaPendencia(erro || errors[0]);
-        });
-        lista.append(item);
-      });
-      wrap.append(intro,lista);
-      window.ContractoUI.abrirModal("Revise os campos pendentes",wrap,[{texto:"Fechar",primario:true}]);
-      irParaPendencia(errors[0],true);
-    };
+    const btn=$("btn-ver-pendencias");btn.hidden=!pending.length&&!opcionais.length;
+    btn.onclick=()=>{reviewing=true;atualizar();abrirListaPendencias();};
     return pending;
   }
+  // Lista de pendências; em perfis simples sem bloqueio oferece "Gerar mesmo assim" (segue para a Conferência).
+  function abrirListaPendencias() {
+    window.ContractoPaginacao.listaPendencias({
+      bloqueios: atualizar(), opcionais,
+      ir: (texto, erro) => irParaPendencia(erro || [...localIssues(), ...issues].find(e => texto.includes(e.field) || (e.message && texto.includes(e.message)))),
+      gerarMesmoAssim: () => { ignorarPendencias = true; conferir(); }});
+  }
+  // Campo do erro, mesmo quando está em outra página (só a condição de visibilidade o esconde).
+  function controleDe(e) {
+    const id=form().canonical(e.field);
+    return controls.find(c=>c.id===id&&(!e.participant||e.participant===c.index+1||c.field.escopo==="global")&&form().visible(c.field,values(c.index),c.index+1));
+  }
   function irParaPendencia(erro, semFoco) {
-    // Fase 2 (DESIGN.md §7): a pendência navega até a página dela e foca o
-    // campo; o foco nativo já torna o campo visível (sem scrollIntoView).
+    // Fase 2 (DESIGN.md §7): a pendência navega até a página dela e foca o campo.
     if(!erro)return;
     reviewing=true;
-    const alvo=targetForGlobal(erro);
-    const ctrl=alvo && controls.find(c=>c.input===alvo);
+    const ctrl=controleDe(erro);
     if(ctrl && usarPaginacao && paginas.length>1){
-      const pag=form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral");
-      const idx=paginas.indexOf(pag);
-      if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();atualizar();}
+      const idx=paginas.indexOf(form().paginaDe ? form().paginaDe(ctrl.field, agrupamento) : (ctrl.field.aba || "Geral"));
+      if(idx>=0 && idx!==paginaAtual){paginaAtual=idx;renderPaginacao();}
     }
-    const destino=controls.map(c=>c.input).find(el=>el===alvo) || alvo;
+    atualizar();
+    const destino=ctrl?.input || $(erro.field.replaceAll("_","-"));
     if(destino && destino.focus && !semFoco){destino.focus();}
+    return destino;
+  }
+  // Atalho da Conferência: abre a Etapa 1 na página do campo, com foco e destaque; "Gerar documentos" volta à Conferência.
+  function irParaCampo(participante, id) {
+    window.ContractoUI.mostrarTela("inicio");
+    const alvo=irParaPendencia({field:id,participant:participante==null?undefined:participante+1});
+    if(!alvo)return;
+    alvo.scrollIntoView({block:"center"});
+    alvo.classList.add("campo-destaque");
+    setTimeout(()=>alvo.classList.remove("campo-destaque"),2200);
+    window.ContractoUI.toast("Corrija o valor e clique em Gerar documentos para voltar à Conferência.","info");
   }
   function targetForGlobal(e) {
     return controls.find(c=>c.id===form().canonical(e.field)&&!c.wrap.hidden&&(!e.participant||e.participant===c.index+1||c.field.escopo==="global"))?.input || $(e.field.replaceAll("_","-"));
@@ -613,6 +585,41 @@
       host.append(btn);
     });
   }
+  // Leitura de documentos: o modal só propõe; aqui os valores entram pelo mesmo caminho da digitação (máscara, rascunho, validação).
+  const donoDe = idx => idx == null ? draft.globals : draft.people[idx];
+  function participantesInfo() { return {nomes: draft.people.map(p => p.nome_completo || ""), maximo: maximum}; }
+  function valorAtual(idx, id) { return donoDe(idx)?.[id] ?? ""; }
+  let ultimaLeitura = null;
+  function aplicarLeitura(lista) {
+    // lista: [{participante: índice|null, campo_id, valor}]; índice igual ao total cria o participante (se couber no perfil).
+    const desfazer = {novos: 0, valores: []};
+    lista.forEach(({participante, campo_id, valor}) => {
+      if (participante === draft.people.length && participante < maximum) { draft.people.push({nome_completo: "", cpf: ""}); desfazer.novos++; }
+      const dono = donoDe(participante);
+      if (!dono) return;
+      const campo = fields.find(f => form().canonical(f.id) === campo_id), tipo = campo?.tipo || ({cpf: "CPF", data_assinatura: "DATA"}[campo_id] || "TEXTO");
+      const final = form().mascaras[tipo] ? form().mascaras[tipo].formatar(valor, true) : valor;
+      desfazer.valores.push({dono, id: campo_id, antes: dono[campo_id]});
+      dono[campo_id] = final;
+      if (tipo === "ENDERECO") dono[campo_id + "_modo"] = "completo";
+      touch(dono, campo_id);
+    });
+    ultimaLeitura = desfazer;
+    changed(); render(); sincronizarAssinatura();
+    return desfazer.valores.length;
+  }
+  function desfazerLeitura() {
+    if (!ultimaLeitura) return;
+    ultimaLeitura.valores.reverse().forEach(({dono, id, antes}) => { if (antes === undefined) delete dono[id]; else dono[id] = antes; });
+    draft.people.splice(draft.people.length - ultimaLeitura.novos, ultimaLeitura.novos);
+    ultimaLeitura = null;
+    changed(); render(); sincronizarAssinatura();
+  }
+  // Data e local da assinatura são inputs fixos (fora de render()): refletem o rascunho depois da leitura.
+  function sincronizarAssinatura() {
+    $("data-assinatura").value = draft.globals.data_assinatura || "";
+    $("local-assinatura").value = draft.globals.local_assinatura || "";
+  }
   function pacoteProcesso() {
     // Pacote atual para o processamento (contrato ProcessInput da API local).
     if(!composed || !draft.output_id) return null;
@@ -621,6 +628,7 @@
   async function gerar() {
     if(atualizar().length||busy())return;
     const snapshot={profile_ids:[...selected],participants:form().participants(draft,fields),output_id:draft.output_id,revision};
+    if(ignorarPendencias&&opcionais.length)snapshot.ignorar_pendencias=true;
     try {
       const forms = window.ContractoEtapa2?.formsSelecionados?.();
       if (Array.isArray(forms) && forms.length) snapshot.forms_selecionados = forms;
@@ -641,15 +649,17 @@
     }
     if (pendentes.length > 0) {
       window.ContractoUI.toast("Existem pendências no formulário. Revise os campos antes de avançar.", "warning");
-      const btn = $("btn-ver-pendencias");
-      if (btn && !btn.hidden) btn.click();
-      else window.ContractoUI.mostrarTela("inicio");
+      window.ContractoUI.mostrarTela("inicio");
+      abrirListaPendencias();
       return;
     }
+    if (opcionais.length && !ignorarPendencias) { window.ContractoUI.mostrarTela("inicio"); abrirListaPendencias(); return; }
     // Revalidação servidor antes de confirmar a conferência.
     try {
       const r = await window.ContractoAPI.request("POST", "/api/v1/profiles/preview", {profile_ids: selected, participants: form().participants(draft, fields)});
-      if (r.status === 200 && (r.data.issues || []).length) {
+      // Em perfis simples só identidade, data e local travam; o resto é o que o usuário aceitou ignorar.
+      const duros = (r.data.issues || []).filter(i => mode !== "simples" || ESSENCIAIS.includes(form().canonical(i.field)));
+      if (r.status === 200 && duros.length) {
         issues = r.data.issues;
         atualizar();
         window.ContractoUI.toast("O servidor apontou pendências. Revise os campos.", "warning");
@@ -664,7 +674,7 @@
       return;
     }
 
-    window.ContractoConferencia.renderizar({ selected, catalog, fields, draft, maximum, agrupamento, nomeExibicao, form, values });
+    window.ContractoConferencia.renderizar({ selected, catalog, fields, draft, maximum, agrupamento, nomeExibicao, form, values, irParaCampo, pendencias: opcionais.length });
 
     const btnVoltar = $("btn-conferir-voltar");
     const btnConfirmar = $("btn-conferir-confirmar");
@@ -691,6 +701,19 @@
     catch (_) { return !!$("chk-preservar-dados")?.checked; }
   }
 
+  function lembrarModo(nome) { try { localStorage.setItem("contracto-modo", nome); } catch (_) {} }
+  // Limpa tudo que o formulário guarda (inclusive campos compartilhados de perfis como o ITBI) e os inputs fixos.
+  function zerarRascunho(globaisMantidos = {}) {
+    draft.people = [{ nome_completo: "", cpf: "" }];
+    draft.globals = { data_assinatura: "", local_assinatura: "", ...globaisMantidos };
+    draft.computed = []; draft.output_id = null;
+    issues = []; reviewing = false; paginaAtual = 0; touchedGlobals.clear();
+    window.ContractoLeitura?.limpar();
+    $("pasta-saida").value = "";
+    $("data-assinatura").value = draft.globals.data_assinatura;
+    $("local-assinatura").value = draft.globals.local_assinatura;
+  }
+
   function novoTrabalho() {
     window.ContractoUI.abrirModal(
       "Iniciar novo trabalho",
@@ -701,17 +724,16 @@
           aoClicar: () => {
             window.ContractoEtapa2?.recomecar?.();
             if (preservarAtivo()) {
-              // Mantém pessoas e assinatura/destino; descarta só o trabalho.
+              // Mantém pessoas e assinatura/destino; os demais campos compartilhados voltam ao padrão.
+              const { data_assinatura, local_assinatura } = draft.globals;
+              draft.globals = { data_assinatura, local_assinatura };
+              draft.computed = [];
               selected = []; fields = []; composed = false;
               changed(); render();
             } else {
-              draft.people = [{ nome_completo: "", cpf: "" }];
-              draft.globals.data_assinatura = "";
-              draft.globals.local_assinatura = "";
-              draft.output_id = null;
-              $("pasta-saida").value = "";
+              zerarRascunho();
               selected = []; fields = []; composed = false;
-              changed(); render();
+              changed(); render(); preencherLocalPadrao();
             }
             window.ContractoUI.mostrarTela("inicio");
           }
@@ -730,19 +752,42 @@
       window.ContractoUI.toast("Preservar dados ativo: preenchimento mantido.", "info");
       return;
     }
-    draft.people = [{nome_completo:"",cpf:""}];
-    draft.globals.data_assinatura = "";
-    draft.globals.local_assinatura = "";
-    const pasta = $("pasta-saida");
-    if (pasta) pasta.value = "";
+    zerarRascunho();
     fields = []; composed = false; maximum = 1; selected = [];
     renderProfilesList();
     if (mode === "contrato") {
       const contratoDefault = catalog.find(p => p.mode === "contrato") || catalog[0];
       if (contratoDefault) selecionar([contratoDefault.profile_id]);
     }
+    window.ContractoEtapa2.invalidar();
+    changed(); render(); preencherLocalPadrao();
     window.ContractoEtapa2.atualizar();
     window.ContractoUI.toast("Campos limpos.", "success");
+  }
+
+  // Último local digitado; na falta dele, o local padrão das Configurações (paridade com o legado).
+  function preencherLocalPadrao() {
+    try {
+      const salvoLocal = localStorage.getItem("contracto-local-assinatura");
+      if(salvoLocal && !draft.globals.local_assinatura) {
+        draft.globals.local_assinatura = salvoLocal;
+        const inputLocal = $("local-assinatura");
+        if(inputLocal) inputLocal.value = salvoLocal;
+      }
+    } catch(e) {}
+    // Paridade Tk (mw_etapa1: entry_local pré-preenchido com local_padrao):
+    // o padrão do backend vale quando o usuário ainda não digitou nada.
+    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
+      window.ContractoAPI.getSettings().then(r => {
+        const padrao = r.status === 200 && r.data && typeof r.data.local_padrao === "string" ? r.data.local_padrao.trim() : "";
+        if (padrao && !draft.globals.local_assinatura) {
+          draft.globals.local_assinatura = padrao;
+          const inputLocal = $("local-assinatura");
+          if (inputLocal && !inputLocal.value) inputLocal.value = padrao;
+          changed();
+        }
+      }).catch(() => {});
+    }
   }
 
   function ligar() {
@@ -774,34 +819,14 @@
       });
     });
     $("btn-adicionar").addEventListener("click",()=>{if(busy()||draft.people.length>=maximum)return;draft.people.push({nome_completo:"",cpf:""});changed();render();});
-    try {
-      const salvoLocal = localStorage.getItem("contracto-local-assinatura");
-      if(salvoLocal && !draft.globals.local_assinatura) {
-        draft.globals.local_assinatura = salvoLocal;
-        const inputLocal = $("local-assinatura");
-        if(inputLocal) inputLocal.value = salvoLocal;
-      }
-    } catch(e) {}
-    // Paridade Tk (mw_etapa1: entry_local pré-preenchido com local_padrao):
-    // o padrão do backend vale quando o usuário ainda não digitou nada.
-    if (window.ContractoAPI && window.ContractoAPI.getSettings) {
-      window.ContractoAPI.getSettings().then(r => {
-        const padrao = r.status === 200 && r.data && typeof r.data.local_padrao === "string" ? r.data.local_padrao.trim() : "";
-        if (padrao && !draft.globals.local_assinatura) {
-          draft.globals.local_assinatura = padrao;
-          const inputLocal = $("local-assinatura");
-          if (inputLocal && !inputLocal.value) inputLocal.value = padrao;
-          changed();
-        }
-      }).catch(() => {});
-    }
-    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().formatDateProgressive(val);input.value=val;draft.globals[id]=val.trim();if(id==="local_assinatura"){try{localStorage.setItem("contracto-local-assinatura",val.trim());}catch(e){}}changed();});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
+    preencherLocalPadrao();
+    ["data_assinatura","local_assinatura"].forEach(id=>{const input=$(id.replaceAll("_","-"));input.addEventListener("input",e=>{let val=e.target.value;if(id==="data_assinatura")val=form().mascarar(input,e,form().mascaras.DATA);draft.globals[id]=val.trim();if(id==="local_assinatura"){try{localStorage.setItem("contracto-local-assinatura",val.trim());}catch(e){}}changed();});input.addEventListener("focus",()=>{input.dataset.anterior=input.value;});input.addEventListener("blur",()=>{touchedGlobals.add(id);atualizar();});});
     const calBtn=$("btn-calendario-data");
     const dateInput=$("data-assinatura");
     if(calBtn && dateInput) calBtn.addEventListener("click",()=>window.ContractoCalendario.abrir(dateInput,val=>{draft.globals.data_assinatura=val;changed();}));
     $("btn-pasta").addEventListener("click",async()=>{if(busy())return;try{const r=await window.ContractoAPI.selectOutput();if(r.cancelled)return;if(r.selection_id){draft.output_id=r.selection_id;$("pasta-saida").value=r.name || "Pasta selecionada";changed();}else window.ContractoUI.toast("Não foi possível selecionar a pasta.","error");}catch(_){window.ContractoUI.toast("Falha ao abrir o seletor.","error");}});
     ["simples","contrato"].forEach(name=>$("modo-"+name).addEventListener("click",()=>{
-      if(busy())return;mode=name;
+      if(busy())return;mode=name;lembrarModo(name);
       ["simples","contrato"].forEach(n=>{if(n===name)$("modo-"+n).setAttribute("aria-current","page");else $("modo-"+n).removeAttribute("aria-current");});
       $("modo-conversao")?.removeAttribute("aria-current");
       window.ContractoUI.mostrarTela("inicio");
@@ -817,6 +842,14 @@
     }));
     window.ContractoPerfis.ligar();
 
+    // Reabre no último modo usado (Conversão é restaurada por conversao.js).
+    let salvo = null;
+    try { salvo = localStorage.getItem("contracto-modo"); } catch (_) {}
+    if (salvo === "simples" && mode !== "simples") {
+      mode = "simples";
+      $("modo-contrato").removeAttribute("aria-current");
+      $("modo-simples").setAttribute("aria-current", "page");
+    }
     carregar();
   }
 
@@ -842,6 +875,7 @@
     novoTrabalho,
     carregarTelaPerfis:()=>window.ContractoPerfis.carregarTela(),
     pacoteProcesso,
+    irParaCampo, participantesInfo, valorAtual, aplicarLeitura, desfazerLeitura,
     composto:()=>composed,
     modo:()=>mode,
     perfilIds:()=>[...selected],

@@ -58,3 +58,8 @@ Versões fixadas em `src-tauri/Cargo.toml`/`Cargo.lock` e `package-lock.json`, t
 | `tauri-plugin-shell` | Sidecar | `std::process::Command` sobre `Contracto_sidecar.exe` ao lado do executável | **Não adotado**: allowlist de um só executável, sem plugin. |
 | `tauri-plugin-updater` | Atualização automática | Reinstalar manualmente | **Não adotar** (decisão do usuário: sem auto-update). |
 | OCR (ADR 0027, Fase 2) | PDFs digitalizados | `Windows.Media.Ocr` ou Tesseract | Decidir no gate da Fase 2. |
+
+## Registro: leitura de documentos (5.4.x)
+
+- **Fase 1** (texto do PDF e AcroForm): sem dependência nova; usa `pypdf`, `pypdfium2` e o conversor Word já distribuídos.
+- **OCR (Fase 2)**: Tesseract 5.5.3 com `tessdata_fast` foi medido (~0,7–1,1 s por página; instalador 25 MiB, idioma `por` 2 MB) e **não** foi incluído; a decisão exige este gate e aceite explícito. Windows OCR, RapidOCR, EasyOCR, PaddleOCR e serviços em nuvem foram comparados na ADR 0027 (nuvem descartada por violar o uso 100% local).

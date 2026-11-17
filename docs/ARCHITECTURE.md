@@ -1,9 +1,9 @@
 # Contracto — Arquitetura
 
-> Estado técnico atual (v5.3.0) e direção alvo (`DECISIONS.md §7`).
+> Estado técnico atual (v5.4.6) e direção alvo (`DECISIONS.md §7`).
 > Complexidade só entra com problema concreto que a justifique.
 
-## Estado atual (v5.3.0) — shell Tauri + sidecar Python sobre API local loopback
+## Estado atual (v5.4.6) — shell Tauri + sidecar Python sobre API local loopback
 
 A UI é WebView2 desde a v4.5.18 e a interface Tk foi **removida na v5.0.0** (ADR 0028).
 A produção roda no **shell Tauri** (`src-tauri/`, ADR 0031): o Rust abre a janela com `frontend/`,
@@ -17,12 +17,15 @@ app/sidecar.py          → backend headless para o Tauri (handshake + canal de 
 app/version.py          → fonte única (__version__, espelho em VERSION)
 frontend/                → UI de produção (HTML/CSS/JS sem bundler): index.html, css/,
                           js/ (api.js = único ponto que conhece o shell; etapa1/perfis/
-                          conferencia/calendario/etapa2/conversao/ui/app/form-state)
+                          conferencia/calendario/etapa2/conversao/ui/app/form-state,
+                          leitura (documentos do cliente + roteador de arrasto), paginacao,
+                          municipios, padroes, endereco, ajuda)
 app/services/           → puros, sem UI: generator, pdf_service (AcroForm),
                           pdfa_converter (Ghostscript -dSAFER), rtf_converter
                           (Word COM + aviso com prazo), stage2_service, queue_manager,
                           profile_composer, mapping_engine/audit, field_calculator,
-                          geometria_formulario, system_repair
+                          geometria_formulario, system_repair, pdf_extraction
+                          (leitura de PDFs: candidatos, contratos por pessoa, propostas por campo)
 app/utils/              → cpf/cnpj/pis/document/date/filename/profile/config/
                           resource_path/caminhos/json_storage/logger (PII mascarado,
                           rotação)/backup/files(+files_fs puro)/instancia_unica
@@ -108,3 +111,10 @@ mantêm delegadores finos de compatibilidade.
 - `rtf_converter` segue **Windows-only com Word** (decisão registrada);
   fallback LibreOffice documentado como evolução, não implementado.
 - Versionamento: `app/version.py` + espelho `VERSION` + tags `vX.Y.Z`.
+
+## Rotas da leitura de documentos (5.4.x)
+
+- `POST /api/v1/jobs/intake` — recebe seleções `convert` (PDF/RTF/DOC/DOCX), converte para PDF numa pasta privada da sessão e devolve um job com os `file_id` dos PDFs.
+- `POST /api/v1/extract` — `file_ids` (PDFs do intake) e `profile_ids`; devolve, por arquivo, propostas por campo para o papel `participante` e para o `compartilhado`. Síncrono, sem gravar nada; valores não vão para log.
+- `POST /api/v1/jobs/generate` aceita `ignorar_pendencias` (só perfis simples; nome, CPF, data, local e pasta continuam obrigatórios).
+- Configurações novas em `contracto_config.json`: `municipios_itbi`, `municipios_itbi_padrao`, `padroes_leitura`.

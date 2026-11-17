@@ -45,7 +45,10 @@ def _unir_campo(atual: CampoEntrada, novo: CampoEntrada) -> str | None:
     if atual.escopo != novo.escopo:
         return "é usado uma vez em um perfil e por participante em outro"
     if atual.tipo != novo.tipo:
-        return f"usa os tipos {atual.tipo} e {novo.tipo}"
+        # Endereço em partes é um texto a mais: quem pede só texto recebe o texto completo montado.
+        if {atual.tipo, novo.tipo} != {"TEXTO", "ENDERECO"}:
+            return f"usa os tipos {atual.tipo} e {novo.tipo}"
+        atual.tipo = "ENDERECO"
 
     atual.obrigatorio = atual.obrigatorio or novo.obrigatorio
     atual.opcoes = list(dict.fromkeys([*atual.opcoes, *novo.opcoes]))

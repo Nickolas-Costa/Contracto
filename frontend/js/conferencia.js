@@ -4,7 +4,17 @@
   "use strict";
   const $ = id => document.getElementById(id);
 
-  function renderizar({ selected, catalog, fields, draft, maximum, agrupamento, nomeExibicao, form, values }) {
+  // Cada valor leva ao campo na Etapa 1 (participante nulo = campo compartilhado).
+  function mostrarValor(dd, texto, rotulo, participante, id, irParaCampo) {
+    if (!irParaCampo) { dd.textContent = texto; return; }
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "conf-valor"; b.textContent = texto;
+    b.setAttribute("aria-label", "Editar " + rotulo + " (valor atual: " + texto + ")");
+    b.addEventListener("click", () => irParaCampo(participante, id));
+    dd.append(b);
+  }
+
+  function renderizar({ selected, catalog, fields, draft, maximum, agrupamento, nomeExibicao, form, values, irParaCampo, pendencias }) {
     const container = $("corpo-conferencia");
     if (container) {
       container.replaceChildren();
@@ -22,19 +32,26 @@
       const hDest = document.createElement("h3"); hDest.textContent = "Assinatura e destino";
       const dl = document.createElement("dl");
       dl.className = "conf-grid";
-      [["Data da assinatura", draft.globals.data_assinatura || "—"],
-       ["Local da assinatura", draft.globals.local_assinatura || "—"],
+      [["Data da assinatura", draft.globals.data_assinatura || "—", "data_assinatura"],
+       ["Local da assinatura", draft.globals.local_assinatura || "—", "local_assinatura"],
        ["Salvar em", $("pasta-saida")?.value || "—"],
        ["Participantes", draft.people.length + " de " + maximum]
-      ].forEach(([rot, val]) => {
+      ].forEach(([rot, val, alvo]) => {
         const wrap = document.createElement("div"); wrap.className = "conf-item";
         const dt = document.createElement("dt"); dt.textContent = rot;
-        const dd = document.createElement("dd"); dd.textContent = val;
+        const dd = document.createElement("dd");
+        if (alvo) mostrarValor(dd, val, rot, null, alvo, irParaCampo); else dd.textContent = val;
         wrap.append(dt, dd); dl.append(wrap);
       });
       destBox.append(hDest, dl);
       resumoTopo.append(modelosBox, destBox);
       container.appendChild(resumoTopo);
+      if (pendencias) {
+        const aviso = document.createElement("p");
+        aviso.className = "conf-aviso"; aviso.setAttribute("role", "status");
+        aviso.textContent = pendencias + " campo(s) sem preencher ou fora do formato: os documentos serão gerados assim, com esses campos em branco ou como digitados.";
+        container.appendChild(aviso);
+      }
 
       // Agrupa campos por página/seção.
       const porPagina = {};
@@ -43,14 +60,11 @@
         const chave = form().paginaDe ? form().paginaDe(f, agrupamento) : (f.aba || "Geral");
         (porPagina[chave] = porPagina[chave] || []).push(f);
       });
-      const HUMAN_CONF = (v) => {
-        if (v === true || v === "SIM") return "Sim";
-        if (v === false || v === "NÃO" || v === "NAO") return "Não";
+      const HUMAN_CONF = (v, campo) => {
+        if (v === true || String(v).toUpperCase() === "SIM") return "Sim";
+        if (v === false || ["NÃO", "NAO"].includes(String(v).toUpperCase())) return "Não";
         if (v === undefined || v === null || String(v).trim() === "") return "—";
-        const mapa = { "AUTORIZAR_OU_ALTERAR_DEBITO": "Autorizar ou alterar débito", "CANCELAR_DEBITO": "Cancelar débito", "DESCONHECO_POSSUIR": "Desconheço possuir", "DECLARO_POSSUIR": "Declaro possuir" };
-        if (mapa[v]) return mapa[v];
-        // SELECAO genérica: "APOSENTADO_OU_PENSIONISTA" → "Aposentado Ou Pensionista".
-        return String(v).replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()).trim() || "—";
+        return campo?.tipo === "SELECAO" ? form().rotuloOpcao(campo, v) : String(v);
       };
       // Valores calculados (preview do servidor) têm precedência sobre o rascunho.
       const valorConf = (owner, comp, id) => {
@@ -71,7 +85,7 @@
           if (val === undefined || String(val ?? "").trim() === "") return;
           const wrap=document.createElement("div"); wrap.className="conf-item";
           const dt=document.createElement("dt"); dt.textContent=(f.rotulo||id);
-          const dd=document.createElement("dd"); dd.textContent=HUMAN_CONF(val);
+          const dd=document.createElement("dd"); mostrarValor(dd, HUMAN_CONF(val, f), f.rotulo||id, null, id, irParaCampo);
           wrap.append(dt,dd); gridG.append(wrap);
         });
         if (gridG.children.length) { gBox.append(hG, gridG); container.appendChild(gBox); }
@@ -90,10 +104,11 @@
         let preenchidos = 2;
         const base = document.createElement("dl");
         base.className = "conf-grid";
-        [["Nome", p.nome_completo || "—"], ["CPF", p.cpf || "—"]].forEach(([rot, val]) => {
+        [["Nome", p.nome_completo || "—", "nome_completo"], ["CPF", p.cpf || "—", "cpf"]].forEach(([rot, val, alvo]) => {
           const wrap = document.createElement("div"); wrap.className = "conf-item";
           const dt = document.createElement("dt"); dt.textContent = rot;
-          const dd = document.createElement("dd"); dd.textContent = val;
+          const dd = document.createElement("dd");
+          mostrarValor(dd, val, rot, idx, alvo, irParaCampo);
           wrap.append(dt, dd); base.append(wrap);
         });
         const idSecao = document.createElement("div");
@@ -120,7 +135,7 @@
             const id = form().canonical(f.id);
             const wrap = document.createElement("div"); wrap.className = "conf-item";
             const dt = document.createElement("dt"); dt.textContent = (f.rotulo || id);
-            const dd = document.createElement("dd"); dd.textContent = HUMAN_CONF(valorConf(p, draft.computed && draft.computed[idx], id));
+            const dd = document.createElement("dd"); mostrarValor(dd, HUMAN_CONF(valorConf(p, draft.computed && draft.computed[idx], id), f), f.rotulo || id, idx, id, irParaCampo);
             wrap.append(dt, dd); grid.append(wrap);
           });
           secao.append(h, grid);

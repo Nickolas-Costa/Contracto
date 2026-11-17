@@ -3,6 +3,53 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.4.6] - 2026-11-08
+
+Digitação, perfis, Etapa 1 e leitura de documentos do cliente (acumula as versões de teste 5.4.0 a 5.4.5). Sem mudança no motor de geração.
+
+### Digitação
+- Máscaras mantêm o cursor ao corrigir no meio (valor, área, CPF/CNPJ, data, telefone, PIS); apagar um separador apaga o dígito vizinho e a máscara não recria mais o número.
+- Valor e área: o "." digitado vira vírgula decimal (só ao colar vale a notação "1234.5"); o 3º decimal continua descartado. Área passa a ter a mesma máscara do valor (antes ia crua ao PDF; "1.200" virava 1,2).
+- Telefone ganha só a máscara `(00) 00000-0000`, sem validação (também no servidor). INTEIRO e ANO aceitam só dígitos e respeitam mínimo/máximo na hora. PIS ganha máscara.
+- Valor e área: um dígito depois dos centavos cheios ("100,00" + 0) sobe a casa decimal ("1.000,00") em vez de ser ignorado.
+- Cálculo automático (ex.: Recursos Próprios do ITBI) usa a mesma regra do servidor: só `+`/`-`, sem negativo, `1.234,56` (antes aparecia `5000,5` até a prévia chegar).
+
+### Formulário (modo Simples)
+- **Páginas livres**: o formulário em páginas virou uma lista de abas; dá para ir a qualquer página sem preencher a anterior, e cada aba mostra quantos campos faltam nela (✓ quando nenhum).
+- **Gerar mesmo assim**: só nome, CPF, data, local e pasta travam a geração. O resto vira uma lista de pendências (clicável) com **Voltar e preencher** e **Gerar mesmo assim**; a Conferência avisa quantos campos seguem em branco. O servidor só aceita isso em perfis simples (`ignorar_pendencias`); o modo Contrato continua estrito.
+
+### Leitura de documentos (Simples e Contrato)
+- **Faixa de destaque no topo** da tela (fora dos quadros) explica a função e abre o modal **Leitura de documentos**; arrastar arquivos para a janela (shell Tauri) também abre. Aceita PDF, RTF, DOC e DOCX (até 20); RTF/DOC/DOCX viram PDF na hora, numa pasta privada apagada ao fechar; os originais não são tocados (`POST /api/v1/jobs/intake`).
+- O modal lê cada PDF (`POST /api/v1/extract`, ADR 0027 Fase 1, sem OCR) e mostra, ao lado do documento, os valores propostos para os campos do formulário: CPF, CNPJ, PIS, nascimento, e-mail, telefone, CEP, nome, endereço, matrícula e PDFs gerados pelo próprio Contracto (mapeamento inverso do AcroForm). Cada valor tem página e confiança, é editável, e quem troca algo já preenchido avisa "será substituído".
+- Só o que o usuário marca entra no formulário (com as máscaras da digitação); **Desfazer última leitura** restaura. Perfis podem fixar o significado do campo com `semantica` (ex.: `pessoa.cpf`, `imovel.matricula`); sem ela, o app deduz do id e do tipo.
+- **Padrões de contrato e cadastro**: nomes de comprador(es) e vendedor depois de "doravante denominado(s) DEVEDOR(ES):" / "VENDEDOR(ES):" (até a vírgula; o 2º proponente, ligado por " e ", vai para o 2º participante), endereço depois de "residente e domiciliado(a) em" (até o ponto, ignorando "nº." e "Av."), endereço em partes (CEP, logradouro, número, complemento, bairro, município, UF) montado num só e rótulos como "Nome Completo do Cliente:".
+- **Cadastro de Clientes** (formulário de impressão, renda formal e informal): lê CPF, nome completo (não confunde com pai, mãe ou "nome reduzido"), nascimento, sexo, naturalidade, nacionalidade, pai, mãe, escolaridade, RG (número, órgão, emissão), estado civil, PIS/NIS, ocupação, endereço em partes e município/UF, tipo e ocupação do imóvel, telefone, e-mail, fonte pagadora e CNPJ, admissão, renda bruta e líquida, atividade e início. CPF, PIS e telefone que não conferem vêm **com aviso e desmarcados**, em vez de sumir. Campos de seleção só recebem o que casa com as suas opções ("DIVORCIADO (A)" → "DIVORCIADO(A)"), e a situação ocupacional é deduzida da ocupação. O significado do campo vem de `semantica` no perfil ou das palavras do id/rótulo.
+- **Contrato com vários compradores** (modo Contrato): lê as cláusulas "A1 - VENDEDOR(ES)" e "A2 - COMPRADOR(ES)..." por pessoa (nome, nascimento, profissão, e-mail, CPF, CNH/RG), o que vale para o casal (estado civil, regime de bens, endereço), o CPF da página de assinaturas quando o da cláusula não confere, e a data e o local do contrato. O modal tem "Todos os compradores do documento", que preenche o participante 1, o 2 e assim por diante. A empresa vendedora não herda CPF nem CNH do representante.
+- **Participantes sem "e seu cônjuge"** (união estável, parentes, até 4 pessoas): cada pessoa do contrato é reconhecida pela assinatura "NOME EM MAIÚSCULAS, nacionalidade/brasileiro/nascido(a)...", venha depois de ponto final, de " e " ou de vírgula. Endereço, estado civil, regime, união estável (com a data) e data de casamento são lidos **por pessoa**; só "residentes e domiciliados" (plural) vale para todas, e o estado civil e o regime do cônjuge vêm do primeiro quando o texto diz "cônjuge" ou "companheiro(a)". Campos de marcar (SIM/NÃO) como "mantém união estável" também são propostos.
+- **Só compradores usam a denominação branda**: "NOME, qualificação" só cria participante dentro da cláusula dos compradores; no vendedor vale apenas " e NOME,", e a cláusula da credora (gerente da Caixa), o representante legal da empresa e nomes que começam com representante/procurador/gerente/diretor/sócio/administrador não viram participantes.
+- **RG**: o formulário de Isenção de Tributos já tinha o campo e passa a ser preenchido (número do RG do cadastro e do contrato; número de CNH vem com aviso "É o número da CNH, não de um RG").
+- **Padrões de leitura editáveis** (Configurações): o usuário cadastra "o dado X vem depois da frase Y e vai até Z" sem mexer em código (`padroes_leitura`).
+- Correções do modal: remover e incluir outro arquivo não deixa mais o visualizador nem os valores do anterior; sem texto de "nível de confiança"; a área de soltar preenche o modal vazio.
+- O arrasto nativo passa por `window.ContractoArrasto`, que entrega à Conversão ou à Leitura conforme a tela aberta.
+- A Ajuda foi separada em `ajuda.js`, com a aba "Documentos do cliente" e textos sobre páginas e pendências.
+
+### Conferência
+- Cada valor da Conferência (nome, CPF, campos, data e local) é um atalho: abre a Etapa 1 na página do campo, com foco e destaque; "Gerar documentos" volta à Conferência (ADR 0030, passo 1). O atalho agora alcança campos de qualquer página (antes, e-mail e telefone do ITBI levavam sempre à última).
+
+### Correções
+- Caixa de seleção com padrão "Sim"/"Não" (ITBI: Enquadramento na isenção) aparecia desmarcada enquanto o documento saía como "SIM".
+- **Limpar dados** deixava os campos compartilhados (ITBI) e o conteúdo de data/local/pasta na tela. "Novo trabalho → preservar" agora mantém só data, local e destino.
+- O app reabre no último modo usado (Simples, Contrato ou Conversão).
+- Perfis com chaves desconhecidas (de versão mais nova) não são mais descartados em silêncio, o que apagaria os perfis do usuário no próximo salvamento; duplicar perfil não perde mais atributos dos campos.
+
+### Perfis
+- **Municípios do ITBI** (Configurações): cada município tem prefeitura, comarca e texto da isenção (a lei é municipal). No formulário do ITBI, escolher a prefeitura preenche a comarca e o texto; o texto sai no PDF no lugar do trecho fixo. Na primeira execução o app pergunta o local padrão e o município.
+- **Endereço completo ou detalhado** (tipo `ENDERECO`): um texto só ou tipo de logradouro, logradouro, nº, complemento, bairro, cidade, UF e CEP; o texto completo é montado das partes (`Rua X, 12, bairro, Cidade-UF, CEP`) e as partes seguem como `<campo>_logradouro`, `<campo>_cep`... para PDFs com campos separados. Usado no endereço do comprador e do imóvel (ITBI) e do imóvel do MO 29300; combina com perfis que pedem só texto.
+- MO 29300: campos do PDF reposicionados para não cobrir o texto fixo (CPF/PIS, anos/meses de residência, datas), com fonte fixa em vez de automática. `scripts/sugerir_geometria.py` gera a proposta a partir do texto de cada linha.
+- `rotulos_opcoes` (texto exibido por opção) e `largura` (`terco`/`meia`/`cheia`) por campo; correções de perfil podem inserir campos novos (`novos_campos`), inclusive em instalações novas.
+- MO 29300: opções com acento e legíveis, três campos por linha onde cabem; profissão passa a campo de uma linha.
+- ITBI: novo campo **Prefeitura (município)**, com campo AcroForm `PREFEITURA` no modelo (substitui o texto fixo "CAMOCIM-CE"); áreas e fração ideal com fonte maior; valores em três colunas; ofício do cartório só números.
+
 ## [5.3.0] - 2026-11-02
 
 O aplicativo passa a rodar no shell **Tauri** (ADR 0029 e 0031), com instalador NSIS no lugar do Inno Setup. Acumula tudo desde a 5.1.0 (a 5.2.0 só circulou como teste). Sem mudança no motor de geração nem nos dados.

@@ -18,6 +18,13 @@
 - Configurações de tema, diretórios e `formularios_basicos_selecionados`.
 - Logs operacionais locais (sem PII além do necessário ao diagnóstico).
 
+## 2.1 Leitura de documentos do cliente
+
+- Os PDFs/RTF/DOC/DOCX anexados são lidos **localmente** (texto do PDF; sem OCR, sem IA em nuvem, sem envio).
+- RTF, DOC e DOCX viram PDF numa pasta temporária privada da sessão, **apagada ao fechar o aplicativo**; os originais não são alterados.
+- Os valores lidos ficam só em memória, não vão para log nem para mensagens de erro, e só entram no formulário depois da confirmação do usuário.
+- Padrões de leitura, municípios do ITBI e local padrão ficam em `contracto_config.json`.
+
 ## 3. Apagar seus dados
 
 - Para remover tudo: apague `%APPDATA%/Contracto/` e os PDFs gerados.

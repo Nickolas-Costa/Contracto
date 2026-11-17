@@ -567,6 +567,7 @@
     const requestId = novoRequestId();
     const payload = { profile_ids: snapshot.profile_ids, participants: snapshot.participants, output_id: snapshot.output_id, request_id: requestId };
     if (Array.isArray(snapshot.forms_selecionados) && snapshot.forms_selecionados.length) payload.forms_selecionados = snapshot.forms_selecionados;
+    if (snapshot.ignorar_pendencias) payload.ignorar_pendencias = true;
     const era = eraEnvio;
     sending = true; busy = true; atualizar();
     return api().request("POST", "/api/v1/jobs/generate", payload).then(r => {

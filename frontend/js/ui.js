@@ -123,7 +123,7 @@
     document.getElementById("overlay").hidden = true;
     document.getElementById("app").inert = false;
     document.getElementById("modal-corpo").replaceChildren();
-    document.querySelector(".modal")?.classList.remove("modal-viewer", "modal-viewer-expandido");
+    document.querySelector(".modal")?.classList.remove("modal-viewer", "modal-viewer-expandido", "modal-leitura");
     if (aoFechar) { aoFechar(); aoFechar = null; }
     if (ultimoFoco && document.contains(ultimoFoco)) ultimoFoco.focus();
     ultimoFoco = null;
@@ -278,86 +278,8 @@
 
   document.addEventListener("DOMContentLoaded", sincronizarStepper);
 
-  // Guia em abas: passo a passo por modo, dicas/atalhos e problemas comuns.
-  const GUIA = {
-    "Passo a passo": [
-      ["Escolha o modo", "Simples gera vários formulários de uma vez; Contrato monta o processo completo (1 contrato + formulários); Conversão transforma arquivos avulsos em PDF."],
-      ["Selecione o modelo e preencha", "Informe os dados de cada participante. Campos com * são obrigatórios; o botão Gerar libera quando nada estiver pendente."],
-      ["Defina assinatura e pasta", "Data, local e a pasta onde os documentos serão salvos. Cada trabalho cria a sua própria subpasta."],
-      ["Confira o resumo (Etapa 2)", "Revise participantes, campos e modelos. Anexe documentos extras (PDF ou RTF) se o processo pedir."],
-      ["Conclua (Etapa 3)", "Veja os PDFs gerados, escolha PDF ou PDF/A-2b e use Finalizar processo. Os originais nunca são alterados."]
-    ],
-    "Dicas e atalhos": [
-      ["F1", "Abre este guia em qualquer tela."],
-      ["Esc", "Fecha diálogos e avisos."],
-      ["Tab / Shift+Tab", "Percorre campos e botões; Enter ou Espaço aciona."],
-      ["Perfis", "Guarde modelos prontos (campos e formatos) e reutilize em novos trabalhos; faça backup em Configurações."],
-      ["Configurações", "Tema claro/escuro, cor de destaque, largura dos quadros e formato de saída padrão."]
-    ],
-    "Problemas comuns": [
-      ["Botão Gerar desativado", "Há campos pendentes ou nenhum modelo selecionado. Use Revisar campos pendentes para ir direto a cada um."],
-      ["PDF/A indisponível", "Exige o Ghostscript no computador. Sem ele, use PDF simples."],
-      ["RTF/DOC não converte", "A conversão depende do Microsoft Word instalado."],
-      ["Serviço local indisponível", "Feche e abra o Contracto. Se persistir, rode Diagnóstico e reparo em Configurações."]
-    ]
-  };
-  function ajudaModal() {
-    const wrap = document.createElement("div");
-    wrap.className = "guia";
-    const abas = document.createElement("div");
-    abas.className = "guia-abas";
-    abas.setAttribute("role", "tablist");
-    const painel = document.createElement("div");
-    painel.className = "guia-painel";
-    painel.setAttribute("role", "tabpanel");
-    const botoes = [];
-    function mostrar(nome) {
-      botoes.forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === nome)));
-      const itens = GUIA[nome];
-      const atalhos = nome === "Dicas e atalhos";
-      const novo = document.createElement(atalhos ? "dl" : "div");
-      if (atalhos) novo.className = "guia-lista";
-      itens.forEach(([t, d], i) => {
-        if (atalhos) {
-          const dt = document.createElement("dt"), dd = document.createElement("dd");
-          const k = document.createElement(i < 3 ? "kbd" : "strong"); k.textContent = t; dt.append(k); dd.textContent = d;
-          novo.append(dt, dd);
-          return;
-        }
-        const passo = document.createElement("div"); passo.className = "guia-passo";
-        const n = document.createElement("span"); n.className = "guia-num"; n.setAttribute("aria-hidden", "true"); n.textContent = nome === "Passo a passo" ? String(i + 1) : "?";
-        const corpo = document.createElement("div"), st = document.createElement("strong"), p = document.createElement("p");
-        st.textContent = t; p.textContent = d; corpo.append(st, p); passo.append(n, corpo); novo.append(passo);
-      });
-      painel.replaceChildren(novo);
-    }
-    Object.keys(GUIA).forEach(nome => {
-      const b = document.createElement("button");
-      b.type = "button"; b.dataset.aba = nome; b.textContent = nome; b.setAttribute("role", "tab");
-      b.addEventListener("click", () => mostrar(nome));
-      botoes.push(b); abas.append(b);
-    });
-    wrap.append(abas, painel);
-    mostrar("Passo a passo");
-    // Foto 6: a seção Sobre saiu da Config; a versão vive aqui.
-    const versao = document.createElement("p");
-    versao.className = "hint";
-    versao.id = "versao-app";
-    versao.textContent = "Consultando versão…";
-    wrap.append(versao);
-    abrirModal("Ajuda — Guia do Contracto", wrap, [{ texto: "Fazer tour guiado", aoClicar: () => window.ContractoTour?.iniciar() }, { texto: "Entendi, começar!", primario: true }]);
-    if (window.ContractoAPI) {
-      window.ContractoAPI.request("GET", "/api/v1/health").then(r => {
-        const el = document.getElementById("versao-app");
-        if (!el) return;
-        if (r.status === 200 && r.data && r.data.version) {
-          el.textContent = "Contracto v" + r.data.version + " — 100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
-        } else {
-          el.textContent = "100% local, sem telemetria. Termos de Uso, Privacidade e Avisos de Terceiros acompanham o aplicativo em docs/.";
-        }
-      }).catch(() => {});
-    }
-  }
+  // O guia de ajuda mora em ajuda.js (para ser refeito sem mexer aqui).
+  function ajudaModal() { window.ContractoAjuda?.abrir(); }
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "F1" && document.getElementById("overlay").hidden) { ev.preventDefault(); ajudaModal(); }
   });
@@ -365,8 +287,9 @@
     try {
       const r = await window.ContractoAPI.getSettings();
       if (r.status === 200 && r.data && r.data.primeira_execucao) {
-        ajudaModal();
-        await window.ContractoAPI.updateSettings({ primeira_execucao: false });
+        // Pergunta local e município (lei de isenção do ITBI); só depois mostra o guia.
+        if (window.ContractoMunicipios) window.ContractoMunicipios.configuracaoInicial(r.data, ajudaModal);
+        else { ajudaModal(); await window.ContractoAPI.updateSettings({ primeira_execucao: false }); }
       }
     } catch (_) { /* sem ponte: não bloqueia o arranque */ }
   }
@@ -575,6 +498,8 @@
           if (tam && typeof r.data.tamanho_quadros === "string") tam.value = r.data.tamanho_quadros;
           const fmt = document.getElementById("cfg-formato");
           if (fmt && typeof r.data.formato_saida === "string") fmt.value = r.data.formato_saida;
+          window.ContractoMunicipios?.montar(document.getElementById("cfg-municipios"), r.data.municipios_itbi, r.data.municipios_itbi_padrao);
+          window.ContractoPadroes?.montar(document.getElementById("cfg-padroes"), r.data.padroes_leitura);
           aplicarLargura(r.data.tamanho_quadros);
         }
       } catch (_) { /* mantém o que está digitado */ }
@@ -607,6 +532,9 @@
       };
       if (tam && tam.value) payload.tamanho_quadros = tam.value;
       if (fmt && fmt.value) payload.formato_saida = fmt.value;
+      const mun = window.ContractoMunicipios?.ler(document.getElementById("cfg-municipios"));
+      if (mun) { payload.municipios_itbi = mun.municipios; payload.municipios_itbi_padrao = mun.padrao; }
+      if (window.ContractoPadroes) payload.padroes_leitura = window.ContractoPadroes.ler(document.getElementById("cfg-padroes"));
       aplicarLargura(tam && tam.value);
       const r = await window.ContractoAPI.updateSettings(payload);
       if (r.status !== 200) toast("Tema e cor salvos; preferências do computador não foram persistidas.", "warning");
@@ -693,6 +621,16 @@
     if (restaurar && !restaurar.dataset.ligado) {
       restaurar.dataset.ligado = "1";
       restaurar.addEventListener("click", cfgRestaurar);
+    }
+    const addMun = document.getElementById("btn-cfg-municipio-add");
+    if (addMun && !addMun.dataset.ligado) {
+      addMun.dataset.ligado = "1";
+      addMun.addEventListener("click", () => window.ContractoMunicipios?.adicionar(document.getElementById("cfg-municipios")));
+    }
+    const addPadrao = document.getElementById("btn-cfg-padrao-add");
+    if (addPadrao && !addPadrao.dataset.ligado) {
+      addPadrao.dataset.ligado = "1";
+      addPadrao.addEventListener("click", () => window.ContractoPadroes?.adicionar(document.getElementById("cfg-padroes")));
     }
     const reparo = document.getElementById("btn-cfg-reparo");
     if (reparo && !reparo.dataset.ligado) {

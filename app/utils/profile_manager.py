@@ -12,7 +12,7 @@ from __future__ import annotations
 import copy
 import json
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Optional
 
@@ -49,8 +49,12 @@ class DocumentoExtra:
 TIPOS_CAMPO_ENTRADA = [
     "TEXTO", "TEXTO_LONGO", "CPF", "CNPJ", "CPF_CNPJ", "PIS_PASEP",
     "DATA", "MOEDA", "AREA", "INTEIRO", "ANO", "TELEFONE", "EMAIL",
-    "SELECAO", "CHECKBOX",
+    "SELECAO", "CHECKBOX", "ENDERECO",
 ]
+
+
+# Partes de um campo ENDERECO; seguem como <id>_<parte> para PDFs com campos separados.
+PARTES_ENDERECO = ("tipo", "logradouro", "numero", "complemento", "bairro", "cidade", "uf", "cep")
 
 
 def ordenar_campos_para_exibicao(campos: list["CampoEntrada"]) -> list["CampoEntrada"]:
@@ -100,7 +104,16 @@ class CampoEntrada:
     ate_participante: int | None = None
     # Apresentação sugerida para a Etapa 1: "select" (dropdown) ou "checkbox".
     apresentacao: str = "select"
-    # Flag de perfil: quando True, SELECAO renderiza como grupo de checkboxes.
+    # Texto exibido por valor de SELECAO (o valor salvo continua sendo o código).
+    rotulos_opcoes: dict[str, str] = field(default_factory=dict)
+    # Largura na grade da Etapa 1: "" (metade), "terco" ou "cheia".
+    largura: str = ""
+    # Campo de texto com sugestões vindas das Configurações (ex.: "municipios_itbi"); ao escolher uma,
+    # `preenche` copia chaves do item para outros campos ({id_do_campo: chave_do_item}).
+    fonte_opcoes: str = ""
+    preenche: dict[str, str] = field(default_factory=dict)
+    # O que o campo representa para a leitura de documentos (ex.: "pessoa.cpf", "imovel.matricula"); vazio = deduzido do id/tipo.
+    semantica: str = ""
 
     def __post_init__(self) -> None:
         if self.tipo:
@@ -175,14 +188,19 @@ def invalidar_cache() -> None:
     _perfis_cache = None
 
 
+def _so_campos(classe, dados: dict) -> dict:
+    """Ignora chaves que esta versão não conhece (perfil salvo por versão mais nova)."""
+    nomes = {f.name for f in fields(classe)}
+    return {k: v for k, v in dados.items() if k in nomes}
+
+
 def _perfil_de_dict(dados: dict) -> Perfil:
     """Monta um perfil salvo em JSON."""
     item = copy.deepcopy(dados)
-    item.pop("schema", None)
-    item["formularios"] = [FormularioModelo(**formulario) for formulario in item.get("formularios", [])]
-    item["documentos_extras"] = [DocumentoExtra(**documento) for documento in item.get("documentos_extras", [])]
-    item["campos_entrada"] = [CampoEntrada(**campo) for campo in item.get("campos_entrada", [])]
-    return Perfil(**item)
+    item["formularios"] = [FormularioModelo(**_so_campos(FormularioModelo, f)) for f in item.get("formularios", [])]
+    item["documentos_extras"] = [DocumentoExtra(**_so_campos(DocumentoExtra, d)) for d in item.get("documentos_extras", [])]
+    item["campos_entrada"] = [CampoEntrada(**_so_campos(CampoEntrada, c)) for c in item.get("campos_entrada", [])]
+    return Perfil(**_so_campos(Perfil, item))
 
 
 def _carregar_perfis_iniciais() -> list[dict]:
@@ -209,6 +227,28 @@ def _carregar_perfis_iniciais() -> list[dict]:
     return resultado
 
 
+def _aplicar_correcoes(perfil: Perfil, correcoes: list[dict]) -> None:
+    """Ajusta campos de perfis já gravados; cada correção (por chave) roda uma única vez."""
+    for correcao in correcoes:
+        chave = str(correcao.get("chave", "")).strip()
+        if not chave or chave in perfil.correcoes_aplicadas:
+            continue
+        ajustes = correcao.get("campos", {}) or {}
+        # Campo novo entra depois de `depois_de` (ou no fim) se o perfil ainda não o tem.
+        for novo in correcao.get("novos_campos", []) or []:
+            campo_novo = CampoEntrada(**_so_campos(CampoEntrada, novo["campo"]))
+            if any(c.id == campo_novo.id for c in perfil.campos_entrada):
+                continue
+            ids = [c.id for c in perfil.campos_entrada]
+            posicao = ids.index(novo["depois_de"]) + 1 if novo.get("depois_de") in ids else len(ids)
+            perfil.campos_entrada.insert(posicao, campo_novo)
+        for campo in perfil.campos_entrada:
+            for atributo, valor in (ajustes.get(campo.id, {}) or {}).items():
+                if hasattr(campo, atributo):
+                    setattr(campo, atributo, copy.deepcopy(valor))
+        perfil.correcoes_aplicadas.append(chave)
+
+
 def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
     """Carrega todos os perfis do disco (ou do cache em memória). Sempre inclui os perfis padrão."""
     global _perfis_cache
@@ -226,7 +266,6 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                 dados = json.load(f)
             for item in dados:
                 # Campo antigo, mantido apenas para aceitar configurações já salvas.
-                item.pop("schema", None)
                 campos_definidos = "campos_entrada" in item
                 documentos_definidos = "documentos_extras" in item
                 maximo_definido = "max_participantes" in item
@@ -246,11 +285,11 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     item["formularios"] = []
 
                 item["documentos_extras"] = [
-                    DocumentoExtra(**documento) for documento in item.get("documentos_extras", [])
+                    DocumentoExtra(**_so_campos(DocumentoExtra, d)) for d in item.get("documentos_extras", [])
                 ]
 
                 if "campos_entrada" in item:
-                    item["campos_entrada"] = [CampoEntrada(**c) for c in item["campos_entrada"]]
+                    item["campos_entrada"] = [CampoEntrada(**_so_campos(CampoEntrada, c)) for c in item["campos_entrada"]]
                 else:
                     item["campos_entrada"] = []
 
@@ -258,7 +297,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                     item["max_participantes"] = 4
                         
                 paginacao_definida = "usar_paginacao" in item
-                perfil_carregado = Perfil(**item)
+                perfil_carregado = Perfil(**_so_campos(Perfil, item))
                 setattr(perfil_carregado, "_paginacao_definida", paginacao_definida)
                 setattr(perfil_carregado, "_campos_definidos", campos_definidos)
                 setattr(perfil_carregado, "_documentos_definidos", documentos_definidos)
@@ -285,10 +324,12 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
             None,
         )
         if existente is None:
+            _aplicar_correcoes(inicial, entrada["correcoes"])
             perfis.append(inicial)
             continue
         if not existente.identificador and entrada["substituir_sem_identificador"]:
             indice = perfis.index(existente)
+            _aplicar_correcoes(inicial, entrada["correcoes"])
             perfis[indice] = inicial
             continue
         existente.identificador = inicial.identificador
@@ -410,16 +451,7 @@ def carregar_perfis(forcar_disco: bool = False) -> list[Perfil]:
                             formulario_existente.mapeamento.pop(chave, None)
                     formulario_existente.mapeamento.pop("valor_total_saque_fgts", None)
 
-        for correcao in entrada.get("correcoes", []):
-            chave = str(correcao.get("chave", "")).strip()
-            if not chave or chave in existente.correcoes_aplicadas:
-                continue
-            ajustes = correcao.get("campos", {}) or {}
-            for campo in existente.campos_entrada:
-                for atributo, valor in (ajustes.get(campo.id, {}) or {}).items():
-                    if hasattr(campo, atributo):
-                        setattr(campo, atributo, copy.deepcopy(valor))
-            existente.correcoes_aplicadas.append(chave)
+        _aplicar_correcoes(existente, entrada["correcoes"])
 
     perfis.sort(key=lambda perfil: (getattr(perfil, "ordem", 100), perfil.nome.casefold()))
     _perfis_cache = perfis
@@ -614,28 +646,7 @@ def duplicar_perfil(nome_origem: str, novo_nome: str | None = None) -> Perfil:
         )
         for f in origem.formularios
     ]
-    novos_campos = [
-        CampoEntrada(
-            id=c.id,
-            rotulo=c.rotulo,
-            tipo=c.tipo,
-            obrigatorio=c.obrigatorio,
-            placeholder=c.placeholder,
-            escopo=c.escopo,
-            opcoes=list(c.opcoes),
-            valor_padrao=c.valor_padrao,
-            icone=c.icone,
-            aba=c.aba,
-            ajuda=c.ajuda,
-            minimo=c.minimo,
-            maximo=c.maximo,
-            visivel_quando=[dict(condicao) for condicao in c.visivel_quando],
-            limpar_quando_oculto=c.limpar_quando_oculto,
-            calculo=c.calculo,
-            ate_participante=c.ate_participante,
-        )
-        for c in origem.campos_entrada
-    ]
+    novos_campos = copy.deepcopy(origem.campos_entrada)
 
     novos_extras = [
         DocumentoExtra(rotulo=d.rotulo, nome_padrao=d.nome_padrao)

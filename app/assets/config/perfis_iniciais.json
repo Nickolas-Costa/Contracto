@@ -37,6 +37,7 @@
         "valor_padrao": "00,00"
       },
       "FRACAO_IDEAL": "global.fracao_ideal",
+      "PREFEITURA": "global.prefeitura",
       "COMPRADOR_NOME": "participante.nome_completo",
       "COMPRADOR_CPF": "participante.cpf_formatado",
       "COMPRADOR_ENDERECO": "participante.endereco",
@@ -63,12 +64,8 @@
       "MES": "data.mes",
       "ANO": "data.ano",
       "TEXTO_ISENCAO": {
-        "constante": "            Conforme  Lei  Municipal  nº  1648/2023,  de  29  de dezembro de 2023,  bem  como  a  Lei  Federal  nº 14620/2023. Declaro que cumpro os requisitos para ser contemplado com os benefícios da Lei supracitada.",
-        "condicoes": [
-          {
-            "global.enquadramento_isencao": ["SIM", ""]
-          }
-        ],
+        "origem": "global.texto_isencao",
+        "condicoes": [{"global.enquadramento_isencao": ["SIM", ""]}],
         "valor_falso": ""
       }
     },
@@ -1405,6 +1402,104 @@
               "limpar_quando_oculto": true
             }
           }
+        },
+        {
+          "chave": "rotulos_e_layout_5_4",
+          "campos": {
+            "estadoCivil": {
+              "rotulos_opcoes": {
+                "SOLTEIRO(A)": "Solteiro(a)",
+                "DIVORCIADO(A)": "Divorciado(a)",
+                "SEPARADO(A) JUDICIALMENTE": "Separado(a) judicialmente",
+                "VIÚVO(A)": "Viúvo(a)",
+                "CASADO(A)": "Casado(a)"
+              },
+              "largura": "terco"
+            },
+            "regimeCasamento": {
+              "rotulos_opcoes": {
+                "COMUNHÃO TOTAL DE BENS": "Comunhão total de bens",
+                "SEPARAÇÃO DE BENS": "Separação de bens",
+                "COMUNHÃO PARCIAL DE BENS": "Comunhão parcial de bens"
+              }
+            },
+            "situacaoOcupacional": {
+              "rotulos_opcoes": {
+                "ATIVO": "Ativo",
+                "DESEMPREGADO": "Desempregado",
+                "APOSENTADO_OU_PENSIONISTA": "Aposentado ou pensionista"
+              }
+            },
+            "situacaoImpostoRenda": {
+              "rotulos_opcoes": {
+                "ISENTO": "Isento",
+                "DECLARACAO_ENTREGUE": "Declaração entregue"
+              },
+              "largura": "terco"
+            },
+            "usufruto": {
+              "rotulos_opcoes": {
+                "NAO_SOU_USUFRUTUARIO": "Não sou usufrutuário",
+                "RENUNCIEI_AO_USUFRUTO": "Renunciei ao usufruto"
+              }
+            },
+            "modalidade": {
+              "rotulos_opcoes": {
+                "AQUISICAO_IMOVEL_CONCLUIDO": "Aquisição de imóvel concluído",
+                "AQUISICAO_IMOVEL_EM_CONSTRUCAO": "Aquisição de imóvel em construção",
+                "AQUISICAO_TERRENO_E_CONSTRUCAO": "Aquisição de terreno e construção",
+                "CONSTRUCAO_EM_TERRENO_PROPRIO": "Construção em terreno próprio",
+                "CCFGTS_REFORMA_OU_AMPLIACAO": "CC FGTS – reforma ou ampliação",
+                "CCFGTS_CONCLUSAO": "CC FGTS – conclusão",
+                "CCFGTS_MATERIAL_DE_CONSTRUCAO": "CC FGTS – material de construção"
+              }
+            },
+            "enquadramento": {
+              "rotulos_opcoes": {
+                "AQUISICAO_OU_CONSTRUCAO_A_VISTA": "Aquisição ou construção à vista",
+                "CCFGTS_PMCMV_OU_OPERACOES_ESPECIAIS": "CC FGTS – PMCMV ou operações especiais",
+                "PRO_COTISTA": "Pró-Cotista",
+                "SBPE_COM_USO_DO_FGTS": "SBPE com uso do FGTS",
+                "SBPE_CONJUGE_OU_COMPANHEIRO": "SBPE – cônjuge ou companheiro",
+                "AQUISICAO_MATERIAL_CONSTRUCAO_AMC": "Aquisição de material de construção (AMC)"
+              }
+            },
+            "dataNascimento": {
+              "largura": "terco"
+            },
+            "pisPasep": {
+              "largura": "terco"
+            },
+            "irAnoBase": {
+              "largura": "terco"
+            },
+            "irExercicio": {
+              "largura": "terco"
+            },
+            "tempoResidenciaAnos": {
+              "largura": "terco"
+            },
+            "tempoResidenciaMeses": {
+              "largura": "terco"
+            },
+            "possuiImovel": {
+              "largura": "terco"
+            },
+            "municipioUfResidencia": {
+              "largura": "cheia"
+            },
+            "profissaoMaiorRendimento": {
+              "tipo": "TEXTO"
+            }
+          }
+        },
+        {
+          "chave": "endereco_detalhado_5_4",
+          "campos": {
+            "enderecoImovelFinanciado": {
+              "tipo": "ENDERECO"
+            }
+          }
         }
       ]
     },
@@ -1949,7 +2044,121 @@
           "Valores da Operação": "Valores da Operação"
         }
       },
-      "modelos": ["modelo_06"]
+      "modelos": ["modelo_06"],
+      "correcoes": [
+        {
+          "chave": "prefeitura_e_layout_5_4",
+          "campos": {
+            "matricula": {
+              "largura": "terco"
+            },
+            "cartorio_oficio": {
+              "largura": "terco",
+              "tipo": "INTEIRO"
+            },
+            "cartorio_local": {
+              "largura": "terco"
+            },
+            "iptu": {},
+            "area_terreno": {
+              "largura": "terco"
+            },
+            "area_construida": {
+              "largura": "terco"
+            },
+            "fracao_ideal": {
+              "largura": "terco"
+            },
+            "endereco_imovel": {
+              "largura": "cheia"
+            },
+            "valor_compra": {
+              "largura": "terco"
+            },
+            "valor_avaliacao": {
+              "largura": "terco"
+            },
+            "valor_financiado": {
+              "largura": "terco"
+            },
+            "valor_subsidio": {
+              "largura": "terco"
+            },
+            "valor_fgts": {
+              "largura": "terco"
+            },
+            "valor_recursos": {
+              "largura": "terco"
+            }
+          },
+          "novos_campos": [
+            {
+              "depois_de": "cartorio_local",
+              "campo": {
+                "id": "prefeitura",
+                "rotulo": "Prefeitura (município)",
+                "tipo": "TEXTO",
+                "placeholder": "Ex: CAMOCIM-CE",
+                "escopo": "global",
+                "valor_padrao": "CAMOCIM-CE",
+                "icone": "location",
+                "aba": "Dados do Imóvel e Cartório",
+                "ajuda": "Município da Prefeitura que receberá a declaração."
+              }
+            }
+          ]
+        },
+        {
+          "chave": "municipios_itbi_5_4",
+          "campos": {
+            "prefeitura": {
+              "rotulo": "Prefeitura (município)",
+              "fonte_opcoes": "municipios_itbi",
+              "preenche": {
+                "cartorio_local": "comarca",
+                "texto_isencao": "texto_isencao"
+              },
+              "largura": "meia",
+              "ajuda": "Escolha um município cadastrado em Configurações para preencher comarca e texto da isenção."
+            }
+          },
+          "novos_campos": [
+            {
+              "depois_de": "enquadramento_isencao",
+              "campo": {
+                "id": "texto_isencao",
+                "rotulo": "Texto da isenção (lei do município)",
+                "tipo": "TEXTO_LONGO",
+                "obrigatorio": false,
+                "escopo": "global",
+                "icone": "form",
+                "aba": "Dados do Imóvel e Cartório",
+                "largura": "cheia",
+                "visivel_quando": [
+                  {
+                    "enquadramento_isencao": [
+                      "SIM"
+                    ]
+                  }
+                ],
+                "limpar_quando_oculto": false,
+                "ajuda": "Sai no PDF quando há enquadramento na isenção. Cadastre as leis de cada município em Configurações."
+              }
+            }
+          ]
+        },
+        {
+          "chave": "endereco_detalhado_5_4",
+          "campos": {
+            "endereco": {
+              "tipo": "ENDERECO"
+            },
+            "endereco_imovel": {
+              "tipo": "ENDERECO"
+            }
+          }
+        }
+      ]
     },
     {
       "perfil": {

@@ -1,6 +1,6 @@
 # ADR 0030 — Conferência editável
 
-- **Estado:** futura (registrada para a próxima rodada; **sem implementação**)
+- **Estado:** passo 1 (atalho para o campo) implementado na 5.4.0; edição em modal/inline e lista de vazios seguem futuras
 - **Data:** 2026-10-28
 - **Contexto:** a Conferência (Etapa 2) é somente leitura. Ao achar um erro, o usuário
   volta à Etapa 1 e procura o campo na página certa. Isso é lento e arriscado em

@@ -19,9 +19,11 @@ from pathlib import Path
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import (
     ArrayObject,
+    DecodedStreamObject,
     DictionaryObject,
     FloatObject,
     NameObject,
+    NumberObject,
     TextStringObject,
 )
 
@@ -83,6 +85,23 @@ class ContextoCorrecao:
         if "/MK" in modelo:
             widget[NameObject("/MK")] = modelo["/MK"]
         return widget
+
+    def definir_fonte(self, widget: DictionaryObject, tamanho: float) -> None:
+        """Fixa o corpo da fonte (0 = automático) mantendo o restante do /DA."""
+        resto = str(widget.get("/DA", "/Helv 0 Tf 0 0 0 rg")).split("Tf", 1)[-1].strip() or "0 0 0 rg"
+        fonte = str(widget.get("/DA", "/Helv")).split()[0]
+        widget[NameObject("/DA")] = TextStringObject(f"{fonte} {tamanho:g} Tf {resto}")
+
+    def cobrir_area(self, pagina: object, ret: list[float]) -> None:
+        """Pinta de branco um retângulo do conteúdo da página (texto fixo que vira campo)."""
+        x0, y0, x1, y1 = ret
+        fluxo = DecodedStreamObject()
+        fluxo.set_data(f"q 1 1 1 rg {x0:g} {y0:g} {x1 - x0:g} {y1 - y0:g} re f Q".encode("ascii"))
+        referencia = self.writer._add_object(fluxo)
+        atual = pagina["/Contents"]
+        conteudo = atual if isinstance(atual, ArrayObject) else ArrayObject([atual])
+        conteudo.append(referencia)
+        pagina[NameObject("/Contents")] = conteudo
 
     def adicionar_widget(
         self, pagina: object, acroform: DictionaryObject, widget: DictionaryObject,
@@ -227,7 +246,49 @@ class DefinirRetangulo(RegraGeometria):
             widget[NameObject("/Rect")] = ctx.retangulo(list(spec["ret"]))
             if spec.get("tooltip"):
                 widget[NameObject("/TU")] = TextStringObject(spec["tooltip"])
+            if spec.get("fonte") is not None:
+                ctx.definir_fonte(widget, float(spec["fonte"]))
             ctx.limpar_aparencia(widget)
+            ajustados.append(nome)
+        return ajustados
+
+
+class AdicionarCampo(RegraGeometria):
+    """Cria campos de texto novos, opcionalmente sobre um texto fixo do modelo.
+
+    Cada spec traz `modelo` (campo existente que empresta página e estilo), `ret`,
+    `tooltip`, `fonte` e, se o texto fixo precisa sumir, `cobrir` (retângulo a
+    pintar de branco no conteúdo da página). O texto cobrido continua no PDF,
+    só deixa de aparecer.
+    """
+
+    def __init__(self, campos: dict[str, dict]) -> None:
+        self.campos = {nome: dict(spec) for nome, spec in campos.items()}
+
+    def aplicar(self, ctx: ContextoCorrecao) -> list[str]:
+        ajustados = []
+        for nome, spec in self.campos.items():
+            if nome in ctx.widgets:  # já existe (modelo corrigido antes): idempotente
+                continue
+            modelo = ctx.widgets.get(spec["modelo"])
+            pagina = ctx.paginas.get(spec["modelo"])
+            if modelo is None or pagina is None or ctx.acroform is None:
+                raise ErroGeometria(f"Sem campo modelo '{spec['modelo']}' para criar '{nome}'.")
+            novo = ctx.novo_widget_texto(modelo, nome, list(spec["ret"]), spec.get("tooltip", ""))
+            # O tipo do campo costuma estar só no pai do modelo.
+            novo[NameObject("/FT")] = NameObject("/Tx")
+            novo[NameObject("/Type")] = NameObject("/Annot")
+            novo[NameObject("/Subtype")] = NameObject("/Widget")
+            novo[NameObject("/F")] = NumberObject(4)
+            novo[NameObject("/Border")] = ArrayObject([NumberObject(0)] * 3)
+            if "/DA" not in novo:
+                novo[NameObject("/DA")] = TextStringObject("/Helv 0 Tf 0 0 0 rg")
+            if spec.get("fonte") is not None:
+                ctx.definir_fonte(novo, float(spec["fonte"]))
+            if spec.get("cobrir"):
+                ctx.cobrir_area(pagina, list(spec["cobrir"]))
+            ctx.adicionar_widget(pagina, ctx.acroform, novo)
+            ctx.widgets[nome] = novo
             ajustados.append(nome)
         return ajustados
 
@@ -291,6 +352,8 @@ def carregar_regras(config: dict) -> list[RegraGeometria]:
         regras.append(AjustarBordaEsquerda(config["ajustar_borda_esquerda"]))
     if config.get("definir_retangulo"):
         regras.append(DefinirRetangulo(config["definir_retangulo"]))
+    if config.get("adicionar_campos"):
+        regras.append(AdicionarCampo(config["adicionar_campos"]))
     if config.get("dividir_campo"):
         spec = config["dividir_campo"]
         regras.append(DividirCampo(spec.get("origens", []), spec.get("partes", {})))

@@ -39,6 +39,11 @@ def main():
                   CampoEntrada(id="dobro", rotulo="Total calculado", tipo="MOEDA", calculo="valor + valor"),
                   CampoEntrada(id="endereco", rotulo="Endereço", obrigatorio=True),
                   CampoEntrada(id="regime", rotulo="Regime", tipo="SELECAO", opcoes=["A", "B"], valor_padrao="A", escopo="global"),
+                  # Sugestões das Configurações: escolher a cidade preenche o campo ligado a ela.
+                  CampoEntrada(id="cidade", rotulo="Cidade", obrigatorio=False, escopo="global",
+                               fonte_opcoes="municipios_itbi", preenche={"comarca_x": "comarca"}),
+                  CampoEntrada(id="local_obra", rotulo="Local da obra", tipo="ENDERECO", obrigatorio=False, escopo="global"),
+                  CampoEntrada(id="comarca_x", rotulo="Comarca X", obrigatorio=False, escopo="global"),
                   CampoEntrada(id="detalhe", rotulo="Detalhe B", obrigatorio=True, visivel_quando=[{"regime":["B"]}]),
                   # Regressão: textarea (TEXTO_LONGO) em aba própria. O <textarea> não
                   # expõe `type` gravável; render() tem que sobreviver a ele.
@@ -70,6 +75,9 @@ def main():
                         return
                     if "--visible" in sys.argv:
                         window.evaluate_js("window.__qaKeepResult = true")
+                    cliente = folder / "cliente.pdf"
+                    doc = canvas.Canvas(str(cliente)); doc.drawString(40, 700, "Nome: ANA LIMA"); doc.drawString(40, 680, "CPF: 529.982.247-25"); doc.showPage(); doc.save()
+                    window.evaluate_js("window.__qaAnexo = " + json.dumps({"ids": [server.jobs.selections.register(cliente, "convert") for _ in range(2)]}))
                     window.evaluate_js((ROOT / "tests/webview_flow.js").read_text(encoding="utf-8"))
                     deadline=time.monotonic()+90
                     result=None
@@ -93,7 +101,8 @@ def main():
                                     })()""")
                                     assert layout["ok"], (width,height,theme,page,layout)
                             print("LAYOUT OK",width,height,flush=True)
-                    completed=[s for s in server.jobs._states.values() if s.status == "completed"]
+                    # O documento do cliente (intake) também é um trabalho concluído, mas não é geração.
+                    completed=[s for s in server.jobs._states.values() if s.status == "completed" and not all(f.name.startswith("cliente") for f in s.files)]
                     assert len(completed)==2, [(s.status,s.error) for s in server.jobs._states.values()]
                     generated=completed[0]
                     assert len(generated.file_ids)==2

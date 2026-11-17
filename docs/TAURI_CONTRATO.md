@@ -29,7 +29,7 @@ capacidades opacas (`app/api/selections.py`, TTL 1 h).
 | Evento | Como | Payload |
 |---|---|---|
 | Ponte pronta | pywebview: `pywebviewready`; Tauri: `window.__TAURI__` presente no carregamento | — |
-| Arquivos soltos na dropzone da Conversão | o shell chama `ContractoConversao.receberArrasto(r)` (pywebview: `evaluate_js`; Tauri: `webview.eval` após `onDragDropEvent`) | `{selection_ids, names, rejected?}` ou `{code}` |
+| Arquivos soltos na janela | o shell chama `ContractoArrasto.receberArrasto(r, x, y)` (pywebview, só na dropzone da Conversão: `ContractoConversao.receberArrasto(r)`; Tauri: `webview.eval` após `onDragDropEvent`); o roteador entrega à Conversão (tela Conversão) ou à Leitura de documentos (Simples/Contrato) | `{selection_ids, names, rejected?}` ou `{code}` |
 
 O shell registra cada caminho solto como seleção `convert` (mesma validação do
 `select_documents`) e entrega só IDs.
@@ -67,7 +67,7 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
 | `import_profile` | diálogo + leitura em Rust (≤ 1 MiB) → `POST /api/v1/profiles` |
 | `open_result`, `open_file` | `result_dir`/`file_path` no sidecar → `tauri-plugin-opener` |
 | `get_file` | `GET /api/v1/files/{id}` com limite de 20 MiB → base64 |
-| arrasto | `onDragDropEvent` → `register(convert)` → `eval` de `receberArrasto` |
+| arrasto | `onDragDropEvent` → `register(convert)` → `eval` de `ContractoArrasto.receberArrasto` |
 
 `capabilities` mínimas: `dialog:allow-open`, `dialog:allow-save`, `opener:allow-open-path`
 (escopo só pelos caminhos devolvidos pelo sidecar), sidecar iniciado só pelo caminho fixo `sidecar/Contracto_sidecar.exe` (**um** executável). CSP idêntica à do `index.html` atual.
@@ -82,8 +82,9 @@ nem dado do usuário). Cobertura: `tests/test_sidecar.py` (inclui processo real)
   cada abertura); o Rust o inicia numa thread com `CREATE_NO_WINDOW`. A janela nasce oculta e aparece quando o
   sidecar responde `starting`; os comandos esperam o `ready` (até 60 s). Segunda instância: `already_running`,
   a janela nunca aparece.
-- Arrasto: o Rust chama `ContractoConversao.arrastar(x, y)` (destaque da zona) e `receberArrasto(r, x, y)`; a
-  página só aceita o que cair na zona.
+- Arrasto: o Rust chama `ContractoArrasto.arrastar(x, y)` (destaque) e `receberArrasto(r, x, y)`; o roteador
+  (`frontend/js/leitura.js`) decide pela tela aberta: na Conversão só vale o que cair na zona; em Simples/Contrato
+  qualquer ponto da janela abre a Leitura de documentos.
   Se o pai morrer, o EOF do stdin encerra o sidecar.
 - Build: `.venv/Scripts/python.exe scripts/build_sidecar.py` e depois `npm install` + `npx tauri build`
   (instalador NSIS em `src-tauri/target/release/bundle/nsis/`).
