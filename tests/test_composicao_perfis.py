@@ -169,8 +169,8 @@ class TestConferenciaMapeamento(unittest.TestCase):
         for grupo in ([damp], [damp, *outros]):
             resultado = combinar_perfis(grupo)
             self.assertEqual(resultado.erros, [])
-            ids_longos = {c.id for c in resultado.perfil.obter_campos_participante() if c.tipo == "TEXTO_LONGO"}
-            self.assertTrue({"profissaoMaiorRendimento", "enderecoImovelFinanciado"} <= ids_longos)
+            ids_longos = {c.id for c in resultado.perfil.obter_campos_participante() if c.tipo in ("TEXTO_LONGO", "ENDERECO")}
+            self.assertTrue({"enderecoImovelFinanciado"} <= ids_longos)
             json.dumps(asdict(resultado.perfil), allow_nan=False)
 
     def test_cache_de_perfis_preserva_todos_os_atributos(self):

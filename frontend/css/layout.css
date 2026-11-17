@@ -327,3 +327,61 @@ kbd{font:600 12px var(--font);padding:2px 8px;border:1px solid var(--c-control-b
 [data-theme="dark"] .splash-roda{border-color:color-mix(in srgb,var(--c-text) 24%,transparent);border-top-color:var(--c-info)}
 [data-theme="dark"] .progresso{background:color-mix(in srgb,var(--c-text) 16%,transparent)}
 [data-theme="dark"] .progresso>div{background:linear-gradient(90deg,var(--c-info),color-mix(in srgb,var(--c-info) 60%,white))}
+
+/* Etapa 1: grade de 6 colunas (meia = 3, terço = 2); uma coluna em janela estreita. */
+.field-grid.field-grid-6{grid-template-columns:repeat(6,minmax(0,1fr))}.field-grid-6>.field{grid-column:span 3}.field-grid-6>.field-terco{grid-column:span 2}.field-grid-6>.field-wide{grid-column:1/-1}
+@media(max-width:680px){.field-grid.field-grid-6{grid-template-columns:minmax(0,1fr)}.field-grid-6>.field,.field-grid-6>.field-terco{grid-column:1/-1}}
+
+/* Conferência: valores são atalhos para o campo. */
+.conf-valor{background:none;border:0;padding:0;font:inherit;font-weight:600;color:inherit;text-align:left;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;overflow-wrap:anywhere}.conf-valor:hover,.conf-valor:focus-visible{color:var(--c-primary)}
+.campo-destaque{box-shadow:0 0 0 3px var(--c-primary-light);border-color:var(--c-primary)!important;transition:box-shadow .3s}
+
+/* Municípios do ITBI (Configurações e configuração inicial). */
+.mun-item{border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;margin:0 0 12px;min-width:0}.mun-item legend{font-size:12px;font-weight:650;color:var(--c-text-secondary);padding:0 8px}.mun-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}
+/* Campo ENDERECO: completo ou em partes. */
+.endereco-topo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}.endereco-topo label{margin:0}.endereco-modos{margin:0!important;gap:4px}.endereco-modos .seletor-item{min-height:32px;padding:4px 12px;font-size:12px}
+.endereco-partes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media(max-width:680px){.endereco-partes{grid-template-columns:minmax(0,1fr)}.endereco-partes>.field{grid-column:1/-1!important}}
+/* Paginação do formulário: abas livres com selo de pendências. */
+.paginacao-form{flex-direction:column;align-items:stretch;gap:10px}
+.pag-abas{display:flex;flex-wrap:wrap;gap:8px}
+.pag-aba{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 12px;border:1px solid var(--c-control-border);border-radius:10px;background:var(--c-surface);color:var(--c-text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:background var(--motion-fast) ease,border-color var(--motion-fast) ease}
+.pag-aba:hover{background:var(--c-surface-variant)}
+.pag-aba[aria-selected="true"]{background:var(--c-primary-light);border-color:var(--c-primary);color:var(--c-primary)}
+.pag-num{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--c-surface-variant);font-size:12px}
+.pag-aba[aria-selected="true"] .pag-num{background:var(--c-primary);color:var(--c-on-primary)}
+.pag-estado{flex:none;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--c-surface-variant);color:var(--c-text-secondary);font-size:11px;font-weight:700;text-align:center}
+.pag-estado.pendente{background:color-mix(in srgb,var(--c-warning-badge) 18%,var(--c-surface));color:var(--c-warning-badge)}
+.pag-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.conf-aviso{margin:0 0 14px;padding:10px 14px;border:1px solid var(--c-border);border-left:4px solid var(--c-warning-badge);border-radius:8px;background:var(--c-surface-variant);font-size:13px}
+/* Documentos do cliente (Simples/Contrato): zona de arrasto baixa e lista. */
+.dropzone-compacta{padding:20px 24px;gap:4px;margin-top:0}.dropzone-compacta .hint{max-width:70ch}
+.anexo-linha[data-estado="erro"] .hint{color:var(--c-error)}.anexo-linha .spinner{display:inline-block;vertical-align:-2px;margin-right:4px}
+/* Leitura de documentos: faixa de entrada no topo (fora dos quadros) e modal em duas colunas. */
+.leitura-banner{display:flex;align-items:center;gap:16px;margin:0 0 20px;padding:14px 18px;border:1px solid color-mix(in srgb,var(--c-primary) 40%,var(--c-border));border-radius:14px;background:linear-gradient(100deg,var(--c-primary-light),var(--c-surface) 85%);transition:box-shadow var(--motion-fast) ease,border-color var(--motion-fast) ease}
+.leitura-banner.arrastando{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-light)}
+.leitura-banner-icone{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:var(--c-primary);color:var(--c-on-primary)}
+.leitura-banner-texto{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}.leitura-banner-texto strong{font-size:15px}.leitura-banner-texto span{font-size:13px;color:var(--c-text-secondary)}
+@media(max-width:900px){.leitura-banner{flex-wrap:wrap}.leitura-banner-texto{flex-basis:100%;order:2}}
+.modal.modal-leitura{width:min(1240px,calc(100vw - 32px))}
+.leitura{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:16px;height:min(74dvh,740px)}
+.leitura[data-vazio="true"]{grid-template-columns:minmax(0,1fr)}.leitura[data-vazio="true"] .leitura-dir{display:none}
+.leitura-esq{overflow:auto;padding-right:6px;display:flex;flex-direction:column;gap:12px}
+.leitura-dir{display:flex;flex-direction:column;gap:8px;min-height:0;border:1px solid var(--c-border);border-radius:12px;padding:10px;background:var(--c-surface-variant)}
+.leitura-doc{flex:1;min-height:0;display:flex}.leitura-doc iframe{width:100%;height:100%;border:0;border-radius:8px;background:var(--c-surface)}.leitura-doc>.hint{margin:auto;text-align:center}
+.leitura-intro h3{margin:0 0 6px;font-size:16px}.leitura-intro p{margin:0 0 8px;font-size:13px}
+.leitura-arquivo{border:1px solid var(--c-border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.leitura-arquivo[data-estado="erro"] .leitura-estado{color:var(--c-error)}
+.leitura-arquivo-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.leitura-arquivo-topo strong{overflow-wrap:anywhere}.leitura-estado{font-size:12px;color:var(--c-text-secondary);flex:1;min-width:140px}.leitura-estado .spinner{display:inline-block;vertical-align:-2px}
+.leitura-destino{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}.leitura-papel{flex:1;min-width:0;min-height:36px;border:1px solid var(--c-control-border);border-radius:var(--r-input);padding:4px 8px;background:var(--c-surface);color:var(--c-text)}
+.leitura-linha{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--c-border)}.leitura-linha>input[type=checkbox]{margin-top:6px;flex:none}
+.leitura-corpo{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}.leitura-rotulo{font-size:12px;font-weight:650;color:var(--c-text-secondary)}
+.leitura-valor{width:100%;min-height:36px;border:1px solid var(--c-control-border);border-radius:var(--r-input);padding:6px 10px;color:var(--c-text);background:var(--c-surface);font:inherit}
+.leitura-atual{font-size:12px;color:var(--c-warning-badge)}.leitura-alt{font-size:12px;padding:0}
+.leitura-rodape{grid-column:1/-1;display:flex;align-items:center;gap:12px;justify-content:flex-end;border-top:1px solid var(--c-border);padding-top:12px}.leitura-rodape .hint{margin:0 auto 0 0}
+@media(max-width:900px){.leitura{grid-template-columns:minmax(0,1fr);height:auto;max-height:76dvh;overflow:auto}.leitura-dir{min-height:320px}}
+.padrao-leitura{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2.4fr) auto minmax(120px,.9fr) auto;gap:8px;align-items:center;margin:0 0 8px}
+.padrao-leitura select,.padrao-leitura input{width:100%;min-width:0;min-height:40px;border:1px solid var(--c-control-border);border-radius:var(--r-input);padding:6px 10px;background:var(--c-surface);color:var(--c-text);font:inherit}
+@media(max-width:900px){.padrao-leitura{grid-template-columns:minmax(0,1fr)}}
+.leitura[data-vazio="true"]{height:min(56dvh,480px)}.leitura[data-vazio="true"] .leitura-intro{flex:none}
+.dropzone-grande{flex:1;justify-content:center;margin:0;min-height:180px}.dropzone-grande strong{font-size:18px}

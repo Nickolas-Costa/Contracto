@@ -13,15 +13,17 @@ from models.participant import Participant
 from ports import binaries
 from services.generator_service import gerar_documentos_de_perfis, validar_antes_de_gerar
 from services.pdfa_converter import ProcessoCanceladoError
+from services import pdf_extraction
 from services.profile_composer import combinar_perfis
 from services.form_validation import preparar_participantes
 from services.queue_manager import QueueManager
 from services.process_folder_service import criar_estrutura_pastas
 from services.stage2_service import executar_etapa2
+from utils import config_manager
 from utils.cpf_validator import validar_cpf
 from utils.filename_utils import nome_pasta_processo
 from utils.logger import contexto_log_api
-from utils.profile_manager import carregar_perfis
+from utils.profile_manager import PARTES_ENDERECO, carregar_perfis
 
 from .models import Error, JobState, FileResult
 from .selections import SelectionError, Selections
@@ -83,12 +85,33 @@ class Jobs:
         self._states = {}
         self._requests = {}
         self._outputs = {}
+        self._intake_dir = self._intake_id = None
         self._file_details = {}
         self.max_jobs = max_jobs
         self._injetados = profiles is not None  # perfis sintéticos (testes) não existem no disco
         with contexto_log_api():
             self.profiles = {secrets.token_hex(16): copy.deepcopy(p)
                              for p in (profiles if profiles is not None else carregar_perfis())}
+
+    @staticmethod
+    def _tabelas(campos):
+        """Injeta as sugestões (e o item padrão) das Configurações nos campos com `fonte_opcoes`."""
+        config = config_manager.carregar_config()
+        for campo in campos:
+            fonte = campo.get("fonte_opcoes")
+            if not fonte:
+                continue
+            itens = [i for i in config.get(fonte, []) if isinstance(i, dict)]
+            campo["sugestoes"] = itens
+            padrao = next((i for i in itens if i.get("prefeitura") == config.get(fonte + "_padrao")),
+                          itens[0] if itens else None)
+            if padrao:
+                campo["valor_padrao"] = padrao.get("prefeitura", campo.get("valor_padrao", ""))
+                for alvo in campos:
+                    chave = campo.get("preenche", {}).get(alvo["id"])
+                    if chave:
+                        alvo["valor_padrao"] = padrao.get(chave, "")
+        return campos
 
     def catalog(self):
         # Caminhos e mapeamentos internos dos templates nunca saem pelo HTTP.
@@ -97,7 +120,7 @@ class Jobs:
                  "formularios": [{"nome": f.nome, "geracao": f.geracao} for f in p.formularios],
                  "documentos_extras": [{"rotulo": d.rotulo, "nome_padrao": d.nome_padrao}
                                         for d in p.documentos_extras],
-                 "fields": [asdict(c) for c in p.campos_entrada]}
+                 "fields": self._tabelas([asdict(c) for c in p.campos_entrada])}
                 for key, p in self.profiles.items()]
 
     def refresh_profiles(self):
@@ -145,7 +168,7 @@ class Jobs:
                 "formularios": [{"nome": f.nome, "geracao": f.geracao} for f in perfil.formularios],
                 "documentos_extras": [{"rotulo": d.rotulo, "nome_padrao": d.nome_padrao}
                                        for d in perfil.documentos_extras],
-                "fields": [asdict(c) for c in perfil.campos_entrada]}
+                "fields": self._tabelas([asdict(c) for c in perfil.campos_entrada])}
 
     def _participants(self, values):
         result, issues = [], []
@@ -170,16 +193,19 @@ class Jobs:
         if retry is not None:
             return retry
         profiles, participants, field_errors = self._prepare_fields(request)
-        if field_errors:
+        # "Gerar mesmo assim": campos do formulário podem ficar em branco ou fora do formato, só em perfis simples.
+        relaxar = request.ignorar_pendencias and all(p.modo_fluxo == "formulario_simples" for p in profiles)
+        if field_errors and not relaxar:
             raise ApiError("invalid_fields", "Confira os campos obrigatórios e seus formatos", 422, issues=field_errors)
-        return self._generate_prepared(request, profiles, participants)
+        return self._generate_prepared(request, profiles, participants, relaxar)
 
     def _prepare_fields(self, request):
         profiles = self._profiles(request.profile_ids)
         self.compose(request)
         participants = self._participants(request.participants)
         combined = combinar_perfis(profiles).perfil
-        allowed = {c.id for c in combined.campos_entrada} | {"nome", "nome_completo", "cpf", "endereco", "data_assinatura", "local_assinatura"}
+        allowed = {c.id for c in combined.campos_entrada} | {f"{c.id}_{parte}" for c in combined.campos_entrada
+                                                              if c.tipo == "ENDERECO" for parte in PARTES_ENDERECO} | {"nome", "nome_completo", "cpf", "endereco", "data_assinatura", "local_assinatura"}
         if any(set(p.campos_dinamicos) - allowed for p in participants):
             raise ApiError("unknown_fields", "Há campos que não pertencem aos perfis selecionados", 422)
         participants, field_errors = preparar_participantes(participants, combined)
@@ -190,13 +216,13 @@ class Jobs:
         fields = combinar_perfis(profiles).perfil.campos_entrada
         return {"values": [{f.id: p.obter_campo(f.id) for f in fields} for p in participants], "issues": errors}
 
-    def _generate_prepared(self, request, profiles, participants):
+    def _generate_prepared(self, request, profiles, participants, relaxar=False):
         output = self.selections.resolve(request.output_id, "directory")
         for profile in profiles:
             if len(participants) > profile.max_participantes:
                 raise ApiError("participant_limit", "Quantidade de participantes excede o perfil", 422)
             with contexto_log_api():
-                errors = validar_antes_de_gerar(participants, profile, output)
+                errors = validar_antes_de_gerar(participants, profile, output, relaxar)
             if errors:
                 raise ApiError("invalid_generation", "Confira campos obrigatórios, data e modelos do perfil", 422)
         forms = getattr(request, "forms_selecionados", None) or None
@@ -303,6 +329,40 @@ class Jobs:
 
         return self._submit(request.output_id, operation, "process", request, metadata,
                             processo=True, apos=descartar_gerados)
+
+    def extract(self, request):
+        """Sugestões de preenchimento lidas dos PDFs; nada é gravado e os valores não vão para log."""
+        profiles = self._profiles(request.profile_ids)
+        combinado = combinar_perfis(profiles)
+        if combinado.erros or combinado.perfil is None:
+            raise ApiError("incompatible_profiles", "Perfis com campos incompatíveis", 409)
+        regras = config_manager.normalizar_padroes_leitura(config_manager.carregar_config().get("padroes_leitura"))
+        arquivos = []
+        for key in request.file_ids:
+            caminho = self.selections.resolve(key, "file")
+            item = {"file_id": key, "nome": caminho.name, "paginas": 0, "erro": None, "participante": [], "compartilhado": []}
+            try:
+                leitura = pdf_extraction.ler_pdf(caminho)
+                item.update(paginas=len(leitura.paginas),
+                            participante=pdf_extraction.propor(leitura, combinado.perfil, "participante", regras),
+                            compartilhado=pdf_extraction.propor(leitura, combinado.perfil, "compartilhado", regras))
+            except pdf_extraction.ExtracaoErro as exc:
+                item["erro"] = str(exc)
+            arquivos.append(item)
+        return {"arquivos": arquivos}
+
+    def intake(self, request):
+        """Documentos do cliente: PDF segue como está e RTF/DOC/DOCX viram PDF (Word), numa pasta
+        privada da sessão (apagada ao encerrar). Reusa a conversão: o resultado traz os `file_id`s dos PDFs."""
+        from .models import ConvertInput
+        with self._lock:
+            if self._closed:
+                raise ApiError("closed", "Sessão encerrada", 503)
+            if self._intake_dir is None:
+                self._intake_dir = Path(tempfile.mkdtemp(prefix="contracto-documentos-"))
+                self._intake_id = self.selections.register(self._intake_dir, "directory")
+        return self.convert(ConvertInput(file_ids=request.file_ids, output_id=self._intake_id,
+                                         format="PDF", request_id=request.request_id))
 
     def convert(self, request):
         """Conversão direta de arquivos (modo Conversão): sem perfis nem participantes.
@@ -546,6 +606,8 @@ class Jobs:
             self._closed = True
         complete = self.queue.encerrar()
         self.selections.close()
+        if self._intake_dir is not None:
+            shutil.rmtree(self._intake_dir, ignore_errors=True)
         if not complete:
             raise RuntimeError("Operação local ainda está encerrando")
         with self._lock:

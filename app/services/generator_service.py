@@ -78,6 +78,7 @@ def validar_antes_de_gerar(
     participantes: list[Participant],
     perfil: Perfil,
     pasta_saida: Path | None,
+    relaxar: bool = False,
 ) -> list[str]:
     erros: list[str] = []
 
@@ -98,7 +99,7 @@ def validar_antes_de_gerar(
 
     principal = participantes[0]
     tem_campo_endereco = any(c.id == "endereco" and c.obrigatorio for c in perfil.campos_entrada)
-    if (getattr(perfil, "modo_fluxo", "contrato") == "contrato" or tem_campo_endereco):
+    if not relaxar and (getattr(perfil, "modo_fluxo", "contrato") == "contrato" or tem_campo_endereco):
         end_val = str(principal.obter_campo("endereco", "")).strip()
         if not end_val:
             erros.append("O Endereço Completo é obrigatório.")

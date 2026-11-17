@@ -69,3 +69,8 @@ Versões fixadas em `src-tauri/Cargo.toml`/`Cargo.lock` e `package-lock.json`, t
 5. **Outros ambientes:** só existe no shell Tauri instalado. Na cópia portátil abre a página de versões; no pywebview responde `unsupported`.
 6. **Testes:** `tests/test_atualizacao.py` (manifesto, HTTPS, chave fora do repositório) e `tests/api_adapter.cjs` (comandos). O caminho completo precisa de duas versões publicadas (teste manual).
 7. **Remoção:** tirar o plugin, os dois comandos de `main.rs`, o bloco `plugins.updater`, o botão e `latest.json` do build. Nenhum serviço Python depende dele.
+
+## Registro: leitura de documentos (5.4.x)
+
+- **Fase 1** (texto do PDF e AcroForm): sem dependência nova; usa `pypdf`, `pypdfium2` e o conversor Word já distribuídos.
+- **OCR (Fase 2)**: Tesseract 5.5.3 com `tessdata_fast` foi medido (~0,7–1,1 s por página; instalador 25 MiB, idioma `por` 2 MB) e **não** foi incluído; a decisão exige este gate e aceite explícito. Windows OCR, RapidOCR, EasyOCR, PaddleOCR e serviços em nuvem foram comparados na ADR 0027 (nuvem descartada por violar o uso 100% local).

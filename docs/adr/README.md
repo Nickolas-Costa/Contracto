@@ -41,9 +41,9 @@ por que e como. Números sequenciais com 4 dígitos, definidos sob demanda.
 | 0024 | Rota Tauri v2 pós-WebView | futura |
 | 0025 | Publicação de resultados e Conferência (Etapa 2) | aceita |
 | 0026 | Formato inicial pela Config, topbar fixa e arrasto na Conversão | aceita |
-| 0027 | Extração de dados de PDF para preencher o formulário | aceita como plano (sem implementação) |
+| 0027 | Extração de dados de PDF para preencher o formulário | Fase 1 implementada (5.4.x); OCR e fusão futuros |
 | 0028 | Aposentadoria da interface Tk | aceita |
 | 0029 | Preparação "Tauri Ready" | aceita (troca de shell aguarda aceite) |
-| 0030 | Conferência editável | futura |
+| 0030 | Conferência editável | passo 1 (atalho para o campo) implementado; edição em modal futura |
 | 0031 | Shell Tauri e instalador NSIS | aceita |
 | 0032 | Contrato em uma etapa e plano de atualização dentro do app | aceita |

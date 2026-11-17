@@ -3,6 +3,12 @@
 > **Estado:** a migração do **Contracto** de CustomTkinter para **WebView2** foi concluída e homologada na v4.5.18; os ajustes posteriores estão nas atualizações abaixo e no `CHANGELOG.md`.
 > A suíte unitária e o fluxo de ponta a ponta em WebView real (`tests/smoke_webview_ui.py`) são o critério; contagens de testes mudam a cada versão e não são fixadas aqui.
 
+> **Atualização v5.6.0:** leitura de documentos do cliente (ADR 0027, Fase 1) com revisão ao lado do documento, contratos com
+> vários compradores e cadastro de clientes; páginas livres e "Gerar mesmo assim"; máscaras com cursor correto; ITBI por município,
+> endereço completo ou em partes, campos do MO 29300 reposicionados; Conferência com atalho para o campo (ver CHANGELOG).
+> Adiados de propósito: assinatura de código, OCR (Fase 2), edição em modal na Conferência. Pendentes de verificação manual: arrasto
+> nativo e conversão de RTF/DOC/DOCX no instalador real; `smoke_webview_ui.py` no shell Tauri.
+
 > **Atualização v5.5.0 (15/11/2026):** atualização pelo aplicativo (botão em Configurações, atualizador do Tauri com
 > assinatura minisign, ADR 0032 §2). Pendente: o teste real de atualizar uma instalação 5.5.0 para a versão seguinte.
 

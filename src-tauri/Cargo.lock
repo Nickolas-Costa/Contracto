@@ -340,7 +340,11 @@ dependencies = [
 
 [[package]]
 name = "contracto"
+<<<<<<< HEAD
 version = "5.5.1"
+=======
+version = "5.4.6"
+>>>>>>> claude/tauri-next-priorities-1c65b4
 dependencies = [
  "base64 0.22.1",
  "reqwest 0.12.28",

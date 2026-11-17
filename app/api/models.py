@@ -36,6 +36,8 @@ class GenerateInput(PreviewInput):
     request_id: Id | None = None
     output_id: Id
     forms_selecionados: list[Annotated[str, StringConstraints(min_length=1, max_length=200)]] | None = Field(default=None, max_length=50)
+    # "Gerar mesmo assim": só perfis simples; nome, CPF, data, local e pasta continuam obrigatórios.
+    ignorar_pendencias: bool = False
 
 
 class Attachment(Model):
@@ -62,6 +64,18 @@ class ConvertInput(Model):
     format: Literal["PDF", "PDF/A-2b"] = "PDF"
     # Um nome por arquivo, na ordem de file_ids; vazio mantém o nome original.
     nomes_saida: list[Annotated[str, StringConstraints(pattern=r"^[\w\-. ]{0,100}$")]] | None = Field(default=None, max_length=20)
+
+
+class IntakeInput(Model):
+    """Documentos do cliente (Simples/Contrato): vira tudo PDF numa área privada da sessão."""
+    request_id: Id | None = None
+    file_ids: list[Id] = Field(min_length=1, max_length=20)
+
+
+class ExtractInput(Model):
+    """Leitura de documentos do cliente (PDFs já preparados pelo intake) contra os campos dos perfis."""
+    file_ids: list[Id] = Field(min_length=1, max_length=5)
+    profile_ids: list[Id] = Field(min_length=1, max_length=20)
 
 
 class Error(Model):

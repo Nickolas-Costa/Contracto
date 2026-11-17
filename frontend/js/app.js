@@ -67,6 +67,7 @@
             window.ContractoEtapa2.ligar();
             window.ContractoEtapa1.ligar();
             if (window.ContractoConversao) window.ContractoConversao.ligar();
+            if (window.ContractoLeitura) window.ContractoLeitura.ligar();
           } else {
             // Fase 0: chamadas defensivas — se um módulo ainda não expuser
             // reconectar (cache antigo), atualiza em vez de quebrar o boot.

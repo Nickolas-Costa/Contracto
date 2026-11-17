@@ -130,7 +130,7 @@ class TestFrontendBase(unittest.TestCase):
         self.assertNotIn('id="sobre-versao"', html)
         ui_js = (RAIZ / "js/ui.js").read_text(encoding="utf-8")
         self.assertNotIn('carregarSobre', ui_js)
-        self.assertIn('versao-app', ui_js)
+        self.assertIn('versao-app', (RAIZ / "js/ajuda.js").read_text(encoding="utf-8"))
         # Foto 1: sem pill de fila na toolbar; andamento em toast/modal.
         self.assertNotIn('indicador-fila-global', html)
         self.assertIn('id="btn-fila"', html)
@@ -154,7 +154,7 @@ class TestFrontendBase(unittest.TestCase):
         for exigido in ["Abrir no leitor padrão", "Expandir", "alternarExpansao"]:
             self.assertIn(exigido, etapa2, exigido)
         self.assertIn("modal-viewer-expandido", (RAIZ / "js/ui.js").read_text(encoding="utf-8"))
-        for exigido in ["nomeExibicao", "Form Seguro", "ROTULOS_OPCOES", "profile-menu-box"]:
+        for exigido in ["nomeExibicao", "Form Seguro", "rotuloOpcao", "profile-menu-box"]:
             self.assertIn(exigido, etapa1, exigido)
         self.assertNotIn('data-etapa="4"', ui_js)
         # v4.5.22: prefill local_padrao, import/export por arquivo, validações.
@@ -312,7 +312,7 @@ class TestFrontendBase(unittest.TestCase):
         form = (RAIZ / "js/form-state.js").read_text(encoding="utf-8")
         for exigido in ["painelFila", "filaConhecida", "2000", "gerar(snapshot)", "recomecar", "eraEnvio", "capacidades(data)", "pacoteProcesso", "document_type", "novoRequestId"]:
             self.assertIn(exigido, etapa2 + etapa1, exigido)
-        for exigido in ["paginacao-form", "mudarPagina", "resolverPaginas", "field-textarea", "sincronizarSelecao", "corpo-conferencia", "limparCampos"]:
+        for exigido in ["paginacao-form", "irParaPagina", "resolverPaginas", "field-textarea", "form().calcular", "sincronizarSelecao", "corpo-conferencia", "limparCampos"]:
             self.assertIn(exigido, etapa1, exigido)
         for exigido in ["paginaDe", "if_field", "formula"]:
             self.assertIn(exigido, form, exigido)

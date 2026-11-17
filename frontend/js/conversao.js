@@ -321,6 +321,7 @@
       btnModo.addEventListener("click", () => {
         ["modo-simples", "modo-contrato"].forEach(id => $(id)?.removeAttribute("aria-current"));
         btnModo.setAttribute("aria-current", "page");
+        try { localStorage.setItem("contracto-modo", "conversao"); } catch (_) {}
         ui().mostrarTela("conversao");
         carregarCapacidades();
       });
@@ -369,6 +370,7 @@
     $("conversao-formato").addEventListener("change", () => { formatoEscolhido = true; atualizar(); });
     document.addEventListener("DOMContentLoaded", carregarCapacidades);
     if (document.readyState !== "loading") carregarCapacidades();
+    try { if (localStorage.getItem("contracto-modo") === "conversao") btnModo?.click(); } catch (_) {}
   }
 
   window.ContractoConversao = { ligar, receberArrasto, arrastar, atualizar: () => { renderLista(); atualizar(); } };

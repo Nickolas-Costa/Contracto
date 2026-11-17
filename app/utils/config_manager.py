@@ -25,7 +25,46 @@ _DEFAULTS = {
     "local_padrao": "CAMOCIM-CE",
     "tamanho_quadros": "Médio",     # "Pequeno", "Médio", "Grande"
     "primeira_execucao": True,
+    # Municípios do ITBI: prefeitura, comarca e texto da isenção (a lei é municipal).
+    "municipios_itbi": [{
+        "prefeitura": "CAMOCIM-CE", "comarca": "CAMOCIM-CE",
+        "texto_isencao": "Conforme Lei Municipal nº 1648/2023, de 29 de dezembro de 2023, bem como a Lei Federal nº 14620/2023. Declaro que cumpro os requisitos para ser contemplado com os benefícios da Lei supracitada.",
+    }],
+    "municipios_itbi_padrao": "CAMOCIM-CE",
+    # Padrões de leitura de documentos criados pelo usuário: {tipo, antes, ate} (ver services/pdf_extraction.py).
+    "padroes_leitura": [],
 }
+
+_CHAVES_MUNICIPIO = ("prefeitura", "comarca", "texto_isencao")
+
+
+TIPOS_PADRAO_LEITURA = ("nome", "vendedor", "razao", "endereco", "endereco_imovel", "mae", "pai", "matricula")
+ATE_PADRAO_LEITURA = ("virgula", "ponto", "ponto_e_virgula", "fim_da_linha")
+
+
+def normalizar_padroes_leitura(lista: Any) -> list[dict[str, str]]:
+    """Mantém só padrões válidos (tipo e término conhecidos, frase de 1 a 120 caracteres); config vem da UI."""
+    itens = []
+    for bruto in lista if isinstance(lista, list) else []:
+        if not isinstance(bruto, dict):
+            continue
+        item = {"tipo": str(bruto.get("tipo", "")), "antes": " ".join(str(bruto.get("antes", "")).split())[:120], "ate": str(bruto.get("ate", ""))}
+        if item["tipo"] in TIPOS_PADRAO_LEITURA and item["antes"] and item["ate"] in ATE_PADRAO_LEITURA and item not in itens:
+            itens.append(item)
+    return itens[:30]
+
+
+def normalizar_municipios(lista: Any) -> list[dict[str, str]]:
+    """Mantém só itens com prefeitura, textos limitados e sem repetir prefeitura (config vem da UI)."""
+    itens, vistos = [], set()
+    for bruto in lista if isinstance(lista, list) else []:
+        if not isinstance(bruto, dict):
+            continue
+        item = {k: str(bruto.get(k, "")).strip()[:2000] for k in _CHAVES_MUNICIPIO}
+        if item["prefeitura"] and item["prefeitura"].casefold() not in vistos:
+            vistos.add(item["prefeitura"].casefold())
+            itens.append(item)
+    return itens[:50]
 
 # Cache em memória para evitar I/O repetitivo a cada leitura
 _config_cache: dict[str, Any] | None = None

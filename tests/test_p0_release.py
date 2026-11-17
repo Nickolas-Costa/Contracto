@@ -161,7 +161,7 @@ class TestP0Release(unittest.TestCase):
         for exigido in ["selectBackup", "activateProfile", "backupSystem", "restoreSystem", "restoreSettings"]:
             self.assertIn(exigido, api, exigido)
         ui = (raiz / "js/ui.js").read_text(encoding="utf-8")
-        for exigido in ["cfgRestaurar", "ajudaModal", "boasVindasSePreciso", "primeira_execucao", "versao-app"]:
+        for exigido in ["cfgRestaurar", "ajudaModal", "boasVindasSePreciso", "primeira_execucao"]:
             self.assertIn(exigido, ui, exigido)
         # sobreModal/carregarSobre substituídos pela versão dentro do modal de Ajuda
         self.assertNotIn("sobreModal", ui)

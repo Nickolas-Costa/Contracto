@@ -482,7 +482,7 @@ fn ao_arrastar(window: &tauri::Window, evento: &DragDropEvent) {
         }
         _ => return,
     };
-    let _ = web.eval(format!("window.ContractoConversao&&window.ContractoConversao.{chamada}"));
+    let _ = web.eval(format!("window.ContractoArrasto&&window.ContractoArrasto.{chamada}"));
 }
 
 /// Há trabalho na fila ou em execução? Sem backend pronto ou sem resposta, não há o que perder.
