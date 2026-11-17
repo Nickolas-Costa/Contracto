@@ -3,6 +3,16 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.5.1] - 2026-11-16
+
+Acertos no modelo MO 29300 (DAMP) e no texto dos campos. Sem mudança no motor de geração.
+
+### Correções
+- **Acentos e hífen errados no visualizador** (ex.: "COMUNH˜O", "62400›000"): o valor dos campos era gravado com escapes octais (`Ã`, `-`), que alguns visualizadores leem errado ao redesenhar o campo. Agora vai em hexadecimal. A impressão não mudava.
+- MO 29300: a data do casamento não cobre mais a vírgula e o ponto final; "Sob regime de" termina antes da vírgula.
+- MO 29300: o campo do município de "Possuo imóvel em" ficou maior e o ponto final acompanha.
+- MO 29300: o campo do endereço do imóvel ocupa a linha inteira (de ~300 pt para ~460 pt), então a letra encolhe bem menos em endereços longos. O ponto final foi para o fim da linha.
+
 ## [5.5.0] - 2026-11-15
 
 ### Novo

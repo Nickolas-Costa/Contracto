@@ -16,7 +16,7 @@ from typing import Optional
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
-from pypdf.generic import DictionaryObject, NameObject
+from pypdf.generic import ByteStringObject, DictionaryObject, NameObject, TextStringObject
 
 
 class PdfServiceError(Exception):
@@ -168,6 +168,14 @@ def preencher_formulario(
 
         for pagina in writer.pages:
             writer.update_page_form_field_values(pagina, valores, auto_regenerate=False)
+            for anotacao in pagina.get("/Annots", []) or []:
+                widget = anotacao.get_object()
+                campo = widget if "/V" in widget else widget.get("/Parent")
+                campo = campo.get_object() if campo is not None else {}
+                # O pypdf grava /V com escapes octais (\055, \303); alguns visualizadores
+                # os leem errado ao redesenhar o campo. Em hexadecimal não há escape.
+                if isinstance(campo.get("/V"), TextStringObject):
+                    campo[NameObject("/V")] = ByteStringObject(campo["/V"].get_encoded_bytes())
 
         writer.set_need_appearances_writer(True)
 

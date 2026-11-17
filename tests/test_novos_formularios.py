@@ -197,6 +197,18 @@ class TestDampConfiguracao(unittest.TestCase):
         self.assertFalse(any("assinatura_digital" in nome.lower() for nome in campos))
 
 
+class TestValorGravadoSemEscape(unittest.TestCase):
+    def test_valor_com_acento_e_hifen_vai_em_hexadecimal(self):
+        from services.pdf_service import preencher_formulario
+        modelo = Path(__file__).resolve().parent.parent / "app/assets/templates/MO29300-039 (DAMP).pdf"
+        valor = "COMUNHÃO, CEP 62400-000"
+        with tempfile.TemporaryDirectory() as pasta:
+            saida = Path(pasta) / "saida.pdf"
+            preencher_formulario(modelo, {"regime_de_comunhao": valor}, saida)
+            self.assertEqual(PdfReader(str(saida)).get_fields()["regime_de_comunhao"]["/V"], valor)
+            self.assertNotIn(rb"62400\055000", saida.read_bytes())
+
+
 class TestCatalogoENovosPdfs(unittest.TestCase):
     def setUp(self):
         profile_manager.invalidar_cache()

@@ -8,6 +8,40 @@
       "ccfgts_reforma_ampliacao_valor": 310,
       "ccfgts_conclusao_valor": 252,
       "ccfgts_aquisicao_material_valor": 365
+    },
+    "definir_retangulo": {
+      "regime_de_comunhao": {
+        "ret": [
+          125,
+          568,
+          356,
+          580
+        ]
+      },
+      "DATA_CASAMENTO": {
+        "ret": [
+          394,
+          567,
+          444,
+          580
+        ]
+      },
+      "possuo_imovel_local": {
+        "ret": [
+          161,
+          81,
+          330,
+          94
+        ]
+      },
+      "local_imovel": {
+        "ret": [
+          57,
+          564,
+          520,
+          578
+        ]
+      }
     }
   }
 }
