@@ -15,6 +15,6 @@ Leitura de documentos escaneados e correção na leitura de contratos com um só
 - **Não verificado:** PDF escaneado real de cliente, o executável instalado e `smoke_webview_ui.py` no shell Tauri.
 
 ### Artefatos
-- `Contracto_Setup_v5.7.0.exe`, instalador.
-- `Contracto_v5.7.0.zip`, portátil.
+- `Contracto_Setup_v5.7.0.exe` (51.4 MiB), instalador. SHA-256: `6272B09393E81B2FA1EB4231DF8CB6171F5950CA1E41672BE6F90449B3B4F676`
+- `Contracto_v5.7.0.zip` (66.6 MiB), portátil. SHA-256: `90F9A46FE84603959CB0C12713D07946DBED14D4419B0D90F9BF18916FD67A8F`
 - `latest.json`, lido pelo atualizador do aplicativo.
