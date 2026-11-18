@@ -41,7 +41,7 @@
       parte.forEach(a => { a.estado = "lendo"; });
       desenhar();
       let r = null;
-      try { r = await api().request("POST", "/api/v1/extract", {file_ids: parte.map(a => a.file_id), profile_ids: ids}); } catch (_) { /* tratado abaixo */ }
+      try { r = await api().request("POST", "/api/v1/extract", {file_ids: parte.map(a => a.file_id), profile_ids: ids, ocr: parte.every(a => a.ocr)}); } catch (_) { /* tratado abaixo */ }
       parte.forEach((a, k) => {
         const dados = r?.status === 200 ? r.data.arquivos?.[k] : null;
         if (!dados) { Object.assign(a, {estado: "erro", mensagem: r?.data?.message || "Não foi possível ler este arquivo."}); return; }
@@ -187,7 +187,7 @@
     rotulo.htmlFor = valor.id;
     valor.addEventListener("input", () => { esc.valor = valor.value; });
     valor.addEventListener("focus", () => mostrarDocumento(i, e.pagina));
-    const origem = el("span", "hint", p.metodo === "acroform" ? "campo do formulário do PDF" : "pág. " + e.pagina);
+    const origem = el("span", "hint", p.metodo === "acroform" ? "campo do formulário do PDF" : "pág. " + e.pagina + (p.metodo === "ocr" ? " (lida da imagem; confira)" : ""));
     corpo.append(rotulo, valor, origem);
     if (e.aviso) corpo.append(el("span", "leitura-atual", e.aviso + " Confira antes de aplicar."));
     const atual = e1().valorAtual(alvoDe(p, k), p.campo_id);
@@ -225,7 +225,7 @@
     const estado = el("span", "leitura-estado");
     if (["fila", "convertendo", "lendo"].includes(a.estado)) estado.append(Object.assign(el("span", "spinner"), {ariaHidden: "true"}), " ");
     const linhas = linhasDe(a);
-    estado.append({fila: "Na fila", convertendo: a.convertido ? "Convertendo " + a.convertido + " para PDF…" : "Preparando…", lendo: "Lendo…", erro: a.mensagem || "Não foi possível ler.",
+    estado.append({fila: "Na fila", convertendo: a.convertido ? "Convertendo " + a.convertido + " para PDF…" : "Preparando…", lendo: a.ocr ? "Lendo a imagem (OCR)…" : "Lendo…", erro: a.mensagem || "Não foi possível ler.",
       lido: linhas.length ? linhas.length + " campo(s) encontrado(s)" + (a.convertido ? " · convertido de " + a.convertido : "") : "Nada reconhecido para este destino"}[a.estado]);
     const remover = el("button", "btn btn-subtle", "Remover"); remover.type = "button"; remover.prepend(ui().icone("trash"));
     remover.disabled = ["convertendo", "lendo"].includes(a.estado);
@@ -236,12 +236,25 @@
       ativo = docAtual = -1; // o visualizador e as abas voltam ao primeiro arquivo que sobrou
       desenhar();
     });
-    topo.append(nome, estado, remover);
+    topo.append(nome, estado);
+    if (a.file_id && !a.ocr && ["lido", "erro"].includes(a.estado)) {
+      const ocr = el("button", "btn btn-subtle", "Ler como imagem (OCR)"); ocr.type = "button";
+      ocr.title = "Lê todas as páginas pela imagem, para documentos escaneados ou com texto que não foi reconhecido";
+      ocr.disabled = trabalhando;
+      ocr.addEventListener("click", async () => {
+        [...escolhas.keys()].filter(k => k.startsWith(a.selection_id + "|")).forEach(k => escolhas.delete(k));
+        a.ocr = true; trabalhando = true;
+        try { await ler([a]); } finally { trabalhando = false; desenhar(); }
+        processar(); // arquivos anexados durante o OCR
+      });
+      topo.append(ocr);
+    }
+    topo.append(remover);
     bloco.append(topo);
     if (a.estado === "lido") {
       const destino = el("label", "leitura-destino", "Dados de: "); destino.append(seletorPapel(i, a));
       bloco.append(destino);
-      if (!linhas.length) bloco.append(el("p", "hint", "Se o documento for uma imagem escaneada, o texto não pode ser lido: preencha manualmente."));
+      if (!linhas.length) bloco.append(el("p", "hint", a.ocr ? "Nada reconhecido na imagem: preencha manualmente." : "Se o documento for uma imagem escaneada, use \"Ler como imagem (OCR)\"."));
       linhas.forEach(l => bloco.append(linhaProposta(i, a, l)));
     }
     return bloco;

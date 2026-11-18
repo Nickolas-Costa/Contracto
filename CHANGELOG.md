@@ -3,6 +3,17 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.7.0] - 2026-11-17
+
+### Leitura de documentos
+- **OCR do Windows** (ADR 0027, Fase 2): páginas sem camada de texto (escaneadas) são lidas pelo `Windows.Media.Ocr` em português, via PowerShell do próprio Windows, em processo separado com limite de tempo e sem arquivos temporários. Nenhum pacote novo no instalador. As sugestões lidas da imagem aparecem como "lida da imagem; confira" e têm confiança menor (várias vêm desmarcadas).
+- Botão **Ler como imagem (OCR)** em cada documento do modal: lê de novo todas as páginas pela imagem, para PDFs com texto ilegível ou com páginas escaneadas no meio.
+- Sem o idioma Português (Brasil) no Windows, um PDF só de imagem mostra um erro claro em vez de "nada reconhecido".
+- Cláusula "A1" lida como "Al" pelo OCR continua reconhecida.
+
+### Corrigido
+- Contrato com um só comprador: o "e" de "filho(a) de MÃE e PAI" virava um 2º participante (o pai) e levava junto o endereço do comprador. A filiação agora é ignorada na busca por participantes.
+
 ## [5.6.0] - 2026-11-17
 
 Reúne o trabalho das versões de teste 5.4.0–5.4.5 da linha de digitação e leitura de documentos (que não tinha sido publicado) com a 5.5.1; inclui os acertos do MO 29300.

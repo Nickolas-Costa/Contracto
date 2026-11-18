@@ -6,7 +6,7 @@
 > **Atualização v5.6.0:** leitura de documentos do cliente (ADR 0027, Fase 1) com revisão ao lado do documento, contratos com
 > vários compradores e cadastro de clientes; páginas livres e "Gerar mesmo assim"; máscaras com cursor correto; ITBI por município,
 > endereço completo ou em partes, campos do MO 29300 reposicionados; Conferência com atalho para o campo (ver CHANGELOG).
-> Adiados de propósito: assinatura de código, OCR (Fase 2), edição em modal na Conferência. Pendentes de verificação manual: arrasto
+> Adiados de propósito: assinatura de código, edição em modal na Conferência. OCR (Fase 2) entrou depois da 5.6.0, com o OCR do Windows (ADR 0027). Pendentes de verificação manual: arrasto
 > nativo e conversão de RTF/DOC/DOCX no instalador real; `smoke_webview_ui.py` no shell Tauri.
 
 > **Atualização v5.5.0 (15/11/2026):** atualização pelo aplicativo (botão em Configurações, atualizador do Tauri com

@@ -342,7 +342,7 @@ class Jobs:
             caminho = self.selections.resolve(key, "file")
             item = {"file_id": key, "nome": caminho.name, "paginas": 0, "erro": None, "participante": [], "compartilhado": []}
             try:
-                leitura = pdf_extraction.ler_pdf(caminho)
+                leitura = pdf_extraction.ler_pdf(caminho, forcar_ocr=request.ocr)
                 item.update(paginas=len(leitura.paginas),
                             participante=pdf_extraction.propor(leitura, combinado.perfil, "participante", regras),
                             compartilhado=pdf_extraction.propor(leitura, combinado.perfil, "compartilhado", regras))

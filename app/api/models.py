@@ -76,6 +76,7 @@ class ExtractInput(Model):
     """Leitura de documentos do cliente (PDFs já preparados pelo intake) contra os campos dos perfis."""
     file_ids: list[Id] = Field(min_length=1, max_length=5)
     profile_ids: list[Id] = Field(min_length=1, max_length=20)
+    ocr: bool = False  # pedido pelo usuário: todas as páginas pelo OCR, mesmo as que têm texto
 
 
 class Error(Model):

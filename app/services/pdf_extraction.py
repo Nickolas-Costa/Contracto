@@ -1,16 +1,21 @@
 """Leitura de PDFs do cliente para sugerir valores dos campos do formulário (ADR 0027, Fase 1).
 
-Só lê e propõe: nada é aplicado sem a revisão do usuário. Trabalha com a camada de texto e com os campos
-AcroForm do PDF (sem OCR); valores que falham no validador do tipo nunca viram sugestão. O PDF é entrada não
-confiável: limites de tamanho/páginas, sem executar nada do arquivo e nenhum valor lido vai para log.
+Só lê e propõe: nada é aplicado sem a revisão do usuário. Trabalha com a camada de texto, com os campos
+AcroForm do PDF e, nas páginas sem texto (digitalizadas), com o OCR do Windows (Fase 2); valores que falham no
+validador do tipo nunca viram sugestão. O PDF é entrada não confiável: limites de tamanho/páginas, sem executar
+nada do arquivo e nenhum valor lido vai para log.
 
-shortcut: leitura no próprio processo (pypdfium2/pypdf); isolar em processo filho com limite de tempo quando
-a Fase 2 (OCR) ou PDFs hostis entrarem no escopo.
+shortcut: o parser (pypdfium2/pypdf) roda no próprio processo e só o OCR vai para processo filho com limite de
+tempo; isolar o parser também quando PDFs hostis entrarem no escopo.
 """
 
 from __future__ import annotations
 
+import base64
+import io
 import re
+import subprocess
+import sys
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +44,7 @@ class ExtracaoErro(Exception):
 class Leitura:
     paginas: list[str] = field(default_factory=list)
     campos: dict[str, str] = field(default_factory=dict)  # AcroForm: nome do campo → valor
+    ocr: list[int] = field(default_factory=list)  # páginas (1, 2...) lidas pelo OCR, sem camada de texto
 
 
 @dataclass
@@ -55,7 +61,7 @@ class Candidato:
     pessoa: int = -1   # índice da pessoa na cláusula; -2 = vale para todas (endereço, estado civil do casal)
 
 
-def ler_pdf(caminho: Path) -> Leitura:
+def ler_pdf(caminho: Path, forcar_ocr: bool = False) -> Leitura:
     if caminho.stat().st_size > MAX_BYTES:
         raise ExtracaoErro("O arquivo passa de 20 MB.")
     try:
@@ -72,13 +78,76 @@ def ler_pdf(caminho: Path) -> Leitura:
             if len(documento) > MAX_PAGINAS:
                 raise ExtracaoErro(f"O PDF tem mais de {MAX_PAGINAS} páginas.")
             paginas = [documento[i].get_textpage().get_text_range() for i in range(len(documento))]
+            sem_texto = [i for i, t in enumerate(paginas) if forcar_ocr or len(re.sub(r"\s", "", t)) < 30]
+            try:
+                for i, texto in zip(sem_texto, _ocr_windows([_png_da_pagina(documento[i]) for i in sem_texto]) if sem_texto else []):
+                    paginas[i] = texto
+            except ExtracaoErro:
+                # shortcut: sem OCR, páginas em branco de um PDF com texto passam caladas; avisar por página se surgir PDF misto.
+                if forcar_ocr or len(sem_texto) == len(paginas):
+                    raise
+                sem_texto = []
         finally:
             documento.close()
     except ExtracaoErro:
         raise
     except Exception as exc:  # parser de terceiros: qualquer falha vira mensagem genérica
         raise ExtracaoErro("Não foi possível ler este PDF (arquivo corrompido ou protegido).") from exc
-    return Leitura(paginas=paginas, campos=campos)
+    return Leitura(paginas=paginas, campos=campos, ocr=[i + 1 for i in sem_texto])
+
+
+# --- OCR (Fase 2): páginas sem camada de texto, lidas pelo OCR nativo do Windows ---------------------------------
+
+# PowerShell 5.1 (vem no Windows) chama Windows.Media.Ocr: nenhum pacote a distribuir, processo filho com limite
+# de tempo e as páginas vão em PNG pelo stdin (nada em disco). Uma linha base64 por página, na ida e na volta.
+_OCR_PS = r"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
+$null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Foundation, ContentType = WindowsRuntime]
+$null = [Windows.Globalization.Language, Windows.Foundation, ContentType = WindowsRuntime]
+$asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+  $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1
+function Esperar($op, [Type]$tipo) { $t = $asTask.MakeGenericMethod($tipo).Invoke($null, @($op)); $t.Wait(); $t.Result }
+$motor = [Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage([Windows.Globalization.Language]::new('pt-BR'))
+if (-not $motor) { exit 3 }
+while ($null -ne ($linha = [Console]::In.ReadLine())) {
+  $ms = New-Object IO.MemoryStream(, [Convert]::FromBase64String($linha))
+  $fluxo = [System.IO.WindowsRuntimeStreamExtensions]::AsRandomAccessStream($ms)
+  $dec = Esperar ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($fluxo)) ([Windows.Graphics.Imaging.BitmapDecoder])
+  $bmp = Esperar ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+  $res = Esperar ($motor.RecognizeAsync($bmp)) ([Windows.Media.Ocr.OcrResult])
+  [Console]::Out.WriteLine([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((($res.Lines | ForEach-Object { $_.Text }) -join "`n"))))
+}
+"""
+OCR_DPI = 200
+
+
+def _ocr_windows(imagens: list[bytes]) -> list[str]:
+    """Texto de cada imagem (PNG) pelo OCR do Windows em português; falha vira ExtracaoErro com mensagem clara."""
+    erro = ExtracaoErro("Este PDF é digitalizado (imagem) e o leitor de imagem do Windows não está disponível. "
+                        "Instale o idioma Português (Brasil) no Windows ou preencha os dados à mão.")
+    if sys.platform != "win32":
+        raise erro
+    script = base64.b64encode(_OCR_PS.encode("utf-16-le")).decode()
+    entrada = "".join(base64.b64encode(i).decode() + "\n" for i in imagens)
+    try:
+        r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", script],
+                           input=entrada, capture_output=True, text=True, timeout=30 + 3 * len(imagens),
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise erro from exc
+    saida = r.stdout.split()
+    if r.returncode != 0 or len(saida) != len(imagens):
+        raise erro
+    return [re.sub(r" +([,.;])", r"\1", base64.b64decode(s).decode("utf-8")) for s in saida]  # o OCR põe espaço antes da vírgula
+
+
+def _png_da_pagina(pagina) -> bytes:
+    escala = min(OCR_DPI / 72, 9999 / max(pagina.get_size()))  # o OCR do Windows aceita até 10000 px por lado
+    buffer = io.BytesIO()
+    pagina.render(scale=escala, grayscale=True).to_pil().save(buffer, "PNG")
+    return buffer.getvalue()
 
 
 # --- candidatos do texto -------------------------------------------------------------------------
@@ -247,7 +316,7 @@ def candidatos_endereco_em_partes(linhas: list[str], numero: int) -> list[Candid
 
 # --- contratos: cláusulas A1/A2... com uma ou mais pessoas por parte ----------------------------------------------
 
-_CLAUSULA = re.compile(r"\bA(\d{1,2})\s*-\s+")
+_CLAUSULA = re.compile(r"\bA(\d{1,2}|[lI])\s*-\s+")  # "Al"/"AI": o OCR costuma ler o "1" de "A1" como letra
 # Início de pessoa: NOME EM MAIÚSCULAS seguido de vírgula e da qualificação ("nacionalidade...", "brasileiro", "nascido(a)"...),
 # depois de ponto final, " e ", "e seu cônjuge", "e sua companheira", vírgula... O que importa é a assinatura "NOME, qualificação".
 _INICIO_PESSOA = re.compile(
@@ -285,6 +354,8 @@ def _pessoas_da_clausula(texto: str, grupo: str) -> list[tuple[str, int, int]]:
     padroes = (_INICIO_PESSOA, _OUTRA_PESSOA) if grupo == "comprador" else (_OUTRA_PESSOA,)
     candidatos = sorted((m.start(1), m.group(1).strip()) for padrao in padroes for m in padrao.finditer(texto, inicio0 + len(primeiro.group(1))))
     for pos, nome in candidatos:
+        if re.search(r"(?i)filh[oa]", texto[texto.rfind(",", 0, pos) + 1:pos]):
+            continue  # "filho(a) de MÃE e PAI,": o "e" liga os pais, não um novo participante
         if nome.casefold() not in {n.casefold() for n, _ in achados} and not _REPRESENTANTE.match(nome):
             achados.append((nome, pos))
     return [(nome, ini, achados[k + 1][1] if k + 1 < len(achados) else len(texto)) for k, (nome, ini) in enumerate(achados)]
@@ -615,6 +686,10 @@ def propor(leitura: Leitura, perfil, papel: str, regras_usuario=None) -> list[di
     com mais de um comprador, `por_pessoa` traz o valor de cada um (None quando a pessoa não tem aquele dado).
     """
     candidatos = candidatos_do_texto(leitura.paginas, regras_usuario)
+    for c in candidatos:
+        if c.pagina in leitura.ocr:
+            c.metodo = "ocr"
+            c.confianca = round(c.confianca * 0.9, 2)  # leitura de imagem erra letras: o que cai abaixo de 0,8 vem desmarcado
     diretos = _diretos(leitura, perfil, papel)
     grupo = "comprador" if papel == "participante" else "vendedor"
     pessoas = 1 + max((c.pessoa for c in candidatos if c.grupo == grupo and c.pessoa >= 0), default=-1)

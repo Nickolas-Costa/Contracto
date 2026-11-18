@@ -351,6 +351,16 @@ class TestSoCompradoresUsamADenominacaoBranda(unittest.TestCase):
         achados = self._nomes(CONTRATO_P1, "vendedor")
         self.assertEqual(achados, ["DONA DOS LOTES LTDA"])  # "representada por DONO DOS LOTES, nacionalidade..." fica de fora
 
+    def test_e_da_filiacao_nao_cria_segundo_comprador_e_endereco_fica_com_o_unico(self):
+        texto = ("A2 - COMPRADOR(ES): COMPRADOR UM, nacionalidade brasileira, solteiro(a), filho(a) de MARIA DA SILVA e JOSE DA SILVA, "
+                 "CPF 529.982.247-25, residente e domiciliado(a) em R A, 01, Centro em Camocim/CE. A3 - CREDORA FIDUCIÁRIA: CAIXA.")
+        cands = ex.candidatos_de_contrato([texto])
+        self.assertEqual(self._nomes(texto, "comprador"), ["COMPRADOR UM"])
+        self.assertEqual([(c.pessoa, c.valor) for c in cands if c.tipo == "endereco"], [(0, "R A, 01, Centro, Camocim-CE")])
+
+    def test_clausula_a1_lida_como_al_pelo_ocr_ainda_vale(self):
+        self.assertEqual(self._nomes("Al - VENDEDOR(ES): VENDEDOR UM, nacionalidade brasileira, solteiro(a).", "vendedor"), ["VENDEDOR UM"])
+
     def test_gerente_dentro_do_bloco_dos_compradores_e_ignorado(self):
         texto = ("A2 - COMPRADOR(ES): COMPRADOR UM, nacionalidade brasileira, solteiro(a). GERENTE DA CAIXA GERAL, nacionalidade brasileira, casado. "
                  "COMPRADOR DOIS, nacionalidade brasileira, solteiro(a).")
@@ -409,6 +419,42 @@ class TestLeituraDePdf(unittest.TestCase):
         with patch.object(ex, "MAX_BYTES", 10):
             with self.assertRaises(ex.ExtracaoErro):
                 ex.ler_pdf(_pdf_texto(self.root / "ok.pdf", ["x"]))
+
+
+class TestOcr(Base):
+    """PDF digitalizado: só imagem, sem camada de texto."""
+
+    def _pdf_imagem(self, linhas):
+        import pypdfium2
+        from PIL import Image
+        texto = pypdfium2.PdfDocument(str(_pdf_texto(self.root / "texto.pdf", linhas)))
+        imagem = texto[0].render(scale=200 / 72).to_pil().convert("L")
+        texto.close()
+        destino = self.root / "scan.pdf"
+        imagem.save(destino, "PDF", resolution=200)
+        return destino
+
+    @unittest.skipUnless(sys.platform == "win32", "OCR do Windows")
+    def test_pagina_digitalizada_e_lida_pelo_ocr_do_windows(self):
+        leitura = ex.ler_pdf(self._pdf_imagem(["Nome: ANA LIMA DE SOUZA", "CPF: 529.982.247-25"]))
+        self.assertEqual(leitura.ocr, [1])
+        perfil = Perfil(nome="QA", modo_fluxo="formulario_simples", campos_entrada=[CampoEntrada(id="cpf", rotulo="CPF", tipo="CPF")], formularios=[])
+        cpf = next(p for p in ex.propor(leitura, perfil, "participante") if p["campo_id"] == "cpf")
+        self.assertEqual((cpf["valor"], cpf["metodo"]), ("529.982.247-25", "ocr"))
+
+    def test_sem_ocr_disponivel_o_pdf_digitalizado_vira_erro_claro(self):
+        pdf = self._pdf_imagem(["Nome: ANA LIMA DE SOUZA"])
+        with patch.object(ex.sys, "platform", "linux"), self.assertRaisesRegex(ex.ExtracaoErro, "digitalizado"):
+            ex.ler_pdf(pdf)
+
+    def test_ocr_pedido_pelo_usuario_le_todas_as_paginas_e_nao_falha_calado(self):
+        texto = _pdf_texto(self.root / "com_texto.pdf", ["Nome: ANA LIMA DE SOUZA", "CPF: 529.982.247-25 e mais texto"])
+        self.assertEqual(ex.ler_pdf(texto).ocr, [])
+        with patch.object(ex, "_ocr_windows", return_value=["CPF 529.982.247-25"]) as ocr:
+            self.assertEqual(ex.ler_pdf(texto, forcar_ocr=True).ocr, [1])
+        self.assertEqual(len(ocr.call_args.args[0]), 1)
+        with patch.object(ex.sys, "platform", "linux"), self.assertRaises(ex.ExtracaoErro):
+            ex.ler_pdf(texto, forcar_ocr=True)
 
 
 class TestApiExtract(Base):

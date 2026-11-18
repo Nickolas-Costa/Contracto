@@ -5,7 +5,7 @@
 # Contracto
 ### Automação de Contratos Habitacionais, Preenchimento de Declarações & Conversão PDF/A-2b
 
-[![Versão](https://img.shields.io/badge/versão-v5.6.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
+[![Versão](https://img.shields.io/badge/versão-v5.7.0-1E6FB3?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nickolas-Costa/Contracto/releases)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Nickolas-Costa/Contracto)
 [![Padrão ISO](https://img.shields.io/badge/Padrão-ISO%2019005--2%20(PDF%2FA--2b)-E02424?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://ghostscript.com/)
@@ -77,6 +77,10 @@ O **Contracto** foi arquitetado com foco absoluto na **segurança dos dados e no
 - **Armazenamento Seguro de Preferências**: Configurações de tema, diretórios e perfis são salvos localmente na pasta segura do seu usuário do Windows (`%APPDATA%\Contracto`).
 
 ---
+
+## Atualizações da Versão 5.7.0
+
+**Leitura de documentos escaneados (OCR do Windows):** páginas sem texto são lidas pela imagem, e o botão **Ler como imagem (OCR)** força a leitura de um documento inteiro. Nada a instalar além do idioma Português (Brasil) do Windows. Em contratos com um só comprador, o "e" de "filho(a) de MÃE e PAI" não cria mais um 2º participante (e o endereço fica com o comprador certo).
 
 ## Atualizações da Versão 5.6.0
 
@@ -158,7 +162,7 @@ CONTRACTO/
 │   ├── webview_shell.py                # Shell pywebview/WebView2 legado e referência da ponte
 │   ├── sidecar.py                      # Backend headless do shell Tauri (UTF-8, instância única, ADR 0029)
 │   ├── server.py                       # API FastAPI loopback (token efêmero)
-│   ├── version.py                      # Versão centralizada do sistema (v5.6.0)
+│   ├── version.py                      # Versão centralizada do sistema (v5.7.0)
 │   ├── api/                            # Rotas, jobs, seleções autorizadas e fila
 │   ├── services/                       # Geração, PDF/A, RTF, etapa 2, reparo, composição de perfis, leitura de PDFs (pdf_extraction)
 │   ├── models/                         # Entidades (participante)
@@ -204,7 +208,7 @@ python -m unittest discover -s tests -v
 
 ## 📦 Compilação (Tauri + sidecar)
 
-Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.6.0:
+Pré-requisitos: Python 3.12+ com o `.venv` e `requirements-dev.txt`, Rust (rustup, `stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools com C++ e Node. Para compilar a versão 5.7.0:
 
 ```cmd
 build_exe.bat
@@ -212,9 +216,9 @@ build_exe.bat
 
 O build baixa o NSIS (uma vez, com hash verificado), gera o sidecar Python com o Ghostscript embutido, compila o shell Tauri e entrega em `dist/`:
 
-- `Contracto_Setup_v5.6.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
-- `Contracto_v5.6.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
-- `*.sha256.txt` de cada um, `latest.json` (lido pelo atualizador do app; precisa ir junto na release) e `RELEASE_NOTES_5.6.0.md`.
+- `Contracto_Setup_v5.7.0.exe`: instalador NSIS por usuário (remove a instalação antiga do Inno Setup, se houver, e preserva `%APPDATA%\Contracto`);
+- `Contracto_v5.7.0.zip`: versão portátil (`Contracto.exe` + pasta `sidecar/`);
+- `*.sha256.txt` de cada um, `latest.json` (lido pelo atualizador do app; precisa ir junto na release) e `RELEASE_NOTES_5.7.0.md`.
 
 > O build assina o instalador para o atualizador do app com a chave em `%USERPROFILE%\.tauri\contracto-updater.key` (ou `TAURI_SIGNING_PRIVATE_KEY`). **Guarde uma cópia dessa chave fora do computador:** sem ela, as versões já instaladas não aceitam mais atualizações. O instalador não tem assinatura de código da Microsoft, então o SmartScreen pode alertar em quem baixa pelo navegador. Se o antivírus bloquear o build, exclua a pasta do projeto da verificação em tempo real.
 

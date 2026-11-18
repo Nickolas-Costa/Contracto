@@ -1,8 +1,9 @@
 # ADR 0027 — Extração de dados de PDF para preencher o formulário
 
 - **Estado:** **Fase 1 implementada** (5.4.x, sem nova dependência): `app/services/pdf_extraction.py`,
-  `POST /api/v1/jobs/intake` e `POST /api/v1/extract`, modal `frontend/js/leitura.js`. As Fases 2 (OCR) e 3
-  (fusão de vários documentos por campo) dependem do gate de `DEPENDENCY_REVIEW.md` e de aceite explícito.
+  `POST /api/v1/jobs/intake` e `POST /api/v1/extract`, modal `frontend/js/leitura.js`. **Fase 2 (OCR)
+  implementada** com a opção A, `Windows.Media.Ocr` (ver "Implementação da Fase 2"). A Fase 3 (fusão de vários
+  documentos por campo) depende de aceite explícito.
   Diferenças em relação ao plano: a leitura roda no próprio processo (não em processo filho), a resposta é
   síncrona (sem job) e os valores não têm tabela de origem por documento além da página.
 - **Data:** 2026-10-28
@@ -166,3 +167,17 @@ CPF, CNPJ, datas, valores e nomes saíram certos; o que falhou foi o `@` do e-ma
 - **Revisão**: modal em duas colunas (valores editáveis × documento), `por_pessoa` para vários compradores, avisos para números que não conferem (vêm desmarcados), "será substituído" quando troca um valor já preenchido, desfazer.
 - **Padrões do usuário**: `padroes_leitura` em Configurações (`tipo`, `antes`, `ate`), somados aos padrões do app.
 - **OCR (Fase 2)**: Tesseract 5.5.3 (`tessdata_fast`) foi medido e fica como candidato; não foi incluído no app.
+
+## Implementação da Fase 2 (OCR do Windows, 2026-11-17)
+
+- **Escolha:** opção A, `Windows.Media.Ocr` em pt-BR, chamado pelo **PowerShell 5.1 do próprio Windows** em processo
+  filho (`-EncodedCommand`, sem janela, limite de 30 s + 3 s por página). Nenhum pacote novo: o gate de
+  `DEPENDENCY_REVIEW.md` está respondido lá.
+- **Quando:** só nas páginas com menos de 30 caracteres de texto. `pypdfium2` rasteriza a 200 dpi em tons de cinza e
+  o PNG vai pelo stdin; nada vai para o disco. O texto lido passa pelas mesmas regras e validadores da Fase 1, e a
+  sugestão vem com `metodo: "ocr"` e o aviso "lida da imagem; confira" na revisão.
+- **Sem OCR** (fora do Windows, sem o idioma Português (Brasil) instalado, erro ou tempo esgotado): um PDF só de
+  imagem vira erro claro. Num PDF com texto, as páginas sem texto ficam vazias (shortcut no código).
+- **Medição** (contrato sintético de 2 páginas, 200 dpi, girado 0,8° e desfocado): 4,1 s no total, com a partida
+  do PowerShell incluída. Nomes, CPFs, nascimentos, endereço, estado civil e data saíram certos. Erros vistos:
+  "hotmail" lido como "hotmall" e "A1" como "Al" (o padrão da cláusula agora aceita `Al`/`AI`).
