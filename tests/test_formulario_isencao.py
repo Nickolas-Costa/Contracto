@@ -53,7 +53,7 @@ class TestFormularioIsencao(unittest.TestCase):
             resultado = gerar_documentos(
                 participantes=[p],
                 perfil=perfil,
-                pasta_saida=pasta_saida,
+                pasta_saida=pasta_saida, manter_editavel=True
             )
 
             self.assertEqual(len(resultado.arquivos_gerados), 1)

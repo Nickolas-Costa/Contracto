@@ -112,7 +112,7 @@ class TestComposicaoPerfis(unittest.TestCase):
             perfis = [Perfil(formularios=[formulario_a]), Perfil(formularios=[formulario_b])]
             participante = Participant(nome_completo="Maria", cpf="52998224725")
 
-            resultado = gerar_documentos_de_perfis([participante], perfis, pasta)
+            resultado = gerar_documentos_de_perfis([participante], perfis, pasta, manter_editavel=True)
 
             self.assertEqual(len(resultado.arquivos_gerados), 2)
             self.assertEqual({arquivo.name for arquivo in resultado.arquivos_gerados}, {

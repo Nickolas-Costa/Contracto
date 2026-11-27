@@ -3,6 +3,15 @@
 Formato Keep-a-Changelog. Versão corrente em `app/version.py` (+ espelho `VERSION`).
 Histórico detalhado da série 4.x em `CHANGELOG_v4.md`.
 
+## [5.8.0] - 2026-11-26
+
+### Novo
+- **PDFs gerados saem achatados** (sem campos editáveis): os valores passam a fazer parte da página. A opção "Manter os campos editáveis", na Conferência, volta ao comportamento anterior; ela vale por trabalho e começa desmarcada. Não substitui assinatura digital.
+- **Começar do zero** na Conferência e na Etapa 3: pede confirmação, apaga o trabalho da tela e recarrega o aplicativo.
+
+### Limitação
+- A leitura de documentos não reconhece por campo um PDF achatado gerado pelo próprio app (só pelo texto). Para reaproveitar os dados, gere com campos editáveis.
+
 ## [5.7.0] - 2026-11-17
 
 ### Leitura de documentos

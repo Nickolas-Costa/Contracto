@@ -181,7 +181,7 @@ class TestLocalAPI(unittest.TestCase):
 
     def test_generate_without_word_gs_then_process_keeps_original(self):
         with patch("api.jobs.capabilities", return_value={"word": False, "ghostscript": False, "pdf": True}):
-            status, job = self.http("/api/v1/jobs/generate", self.payload)
+            status, job = self.http("/api/v1/jobs/generate", {**self.payload, "manter_editavel": True})
             self.assertEqual(status, 202, job)
             generated = self.wait_job(job["job_id"])
             self.assertEqual(generated["status"], "completed", generated)

@@ -13,8 +13,8 @@ import version
 
 class TestVisualAssets(unittest.TestCase):
     def test_version_is_current(self):
-        """Verifica se a versão centralizada está definida como 5.7.0."""
-        self.assertEqual(version.__version__, "5.7.0")
+        """Verifica se a versão centralizada está definida como 5.8.0."""
+        self.assertEqual(version.__version__, "5.8.0")
 
     def test_icones_do_aplicativo_existem(self):
         """O instalador, o atalho e o PyInstaller dependem destes arquivos."""

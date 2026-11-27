@@ -405,7 +405,7 @@ class TestLeituraDePdf(unittest.TestCase):
         perfil = next(p for p in carregar_perfis() if p.nome == "ITBI")
         p = Participant(nome_completo="MARIA SOUZA", cpf="529.982.247-25", endereco="RUA B", data_assinatura="01/09/2026",
                         local_assinatura="X", campos_dinamicos={"nome_vendedor": "CONSTRUTORA X", "iptu": "01.02.003", "valor_compra": "190.000,00"})
-        gerado = gerar_documentos(participantes=[p], perfil=perfil, pasta_saida=self.root).arquivos_gerados[0]
+        gerado = gerar_documentos(participantes=[p], perfil=perfil, pasta_saida=self.root, manter_editavel=True).arquivos_gerados[0]
         comum = {x["campo_id"]: x for x in ex.propor(ex.ler_pdf(gerado), perfil, "compartilhado")}
         self.assertEqual(comum["nome_vendedor"]["valor"], "CONSTRUTORA X")
         self.assertEqual(comum["nome_vendedor"]["metodo"], "acroform")

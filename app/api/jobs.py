@@ -231,7 +231,8 @@ class Jobs:
         def operation(folder, job, progress):
             result = gerar_documentos_de_perfis(participants, profiles, folder,
                                                cancel_event=job.cancel_event, on_progress=progress,
-                                               formularios_ativos=forms)
+                                               formularios_ativos=forms,
+                                               manter_editavel=getattr(request, "manter_editavel", False))
             if result.avisos or not result.arquivos_gerados:
                 raise ApiError("generation_failed", "Não foi possível gerar todos os formulários")
             metadata.update({path: {"origin": "generated", "participants": result.participantes_por_arquivo.get(path, [])}

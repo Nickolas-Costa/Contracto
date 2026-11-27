@@ -11,9 +11,12 @@ Isso mantém baixo acoplamento: se no futuro o formato dos PDFs mudar, ou
 se novos tipos de documentos forem adicionados, apenas o mapeamento precisa ser atualizado.
 """
 
+import io
+import threading
 from pathlib import Path
 from typing import Optional
 
+import pypdfium2
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 from pypdf.generic import ByteStringObject, DictionaryObject, NameObject, TextStringObject
@@ -22,6 +25,9 @@ from pypdf.generic import ByteStringObject, DictionaryObject, NameObject, TextSt
 class PdfServiceError(Exception):
     """Erro amigável relacionado à leitura, preenchimento ou escrita de um PDF."""
 
+
+# O PDFium não é seguro entre threads: quem o usar no processo do app passa por aqui.
+PDFIUM_LOCK = threading.Lock()
 
 _detalhes_cache: dict[tuple[str, int, int], dict[str, dict[str, object]]] = {}
 _LIMITE_TAMANHO_PDF = 50 * 1024 * 1024
@@ -113,6 +119,7 @@ def preencher_formulario(
     valores: dict[str, str],
     caminho_saida: Path,
     reader: Optional[PdfReader] = None,
+    achatar: bool = True,
 ) -> list[str]:
     """Preenche os campos de formulário (AcroForm) de um PDF modelo e salva o
     resultado em `caminho_saida`.
@@ -122,6 +129,8 @@ def preencher_formulario(
         valores: dicionário {nome_do_campo_no_pdf: valor_a_preencher}.
         caminho_saida: caminho completo do PDF final a ser gerado.
         reader: instância opcional do PdfReader para evitar re-leitura do arquivo.
+        achatar: grava os valores na própria página e remove os campos (o PDF
+            final não pode ser alterado pelos campos). `False` mantém editável.
 
     Returns:
         Lista com os nomes de campos em `valores` que não foram encontrados
@@ -180,14 +189,31 @@ def preencher_formulario(
         writer.set_need_appearances_writer(True)
 
         caminho_saida.parent.mkdir(parents=True, exist_ok=True)
-        with open(caminho_saida, "wb") as arquivo_saida:
-            writer.write(arquivo_saida)
-    except (OSError, PdfReadError) as exc:
+        preenchido = io.BytesIO()
+        writer.write(preenchido)
+        conteudo = preenchido.getvalue()
+        caminho_saida.write_bytes(_achatar(conteudo) if achatar else conteudo)
+    except (OSError, PdfReadError, pypdfium2.PdfiumError) as exc:
         raise PdfServiceError(
             f"Não foi possível gerar o arquivo '{caminho_saida.name}': {exc}"
         ) from exc
 
     return campos_ausentes
+
+
+def _achatar(conteudo: bytes) -> bytes:
+    """Funde campos e marcações no conteúdo das páginas (sem AcroForm editável)."""
+    with PDFIUM_LOCK:
+        documento = pypdfium2.PdfDocument(conteudo)
+        try:
+            documento.init_forms()  # antes de abrir as páginas: o PDFium redesenha os campos
+            for pagina in documento:
+                pagina.flatten()
+            saida = io.BytesIO()
+            documento.save(saida)
+            return saida.getvalue()
+        finally:
+            documento.close()
 
 
 def _abrir_pdf(caminho: Path) -> PdfReader:

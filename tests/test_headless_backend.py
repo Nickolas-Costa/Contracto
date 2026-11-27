@@ -56,7 +56,7 @@ class TestHeadlessBackend(unittest.TestCase):
             res = gerar_documentos_de_perfis(
                 [Participant(nome_completo="Maria", cpf="52998224725")],
                 [p1, p2],
-                pasta,
+                pasta, manter_editavel=True
             )
             self.assertEqual(len(res.arquivos_gerados), 2)
             for arq in res.arquivos_gerados:

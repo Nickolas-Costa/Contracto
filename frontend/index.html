@@ -153,12 +153,17 @@
         </div>
         <p id="capacidade-formato" class="hint"></p>
       </div>
+      <div class="card">
+        <label class="checkbox-inline"><input type="checkbox" id="chk-manter-editavel"> Manter os campos editáveis nos PDFs gerados</label>
+        <p class="field-note">Desmarcado (recomendado), os dados ficam fixos na página. Marque só se o documento ainda precisar de ajuste antes da assinatura.</p>
+      </div>
       <div class="card conf-card">
         <div class="card-header"><div><h2>Resumo dos dados preenchidos</h2><p class="hint">Confira a lista de participantes, campos e modelos selecionados.</p></div></div>
         <div id="corpo-conferencia">Carregando dados para conferência…</div>
       </div>
       <div class="acoes form-actions">
         <button class="btn btn-secondary" id="btn-conferir-voltar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg>Voltar ao formulário</button>
+        <button class="btn btn-secondary btn-zerar" type="button">Começar do zero</button>
         <button class="btn btn-primary" id="btn-conferir-confirmar" type="button">Confirmar e gerar documentos<svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-advance"/></svg></button>
       </div>
     </section>
@@ -188,6 +193,7 @@
         <div id="lista-resultados"></div>
         <div class="acoes">
           <button class="btn btn-secondary" id="btn-voltar" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg>Voltar</button>
+          <button class="btn btn-secondary btn-zerar" type="button">Começar do zero</button>
           <button class="btn btn-secondary" id="btn-fila" type="button"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-queue"/></svg>Fila</button>
           <button class="btn btn-secondary" id="btn-cancelar" type="button" hidden>Cancelar trabalho</button>
           <button class="btn btn-secondary" id="btn-retomar" type="button" hidden>Recuperar andamento</button>

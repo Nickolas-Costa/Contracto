@@ -280,6 +280,23 @@
 
   // O guia de ajuda mora em ajuda.js (para ser refeito sem mexer aqui).
   function ajudaModal() { window.ContractoAjuda?.abrir(); }
+  // Recarregar a página é o único jeito de garantir que nada do trabalho anterior sobra na memória.
+  function comecarDoZero() {
+    if (window.ContractoEtapa2?.ocupado?.()) return;
+    abrirModal(
+      "Começar do zero",
+      "<p>Todos os campos preenchidos e a lista deste trabalho serão apagados. Os arquivos já salvos continuam na pasta.</p>",
+      [
+        { texto: "Apagar e recomeçar", aoClicar: () => {
+          try { localStorage.removeItem("contracto-local-assinatura"); } catch (_) {}
+          window.location.reload();
+        } },
+        { texto: "Cancelar" }
+      ]
+    );
+  }
+
+  document.querySelectorAll(".btn-zerar").forEach(b => b.addEventListener("click", comecarDoZero));
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "F1" && document.getElementById("overlay").hidden) { ev.preventDefault(); ajudaModal(); }
   });

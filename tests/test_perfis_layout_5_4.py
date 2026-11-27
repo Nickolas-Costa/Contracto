@@ -98,7 +98,7 @@ class TestMunicipiosItbi(unittest.TestCase):
                         local_assinatura="X", campos_dinamicos={"prefeitura": "X-CE", "texto_isencao": "Lei de X.",
                                                                 "enquadramento_isencao": "Sim"})
         with tempfile.TemporaryDirectory() as tmp:
-            saida = gerar_documentos(participantes=[p], perfil=itbi, pasta_saida=Path(tmp)).arquivos_gerados[0]
+            saida = gerar_documentos(participantes=[p], perfil=itbi, pasta_saida=Path(tmp), manter_editavel=True).arquivos_gerados[0]
             campos = PdfReader(str(saida)).get_fields()
         self.assertEqual(campos["PREFEITURA"].get("/V"), "X-CE")
         self.assertEqual(campos["TEXTO_ISENCAO"].get("/V"), "Lei de X.")

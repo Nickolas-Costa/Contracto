@@ -38,6 +38,7 @@ class GenerateInput(PreviewInput):
     forms_selecionados: list[Annotated[str, StringConstraints(min_length=1, max_length=200)]] | None = Field(default=None, max_length=50)
     # "Gerar mesmo assim": só perfis simples; nome, CPF, data, local e pasta continuam obrigatórios.
     ignorar_pendencias: bool = False
+    manter_editavel: bool = False  # padrão: PDF achatado, sem campos alteráveis
 
 
 class Attachment(Model):

@@ -74,6 +74,7 @@
     $("btn-retomar").hidden = !pending && !andamentoPerdido;
     $("btn-retomar").disabled=sending;
     $("btn-voltar").disabled=busy;
+    document.querySelectorAll(".btn-zerar").forEach(b=>{b.disabled=busy;});
     $("fila-barra").parentElement.hidden=!busy;
     // "Fila" só quando existe trabalho conhecido ou ativo.
     const btnFila=$("btn-fila");
@@ -476,6 +477,7 @@
     if(timer){clearTimeout(timer);timer=null;}
     active=null; failures=0; finalized=false;
     attachments=[];extrasMap.clear();
+    const editavel=$("chk-manter-editavel");if(editavel)editavel.checked=false;
     formatoEscolhido=false;carregarFormatoPadrao();
     atualizar();
   }
@@ -516,6 +518,7 @@
     const payload = { profile_ids: snapshot.profile_ids, participants: snapshot.participants, output_id: snapshot.output_id, request_id: requestId };
     if (Array.isArray(snapshot.forms_selecionados) && snapshot.forms_selecionados.length) payload.forms_selecionados = snapshot.forms_selecionados;
     if (snapshot.ignorar_pendencias) payload.ignorar_pendencias = true;
+    if ($("chk-manter-editavel")?.checked) payload.manter_editavel = true;
     const era = eraEnvio;
     sending = true; busy = true; atualizar();
     return api().request("POST", "/api/v1/jobs/generate", payload).then(r => {

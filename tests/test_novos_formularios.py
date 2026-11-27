@@ -204,9 +204,26 @@ class TestValorGravadoSemEscape(unittest.TestCase):
         valor = "COMUNHÃO, CEP 62400-000"
         with tempfile.TemporaryDirectory() as pasta:
             saida = Path(pasta) / "saida.pdf"
-            preencher_formulario(modelo, {"regime_de_comunhao": valor}, saida)
+            preencher_formulario(modelo, {"regime_de_comunhao": valor}, saida, achatar=False)
             self.assertEqual(PdfReader(str(saida)).get_fields()["regime_de_comunhao"]["/V"], valor)
             self.assertNotIn(rb"62400\055000", saida.read_bytes())
+
+
+class TestSaidaAchatada(unittest.TestCase):
+    def test_padrao_remove_campos_e_mantem_o_texto_na_pagina(self):
+        from services.pdf_service import preencher_formulario
+        import pypdfium2
+        modelo = Path(__file__).resolve().parent.parent / "app/assets/templates/MO29300-039 (DAMP).pdf"
+        with tempfile.TemporaryDirectory() as pasta:
+            saida = Path(pasta) / "saida.pdf"
+            preencher_formulario(modelo, {"regime_de_comunhao": "COMUNHÃO PARCIAL"}, saida)
+            leitor = PdfReader(str(saida))
+            self.assertFalse(leitor.get_fields())
+            self.assertFalse([a for p in leitor.pages for a in (p.get("/Annots") or [])
+                              if a.get_object().get("/Subtype") == "/Widget"])
+            documento = pypdfium2.PdfDocument(saida.read_bytes())
+            self.assertIn("COMUNHÃO PARCIAL", documento[0].get_textpage().get_text_range())
+            documento.close()
 
 
 class TestCatalogoENovosPdfs(unittest.TestCase):
@@ -223,13 +240,13 @@ class TestCatalogoENovosPdfs(unittest.TestCase):
         seguro = profile_manager.obter_perfil("Seguro")
         p = participante_damp(declaracaoSaudeSeguro="DESCONHECO_POSSUIR")
         with tempfile.TemporaryDirectory() as tmp:
-            res_damp = gerar_documentos([p], damp, Path(tmp))
+            res_damp = gerar_documentos([p], damp, Path(tmp), manter_editavel=True)
             self.assertEqual(res_damp.avisos, [])
             campos_damp = PdfReader(str(res_damp.arquivos_gerados[0])).get_fields()
             self.assertEqual(campos_damp["PROPONENTE_NOME"].get("/V"), "JOSÉ DA SILVA")
             self.assertEqual(campos_damp["nao_mantenho_uniao"].get("/V"), "/Yes")
 
-            res_seguro = gerar_documentos([p], seguro, Path(tmp))
+            res_seguro = gerar_documentos([p], seguro, Path(tmp), manter_editavel=True)
             self.assertEqual(res_seguro.avisos, [])
             campos_seguro = PdfReader(str(res_seguro.arquivos_gerados[0])).get_fields()
             self.assertEqual(campos_seguro["PROP1"].get("/V"), "JOSÉ DA SILVA")

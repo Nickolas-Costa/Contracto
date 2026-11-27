@@ -162,6 +162,9 @@
     if(confirmaFinal)confirmaFinal.click();
     await wait(()=>$('lista-resultados').children.length===3 && !window.ContractoEtapa2.ocupado(),'processing terminal');
     assert(!$('btn-abrir-pasta').hidden,'final folder available');
+    // Começar do zero: pede confirmação e Cancelar não apaga nada.
+    const zerar=document.querySelector('#tela-etapa2 .btn-zerar');assert(zerar&&!zerar.disabled,'start over available');zerar.click();
+    const cancelaZerar=[...document.querySelectorAll('.modal .acoes button')].find(b=>b.textContent==='Cancelar');assert(cancelaZerar,'start over asks first');cancelaZerar.click();
     const botoesEtapa2=[...document.querySelectorAll('#tela-etapa2 .acoes > button:not([hidden])')];
     assert(botoesEtapa2.at(-1).classList.contains('btn-primary') && botoesEtapa2[0].id==='btn-voltar','stage 2 actions end with the primary button, Voltar first');
     const caps=await window.ContractoAPI.getCapabilities(), cfg=(await window.ContractoAPI.getSettings()).data.formato_saida;

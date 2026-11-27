@@ -235,6 +235,7 @@ def gerar_documentos(
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
     nomes_de_arquivo_usados: Optional[set[str]] = None,
+    manter_editavel: bool = False,
 ) -> ResultadoGeracao:
     """Gera os PDFs configurados no Perfil dinamicamente."""
     resultado = ResultadoGeracao()
@@ -302,7 +303,8 @@ def gerar_documentos(
 
             caminho_saida = _proximo_caminho_disponivel(pasta_saida, nome_arquivo, nomes_de_arquivo_usados)
             
-            ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida, reader=reader_modelo)
+            ausentes = preencher_formulario(caminho_modelo, valores_pdf, caminho_saida, reader=reader_modelo,
+                                           achatar=not manter_editavel)
             campos_ausentes_form.update(ausentes)
             resultado.arquivos_gerados.append(caminho_saida)
             resultado.participantes_por_arquivo[caminho_saida] = (
@@ -326,6 +328,7 @@ def gerar_documentos_de_perfis(
     cancel_event: Optional[threading.Event] = None,
     on_progress: Optional[Callable[[int, int, str], None]] = None,
     formularios_ativos: Optional[list[str] | set[str]] = None,
+    manter_editavel: bool = False,
 ) -> ResultadoGeracao:
     """Gera todos os formulários dos perfis escolhidos em uma única operação."""
     resultado = ResultadoGeracao()
@@ -348,6 +351,7 @@ def gerar_documentos_de_perfis(
             cancel_event=cancel_event,
             on_progress=progresso,
             nomes_de_arquivo_usados=nomes_usados,
+            manter_editavel=manter_editavel,
         )
         resultado.arquivos_gerados.extend(parcial.arquivos_gerados)
         resultado.participantes_por_arquivo.update(parcial.participantes_por_arquivo)

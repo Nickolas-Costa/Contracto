@@ -108,9 +108,10 @@ def main():
                     assert len(generated.file_ids)==2
                     for key in generated.file_ids:
                         pdf=PdfReader(server.jobs.selections.resolve(key,"file"))
-                        form=pdf.get_fields()
-                        assert form["NOME"]["/V"].startswith("PESSOA QA"), form
-                        assert form["ENDERECO"]["/V"] == "RUA QA", form
+                        # Padrão: achatado — sem campos, valores no texto da página.
+                        assert not pdf.get_fields(), pdf.get_fields()
+                        texto=pdf.pages[0].extract_text()
+                        assert "PESSOA QA" in texto and "RUA QA" in texto, texto
                     assert len(completed[1].file_ids)==3
                     texts=[PdfReader(server.jobs.selections.resolve(key,"file")).pages[0].extract_text() for key in completed[1].file_ids]
                     assert any("ANEXO QA ORIGINAL" in text for text in texts), texts

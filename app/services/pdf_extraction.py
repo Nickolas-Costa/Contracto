@@ -29,6 +29,7 @@ from utils.date_formatter import validar_data
 from utils.document_validator import formatar_telefone_progressivo, validar_email
 from utils.filename_utils import remover_acentos
 from services.generator_service import obter_mapeamento_formulario
+from services.pdf_service import PDFIUM_LOCK
 from utils.pis_pasep_validator import formatar_pis_pasep, validar_pis_pasep
 
 MAX_BYTES = 20 * 1024 * 1024
@@ -73,8 +74,10 @@ def ler_pdf(caminho: Path, forcar_ocr: bool = False) -> Leitura:
             valor = dados.get("/V")
             if valor is not None and str(valor).strip() and str(valor) != "/Off":
                 campos[str(nome)] = str(valor).strip()
-        documento = pypdfium2.PdfDocument(str(caminho))
+        PDFIUM_LOCK.acquire()  # o PDFium não é seguro entre threads (a geração achata em outra)
+        documento = None
         try:
+            documento = pypdfium2.PdfDocument(str(caminho))
             if len(documento) > MAX_PAGINAS:
                 raise ExtracaoErro(f"O PDF tem mais de {MAX_PAGINAS} páginas.")
             paginas = [documento[i].get_textpage().get_text_range() for i in range(len(documento))]
@@ -88,7 +91,9 @@ def ler_pdf(caminho: Path, forcar_ocr: bool = False) -> Leitura:
                     raise
                 sem_texto = []
         finally:
-            documento.close()
+            if documento is not None:
+                documento.close()
+            PDFIUM_LOCK.release()
     except ExtracaoErro:
         raise
     except Exception as exc:  # parser de terceiros: qualquer falha vira mensagem genérica

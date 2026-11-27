@@ -164,7 +164,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         )
 
         resultado = gerar_documentos(
-            [participante], self.perfil, self.pasta_saida
+            [participante], self.perfil, self.pasta_saida, manter_editavel=True
         )
 
         self.assertEqual(len(resultado.arquivos_gerados), 2)
@@ -202,7 +202,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
         terceiro.copiar_dados_compartilhados(principal)
 
         resultado = gerar_documentos(
-            [principal, segundo, terceiro], self.perfil, self.pasta_saida
+            [principal, segundo, terceiro], self.perfil, self.pasta_saida, manter_editavel=True
         )
 
         self.assertEqual(len(resultado.arquivos_gerados), 6)  # 3 participantes x 2 documentos
@@ -226,7 +226,7 @@ class TestGeracaoDeDocumentosPontaAPonta(unittest.TestCase):
             nome_completo="Ana", cpf="123.456.789-09", endereco="Rua X", data_assinatura="01/01/2026"
         )
         resultado = gerar_documentos(
-            [participante], self.perfil, self.pasta_saida
+            [participante], self.perfil, self.pasta_saida, manter_editavel=True
         )
 
         # Tem que gerar o arquivo mesmo com erro

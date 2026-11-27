@@ -106,7 +106,7 @@ class TestGeracaoPontaAPontaComPdfsReais(unittest.TestCase):
         resultado = generator_service.gerar_documentos(
             [participante],
             self.perfil_padrao,
-            self.pasta_saida,
+            self.pasta_saida, manter_editavel=True
         )
 
         self.assertEqual(resultado.avisos, [], f"Não deveria haver avisos: {resultado.avisos}")
